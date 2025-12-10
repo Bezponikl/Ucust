@@ -1,0 +1,9 @@
+temp-structure/
+  ├── src/
+  │    └── .gitkeep
+  ├── tests/
+  │    └── .gitkeep
+  ├── docs/
+  │    └── .gitkeep
+  └── scripts/
+       └── .gitkeep

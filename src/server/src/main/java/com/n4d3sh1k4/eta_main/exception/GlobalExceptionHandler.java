@@ -1,0 +1,53 @@
+package com.n4d3sh1k4.eta_main.exception;
+
+import com.n4d3sh1k4.eta_main.dto.exception_dto.ApiError;
+import com.n4d3sh1k4.eta_main.dto.exception_dto.ErrorCode;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ErrorCode.USER_ALREADY_EXISTS, ex.getMessage());
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ApiError> handleNotFound(NoSuchElementException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.USER_NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ErrorCode.INVALID_CREDENTIALS, ex.getMessage());
+    }
+
+    @ExceptionHandler(TokenNotFoundException.class)
+    public ResponseEntity<ApiError> tokenNotFound(TokenNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ErrorCode.TOKEN_NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<ApiError> tokenException(TokenExpiredException ex) {
+        return buildResponse(HttpStatus.GONE, ErrorCode.TOKEN_EXPIRED, ex.getMessage());
+    }
+
+    @ExceptionHandler(ServerErrorException.class)
+    public ResponseEntity<ApiError> serverErrorException(ServerErrorException ex) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorCode.SERVER_ERROR, ex.getMessage());
+    }
+
+    private ResponseEntity<ApiError> buildResponse(HttpStatus status, ErrorCode code, String message) {
+        return new ResponseEntity<>(new ApiError(
+                status.value(),
+                code.name(),
+                (message != null && !message.isEmpty()) ? message : code.getDefaultMessage(),
+                LocalDateTime.now()
+        ), status);
+    }
+}

@@ -1,8 +1,10 @@
 package com.n4d3sh1k4.eta_main.controller.user;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Hidden
 @RestController
 @RequestMapping("/users/{id}")
 public class UserController {

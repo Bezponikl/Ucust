@@ -12,6 +12,7 @@ import com.n4d3sh1k4.eta_main.security.UserDetailsServiceImpl;
 import com.n4d3sh1k4.eta_main.service.AuthService;
 import com.n4d3sh1k4.eta_main.service.RefreshTokenService;
 import com.n4d3sh1k4.eta_main.utils.CookieUtils;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 
@@ -36,7 +37,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         AuthServiceResult result = authService.registerUser(req);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
@@ -44,7 +45,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         AuthServiceResult result = authService.loginUser(loginRequest);
@@ -73,14 +74,19 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.createPasswordResetToken(request.getEmail());
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(HttpStatus.OK);
+    }
+
+    @GetMapping("/check-me")
+    public String checkMe(Authentication authentication) {
+        return "Your authorities: " + authentication.getAuthorities();
     }
 }

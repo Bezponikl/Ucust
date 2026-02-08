@@ -50,7 +50,7 @@ public class SecurityConfig {
                                 "/v3/**",
                                 "/actuator/**"
                         ).permitAll()
-                        .requestMatchers("/admin/**").hasRole("USER")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                     .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

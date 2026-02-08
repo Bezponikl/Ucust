@@ -9,8 +9,8 @@ public enum ErrorCode {
     TOKEN_EXPIRED("Token has expired"),
     TOKEN_NOT_FOUND("Token not found"),
     VALIDATION_ERROR("Field validation error"),
-    SERVER_ERROR("Internal server error"),
-    USER_NOT_FOUND("The user was not found in the system");
+    USER_NOT_FOUND("The user was not found in the system"),
+    INTERNAL_ERROR("Internal server error");
 
     private final String defaultMessage;
 

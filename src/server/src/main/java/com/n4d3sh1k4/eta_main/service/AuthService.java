@@ -9,6 +9,7 @@ import com.n4d3sh1k4.eta_main.dto.request_dto.LoginRequest;
 import com.n4d3sh1k4.eta_main.dto.request_dto.RegisterRequest;
 import com.n4d3sh1k4.eta_main.dto.AuthServiceResult;
 import com.n4d3sh1k4.eta_main.exception.BadCredentialsException;
+
 import com.n4d3sh1k4.eta_main.exception.TokenNotFoundException;
 import com.n4d3sh1k4.eta_main.exception.UserAlreadyExistsException;
 import com.n4d3sh1k4.eta_main.jwt.JwtProvider;
@@ -41,15 +42,10 @@ public class AuthService {
     private final CookieUtils cookieUtils;
     private final AuthenticationManager authenticationManager;
 
-
-
     @Transactional
     public AuthServiceResult registerUser(RegisterRequest req) {
         if (userRepository.findByEmail(req.getEmail()).isPresent()) {
-            throw new UserAlreadyExistsException("Пользователь с таким email уже существует!");
-        }
-
-        if(!req.getPassword().equals(req.getConfirmPassword())) {
+            throw new UserAlreadyExistsException("A user with this email already exists!");
         }
 
         String encodedPassword = passwordEncoder.encode(req.getPassword());
@@ -58,7 +54,7 @@ public class AuthService {
         user.setUsername(req.getUsername());
         user.setEmail(req.getEmail());
         user.setPasswordHash(encodedPassword);
-        user.setRoles(roleRepository.findByName("ROLE_USER"));
+        user.setRoles(roleRepository.findByName("USER"));
         userRepository.save(user);
 
         return new AuthServiceResult(
@@ -129,5 +125,4 @@ public class AuthService {
         refreshTokenService.deleteByUser(user);
         passwordResetTokenRepository.delete(resetToken);
     }
-
 }

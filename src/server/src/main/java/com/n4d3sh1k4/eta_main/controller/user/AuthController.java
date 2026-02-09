@@ -12,6 +12,8 @@ import com.n4d3sh1k4.eta_main.security.UserDetailsServiceImpl;
 import com.n4d3sh1k4.eta_main.service.AuthService;
 import com.n4d3sh1k4.eta_main.service.RefreshTokenService;
 import com.n4d3sh1k4.eta_main.utils.CookieUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name="Авторизация", description = "всё про авторизацию")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -36,6 +39,7 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @Operation(summary = "Регистрация пользователей", description = "Позволяет добавить пользователя в систему. После регистрации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         AuthServiceResult result = authService.registerUser(req);
@@ -44,6 +48,7 @@ public class AuthController {
                 .body(new JwtResponse(result.getAccesToken()));
     }
 
+    @Operation(summary = "Авторизация пользователей", description = "Позволяет авторизоваться пользователю в системе. После авторизации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
@@ -54,6 +59,7 @@ public class AuthController {
                 .body(new JwtResponse(result.getAccesToken()));
     }
 
+    @Operation(summary = "Выход пользователя из аккаунта", description = "Позволяет пользователю обнулить текущую сессию. Удаляет токен из куки.")
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
         AuthServiceResult result = authService.logoutUser(refreshToken);
@@ -62,6 +68,7 @@ public class AuthController {
                 .body("Logged out successfully");
     }
 
+    @Operation(summary = "Обновление refresh токена авторизации", description = "Позволяет фронту обновить refresh токен пользователя без необходимости повторного входа а аккаунт по истечению времени пребывания авторизованным.")
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
         if (refreshToken == null) {
@@ -73,20 +80,17 @@ public class AuthController {
                 .body(new JwtResponse(result.getAccesToken()));
     }
 
+    @Operation(summary = "Восстановление пароля", description = "Принимает почту пользователя и отправляет на неё письмо для восстановления пароля.")
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.createPasswordResetToken(request.getEmail());
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
+    @Operation(summary = "Смена пароля", description = "Позволяет сменить пароль при наличии токена из письма с почты.")
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(HttpStatus.OK);
-    }
-
-    @GetMapping("/check-me")
-    public String checkMe(Authentication authentication) {
-        return "Your authorities: " + authentication.getAuthorities();
     }
 }

@@ -4,13 +4,11 @@ import com.n4d3sh1k4.eta_main.dto.exception_dto.ApiError;
 import com.n4d3sh1k4.eta_main.dto.exception_dto.ErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -48,7 +46,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleMethodArgumentNotValid(Exception ex) {
         if (ex instanceof MethodArgumentNotValidException validEx) {
-            String msg = validEx.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+            String msg = validEx.getBindingResult().getAllErrors().getFirst().getDefaultMessage();
             return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.VALIDATION_ERROR, msg);
         }
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, "Unknown error");

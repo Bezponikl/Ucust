@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+:root {
+  --canvas: #eef2fa;
+  --surface-soft: #f4f7fc;
+  --surface-blue: #e7edfe;
+  --card: #ffffff;
+  --border: #e1e7f5;
+  --brand: #1e49e2;
+  --brand-hover: #1638b8;
+  --brand-tint: #e8edfe;
+  --ink: #0a1a3c;
+  --ink-muted: #6b7a99;
+  --success: #18a957;
+
+  --hero-from: #15309e;
+  --hero-via: #1e49e2;
+  --hero-to: #4f7cf5;
+  --hero-chevron: rgba(255, 255, 255, 0.1);
+  --hero-chevron-soft: rgba(255, 255, 255, 0.06);
+
+  --channel-vk: #0077ff;
+  --channel-telegram: #28a8e9;
+  --channel-max: #7c5cff;
+  --channel-zen: #1a1a1a;
+  --channel-ok: #ee8208;
+  --channel-whatsapp: #25d366;
+  --channel-rutube: #ee3f24;
+  --channel-avito: #965eeb;
+
+  --shadow-soft: 0 1px 2px rgba(10, 26, 60, 0.04), 0 8px 24px rgba(10, 26, 60, 0.07);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-blue: var(--surface-blue);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-tint: var(--brand-tint);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-success: var(--success);
+
+  --color-hero-from: var(--hero-from);
+  --color-hero-via: var(--hero-via);
+  --color-hero-to: var(--hero-to);
+
+  --color-channel-vk: var(--channel-vk);
+  --color-channel-telegram: var(--channel-telegram);
+  --color-channel-max: var(--channel-max);
+  --color-channel-zen: var(--channel-zen);
+  --color-channel-ok: var(--channel-ok);
+  --color-channel-whatsapp: var(--channel-whatsapp);
+  --color-channel-rutube: var(--channel-rutube);
+  --color-channel-avito: var(--channel-avito);
+
+  --font-display: var(--font-onest);
+  --font-body: var(--font-golos);
+  --font-mono: var(--font-jetbrains);
+
+  --shadow-soft: var(--shadow-soft);
+
+  --container-page: 1200px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+.font-mono-label {
+  font-family: var(--font-mono), monospace;
+}
+
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

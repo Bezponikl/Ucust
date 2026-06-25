@@ -1,0 +1,12 @@
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle-reshala
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8888:8080" 
+    environment:
+      - DOZZLE_TAILSIZE=1000
+      - DOZZLE_BASE=/admin/monitoring
+      - DOZZLE_FILTER=status=running

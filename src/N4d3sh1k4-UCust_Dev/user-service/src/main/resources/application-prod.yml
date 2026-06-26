@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/user_service_db
+    username: ETA_DBUser
+    password: ${DB_PASSWORD}
+  rabbitmq:
+    host: rabbitmq
+    username: service-user
+    password: servicepassword
+    virtual-host: universal-host
+
+minio:
+  endpoint: http://minio:9000
+  base:
+    path: http://${SERVER_TAILSCALE_IP}:9000/user-service/

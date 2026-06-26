@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: security-service
+  cloud:
+    config:
+      enabled: false
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/security_service_db
+    username: ETA_DBUser
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: service-user
+    password: servicepassword
+    virtual-host: universal-host
+  security:
+    oauth2:
+      client:
+        registration:
+          yandex:
+            client-id: ${YANDEX_CLIENT_ID}
+            client-secret: ${YANDEX_CLIENT_SECRET}
+
+server:
+  port: 8101
+  forward-headers-strategy: native
+
+jwt:
+  secret:
+    access: ${JWT_SECRET_ACCESS}
+
+cookie:
+  secure:
+    state: false
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    root: INFO
+    org.springframework.web: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

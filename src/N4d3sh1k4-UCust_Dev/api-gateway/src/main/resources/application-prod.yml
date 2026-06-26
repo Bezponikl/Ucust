@@ -1,0 +1,42 @@
+server:
+  port: 8100
+  # КРИТИЧНО: Чтобы Spring понимал, что запрос пришел через прокси (Nginx)
+  # и правильно строил Redirect URI для OAuth2
+  forward-headers-strategy: native
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: security-service
+          uri: http://security-service:8101
+          predicates:
+            - Path=/api/auth/**
+        - id: user-service
+          uri: http://user-service:8102
+          predicates:
+            - Path=/api/users/**
+        - id: business-service
+          uri: http://business-service:8104
+          predicates:
+            - Path=/api/business/**
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  codec:
+    max-in-memory-size: 10MB
+
+# Секрет должен совпадать со всеми остальными сервисами!
+jwt:
+  secret:
+    access: ${JWT_SECRET_ACCESS:dGhpcy1pcy1hLWxvY2FsLWRldi1zZWNsLyZXQtYmFzZsLTY0LWtleQ==}
+
+logging:
+  level:
+    # На проде лучше поставить INFO, чтобы не забивать диск i3
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway.route.RouteDefinitionLocator: INFO

@@ -1,8 +1,0 @@
-rootProject.name = 'Reshala'
-
-include 'common'
-include 'api-gateway'
-include 'security-service'
-include 'netflix-eureka'
-include 'notification-service'
-include 'solution_archive-service'

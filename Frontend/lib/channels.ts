@@ -15,6 +15,8 @@ export interface ChannelMeta {
   short: string;
   colorVar: string;
   icon?: string;
+  /** Альтернативный логотип для тёмной темы (например, со светлым текстом). */
+  iconDark?: string;
   iconType?: "square" | "wordmark";
 }
 
@@ -68,6 +70,7 @@ export const CHANNELS: Record<ChannelId, ChannelMeta> = {
     short: "RT",
     colorVar: "var(--channel-rutube)",
     icon: "/rutube.png",
+    iconDark: "/rutube-white.png",
     iconType: "wordmark",
   },
   avito: {
@@ -76,6 +79,7 @@ export const CHANNELS: Record<ChannelId, ChannelMeta> = {
     short: "АВ",
     colorVar: "var(--channel-avito)",
     icon: "/avito.png",
+    iconDark: "/avito-white.png",
     iconType: "wordmark",
   },
 };

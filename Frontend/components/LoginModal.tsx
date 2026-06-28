@@ -4,9 +4,9 @@ import Image from "next/image";
 import ModalShell from "./ModalShell";
 
 const SOCIAL_LOGINS = [
-  { label: "VK", icon: "/vk.png" },
-  { label: "Telegram", icon: "/telegram.png" },
-  { label: "MAX", icon: "/max.png" },
+  { label: "VK", cta: "Продолжить с VK", icon: "/vk.png" },
+  { label: "Telegram", cta: "Продолжить в Telegram", icon: "/telegram.png" },
+  { label: "MAX", cta: "Продолжить через MAX", icon: "/max.png" },
 ];
 
 export default function LoginModal({
@@ -20,11 +20,11 @@ export default function LoginModal({
 }) {
   return (
     <ModalShell open={open} onClose={onClose} labelledBy="login-modal-title">
-      <h2 id="login-modal-title" className="text-2xl font-bold text-ink sm:text-3xl">
+      <h2 id="login-modal-title" className="text-2xl font-bold text-ink sm:text-[28px]">
         С возвращением
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-        Войдите в аккаунт, чтобы управлять контентом и публикациями.
+        Войдите в аккаунт, чтобы продолжить.
       </p>
 
       <form className="mt-6 flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
@@ -34,7 +34,7 @@ export default function LoginModal({
             type="email"
             required
             placeholder="you@example.com"
-            className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
+            className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card"
           />
         </label>
 
@@ -44,7 +44,7 @@ export default function LoginModal({
             type="password"
             required
             placeholder="••••••••"
-            className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
+            className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card"
           />
         </label>
 
@@ -66,34 +66,35 @@ export default function LoginModal({
 
         <button
           type="submit"
-          className="mt-1 inline-flex items-center justify-center rounded-xl bg-brand px-6 py-3.5 text-sm font-medium text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-brand-hover"
+          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold"
         >
           Войти
         </button>
       </form>
 
-      <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-muted">
+      <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-ink-muted">
         <span className="h-px flex-1 bg-border" aria-hidden="true" />
         или
         <span className="h-px flex-1 bg-border" aria-hidden="true" />
       </div>
 
-      <div className="mt-5 flex items-center justify-center gap-3">
+      <div className="flex flex-col gap-2.5">
         {SOCIAL_LOGINS.map((social) => (
           <button
             key={social.label}
             type="button"
-            aria-label={`Войти через ${social.label}`}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface-soft transition-all hover:-translate-y-0.5 hover:shadow-soft"
+            className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm font-medium text-ink transition-all hover:border-brand/40 hover:bg-card dark:hover:bg-white/5"
           >
             <Image
               src={social.icon}
               alt=""
-              width={24}
-              height={24}
-              className="h-6 w-6 object-contain"
+              width={22}
+              height={22}
+              className="h-5 w-5 shrink-0 object-contain"
               aria-hidden="true"
             />
+            <span className="flex-1 text-center">{social.cta}</span>
+            <span className="w-5" aria-hidden="true" />
           </button>
         ))}
       </div>

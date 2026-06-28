@@ -1,26 +1,16 @@
 import type { Metadata } from "next";
-import { Onest, Golos_Text, JetBrains_Mono } from "next/font/google";
+import { Manrope } from "next/font/google";
 import AuthModalProvider from "@/components/AuthModalProvider";
+import ScrollTop from "@/components/ScrollTop";
 import "./globals.css";
 
-const onest = Onest({
-  variable: "--font-onest",
-  subsets: ["latin", "cyrillic"],
-  weight: ["600", "700", "800"],
-  display: "swap",
-});
+// Ставим тему до первой отрисовки, чтобы не было вспышки светлой темы
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
-const golos = Golos_Text({
-  variable: "--font-golos",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin", "cyrillic"],
-  weight: ["400", "500"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -36,9 +26,6 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     siteName: "UCust",
   },
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({
@@ -47,12 +34,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ru"
-      className={`${onest.variable} ${golos.variable} ${jetbrainsMono.variable}`}
-    >
+    <html lang="ru" className={manrope.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-screen bg-canvas text-ink antialiased">
         <AuthModalProvider>{children}</AuthModalProvider>
+        <ScrollTop />
       </body>
     </html>
   );

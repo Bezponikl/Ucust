@@ -9,11 +9,14 @@ export default function ModalShell({
   open,
   onClose,
   labelledBy,
+  aside,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   labelledBy: string;
+  /** Брендовая панель слева (десктоп). Если передана — модалка широкая, в две колонки. */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
@@ -39,6 +42,8 @@ export default function ModalShell({
 
   if (!mounted) return null;
 
+  const wide = Boolean(aside);
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -61,18 +66,39 @@ export default function ModalShell({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-card p-7 shadow-soft sm:p-8"
+            className={`relative max-h-[92vh] w-full overflow-hidden rounded-[28px] bg-card shadow-lift ${
+              wide ? "max-w-4xl" : "max-w-md"
+            }`}
           >
             <button
               type="button"
               onClick={onClose}
               aria-label="Закрыть"
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink"
+              className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-ink-muted backdrop-blur transition-colors hover:bg-surface-soft hover:text-ink dark:bg-white/10 dark:hover:bg-white/15"
             >
               <X size={20} aria-hidden="true" />
             </button>
 
-            {children}
+            {wide ? (
+              <div className="grid lg:grid-cols-[0.92fr_1fr]">
+                <aside className="relative hidden overflow-hidden bg-gradient-to-br from-hero-from via-hero-via to-hero-to p-9 text-white lg:flex lg:flex-col xl:p-10">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 overflow-hidden"
+                  >
+                    <div className="absolute -left-16 -top-16 h-64 w-64 rotate-[18deg] rounded-[56px] bg-[var(--hero-chevron)]" />
+                    <div className="absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-[var(--hero-chevron-soft)] blur-2xl" />
+                  </div>
+                  <div className="relative flex h-full flex-col">{aside}</div>
+                </aside>
+
+                <div className="max-h-[92vh] overflow-y-auto p-7 sm:p-10">
+                  {children}
+                </div>
+              </div>
+            ) : (
+              <div className="max-h-[92vh] overflow-y-auto p-7 sm:p-8">{children}</div>
+            )}
           </motion.div>
         </div>
       )}

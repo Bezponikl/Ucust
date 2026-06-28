@@ -5,13 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useAuthModal } from "./AuthModalProvider";
+import ThemeToggle from "./ThemeToggle";
 
 const NAV_LINKS = [
   { href: "#features", label: "Возможности" },
   { href: "#how-it-works", label: "Как работает" },
   { href: "#channels", label: "Каналы" },
   { href: "#pricing", label: "Тарифы" },
-  { href: "#faq", label: "FAQ" },
+  { href: "#faq", label: "Вопросы" },
 ];
 
 export default function Navbar() {
@@ -35,24 +36,33 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b bg-card/95 backdrop-blur-sm transition-shadow duration-300 ${
-        scrolled ? "border-border shadow-[0_1px_0_0_rgba(10,26,60,0.04)]" : "border-transparent"
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "border-b border-white/50 bg-white/65 shadow-[0_4px_30px_rgba(31,36,51,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-canvas/70"
+          : "border-b border-transparent bg-transparent"
       }`}
     >
       <nav
         aria-label="Главная навигация"
         className="mx-auto flex max-w-(--container-page) items-center justify-between px-5 py-3.5 sm:px-6"
       >
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+        <Link href="/" aria-label="UCust — на главную" className="flex shrink-0 items-center">
           <Image
-            src="/logo.jpg"
+            src="/logo-wordmark.webp"
             alt="UCust"
-            width={120}
-            height={40}
+            width={700}
+            height={161}
             priority
-            className="h-8 w-auto sm:h-9"
+            className="h-6 w-auto sm:h-7 dark:hidden"
           />
-          <span className="sr-only">UCust</span>
+          <Image
+            src="/brand/logo-lighttext.webp"
+            alt="UCust"
+            width={700}
+            height={161}
+            priority
+            className="hidden h-6 w-auto sm:h-7 dark:block"
+          />
         </Link>
 
         <ul className="hidden items-center gap-8 lg:flex">
@@ -69,32 +79,36 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle className="mr-1" />
           <button
             type="button"
             onClick={openLogin}
-            className="rounded-full px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
+            className="btn-glass rounded-full px-4 py-2 text-sm font-medium"
           >
             Войти
           </button>
           <button
             type="button"
             onClick={openSignup}
-            className="rounded-full bg-brand-tint px-4 py-2 text-sm font-medium text-brand transition-colors hover:bg-brand hover:text-white"
+            className="btn-glass-fill rounded-full px-4 py-2 text-sm font-semibold"
           >
             Зарегистрироваться
           </button>
         </div>
 
-        <button
-          type="button"
-          aria-label={open ? "Закрыть меню" : "Открыть меню"}
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-surface-soft lg:hidden"
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-1.5 lg:hidden">
+          <ThemeToggle />
+          <button
+            type="button"
+            aria-label={open ? "Закрыть меню" : "Открыть меню"}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-surface-soft"
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </nav>
 
       {open && (
@@ -122,7 +136,7 @@ export default function Navbar() {
                 setOpen(false);
                 openLogin();
               }}
-              className="rounded-full px-4 py-3 text-center text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
+              className="btn-glass rounded-full px-4 py-3 text-center text-sm font-medium"
             >
               Войти
             </button>
@@ -132,7 +146,7 @@ export default function Navbar() {
                 setOpen(false);
                 openSignup();
               }}
-              className="rounded-full bg-brand px-4 py-3 text-center text-sm font-medium text-white shadow-soft transition-colors hover:bg-brand-hover"
+              className="btn-glass-fill rounded-full px-4 py-3 text-center text-sm font-semibold"
             >
               Зарегистрироваться
             </button>

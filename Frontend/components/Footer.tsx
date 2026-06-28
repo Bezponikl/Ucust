@@ -18,7 +18,7 @@ const COLUMNS = [
   {
     title: "Поддержка",
     links: [
-      { label: "FAQ", href: "#faq" },
+      { label: "Вопросы", href: "#faq" },
       { label: "Контакты", href: "/contacts" },
     ],
   },
@@ -39,11 +39,18 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           <div className="col-span-2 sm:col-span-1">
             <Image
-              src="/logo.jpg"
+              src="/logo-wordmark.webp"
               alt="UCust"
-              width={120}
-              height={40}
-              className="h-12 w-auto sm:h-14"
+              width={700}
+              height={161}
+              className="h-6 w-auto sm:h-7 dark:hidden"
+            />
+            <Image
+              src="/brand/logo-lighttext.webp"
+              alt="UCust"
+              width={700}
+              height={161}
+              className="hidden h-6 w-auto sm:h-7 dark:block"
             />
             <ul className="mt-5 flex items-center gap-3">
               {SOCIALS.map((social) => (
@@ -70,7 +77,7 @@ export default function Footer() {
 
           {COLUMNS.map((column) => (
             <div key={column.title}>
-              <h3 className="font-display text-xs font-medium uppercase tracking-wide text-ink-muted">
+              <h3 className="kicker text-xs text-ink-muted">
                 {column.title}
               </h3>
               <ul className="mt-4 flex flex-col gap-3">
@@ -89,7 +96,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <p className="font-display mt-12 text-xs leading-relaxed text-ink-muted">
+        <p className="mt-12 text-xs leading-relaxed text-ink-muted">
           © 2026 UCust. Правообладатель — ООО «ЕТА СОФТ ГРУПП». Данные
           обрабатываются и хранятся на территории РФ.
         </p>

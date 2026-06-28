@@ -36,20 +36,21 @@ const FAQ_ITEMS = [
 ];
 
 export default function Faq() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <section
       id="faq"
-      className="mx-auto max-w-(--container-page) px-5 py-16 sm:px-6 sm:py-24 lg:py-32"
+      className="mx-auto max-w-(--container-page) px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
     >
       <Reveal>
-        <h2 className="max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl">
+        <p className="kicker mb-4 text-xs text-brand sm:text-sm">Вопросы</p>
+        <h2 className="max-w-2xl text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
           Частые вопросы
         </h2>
       </Reveal>
 
-      <div className="mt-10 flex flex-col divide-y divide-border rounded-2xl bg-card px-6 shadow-soft sm:mt-12 sm:px-8">
+      <div className="mt-10 flex flex-col divide-y divide-border rounded-[32px] bg-card px-6 shadow-soft sm:mt-12 sm:px-8 sm:py-2">
         {FAQ_ITEMS.map((item, index) => {
           const isOpen = openIndex === index;
           const panelId = `faq-panel-${index}`;

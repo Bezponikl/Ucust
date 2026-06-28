@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ModalShell from "./ModalShell";
 
 type Step = "form" | "code";
@@ -15,6 +16,7 @@ export default function SignupModal({
   onClose: () => void;
   onSwitchToLogin: () => void;
 }) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("form");
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -34,6 +36,13 @@ export default function SignupModal({
     setStep("code");
   };
 
+  // Подтверждение email завершает регистрацию и ведёт в онбординг проекта.
+  const handleConfirm = (e: React.FormEvent) => {
+    e.preventDefault();
+    onClose();
+    router.push("/onboarding");
+  };
+
   const handleCodeChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
     setCode((prev) => {
@@ -46,17 +55,23 @@ export default function SignupModal({
     }
   };
 
-  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleCodeKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     if (e.key === "Backspace" && !code[index] && index > 0) {
       codeRefs.current[index - 1]?.focus();
     }
   };
 
+  const inputClass =
+    "rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card";
+
   return (
     <ModalShell open={open} onClose={onClose} labelledBy="signup-modal-title">
       {step === "form" ? (
         <>
-          <h2 id="signup-modal-title" className="text-2xl font-bold text-ink sm:text-3xl">
+          <h2 id="signup-modal-title" className="text-2xl font-bold text-ink sm:text-[28px]">
             Создать аккаунт
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
@@ -67,34 +82,21 @@ export default function SignupModal({
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-ink">Имя</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="Иван"
-                  className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
-                />
+                <input type="text" required placeholder="Иван" className={inputClass} />
               </label>
 
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-ink">Фамилия</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="Иванов"
-                  className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
-                />
+                <input type="text" required placeholder="Иванов" className={inputClass} />
               </label>
             </div>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-ink">
-                Отчество <span className="font-normal text-ink-muted">(не обязательно)</span>
+                Отчество{" "}
+                <span className="font-normal text-ink-muted">(не обязательно)</span>
               </span>
-              <input
-                type="text"
-                placeholder="Иванович"
-                className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
-              />
+              <input type="text" placeholder="Иванович" className={inputClass} />
             </label>
 
             <label className="flex flex-col gap-1.5">
@@ -103,7 +105,7 @@ export default function SignupModal({
                 type="email"
                 required
                 placeholder="you@example.com"
-                className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
+                className={inputClass}
               />
             </label>
 
@@ -114,7 +116,7 @@ export default function SignupModal({
                   type="password"
                   required
                   placeholder="••••••••"
-                  className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
+                  className={inputClass}
                 />
               </label>
 
@@ -124,7 +126,7 @@ export default function SignupModal({
                   type="password"
                   required
                   placeholder="••••••••"
-                  className="rounded-xl border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand"
+                  className={inputClass}
                 />
               </label>
             </div>
@@ -137,15 +139,24 @@ export default function SignupModal({
               />
               <span>
                 Я принимаю условия{" "}
-                <Link href="/legal/offer" className="font-medium text-brand transition-colors hover:text-brand-hover">
+                <Link
+                  href="/legal/offer"
+                  className="font-medium text-brand transition-colors hover:text-brand-hover"
+                >
                   Публичной оферты
                 </Link>
                 ,{" "}
-                <Link href="/legal/privacy" className="font-medium text-brand transition-colors hover:text-brand-hover">
+                <Link
+                  href="/legal/privacy"
+                  className="font-medium text-brand transition-colors hover:text-brand-hover"
+                >
                   Политики конфиденциальности
                 </Link>{" "}
                 и{" "}
-                <Link href="/legal/pdn-consent" className="font-medium text-brand transition-colors hover:text-brand-hover">
+                <Link
+                  href="/legal/pdn-consent"
+                  className="font-medium text-brand transition-colors hover:text-brand-hover"
+                >
                   Согласия на обработку ПДн
                 </Link>
               </span>
@@ -153,7 +164,7 @@ export default function SignupModal({
 
             <button
               type="submit"
-              className="mt-1 inline-flex items-center justify-center rounded-xl bg-brand px-6 py-3.5 text-sm font-medium text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-brand-hover"
+              className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold"
             >
               Зарегистрироваться
             </button>
@@ -172,7 +183,7 @@ export default function SignupModal({
         </>
       ) : (
         <>
-          <h2 id="signup-modal-title" className="text-2xl font-bold text-ink sm:text-3xl">
+          <h2 id="signup-modal-title" className="text-2xl font-bold text-ink sm:text-[28px]">
             Подтвердите email
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
@@ -180,10 +191,7 @@ export default function SignupModal({
             завершить регистрацию.
           </p>
 
-          <form
-            className="mt-6 flex flex-col gap-5"
-            onSubmit={(e) => e.preventDefault()}
-          >
+          <form className="mt-6 flex flex-col gap-5" onSubmit={handleConfirm}>
             <div className="flex items-center justify-between gap-2 sm:gap-3">
               {code.map((digit, i) => (
                 <input
@@ -197,14 +205,14 @@ export default function SignupModal({
                   value={digit}
                   onChange={(e) => handleCodeChange(i, e.target.value)}
                   onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                  className="h-12 w-full max-w-12 rounded-xl border border-border bg-surface-soft text-center text-lg font-bold text-ink outline-none transition-colors focus:border-brand"
+                  className="h-14 w-full max-w-14 rounded-xl border border-border bg-surface-soft text-center text-xl font-bold text-ink outline-none transition-colors focus:border-brand focus:bg-card"
                 />
               ))}
             </div>
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-xl bg-brand px-6 py-3.5 text-sm font-medium text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-brand-hover"
+              className="btn-glass-blue inline-flex w-full items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold"
             >
               Подтвердить
             </button>
@@ -223,7 +231,7 @@ export default function SignupModal({
           <button
             type="button"
             onClick={() => setStep("form")}
-            className="mt-2 w-full text-center text-sm text-ink-muted transition-colors hover:text-ink"
+            className="mt-3 w-full text-center text-sm text-ink-muted transition-colors hover:text-ink"
           >
             ← Изменить email
           </button>

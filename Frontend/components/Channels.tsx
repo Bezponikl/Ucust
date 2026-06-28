@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import Reveal from "./Reveal";
@@ -10,20 +11,29 @@ function ChannelCard({ id }: { id: (typeof CHANNEL_ORDER)[number] }) {
 
   if (channel.iconType === "wordmark" && channel.icon) {
     return (
-      <div className="flex shrink-0 items-center rounded-2xl border border-border bg-card px-6 py-4 shadow-soft">
+      <div className="flex shrink-0 items-center rounded-[20px] border border-border bg-card px-6 py-4 shadow-soft">
         <Image
           src={channel.icon}
           alt={channel.label}
           width={120}
           height={32}
-          className="h-6 w-auto object-contain sm:h-7"
+          className={`h-6 w-auto object-contain sm:h-7 ${channel.iconDark ? "dark:hidden" : ""}`}
         />
+        {channel.iconDark && (
+          <Image
+            src={channel.iconDark}
+            alt={channel.label}
+            width={120}
+            height={32}
+            className="hidden h-6 w-auto object-contain sm:h-7 dark:block"
+          />
+        )}
       </div>
     );
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-2.5 rounded-2xl border border-border bg-card px-5 py-4 shadow-soft">
+    <div className="flex shrink-0 items-center gap-2.5 rounded-[20px] border border-border bg-card px-5 py-4 shadow-soft">
       {channel.icon ? (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
           <Image
@@ -53,12 +63,19 @@ function ChannelCard({ id }: { id: (typeof CHANNEL_ORDER)[number] }) {
 
 export default function Channels() {
   const prefersReducedMotion = useReducedMotion();
+  // На сервере и при первой гидрации всегда рендерим бегущую ленту,
+  // чтобы разметка совпадала; на статичную раскладку переключаемся
+  // уже после монтирования, если пользователь просит меньше движения.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const reduceMotion = mounted && prefersReducedMotion;
   const track = [...CHANNEL_ORDER, ...CHANNEL_ORDER, ...CHANNEL_ORDER];
 
   return (
-    <section id="channels" className="py-16 sm:py-24 lg:py-32">
+    <section id="channels" className="py-12 sm:py-16 lg:py-20">
       <Reveal className="mx-auto max-w-(--container-page) px-5 sm:px-6">
-        <h2 className="max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl">
+        <p className="kicker mb-4 text-xs text-brand sm:text-sm">Каналы</p>
+        <h2 className="max-w-2xl text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
           Публикуем туда, где ваши клиенты
         </h2>
         <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
@@ -67,7 +84,7 @@ export default function Channels() {
       </Reveal>
 
       <div className="relative mt-16 overflow-hidden sm:mt-24 lg:mt-32 [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-        {prefersReducedMotion ? (
+        {reduceMotion ? (
           <div className="flex flex-wrap items-center justify-center gap-3 px-5 sm:gap-4 sm:px-6">
             {CHANNEL_ORDER.map((id) => (
               <ChannelCard key={id} id={id} />

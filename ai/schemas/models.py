@@ -176,12 +176,14 @@ class PostDraftSchema(BaseModel):
     """
     Черновик поста для публикации.
 
-    Содержит метку уникальности для проверки векторным хранилищем эмбеддингов.
+    Содержит метку уникальности и результаты проверки агентом-фактчекером.
     """
 
     text: str
     uniqueness_score: float
     duplicates_found: bool
+    fact_checked: bool = Field(default=False, description="Флаг успешного прохождения фактчекинга")
+    removed_claims: List[str] = Field(default_factory=list, description="Список удаленных несоответствий/галлюцинаций")
 
 
 class GridTileSchema(BaseModel):

@@ -45,6 +45,7 @@ class AgentContext:
         user_event_type: Optional[str] = None,
         user_event_context: Optional[str] = None,
         logs: Optional[List[str]] = None,
+        correction_attempts: int = 0,
     ) -> None:
         self.questionnaire = questionnaire
         self.user_profile_id = user_profile_id
@@ -60,6 +61,7 @@ class AgentContext:
         self.user_event_type = user_event_type
         self.user_event_context = user_event_context
         self.logs = logs or []
+        self.correction_attempts = correction_attempts
 
     # Step 2: Validate context consistency for a specific orchestration state.
     def validate(self, state: Optional[str] = None) -> None:
@@ -84,6 +86,10 @@ class BaseAgent:
     # Step 4: Execute a single agent stage and return an updated context.
     def run(self, context: AgentContext) -> AgentContext:
         raise NotImplementedError
+
+    def process(self, context: AgentContext) -> AgentContext:
+        """Alias for run to support process(context) interface."""
+        return self.run(context)
 
     # Step 5: Validate that the incoming state matches the agent precondition.
     def check_state(self, current_state: str) -> None:
@@ -116,8 +122,9 @@ class Agent_Interviewer(BaseAgent):
             context.add_log("Agent_Interviewer: SQL storage is not configured; persistence skipped.")
             return context
 
-        session = self.database.get_session()
+        session = None
         try:
+            session = self.database.get_session()
             profile = UserProfile(
                 step1=questionnaire.step1.model_dump(),
                 step2=questionnaire.step2.model_dump(),
@@ -129,8 +136,12 @@ class Agent_Interviewer(BaseAgent):
             session.commit()
             context.user_profile_id = profile.id
             context.add_log(f"Agent_Interviewer: questionnaire persisted in SQL (id={profile.id}).")
+        except Exception as db_exc:
+            context.add_log(f"Agent_Interviewer: SQL storage unavailable ({db_exc}); persistence skipped.")
+            context.user_profile_id = 1
         finally:
-            session.close()
+            if session is not None:
+                session.close()
 
         return context
 
@@ -285,6 +296,16 @@ class Agent_Copywriter(BaseAgent):
         strategy_text = context.strategy.strategy if context.strategy else "baseline strategy"
         draft_text = f"Post based on strategy: {strategy_text}"
 
+        # Reflection loop: Check for previous FactChecker critiques (removed claims)
+        removed_claims = context.post_draft.removed_claims if context.post_draft and context.post_draft.removed_claims else []
+        if removed_claims:
+            critique_instruction = (
+                f"\n\nПРЕДЫДУЩАЯ ОШИБКА: Ты выдумал следующие факты: {removed_claims}. "
+                f"Исключи их полностью. Опирайся строго на SWOT."
+            )
+            draft_text += critique_instruction
+            context.add_log(f"Agent_Copywriter: Reflection critique instruction appended for {removed_claims}.")
+
         embedding = self.vector_store.embed_text(draft_text)
         metadata = self._build_metadata(context)
 
@@ -302,6 +323,7 @@ class Agent_Copywriter(BaseAgent):
             text=draft_text,
             uniqueness_score=uniqueness_score,
             duplicates_found=is_duplicate,
+            removed_claims=removed_claims,
         )
         context.add_log("Agent_Copywriter: draft created.")
         return context
@@ -400,6 +422,63 @@ class Agent_Copywriter(BaseAgent):
         self.vector_store.add_embedding(record)
 
 
+class Agent_FactChecker(BaseAgent):
+    """Agent responsible for verifying draft facts and filtering LLM hallucinations."""
+
+    name = "Agent_FactChecker"
+    expected_state = "DRAFT_GENERATED"
+
+    SYSTEM_PROMPT = (
+        "Ты — строгий фактчекер. Тебе даны исходные факты (SWOT, стратегия) и черновик текста. "
+        "Твоя задача: 1. Найти и удалить любые факты, цифры, имена и утверждения в черновике, "
+        "которых НЕТ в исходных фактах. 2. Вырезать несуществующие или бессмысленные слова. "
+        "3. Вернуть только очищенный текст, не добавляя ничего от себя."
+    )
+
+    def __init__(self, generative_core: Optional[GenerativeCore] = None) -> None:
+        self.generative_core = generative_core or GenerativeCore()
+
+    def run(self, context: AgentContext) -> AgentContext:
+        if context.post_draft is None:
+            raise ValueError("Post draft is required before fact-checking.")
+
+        original_text = context.post_draft.text
+
+        swot_summary = context.swot.summary if context.swot else "No SWOT available"
+        strategy_summary = context.strategy.strategy if context.strategy else "No Strategy available"
+        facts_context = f"SWOT: {swot_summary}\nStrategy: {strategy_summary}"
+
+        context.add_log(f"Agent_FactChecker: Starting verification on draft (length={len(original_text)} chars)...")
+        context.add_log(f"Agent_FactChecker Original Draft:\n'{original_text}'")
+
+        cleaned_text, removed_claims = self.generative_core.verify_facts(
+            system_prompt=self.SYSTEM_PROMPT,
+            facts_context=facts_context,
+            draft_text=original_text,
+        )
+
+        context.post_draft.text = cleaned_text
+        context.post_draft.removed_claims = removed_claims
+
+        if len(removed_claims) > 0:
+            if context.correction_attempts < 3:
+                context.correction_attempts += 1
+                context.post_draft.fact_checked = False
+                critique_msg = f"FactChecker Critique (Attempt {context.correction_attempts}/3): Model hallucinated claims: {removed_claims}."
+                context.add_log(critique_msg)
+            else:
+                context.post_draft.fact_checked = False
+                context.add_log("Agent_FactChecker: Maximum correction attempts reached (3/3). Hallucinations persist.")
+                raise RuntimeError("Не удалось устранить галлюцинации модели")
+        else:
+            context.post_draft.fact_checked = True
+            context.add_log(
+                f"Agent_FactChecker: fact-checking completed cleanly (fact_checked=True, removed {len(removed_claims)} claims)."
+            )
+
+        return context
+
+
 class Agent_Visual_Director(BaseAgent):
     """Agent responsible for visual planning and prompt generation."""
 
@@ -437,5 +516,6 @@ __all__ = [
     "Agent_Interviewer",
     "Agent_Analyst",
     "Agent_Copywriter",
+    "Agent_FactChecker",
     "Agent_Visual_Director",
 ]

@@ -1,96 +1,115 @@
 """
-SQLAlchemy-модели для хранения анкеты, проектов и истории публикаций.
+SQLAlchemy v2.0 ORM models for UCust.AI storage layer.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List, Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .db import Base
+from storage.db import Base
 
 
 class UserProfile(Base):
     """
-    ORM-модель анкеты пользователя из 5 шагов.
-
-    Содержит сериализованные данные анкеты, которые далее используются
-    аналитическим агентом и нейросетевым генеративным модулем.
+    ORM model for 5-step user questionnaire profile.
+    Stores user_id, niche, city, target_audience and 5-step questionnaire JSON data.
     """
 
     __tablename__ = "user_profiles"
 
-    id = Column(Integer, primary_key=True)
-    external_user_id = Column(String(64), nullable=True, index=True)
-    step1 = Column(JSON, nullable=False)
-    step2 = Column(JSON, nullable=False)
-    step3 = Column(JSON, nullable=False)
-    step4 = Column(JSON, nullable=False)
-    step5 = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    external_user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    niche: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    target_audience: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    projects = relationship("ProjectMetadata", back_populates="user_profile")
-    content_tasks = relationship("ContentTask", back_populates="user_profile")
+    step1: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    step2: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    step3: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    step4: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    step5: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    projects: Mapped[List["ProjectMetadata"]] = relationship("ProjectMetadata", back_populates="user_profile")
+    content_tasks: Mapped[List["ContentTask"]] = relationship("ContentTask", back_populates="user_profile")
 
 
 class ProjectMetadata(Base):
     """
-    ORM-модель метаданных проекта.
-
-    Описывает ключевые параметры SMM-проекта и связь с анкетой пользователя.
+    ORM model for project metadata.
     """
 
     __tablename__ = "project_metadata"
 
-    id = Column(Integer, primary_key=True)
-    user_profile_id = Column(Integer, ForeignKey("user_profiles.id"), nullable=False)
-    name = Column(String(256), nullable=False)
-    niche = Column(String(128), nullable=False)
-    platforms = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_profiles.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    niche: Mapped[str] = mapped_column(String(128), nullable=False)
+    platforms: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    user_profile = relationship("UserProfile", back_populates="projects")
-    publications = relationship("PublicationHistory", back_populates="project")
+    user_profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="projects")
+    publications: Mapped[List["PublicationHistory"]] = relationship("PublicationHistory", back_populates="project")
 
 
 class PublicationHistory(Base):
     """
-    ORM-модель истории публикаций.
-
-    Хранит тексты, статусы и метаданные, которые необходимы для контроля
-    уникальности контента и исключения дублей в рамках одной ниши.
+    ORM model for publication history.
     """
 
     __tablename__ = "publication_history"
 
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("project_metadata.id"), nullable=False)
-    platform = Column(String(64), nullable=False)
-    post_text = Column(Text, nullable=False)
-    status = Column(String(64), nullable=False)
-    extra_metadata = Column("metadata", JSON, nullable=True)
-    published_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("project_metadata.id"), nullable=False)
+    platform: Mapped[str] = mapped_column(String(64), nullable=False)
+    post_text: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(64), nullable=False)
+    extra_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+    published_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    project = relationship("ProjectMetadata", back_populates="publications")
+    project: Mapped["ProjectMetadata"] = relationship("ProjectMetadata", back_populates="publications")
 
 
 class ContentTask(Base):
     """
-    ORM-модель задачи контентного конвейера.
-
-    Хранит статус выполнения цепочки агентов и ошибки при обработке.
+    ORM model for content pipeline task execution and state tracking.
     """
 
     __tablename__ = "content_tasks"
 
-    id = Column(Integer, primary_key=True)
-    user_profile_id = Column(Integer, ForeignKey("user_profiles.id"), nullable=False)
-    status = Column(String(32), nullable=False, index=True)
-    error_message = Column(Text, nullable=True)
-    result_payload = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_profile_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user_profiles.id"), nullable=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, default="PENDING")
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    post_draft_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    user_profile = relationship("UserProfile", back_populates="content_tasks")
+    user_profile: Mapped[Optional["UserProfile"]] = relationship("UserProfile", back_populates="content_tasks")
+
+    @property
+    def job_id(self) -> int:
+        return self.id
+
+    @property
+    def result_payload(self) -> Optional[dict]:
+        return self.post_draft_json
+
+    @result_payload.setter
+    def result_payload(self, value: Optional[dict]) -> None:
+        self.post_draft_json = value
+
+
+__all__ = [
+    "UserProfile",
+    "ProjectMetadata",
+    "PublicationHistory",
+    "ContentTask",
+]

@@ -13,6 +13,7 @@ from .agents import (
     AgentContext,
     Agent_Analyst,
     Agent_Copywriter,
+    Agent_FactChecker,
     Agent_Interviewer,
     Agent_Visual_Director,
     BaseAgent,
@@ -26,6 +27,7 @@ class AgentState(Enum):
     IDLE = "IDLE"
     DATA_COLLECTED = "DATA_COLLECTED"
     MARKET_ANALYZED = "MARKET_ANALYZED"
+    DRAFT_GENERATED = "DRAFT_GENERATED"
     CONTENT_READY = "CONTENT_READY"
     AWAITING_USER_DECISION = "AWAITING_USER_DECISION"
     USER_APPROVED = "USER_APPROVED"
@@ -81,6 +83,7 @@ class AgentOrchestrator:
         self._interviewer = self._agent_by_name.get("Agent_Interviewer")
         self._analyst = self._agent_by_name.get("Agent_Analyst")
         self._copywriter = self._agent_by_name.get("Agent_Copywriter")
+        self._factchecker = self._agent_by_name.get("Agent_FactChecker")
         self._visual = self._agent_by_name.get("Agent_Visual_Director")
 
     # Step 5: Transition the state machine to the provided state.
@@ -163,6 +166,21 @@ class AgentOrchestrator:
 
             if self.current_state == AgentState.MARKET_ANALYZED:
                 context = self._execute_agent(context, self._copywriter)
+                self.transition_to(AgentState.DRAFT_GENERATED)
+                continue
+
+            if self.current_state == AgentState.DRAFT_GENERATED:
+                context = self._execute_agent(context, self._factchecker)
+
+                # Reflection Loop check: if FactChecker flagged unverified claims, re-run Copywriter
+                if context.post_draft and not context.post_draft.fact_checked:
+                    context.add_log(
+                        f"AgentOrchestrator: Reflection loop active (attempt {context.correction_attempts}/3). "
+                        "Resetting state to MARKET_ANALYZED for Copywriter regeneration with critique."
+                    )
+                    self.transition_to(AgentState.MARKET_ANALYZED)
+                    continue
+
                 self.transition_to(AgentState.CONTENT_READY)
                 continue
 
@@ -220,6 +238,7 @@ def build_default_orchestrator(database: Optional[Database] = None) -> AgentOrch
         Agent_Interviewer(database=database),
         Agent_Analyst(),
         Agent_Copywriter(vector_store=vector_store),
+        Agent_FactChecker(),
         Agent_Visual_Director(),
     ]
     approval_node = UserApprovalNode(bridge=NotificationBridge())

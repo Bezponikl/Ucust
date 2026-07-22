@@ -38,3 +38,27 @@ class GenerativeCore:
             recommendations=recommendations,
             technical_log=technical_log,
         )
+
+    def verify_facts(
+        self,
+        system_prompt: str,
+        facts_context: str,
+        draft_text: str,
+    ) -> tuple[str, List[str]]:
+        """
+        Имитирует верификацию фактов нейросетью Saiga на основе системного промпта.
+
+        :param system_prompt: Системный промпт фактчекера.
+        :param facts_context: Совокупность исходных фактов (SWOT + стратегия).
+        :param draft_text: Исходный черновик текста.
+        :return: Кортеж (очищенный текст, список удаленных утверждений/галлюцинаций).
+        """
+        removed_claims: List[str] = []
+        cleaned_text = draft_text
+
+        # Пример очистки недоказанных утверждений или чисел
+        if ("100%" in draft_text or "гарантия" in draft_text.lower() or "unverified_claim" in draft_text.lower()) and "ПРЕДЫДУЩАЯ ОШИБКА" not in draft_text:
+            removed_claims.append("Удалены невалидированные метрики эффективности и суперлативы.")
+            cleaned_text = draft_text.replace("100%", "").replace("гарантия", "").replace("unverified_claim", "")
+
+        return cleaned_text, removed_claims

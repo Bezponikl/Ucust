@@ -31,6 +31,8 @@ class AgentState(Enum):
     CONTENT_READY = "CONTENT_READY"
     AWAITING_USER_DECISION = "AWAITING_USER_DECISION"
     USER_APPROVED = "USER_APPROVED"
+    REVIEW_PENDING_APPROVAL = "REVIEW_PENDING_APPROVAL"
+    READY_FOR_PUBLISHING = "READY_FOR_PUBLISHING"
     ERROR = "ERROR"
 
 
@@ -173,8 +175,35 @@ class AgentOrchestrator:
 
             if self.current_state == AgentState.MARKET_ANALYZED:
                 context = await self._execute_agent(context, self._copywriter)
+
+                # ORM Hybrid Routing check for Review Reply tasks
+                if context.review_reply is not None:
+                    if context.review_reply.requires_manual_approval:
+                        self.transition_to(AgentState.REVIEW_PENDING_APPROVAL)
+                        context.pending_user_action = True
+                        context.add_log("AgentOrchestrator: paused in REVIEW_PENDING_APPROVAL state for manual review approval.")
+                        return context
+                    else:
+                        self.transition_to(AgentState.READY_FOR_PUBLISHING)
+                        context.pending_user_action = False
+                        context.add_log("AgentOrchestrator: auto-reply approved. Transitioned to READY_FOR_PUBLISHING.")
+                        return context
+
                 self.transition_to(AgentState.DRAFT_GENERATED)
                 continue
+
+            if self.current_state == AgentState.REVIEW_PENDING_APPROVAL:
+                if context.pending_user_action:
+                    context.add_log("AgentOrchestrator: pipeline paused waiting for frontend approval of review reply.")
+                    return context
+                else:
+                    self.transition_to(AgentState.READY_FOR_PUBLISHING)
+                    continue
+
+            if self.current_state == AgentState.READY_FOR_PUBLISHING:
+                self.transition_to(AgentState.USER_APPROVED)
+                context.add_log("AgentOrchestrator: review reply ready for publishing to adapters.")
+                return context
 
             if self.current_state == AgentState.DRAFT_GENERATED:
                 context = await self._execute_agent(context, self._factchecker)

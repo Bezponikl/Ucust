@@ -73,6 +73,9 @@ def get_async_engine():
     return _db_engine
 
 
+
+
+
 def get_async_sessionmaker():
     """Returns an async sessionmaker or standard sessionmaker."""
     engine = get_async_engine()
@@ -341,6 +344,11 @@ class DatabaseFactory:
     @classmethod
     def build(cls, dsn: Optional[str] = None) -> Database:
         return Database(dsn)
+
+    @classmethod
+    def get_session_factory(cls, dsn: Optional[str] = None) -> Any:
+        db = cls.build(dsn)
+        return db.get_session
 
 
 __all__ = [

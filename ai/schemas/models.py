@@ -59,12 +59,14 @@ class QuestionnaireStep2(BaseModel):
     """
     Шаг 2 анкеты пользователя.
 
-    Фиксирует параметры целевой аудитории, которые используются
-    модулем асинхронного сбора данных и аналитическим агентом.
+    Фиксирует демографические и смысловые параметры целевой аудитории.
     """
 
     target_audience: str = Field(..., description="Описание целевой аудитории")
-    demographics: str = Field(..., description="Демографические признаки")
+    demographics: Optional[str] = Field(default=None, description="Агрегированные демографические признаки")
+    age_range: str = Field(..., description="Возрастной диапазон аудитории (например, '25-45 лет')")
+    geo: str = Field(..., description="География и локация аудитории (например, 'Москва, Санкт-Петербург, РФ')")
+    core_audience_description: str = Field(..., description="Подробное описание ядра целевой аудитории")
     pain_points: str = Field(..., description="Боли и потребности аудитории")
 
 
@@ -105,6 +107,8 @@ class QuestionnaireStep5(BaseModel):
     competitors: str = Field(..., description="Ключевые конкуренты")
     references: str = Field(..., description="Референсы и примеры")
     additional_notes: str = Field(..., description="Дополнительные комментарии")
+    yandex_maps_url: Optional[str] = Field(default=None, description="Ссылка на карточку организации в Яндекс.Картах")
+    twogis_url: Optional[str] = Field(default=None, description="Ссылка на карточку организации в 2GIS")
 
 
 class UserQuestionnaire(BaseModel):
@@ -120,6 +124,7 @@ class UserQuestionnaire(BaseModel):
     step3: QuestionnaireStep3
     step4: QuestionnaireStep4
     step5: QuestionnaireStep5
+    visual_identity: Optional[Dict[str, Any]] = Field(default=None, description="Визуальный ДНК бренда")
 
 
 class ProjectMetadataSchema(BaseModel):
@@ -321,4 +326,50 @@ class PendingPostSchema(BaseModel):
     local_audio_path: Optional[str] = Field(None, description="Local server file path for audio")
     uniqueness_score: float = Field(default=1.0, description="Vector uniqueness score")
     duplicates_found: bool = Field(default=False, description="Duplicate detection flag")
+
+
+class NicheSalesTacticsSchema(BaseModel):
+    """
+    Схема маркетинговых уловок, психологических триггеров и успешных продаж в нише клиента.
+    Используется агентом-аналитиком (Growth Hacker) и сохраняется в базе знаний (Knowledge Base).
+    """
+
+    niche_name: str = Field(..., description="Название или описание ниши")
+    psychological_hooks: List[str] = Field(
+        default_factory=list,
+        description="Психологические триггеры и эмоциональные уловки, работающие в этой нише",
+    )
+    successful_cases: List[str] = Field(
+        default_factory=list,
+        description="Примеры успешных маркетинговых воронок, кейсов и продаж в нише",
+    )
+    promotional_mechanics: List[str] = Field(
+        default_factory=list,
+        description="Рабочие форматы офферов, скидок, лид-магнитов и промо-механик",
+    )
+
+
+class TaskType(str, Enum):
+    PROMO_POST = "PROMO_POST"
+    REVIEW_REPLY = "REVIEW_REPLY"
+
+
+class ReviewReplySchema(BaseModel):
+    """
+    Схема ответа агента-копирайтера на отзыв пользователя с геосервисов (ORM модуль).
+    Включает гибридную маршрутизацию для ручного утверждения (Human-in-the-Loop).
+    """
+
+    author: str = Field(..., description="Имя автора отзыва")
+    rating: int = Field(..., description="Оценка отзыва от 1 до 5")
+    original_rating: int = Field(..., description="Исходный числовой рейтинг отзыва (1-5)")
+    review_text: str = Field(..., description="Текст отзыва пользователя")
+    draft_text: str = Field(..., description="Сгенерированный черновик ответа бренда")
+    reply_text: str = Field(..., description="Финальный отклик бренда (утвержденный или авто)")
+    sentiment: str = Field(default="neutral", description="Тональность отзыва (positive / negative / neutral)")
+    action_needed: bool = Field(default=False, description="Флаг необходимости урегулирования негатива менеджером")
+    requires_manual_approval: bool = Field(
+        default=True,
+        description="Маршрутизация: True если требуется ручное утверждение (1-3 звезды), False при авто-ответе (4-5 звезд)",
+    )
 

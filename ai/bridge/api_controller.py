@@ -90,6 +90,9 @@ from publishers import (
     VkPublisher,
     get_publisher,
 )
+from storage.models import OutboxEvent
+from publishers.outbox_worker import process_outbox_events, get_publisher_adapter
+from publishers.worker import trigger_outbox_task
 from storage.repository import get_user_questionnaire
 
 # Reconfigure stdout encoding for Windows CP1251 compatibility
@@ -202,6 +205,9 @@ async def _get_or_create_questionnaire(user_id: str, session: Any = None) -> tup
         step2=QuestionnaireStep2(
             target_audience="B2B предприниматели, маркетологи и руководители продуктов",
             demographics="Мужчины и женщины 25-50 лет",
+            age_range="25-50 лет",
+            geo="Москва, Санкт-Петербург, регионы РФ",
+            core_audience_description="B2B предприниматели и маркетологи, ищущие автоматизацию SMM",
             pain_points="Высокая стоимость лида и нехватка времени на написание контента",
         ),
         step3=QuestionnaireStep3(
@@ -544,6 +550,25 @@ async def get_pending_posts(
     return pending_list
 
 
+class ReviewReplyApproveSchema(BaseModel):
+    approved_text: Optional[str] = Field(None, description="Отредактированный текст ответа бренда")
+    target_platforms: Optional[list[str]] = Field(default_factory=lambda: ["yandex_maps"], description="Платформы для публикации ответа")
+
+
+class PlatformPublishStatusSchema(BaseModel):
+    platform: str
+    status: str
+    published_url: Optional[str] = None
+    attempts: int = 0
+    error: Optional[str] = None
+
+
+class JobPublishStatusSchema(BaseModel):
+    job_id: str
+    overall_status: str
+    platforms: list[PlatformPublishStatusSchema]
+
+
 @app.post("/api/v1/posts/{post_id}/publish", response_model=dict[str, Any])
 async def publish_post(
     post_id: int,
@@ -551,8 +576,8 @@ async def publish_post(
     session: Any = Depends(get_db_session),
 ) -> dict[str, Any]:
     """
-    Publishing endpoint for Human-in-the-Loop pattern.
-    Updates DB status to USER_APPROVED and dispatches post text and media to selected social publishers.
+    Publishing endpoint with Transactional Outbox Pattern support.
+    Enqueues publication tasks into outbox_events and updates FSM task status to PUBLISHING_QUEUED.
     """
     task = await get_task(post_id, session=session)
     if task is None:
@@ -565,42 +590,150 @@ async def publish_post(
     text_content = payload.custom_caption or task_payload.get("post_text") or "No text provided"
     media_path = task_payload.get("local_video_path") or task_payload.get("local_audio_path")
 
-    # Step 1: Update task state to USER_APPROVED
-    await update_task_status(
-        job_id=post_id,
-        status="USER_APPROVED",
-        result_payload=task_payload,
-        session=session,
-    )
-
-    publish_results = {}
     raw_platforms = payload.platforms or payload.target_platforms or ["telegram"]
     platforms = [p.lower().strip() for p in raw_platforms]
 
-    # Step 2: Dynamically dispatch to requested publishers using get_publisher factory
+    # Transactional Outbox: атомарная запись событий публикации в outbox_events
+    queued_platforms = []
     for platform in platforms:
-        try:
-            publisher = get_publisher(platform)
-            ok_res = await publisher.publish(text=text_content, media_path=media_path)
-            publish_results[platform] = ok_res
-        except Exception as pub_exc:
-            logger.error("Error publishing to platform '%s' for post_id=%d: %s", platform, post_id, pub_exc)
-            publish_results[platform] = False
+        evt = OutboxEvent(
+            job_id=str(post_id),
+            target_platform=platform,
+            event_type="PROMO_POST",
+            payload={
+                "text": text_content,
+                "media_path": media_path,
+            },
+            status="PENDING",
+            attempts=0,
+        )
+        session.add(evt)
+        queued_platforms.append(platform)
 
-    # Step 3: Update task state to PUBLISHED
+    # Обновление статуса задачи в той же транзакции БД
     await update_task_status(
         job_id=post_id,
-        status="PUBLISHED",
+        status="PUBLISHING_QUEUED",
         result_payload=task_payload,
         session=session,
     )
 
+    # Реактивный мгновенный запуск Celery-таски
+    try:
+        trigger_outbox_task.delay()
+    except Exception as exc:
+        logger.warning("FastAPI: не удалось запустить Celery task (%s). Подстраховка Beat разгребет запись.", exc)
+
     return {
-        "status": "PUBLISHED",
+        "status": "PUBLISHING_QUEUED",
         "job_id": post_id,
-        "detail": f"Post #{post_id} successfully published to platforms: {platforms}.",
-        "publish_results": publish_results,
+        "detail": f"Post #{post_id} queued in Transactional Outbox for platforms: {queued_platforms}.",
+        "queued_platforms": queued_platforms,
     }
+
+
+@app.post("/api/v1/tasks/{job_id}/approve_reply", response_model=dict[str, Any])
+async def approve_review_reply(
+    job_id: str,
+    payload: ReviewReplyApproveSchema,
+    session: Any = Depends(get_db_session),
+) -> dict[str, Any]:
+    """
+    Утверждение ответа на отзыв (Human-in-the-Loop).
+    Создает записи в Outbox (Transactional Outbox Pattern) и переводит задачу в статус PUBLISHING_QUEUED.
+    """
+    task = await get_task(job_id, session=session)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID '{job_id}' was not found.",
+        )
+
+    task_payload = task.result_payload or {}
+    text_content = payload.approved_text or task_payload.get("post_text") or task_payload.get("reply_text") or ""
+    platforms = payload.target_platforms or ["yandex_maps"]
+
+    created_events = []
+    for platform in platforms:
+        evt = OutboxEvent(
+            job_id=str(job_id),
+            target_platform=platform.lower().strip(),
+            event_type="REVIEW_REPLY",
+            payload={
+                "text": text_content,
+                "author": task_payload.get("author", "Пользователь"),
+            },
+            status="PENDING",
+            attempts=0,
+        )
+        session.add(evt)
+        created_events.append(platform)
+
+    task_payload["reply_text"] = text_content
+    task.status = "PUBLISHING_QUEUED"
+    task.post_draft_json = task_payload
+    session.commit()
+
+    # Реактивный мгновенный запуск Celery-таски сразу после коммита в БД
+    try:
+        trigger_outbox_task.delay()
+    except Exception as exc:
+        logger.warning("FastAPI: не удалось запустить Celery task (%s). Подстраховка Beat разгребет запись.", exc)
+
+    return {
+        "job_id": str(job_id),
+        "status": "PUBLISHING_QUEUED",
+        "detail": f"Ответ на отзыв утвержден. Добавлены события в Outbox для платформ: {created_events}.",
+    }
+
+
+@app.get("/api/v1/tasks/{job_id}/publish_status", response_model=JobPublishStatusSchema)
+async def get_job_publish_status(
+    job_id: str,
+    session: Any = Depends(get_db_session),
+) -> JobPublishStatusSchema:
+    """
+    API-контракт для UI фронтенда: возвращает текущий статус публикации по каждой платформе
+    из таблицы outbox_events для отрисовки зеленой галочки или спиннера загрузки.
+    """
+    events = session.query(OutboxEvent).filter(OutboxEvent.job_id == str(job_id)).all()
+
+    if not events:
+        return JobPublishStatusSchema(
+            job_id=str(job_id),
+            overall_status="NOT_QUEUED",
+            platforms=[],
+        )
+
+    platform_statuses = []
+    statuses_set = set()
+
+    for evt in events:
+        statuses_set.add(evt.status)
+        platform_statuses.append(
+            PlatformPublishStatusSchema(
+                platform=evt.target_platform,
+                status=evt.status,
+                published_url=evt.published_url,
+                attempts=evt.attempts,
+                error=evt.error_message,
+            )
+        )
+
+    if statuses_set == {"COMPLETED"}:
+        overall_status = "COMPLETED"
+    elif "PROCESSING" in statuses_set or "PENDING" in statuses_set:
+        overall_status = "PARTIAL_SUCCESS" if "COMPLETED" in statuses_set else "PENDING"
+    elif "FAILED" in statuses_set:
+        overall_status = "FAILED"
+    else:
+        overall_status = "UNKNOWN"
+
+    return JobPublishStatusSchema(
+        job_id=str(job_id),
+        overall_status=overall_status,
+        platforms=platform_statuses,
+    )
 
 
 __all__ = ["app"]

@@ -72,6 +72,9 @@ def create_dummy_questionnaire() -> UserQuestionnaire:
         step2=QuestionnaireStep2(
             target_audience="Маркетологи и владельцы малого и среднего бизнеса",
             demographics="Мужчины и женщины 25-50 лет, B2B/B2C сегмент",
+            age_range="25-50 лет",
+            geo="Москва и МО",
+            core_audience_description="Владельцы бизнеса и SMM специалисты, ищущие автоматизацию",
             pain_points="Высокая стоимость привлечения лидов, нехватка времени на контент",
         ),
         step3=QuestionnaireStep3(

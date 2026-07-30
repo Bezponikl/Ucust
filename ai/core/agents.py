@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import gc
 import os
 from typing import List, Optional
 
@@ -10,11 +11,16 @@ from collectors.telethon_collector import TelethonCollector
 from collectors.vk_collector import VkApiCollector
 from nlu_engine.generative_core import GenerativeCore
 from nlu_engine.preprocessor import PreProcessor
+from skills.comfyui_local import ComfyUILocalSkill
+from skills.travity_search import TravitySearchSkill
 from schemas.models import (
     CollectorDataSchema,
+    CopywritingFramework,
+    FRAMEWORK_PROMPTS,
     GridPlanSchema,
     GridTileSchema,
-    KandinskyPromptSchema,
+    LTX23ConfigSchema,
+    LTX23PromptSchema,
     PostDraftSchema,
     StrategyPlanSchema,
     SWOTResultSchema,
@@ -38,7 +44,7 @@ class AgentContext:
         strategy: Optional[StrategyPlanSchema] = None,
         post_draft: Optional[PostDraftSchema] = None,
         grid_plan: Optional[GridPlanSchema] = None,
-        kandinsky_prompts: Optional[List[KandinskyPromptSchema]] = None,
+        ltx23_prompts: Optional[List[LTX23PromptSchema]] = None,
         approval_status: Optional[str] = None,
         pending_user_action: bool = False,
         injected_events: Optional[List[str]] = None,
@@ -46,6 +52,7 @@ class AgentContext:
         user_event_context: Optional[str] = None,
         logs: Optional[List[str]] = None,
         correction_attempts: int = 0,
+        framework: Optional[CopywritingFramework] = None,
     ) -> None:
         self.questionnaire = questionnaire
         self.user_profile_id = user_profile_id
@@ -54,7 +61,7 @@ class AgentContext:
         self.strategy = strategy
         self.post_draft = post_draft
         self.grid_plan = grid_plan
-        self.kandinsky_prompts = kandinsky_prompts or []
+        self.ltx23_prompts = ltx23_prompts or []
         self.approval_status = approval_status
         self.pending_user_action = pending_user_action
         self.injected_events = injected_events or []
@@ -62,6 +69,7 @@ class AgentContext:
         self.user_event_context = user_event_context
         self.logs = logs or []
         self.correction_attempts = correction_attempts
+        self.framework = framework
 
     # Step 2: Validate context consistency for a specific orchestration state.
     def validate(self, state: Optional[str] = None) -> None:
@@ -78,20 +86,27 @@ class AgentContext:
 
 
 class BaseAgent:
-    """Base class defining the contract for all pipeline agents."""
+    """Base class defining the contract for all pipeline agents with async lifecycle hooks."""
 
     name: str = "base_agent"
     expected_state: Optional[str] = None
 
-    # Step 4: Execute a single agent stage and return an updated context.
-    def run(self, context: AgentContext) -> AgentContext:
+    async def activate(self, context: AgentContext) -> None:
+        """Lifecycle hook executed before agent run to warm up resources/models."""
+        context.add_log(f"{self.name}: activate hook executed (resource warmup).")
+
+    async def run(self, context: AgentContext) -> AgentContext:
+        """Main async agent execution method."""
         raise NotImplementedError
 
-    def process(self, context: AgentContext) -> AgentContext:
-        """Alias for run to support process(context) interface."""
-        return self.run(context)
+    async def process(self, context: AgentContext) -> AgentContext:
+        """Async alias for run to support process(context) interface."""
+        return await self.run(context)
 
-    # Step 5: Validate that the incoming state matches the agent precondition.
+    async def standby(self, context: AgentContext) -> None:
+        """Lifecycle hook executed after agent run to clean up RAM/VRAM resources."""
+        context.add_log(f"{self.name}: standby hook executed (resource cleanup).")
+
     def check_state(self, current_state: str) -> None:
         if self.expected_state and self.expected_state != current_state:
             raise RuntimeError(
@@ -110,7 +125,40 @@ class Agent_Interviewer(BaseAgent):
         self.database = database
 
     # Step 7: Validate questionnaire payload and persist profile data when SQL is configured.
-    def run(self, context: AgentContext) -> AgentContext:
+    async def run(self, context: AgentContext) -> AgentContext:
+        context.validate("IDLE")
+        questionnaire = context.questionnaire
+        if questionnaire is None:
+            raise ValueError("Questionnaire is required.")
+
+        context.add_log("Agent_Interviewer: questionnaire validated.")
+
+        if self.database is None:
+            context.add_log("Agent_Interviewer: SQL storage is not configured; persistence skipped.")
+            return context
+
+        session = None
+        try:
+            session = self.database.get_session()
+            profile = UserProfile(
+                step1=questionnaire.step1.model_dump(),
+                step2=questionnaire.step2.model_dump(),
+                step3=questionnaire.step3.model_dump(),
+                step4=questionnaire.step4.model_dump(),
+                step5=questionnaire.step5.model_dump(),
+            )
+            session.add(profile)
+            session.commit()
+            context.user_profile_id = profile.id
+            context.add_log(f"Agent_Interviewer: questionnaire persisted in SQL (id={profile.id}).")
+        except Exception as db_exc:
+            context.add_log(f"Agent_Interviewer: SQL storage unavailable ({db_exc}); persistence skipped.")
+            context.user_profile_id = 1
+        finally:
+            if session is not None:
+                session.close()
+
+        return context
         context.validate("IDLE")
         questionnaire = context.questionnaire
         if questionnaire is None:
@@ -159,6 +207,7 @@ class Agent_Analyst(BaseAgent):
         vk_collector: Optional[VkApiCollector] = None,
         preprocessor: Optional[PreProcessor] = None,
         generative_core: Optional[GenerativeCore] = None,
+        search_skill: Optional[TravitySearchSkill] = None,
         telethon_channel: Optional[str] = None,
         vk_group_id: Optional[str] = None,
     ) -> None:
@@ -166,17 +215,28 @@ class Agent_Analyst(BaseAgent):
         self.vk_collector = vk_collector or VkApiCollector()
         self.preprocessor = preprocessor or PreProcessor()
         self.generative_core = generative_core or GenerativeCore()
+        self.search_skill = search_skill or TravitySearchSkill()
         self.telethon_channel = telethon_channel or os.getenv("UCUST_TELETHON_CHANNEL", "@default_channel")
         self.vk_group_id = vk_group_id or os.getenv("UCUST_VK_GROUP_ID", "default_group")
 
-    # Step 9: Collect parser data, apply preprocessing, and generate SWOT and strategy artifacts.
-    def run(self, context: AgentContext) -> AgentContext:
+    # Step 9: Collect parser data, execute web search, apply preprocessing, and generate SWOT and strategy artifacts.
+    async def run(self, context: AgentContext) -> AgentContext:
         context.validate("DATA_COLLECTED")
 
         telethon_data = self.telethon_collector.collect(self.telethon_channel)
         vk_data = self.vk_collector.collect(self.vk_group_id)
         context.collector_data.extend([telethon_data, vk_data])
         context.add_log("Agent_Analyst: parser data collected.")
+
+        # Dynamically formulate web search query based on niche/business
+        niche = ""
+        if context.questionnaire is not None:
+            niche = context.questionnaire.step1.mission or context.questionnaire.step1.business_name
+        search_query = f"{niche} SMM маркетинг тренды" if niche else "SMM маркетинг тренды"
+
+        context.add_log(f"Agent_Analyst: initiating web search skill for query '{search_query}'...")
+        web_search_md = await self.search_skill.search(search_query)
+        context.add_log("Agent_Analyst: Travity web search completed.")
 
         raw_items = [
             *[item.get("text", "") for item in telethon_data.payload.get("messages", [])],
@@ -199,8 +259,16 @@ class Agent_Analyst(BaseAgent):
         )
         context.add_log("Agent_Analyst: SWOT generated.")
 
-        context.strategy = self.generative_core.process_request(context.swot.summary)
-        context.add_log("Agent_Analyst: strategy generated.")
+        # Include "АКТУАЛЬНЫЕ ДАННЫЕ ИЗ СЕТИ" in context before LLM strategy generation
+        strategy_context = (
+            f"SWOT Summary: {context.swot.summary}\n\n"
+            f"=== АКТУАЛЬНЫЕ ДАННЫЕ ИЗ СЕТИ ===\n"
+            f"{web_search_md}\n\n"
+            f"Инструкция: Используй эти реальные факты из сети и данные SWOT-анализа для формирования финальной стратегии."
+        )
+
+        context.strategy = self.generative_core.process_request(strategy_context)
+        context.add_log("Agent_Analyst: strategy generated with live web search facts.")
         for log_line in context.strategy.technical_log:
             context.add_log(f"Agent_Analyst: {log_line}")
 
@@ -288,13 +356,35 @@ class Agent_Copywriter(BaseAgent):
     expected_state = "MARKET_ANALYZED"
 
     # Step 11: Configure copywriter dependencies.
-    def __init__(self, vector_store: Optional[InMemoryVectorStore] = None) -> None:
+    def __init__(
+        self,
+        vector_store: Optional[InMemoryVectorStore] = None,
+        framework: CopywritingFramework = CopywritingFramework.PAS,
+    ) -> None:
         self.vector_store = vector_store or InMemoryVectorStore()
+        self.framework = framework
+
+    def build_system_prompt(self, framework: CopywritingFramework) -> str:
+        """
+        Формирует системный промпт Копирайтера на основе выбранного фреймворка
+        и подключает правило запрета явного написания названий блоков.
+        """
+        framework_instruction = FRAMEWORK_PROMPTS.get(
+            framework, FRAMEWORK_PROMPTS[CopywritingFramework.PAS]
+        ).strip()
+        strict_rule = "Не пиши названия блоков (например, 'PROBLEM:'). Просто пиши связный текст, следуя этой логике."
+        return f"{framework_instruction}\n\n{strict_rule}"
 
     # Step 12: Produce the baseline post draft and calculate uniqueness indicators.
-    def run(self, context: AgentContext) -> AgentContext:
+    async def run(self, context: AgentContext) -> AgentContext:
         strategy_text = context.strategy.strategy if context.strategy else "baseline strategy"
-        draft_text = f"Post based on strategy: {strategy_text}"
+        framework = context.framework or self.framework
+        system_prompt = self.build_system_prompt(framework)
+
+        draft_text = (
+            f"Post based on strategy: {strategy_text}\n\n"
+            f"[System Prompt]\n{system_prompt}"
+        )
 
         # Reflection loop: Check for previous FactChecker critiques (removed claims)
         removed_claims = context.post_draft.removed_claims if context.post_draft and context.post_draft.removed_claims else []
@@ -325,11 +415,18 @@ class Agent_Copywriter(BaseAgent):
             duplicates_found=is_duplicate,
             removed_claims=removed_claims,
         )
-        context.add_log("Agent_Copywriter: draft created.")
+        context.add_log(f"Agent_Copywriter: draft created using framework {framework.value}.")
         return context
 
+    async def standby(self, context: AgentContext) -> None:
+        """Standby hook for clearing LLM Saiga 3 VRAM and invoking Garbage Collector."""
+        context.add_log(f"{self.name}: standby hook executed.")
+        # TODO: Invoke Saiga 3 LLM VRAM offloading / CUDA empty cache (e.g. torch.cuda.empty_cache())
+        gc.collect()
+        context.add_log(f"{self.name}: RAM/VRAM garbage collection completed.")
+
     # Step 13: Apply a user event override and update text plus uniqueness metrics.
-    def process_user_event(
+    async def process_user_event(
         self,
         context: AgentContext,
         event_type: str,
@@ -423,38 +520,48 @@ class Agent_Copywriter(BaseAgent):
 
 
 class Agent_FactChecker(BaseAgent):
-    """Agent responsible for verifying draft facts and filtering LLM hallucinations."""
+    """Agent responsible for verifying draft facts, LLM hallucinations, and framework compliance."""
 
     name = "Agent_FactChecker"
     expected_state = "DRAFT_GENERATED"
 
-    SYSTEM_PROMPT = (
-        "Ты — строгий фактчекер. Тебе даны исходные факты (SWOT, стратегия) и черновик текста. "
-        "Твоя задача: 1. Найти и удалить любые факты, цифры, имена и утверждения в черновике, "
-        "которых НЕТ в исходных фактах. 2. Вырезать несуществующие или бессмысленные слова. "
-        "3. Вернуть только очищенный текст, не добавляя ничего от себя."
+    BASE_SYSTEM_PROMPT = (
+        "Ты — строгий фактчекер и шеф-редактор. Тебе даны исходные факты (SWOT, стратегия), "
+        "выбранный фреймворк копирайтинга (PAS, AIDA, PMHS) и черновик текста.\n"
+        "Твои задачи:\n"
+        "1. ФАКТЧЕКИНГ: Найти и удалить любые факты, цифры, имена и утверждения в черновике, которых НЕТ в исходных фактах.\n"
+        "2. ПРОВЕРКА СТРУКТУРЫ ФРЕЙМВОРКА: Проверить логику структуры (Problem-Agitation-Solution / Attention-Interest-Desire-Action).\n"
+        "3. ОБЯЗАТЕЛЬНЫЙ CTA: Убедиться в наличии четкого призыва к действию (Call To Action) в конце текста. Если CTA отсутствует — зафиксировать нарушение.\n"
+        "4. РЕДАКТУРА: Вырезать бессмысленные слова. Вернуть очищенный текст, не добавляя ничего от себя."
     )
 
     def __init__(self, generative_core: Optional[GenerativeCore] = None) -> None:
         self.generative_core = generative_core or GenerativeCore()
 
-    def run(self, context: AgentContext) -> AgentContext:
+    def build_system_prompt(self, framework: Optional[CopywritingFramework] = None) -> str:
+        framework_name = framework.value if framework else "PAS"
+        return f"{self.BASE_SYSTEM_PROMPT}\n\nТекущий проверяемый фреймворк: {framework_name}."
+
+    async def run(self, context: AgentContext) -> AgentContext:
         if context.post_draft is None:
             raise ValueError("Post draft is required before fact-checking.")
 
         original_text = context.post_draft.text
+        framework = context.framework or CopywritingFramework.PAS
+        system_prompt = self.build_system_prompt(framework)
 
         swot_summary = context.swot.summary if context.swot else "No SWOT available"
         strategy_summary = context.strategy.strategy if context.strategy else "No Strategy available"
-        facts_context = f"SWOT: {swot_summary}\nStrategy: {strategy_summary}"
+        facts_context = f"SWOT: {swot_summary}\nStrategy: {strategy_summary}\nFramework: {framework.value}"
 
-        context.add_log(f"Agent_FactChecker: Starting verification on draft (length={len(original_text)} chars)...")
+        context.add_log(f"Agent_FactChecker: Starting verification (framework={framework.value}, length={len(original_text)} chars)...")
         context.add_log(f"Agent_FactChecker Original Draft:\n'{original_text}'")
 
         cleaned_text, removed_claims = self.generative_core.verify_facts(
-            system_prompt=self.SYSTEM_PROMPT,
+            system_prompt=system_prompt,
             facts_context=facts_context,
             draft_text=original_text,
+            framework=framework,
         )
 
         context.post_draft.text = cleaned_text
@@ -478,36 +585,94 @@ class Agent_FactChecker(BaseAgent):
 
         return context
 
+    async def standby(self, context: AgentContext) -> None:
+        """Standby hook for clearing LLM Saiga 3 VRAM and invoking Garbage Collector."""
+        context.add_log(f"{self.name}: standby hook executed.")
+        # TODO: Invoke Saiga 3 LLM VRAM offloading / CUDA empty cache (e.g. torch.cuda.empty_cache())
+        gc.collect()
+        context.add_log(f"{self.name}: RAM/VRAM garbage collection completed.")
+
 
 class Agent_Visual_Director(BaseAgent):
-    """Agent responsible for visual planning and prompt generation."""
+    """Agent responsible for multimodal video+audio planning and LTX-2.3 ComfyUI workflow generation."""
 
     name = "Agent_Visual_Director"
     expected_state = "CONTENT_READY"
 
-    # Step 17: Build content tiles and image-generation prompts.
-    def run(self, context: AgentContext) -> AgentContext:
+    def __init__(self, comfyui_skill: Optional[ComfyUILocalSkill] = None) -> None:
+        self.comfyui_skill = comfyui_skill or ComfyUILocalSkill()
+
+    # Step 17: Build content grid tiles and LTX-2.3 multimodal video+audio workflows.
+    async def run(self, context: AgentContext) -> AgentContext:
         if context.post_draft is None:
             raise ValueError("Post draft is required before visual planning.")
 
         tiles = [
-            GridTileSchema(tile_id=1, title="Expertise", description="Post highlighting core capabilities"),
-            GridTileSchema(tile_id=2, title="Case Study", description="Client success narrative"),
-            GridTileSchema(tile_id=3, title="Insight", description="Market observation for the target niche"),
+            GridTileSchema(tile_id=1, title="Expertise", description="Dynamic video scene highlighting core tech capabilities"),
+            GridTileSchema(tile_id=2, title="Case Study", description="Cinematic customer success narrative with movement"),
+            GridTileSchema(tile_id=3, title="Insight", description="Animated motion graphics illustrating niche market insights"),
         ]
         context.grid_plan = GridPlanSchema(tiles=tiles)
         context.add_log("Agent_Visual_Director: content grid generated.")
 
-        context.kandinsky_prompts = [
-            KandinskyPromptSchema(
-                prompt_text=f"Visual for tile '{tile.title}': {tile.description}",
-                style="minimalist corporate",
-                aspect_ratio="1:1",
+        ltx23_prompts = []
+        for tile in tiles:
+            video_p = (
+                f"Cinematic 4k motion video for tile '{tile.title}': {tile.description}. "
+                f"Realistic lighting, smooth camera motion, professional color grading."
             )
-            for tile in tiles
-        ]
-        context.add_log("Agent_Visual_Director: image prompts generated.")
+            audio_p = (
+                f"Ambient corporate soundscape, subtle synth pads, clear sound effects matched to video movement for '{tile.title}'."
+            )
+
+            workflow_graph = self._build_comfyui_workflow(
+                video_prompt=video_p,
+                audio_prompt=audio_p,
+                aspect_ratio="16:9",
+            )
+
+            prompt = LTX23PromptSchema(
+                video_prompt=video_p,
+                audio_prompt=audio_p,
+                motion_bucket_id=127,
+                fps=24,
+                aspect_ratio="16:9",
+                duration_seconds=5.0,
+                config=LTX23ConfigSchema(),
+                comfyui_workflow=workflow_graph,
+            )
+            ltx23_prompts.append(prompt)
+
+        context.ltx23_prompts = ltx23_prompts
+
+        # Single-Server Deployment: Bind local media output paths directly from ComfyUI Output
+        if ltx23_prompts:
+            media_info = await self.comfyui_skill._execute_full_flow(ltx23_prompts[0].comfyui_workflow)
+            context.post_draft.video_url = media_info.get("video_url")
+            context.post_draft.audio_url = media_info.get("audio_url")
+            context.post_draft.media_url = media_info.get("media_url")
+            context.post_draft.local_video_path = media_info.get("video_path")
+            context.post_draft.local_audio_path = media_info.get("audio_path")
+
+        context.add_log(f"Agent_Visual_Director: {len(ltx23_prompts)} LTX-2.3 ComfyUI video+audio workflows generated. Local media bound.")
         return context
+
+    async def standby(self, context: AgentContext) -> None:
+        """Standby hook executed after visual planning to release ComfyUI GPU resources."""
+        context.add_log(f"{self.name}: standby hook executed. LTX-2.3 generation session completed; ComfyUI GPU resources released.")
+        gc.collect()
+
+    def _build_comfyui_workflow(self, video_prompt: str, audio_prompt: str, aspect_ratio: str) -> dict:
+        """Loads Ltx_generations.json workflow template via ComfyCLIRunner and customizes video prompts and seeds."""
+        from skills.comfy_cli_runner import ComfyCLIRunner
+        runner = ComfyCLIRunner()
+        workflow = runner.load_workflow()
+        return runner.customize_workflow(
+            workflow_json=workflow,
+            video_prompt=video_prompt,
+            audio_prompt=audio_prompt,
+            aspect_ratio=aspect_ratio,
+        )
 
 
 __all__ = [

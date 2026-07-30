@@ -44,21 +44,28 @@ class GenerativeCore:
         system_prompt: str,
         facts_context: str,
         draft_text: str,
+        framework: Optional[Any] = None,
     ) -> tuple[str, List[str]]:
         """
-        Имитирует верификацию фактов нейросетью Saiga на основе системного промпта.
+        Имитирует верификацию фактов и структуры фреймворка нейросетью Saiga.
 
         :param system_prompt: Системный промпт фактчекера.
         :param facts_context: Совокупность исходных фактов (SWOT + стратегия).
         :param draft_text: Исходный черновик текста.
+        :param framework: Опциональный фреймворк копирайтинга.
         :return: Кортеж (очищенный текст, список удаленных утверждений/галлюцинаций).
         """
         removed_claims: List[str] = []
         cleaned_text = draft_text
 
-        # Пример очистки недоказанных утверждений или чисел
+        # 1. Проверка на галлюцинации и невалидированные суперлативы
         if ("100%" in draft_text or "гарантия" in draft_text.lower() or "unverified_claim" in draft_text.lower()) and "ПРЕДЫДУЩАЯ ОШИБКА" not in draft_text:
             removed_claims.append("Удалены невалидированные метрики эффективности и суперлативы.")
             cleaned_text = draft_text.replace("100%", "").replace("гарантия", "").replace("unverified_claim", "")
+
+        # 2. Проверка соответствия фреймворку (наличие CTA / призыва к действию)
+        if "missing_cta" in draft_text.lower() and "ПРЕДЫДУЩАЯ ОШИБКА" not in draft_text:
+            removed_claims.append("Отсутствует обязательный призыв к действию (CTA) согласно фреймворку.")
+            cleaned_text = draft_text.replace("missing_cta", "")
 
         return cleaned_text, removed_claims

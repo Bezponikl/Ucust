@@ -287,6 +287,30 @@ async def get_task(
     return await asyncio.to_thread(sync_get)
 
 
+async def get_pending_tasks(
+    session: Any = None,
+) -> List[ContentTask]:
+    """
+    Retrieves all ContentTasks with status 'AWAITING_USER_ACTION' or 'AWAITING_USER_DECISION'.
+    """
+    pending_statuses = ["AWAITING_USER_ACTION", "AWAITING_USER_DECISION"]
+    if AsyncSession is not None and isinstance(session, AsyncSession):
+        stmt = select(ContentTask).where(ContentTask.status.in_(pending_statuses))
+        res = await session.execute(stmt)
+        return list(res.scalars().all())
+
+    def sync_get_pending() -> List[ContentTask]:
+        if hasattr(session, "query"):
+            return session.query(ContentTask).filter(ContentTask.status.in_(pending_statuses)).all()
+
+        eng = get_async_engine()
+        SessionMaker = sessionmaker(bind=eng, class_=Session, expire_on_commit=False)
+        with SessionMaker() as s:
+            return s.query(ContentTask).filter(ContentTask.status.in_(pending_statuses)).all()
+
+    return await asyncio.to_thread(sync_get_pending)
+
+
 # Legacy synchronous Database class compatibility wrapper
 class Database:
     """Synchronous compatibility wrapper for legacy callers."""
@@ -330,4 +354,5 @@ __all__ = [
     "create_task",
     "update_task_status",
     "get_task",
+    "get_pending_tasks",
 ]

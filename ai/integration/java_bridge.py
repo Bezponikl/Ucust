@@ -18,7 +18,7 @@ try:
 except ImportError:
     httpx = None
 
-from schemas.models import KandinskyPromptSchema, PostDraftSchema
+from schemas.models import LTX23PromptSchema, PostDraftSchema
 
 # Reconfigure stdout encoding for Windows CP1251 compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -130,10 +130,10 @@ class JavaBridgeClient:
 
     async def send_post_draft(self, job_id: int, draft: PostDraftSchema) -> bool:
         """
-        Sends generated post draft text and uniqueness metrics to Java backend.
+        Sends generated post draft text, uniqueness metrics, and media artifact URLs to Java backend.
 
         :param job_id: Unique pipeline task identifier.
-        :param draft: PostDraftSchema instance containing post text & score.
+        :param draft: PostDraftSchema instance containing post text & media URLs.
         :return: True if successfully accepted by Java server, False otherwise.
         """
         payload = {
@@ -141,28 +141,34 @@ class JavaBridgeClient:
             "post_text": draft.text,
             "uniqueness_score": draft.uniqueness_score,
             "duplicates_found": draft.duplicates_found,
+            "image_url": draft.image_url,
+            "video_url": draft.video_url,
+            "audio_url": draft.audio_url,
+            "media_url": draft.media_url,
+            "local_video_path": draft.local_video_path,
+            "local_audio_path": draft.local_audio_path,
         }
         logger.info("Sending post draft for job_id=%d to Java backend...", job_id)
         return await self._post_json("post-draft", payload)
 
-    async def send_kandinsky_prompts(
+    async def send_ltx23_prompts(
         self,
         job_id: int,
-        prompts: List[KandinskyPromptSchema],
+        prompts: List[LTX23PromptSchema],
     ) -> bool:
         """
-        Sends generated Kandinsky image prompts to Java backend.
+        Sends generated LTX-2.3 video+audio prompts and ComfyUI workflow JSON graphs to Java backend.
 
         :param job_id: Unique pipeline task identifier.
-        :param prompts: List of KandinskyPromptSchema instances.
+        :param prompts: List of LTX23PromptSchema instances.
         :return: True if successfully accepted by Java server, False otherwise.
         """
         payload = {
             "job_id": job_id,
             "prompts": [p.model_dump() for p in prompts],
         }
-        logger.info("Sending %d Kandinsky prompts for job_id=%d to Java backend...", len(prompts), job_id)
-        return await self._post_json("kandinsky-prompts", payload)
+        logger.info("Sending %d LTX-2.3 video+audio workflows for job_id=%d to Java backend...", len(prompts), job_id)
+        return await self._post_json("ltx23-prompts", payload)
 
 
 # Singleton instance pattern & Dependency Injection provider

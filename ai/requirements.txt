@@ -19,6 +19,8 @@ numpy>=1.24.0
 
 # Database
 sqlalchemy>=2.0.0
+asyncpg>=0.28.0
+psycopg2-binary>=2.9.0
 
 # Standard Library Note
 # logging is part of Python standard library and is not installed via pip.

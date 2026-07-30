@@ -91,20 +91,27 @@ class AgentOrchestrator:
         self.current_state = new_state
 
     # Step 6: Execute one agent safely and propagate failure state on exception.
-    def _execute_agent(self, context: AgentContext, agent: Optional[BaseAgent]) -> AgentContext:
+    async def _execute_agent(self, context: AgentContext, agent: Optional[BaseAgent]) -> AgentContext:
         if agent is None:
             raise RuntimeError("Required agent is not configured in orchestrator.")
 
         agent.check_state(self.current_state.value)
         context.add_log(f"AgentOrchestrator: executing {agent.name}.")
         try:
-            return agent.run(context)
+            await agent.activate(context)
+            context = await agent.run(context)
+            await agent.standby(context)
+            return context
         except Exception:
             self.transition_to(AgentState.ERROR)
+            try:
+                await agent.standby(context)
+            except Exception:
+                pass
             raise
 
     # Step 7: Resolve a user decision and update pipeline state transitions.
-    def _handle_decision(self, context: AgentContext, decision: ApprovalDecision) -> Optional[AgentContext]:
+    async def _handle_decision(self, context: AgentContext, decision: ApprovalDecision) -> Optional[AgentContext]:
         if decision == ApprovalDecision.APPROVED:
             self.transition_to(AgentState.USER_APPROVED)
             return context
@@ -122,7 +129,7 @@ class AgentOrchestrator:
             if context.user_event_type:
                 if self._copywriter is None:
                     raise RuntimeError("Copywriter agent is required for edit events.")
-                context = self._copywriter.process_user_event(
+                context = await self._copywriter.process_user_event(
                     context=context,
                     event_type=context.user_event_type,
                     event_context=context.user_event_context or "",
@@ -144,7 +151,7 @@ class AgentOrchestrator:
         return context
 
     # Step 8: Execute recursive orchestration until USER_APPROVED or user interaction pause.
-    def run_pipeline(self, context: AgentContext) -> AgentContext:
+    async def run_pipeline(self, context: AgentContext) -> AgentContext:
         cycles = 0
 
         while self.current_state != AgentState.USER_APPROVED:
@@ -154,23 +161,23 @@ class AgentOrchestrator:
 
             if self.current_state == AgentState.IDLE:
                 context.validate("IDLE")
-                context = self._execute_agent(context, self._interviewer)
+                context = await self._execute_agent(context, self._interviewer)
                 self.transition_to(AgentState.DATA_COLLECTED)
                 continue
 
             if self.current_state == AgentState.DATA_COLLECTED:
                 context.validate("DATA_COLLECTED")
-                context = self._execute_agent(context, self._analyst)
+                context = await self._execute_agent(context, self._analyst)
                 self.transition_to(AgentState.MARKET_ANALYZED)
                 continue
 
             if self.current_state == AgentState.MARKET_ANALYZED:
-                context = self._execute_agent(context, self._copywriter)
+                context = await self._execute_agent(context, self._copywriter)
                 self.transition_to(AgentState.DRAFT_GENERATED)
                 continue
 
             if self.current_state == AgentState.DRAFT_GENERATED:
-                context = self._execute_agent(context, self._factchecker)
+                context = await self._execute_agent(context, self._factchecker)
 
                 # Reflection Loop check: if FactChecker flagged unverified claims, re-run Copywriter
                 if context.post_draft and not context.post_draft.fact_checked:
@@ -185,7 +192,7 @@ class AgentOrchestrator:
                 continue
 
             if self.current_state == AgentState.CONTENT_READY:
-                context = self._execute_agent(context, self._visual)
+                context = await self._execute_agent(context, self._visual)
 
                 if not self.require_user_approval:
                     self.transition_to(AgentState.USER_APPROVED)
@@ -195,7 +202,7 @@ class AgentOrchestrator:
                     raise RuntimeError("UserApprovalNode is required when human approval is enabled.")
 
                 decision = self.approval_node.intercept(context)
-                handled = self._handle_decision(context, decision)
+                handled = await self._handle_decision(context, decision)
                 if handled is not None:
                     return handled
                 continue
@@ -211,7 +218,7 @@ class AgentOrchestrator:
                     return context
 
                 decision = self.approval_node.apply_user_command(context, status_value)
-                handled = self._handle_decision(context, decision)
+                handled = await self._handle_decision(context, decision)
                 if handled is not None:
                     return handled
                 continue
@@ -227,8 +234,8 @@ class AgentOrchestrator:
         return context
 
     # Step 9: Maintain compatibility with existing callers by delegating to run_pipeline.
-    def run(self, context: AgentContext) -> AgentContext:
-        return self.run_pipeline(context)
+    async def run(self, context: AgentContext) -> AgentContext:
+        return await self.run_pipeline(context)
 
 
 # Step 10: Build default orchestrator chain with user-approval interception enabled.

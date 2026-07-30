@@ -60,8 +60,11 @@ from core.notification_bridge import ApprovalDecision
 from core.orchestrator import AgentState, build_default_orchestrator
 from integration.java_bridge import JavaBridgeClient, get_java_bridge_client
 from schemas.models import (
-    KandinskyPromptSchema,
+    CopywritingFramework,
+    LTX23PromptSchema,
+    PendingPostSchema,
     PostDraftSchema,
+    PublishRequestSchema,
     QuestionnaireStep1,
     QuestionnaireStep2,
     QuestionnaireStep3,
@@ -74,9 +77,18 @@ from storage.db import (
     create_task,
     get_async_sessionmaker,
     get_db_session,
+    get_pending_tasks,
     get_task,
     init_db,
     update_task_status,
+)
+from publishers import (
+    BasePublisher,
+    InstagramPublisher,
+    OdnoklassnikiPublisher,
+    TelegramPublisher,
+    VkPublisher,
+    get_publisher,
 )
 from storage.repository import get_user_questionnaire
 
@@ -117,6 +129,10 @@ class ProcessRequest(BaseModel):
     """Input contract for starting a background content-generation job."""
 
     user_id: str = Field(..., description="External user identifier.")
+    framework: CopywritingFramework = Field(
+        default=CopywritingFramework.PAS,
+        description="Фреймворк копирайтинга (PAS, AIDA, PMHS)",
+    )
 
 
 class ProcessResponse(BaseModel):
@@ -219,7 +235,7 @@ async def _run_orchestrator(job_id: int, user_id: str, questionnaire: UserQuesti
         orchestrator = build_default_orchestrator(database=database)
 
         try:
-            context = orchestrator.run_pipeline(context)
+            context = await orchestrator.run_pipeline(context)
         except Exception as exc:
             logger.exception("Critical orchestrator failure for job_id=%d", job_id)
             await update_task_status(job_id, status="FAILED", error_message=str(exc))
@@ -227,11 +243,16 @@ async def _run_orchestrator(job_id: int, user_id: str, questionnaire: UserQuesti
 
         payload = {
             "post_text": context.post_draft.text if context.post_draft else None,
-            "image_link": None,
+            "image_url": context.post_draft.image_url if context.post_draft else None,
+            "video_url": context.post_draft.video_url if context.post_draft else None,
+            "audio_url": context.post_draft.audio_url if context.post_draft else None,
+            "media_url": context.post_draft.media_url if context.post_draft else None,
+            "local_video_path": context.post_draft.local_video_path if context.post_draft else None,
+            "local_audio_path": context.post_draft.local_audio_path if context.post_draft else None,
             "approval_status": context.approval_status,
             "last_event_type": context.user_event_type,
             "last_event_context": context.user_event_context,
-            "kandinsky_prompts": [p.model_dump() for p in context.kandinsky_prompts] if context.kandinsky_prompts else [],
+            "ltx23_prompts": [p.model_dump() for p in context.ltx23_prompts] if context.ltx23_prompts else [],
             "uniqueness_score": context.post_draft.uniqueness_score if context.post_draft else 1.0,
             "duplicates_found": context.post_draft.duplicates_found if context.post_draft else False,
         }
@@ -345,19 +366,24 @@ async def submit_user_action(
             text=current_post_text,
             uniqueness_score=current_payload.get("uniqueness_score", 1.0),
             duplicates_found=current_payload.get("duplicates_found", False),
+            video_url=current_payload.get("video_url"),
+            audio_url=current_payload.get("audio_url"),
+            media_url=current_payload.get("media_url"),
+            local_video_path=current_payload.get("local_video_path"),
+            local_audio_path=current_payload.get("local_audio_path"),
         )
 
-        raw_prompts = current_payload.get("kandinsky_prompts", [])
-        kandinsky_prompts = [
-            KandinskyPromptSchema(**p) for p in raw_prompts if isinstance(p, dict)
+        raw_prompts = current_payload.get("ltx23_prompts", [])
+        ltx23_prompts = [
+            LTX23PromptSchema(**p) for p in raw_prompts if isinstance(p, dict)
         ]
 
         # Dispatch generated content artifacts to Java Backend asynchronously
         try:
             draft_ok = await java_bridge.send_post_draft(job_id, post_draft)
             prompts_ok = True
-            if kandinsky_prompts:
-                prompts_ok = await java_bridge.send_kandinsky_prompts(job_id, kandinsky_prompts)
+            if ltx23_prompts:
+                prompts_ok = await java_bridge.send_ltx23_prompts(job_id, ltx23_prompts)
 
             if not draft_ok or not prompts_ok:
                 logger.warning(
@@ -410,7 +436,7 @@ async def submit_user_action(
             pending_user_action=True,
         )
 
-        event_context_obj = copywriter.process_user_event(
+        event_context_obj = await copywriter.process_user_event(
             context=event_context_obj,
             event_type=event_type,
             event_context=event_context,
@@ -456,7 +482,7 @@ async def submit_user_action(
 
     orchestrator = build_default_orchestrator(database=database)
     orchestrator.transition_to(AgentState.AWAITING_USER_DECISION)
-    regenerated_context = orchestrator.run_pipeline(regenerated_context)
+    regenerated_context = await orchestrator.run_pipeline(regenerated_context)
 
     updated_text = (
         regenerated_context.post_draft.text if regenerated_context.post_draft else current_post_text
@@ -465,9 +491,9 @@ async def submit_user_action(
     current_payload["approval_status"] = regenerated_context.approval_status
     current_payload["last_event_type"] = regenerated_context.user_event_type
     current_payload["last_event_context"] = regenerated_context.user_event_context
-    current_payload["kandinsky_prompts"] = (
-        [p.model_dump() for p in regenerated_context.kandinsky_prompts]
-        if regenerated_context.kandinsky_prompts
+    current_payload["ltx23_prompts"] = (
+        [p.model_dump() for p in regenerated_context.ltx23_prompts]
+        if regenerated_context.ltx23_prompts
         else []
     )
 
@@ -486,6 +512,95 @@ async def submit_user_action(
         job_id=job_id,
         result=updated_text,
     )
+
+
+@app.get("/api/v1/posts/pending", response_model=list[PendingPostSchema])
+async def get_pending_posts(
+    session: Any = Depends(get_db_session),
+) -> list[PendingPostSchema]:
+    """
+    Export endpoint for Human-in-the-Loop web UI preview.
+    Retrieves all tasks/posts currently in 'AWAITING_USER_ACTION' state.
+    """
+    tasks = await get_pending_tasks(session=session)
+    pending_list = []
+    for task in tasks:
+        payload = task.result_payload or {}
+        pending_list.append(
+            PendingPostSchema(
+                job_id=task.id,
+                user_id=task.user_id or "unknown",
+                status=task.status,
+                post_text=payload.get("post_text"),
+                video_url=payload.get("video_url"),
+                audio_url=payload.get("audio_url"),
+                media_url=payload.get("media_url"),
+                local_video_path=payload.get("local_video_path"),
+                local_audio_path=payload.get("local_audio_path"),
+                uniqueness_score=payload.get("uniqueness_score", 1.0),
+                duplicates_found=payload.get("duplicates_found", False),
+            )
+        )
+    return pending_list
+
+
+@app.post("/api/v1/posts/{post_id}/publish", response_model=dict[str, Any])
+async def publish_post(
+    post_id: int,
+    payload: PublishRequestSchema,
+    session: Any = Depends(get_db_session),
+) -> dict[str, Any]:
+    """
+    Publishing endpoint for Human-in-the-Loop pattern.
+    Updates DB status to USER_APPROVED and dispatches post text and media to selected social publishers.
+    """
+    task = await get_task(post_id, session=session)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post task with ID {post_id} was not found.",
+        )
+
+    task_payload = task.result_payload or {}
+    text_content = payload.custom_caption or task_payload.get("post_text") or "No text provided"
+    media_path = task_payload.get("local_video_path") or task_payload.get("local_audio_path")
+
+    # Step 1: Update task state to USER_APPROVED
+    await update_task_status(
+        job_id=post_id,
+        status="USER_APPROVED",
+        result_payload=task_payload,
+        session=session,
+    )
+
+    publish_results = {}
+    raw_platforms = payload.platforms or payload.target_platforms or ["telegram"]
+    platforms = [p.lower().strip() for p in raw_platforms]
+
+    # Step 2: Dynamically dispatch to requested publishers using get_publisher factory
+    for platform in platforms:
+        try:
+            publisher = get_publisher(platform)
+            ok_res = await publisher.publish(text=text_content, media_path=media_path)
+            publish_results[platform] = ok_res
+        except Exception as pub_exc:
+            logger.error("Error publishing to platform '%s' for post_id=%d: %s", platform, post_id, pub_exc)
+            publish_results[platform] = False
+
+    # Step 3: Update task state to PUBLISHED
+    await update_task_status(
+        job_id=post_id,
+        status="PUBLISHED",
+        result_payload=task_payload,
+        session=session,
+    )
+
+    return {
+        "status": "PUBLISHED",
+        "job_id": post_id,
+        "detail": f"Post #{post_id} successfully published to platforms: {platforms}.",
+        "publish_results": publish_results,
+    }
 
 
 __all__ = ["app"]

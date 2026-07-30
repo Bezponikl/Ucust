@@ -63,9 +63,9 @@ class MockJavaBridgeClient(JavaBridgeClient):
         logger.info("[MockJavaBridgeClient] Recorded send_post_draft for job_id=%d", job_id)
         return True
 
-    async def send_kandinsky_prompts(self, job_id, prompts):
+    async def send_ltx23_prompts(self, job_id, prompts):
         self.sent_prompts.append((job_id, prompts))
-        logger.info("[MockJavaBridgeClient] Recorded send_kandinsky_prompts for job_id=%d", job_id)
+        logger.info("[MockJavaBridgeClient] Recorded send_ltx23_prompts for job_id=%d", job_id)
         return True
 
 

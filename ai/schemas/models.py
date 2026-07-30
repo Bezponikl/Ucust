@@ -5,9 +5,40 @@ Pydantic-модели и JSON-контракты для комплекса «UCu
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+
+class CopywritingFramework(str, Enum):
+    PAS = "PAS"
+    AIDA = "AIDA"
+    PMHS = "PMHS"  # Pain, More Pain, Hope, Solution
+
+
+FRAMEWORK_PROMPTS = {
+    CopywritingFramework.PAS: """
+Твоя задача — написать текст строго по структуре PAS:
+1. PROBLEM (Проблема): Начни с боли целевой аудитории. Зацепи внимание вопросом или фактом.
+2. AGITATION (Усиление): Покажи, что будет, если проблему не решить. Нагнетай эмоции, добавь конкретики.
+3. SOLUTION (Решение): Представь наш продукт/услугу как идеальное и единственно верное решение проблемы. Призови к действию (CTA).
+""",
+    CopywritingFramework.AIDA: """
+Твоя задача — написать текст строго по структуре AIDA:
+1. ATTENTION (Внимание): Яркий заголовок или нестандартный факт, заставляющий остановиться.
+2. INTEREST (Интерес): Удержи внимание, раскрой интригу, приведи интересные цифры из SWOT-анализа.
+3. DESIRE (Желание): Опиши выгоды. Заставь читателя захотеть продукт, покажи трансформацию "до/после".
+4. ACTION (Действие): Четкий и понятный призыв к действию (CTA) — что нужно сделать прямо сейчас.
+""",
+    CopywritingFramework.PMHS: """
+Твоя задача — написать текст строго по структуре PMHS:
+1. PAIN (Боль): Определи ключевую проблему читателя.
+2. MORE PAIN (Еще больше боли): Углуби проблему, покажи негативные последствия бездействия.
+3. HOPE (Надежда): Дай надежду на решение и положительные изменения.
+4. SOLUTION (Решение): Предложи конкретное решение и призвание к действию (CTA).
+""",
+}
 
 
 class QuestionnaireStep1(BaseModel):
@@ -176,7 +207,7 @@ class PostDraftSchema(BaseModel):
     """
     Черновик поста для публикации.
 
-    Содержит метку уникальности и результаты проверки агентом-фактчекером.
+    Содержит метку уникальности, результаты фактчекинга и ссылки на сгенерированные медиа-артефакты (изображения, видео, аудио).
     """
 
     text: str
@@ -184,13 +215,20 @@ class PostDraftSchema(BaseModel):
     duplicates_found: bool
     fact_checked: bool = Field(default=False, description="Флаг успешного прохождения фактчекинга")
     removed_claims: List[str] = Field(default_factory=list, description="Список удаленных несоответствий/галлюцинаций")
+    image_url: Optional[str] = Field(None, description="URL сгенерированного изображения")
+    video_url: Optional[str] = Field(None, description="URL сгенерированного видео (LTX-2.3)")
+    audio_url: Optional[str] = Field(None, description="URL сгенерированной аудиодорожки (LTX-2.3)")
+    media_url: Optional[str] = Field(None, description="Универсальный URL основного медиа-файла")
+    local_video_path: Optional[str] = Field(None, description="Локальный путь к видеофайлу на сервере (ComfyUI Output)")
+    local_audio_path: Optional[str] = Field(None, description="Локальный путь к аудиофайлу на сервере (ComfyUI Output)")
+    local_image_path: Optional[str] = Field(None, description="Локальный путь к файлу изображения на сервере")
 
 
 class GridTileSchema(BaseModel):
     """
     Элемент контентной сетки (плитка).
 
-    Используется визуальным директором для описания будущего контента.
+    Используется визуальным директором для описания будущего мультимодального видео-контента.
     """
 
     tile_id: int
@@ -202,19 +240,85 @@ class GridPlanSchema(BaseModel):
     """
     План сетки контента.
 
-    Хранит список плиток и применяется при генерации промптов.
+    Хранит список плиток и применяется при генерации видео и аудио промптов LTX-2.3.
     """
 
     tiles: List[GridTileSchema]
 
 
-class KandinskyPromptSchema(BaseModel):
+class LTX23ConfigSchema(BaseModel):
     """
-    Технический промпт для генерации визуалов.
-
-    Используется как контракт для внешнего Java-сервиса.
+    Конфигурация 6 обязательных компонентов мультимодальной архитектуры LTX-2.3 (ComfyUI Headless API).
     """
 
-    prompt_text: str
-    style: str
-    aspect_ratio: str
+    checkpoint: str = Field(default="ltx-2.3-22b-dev.safetensors", description="1. Базовый чекпоинт (Модель диффузии)")
+    text_encoder: str = Field(default="gemma_3_12B_it_fp4_mixed.safetensors", description="2. Текстовый энкодер Google Gemma 3 12B IT FP4")
+    lora: str = Field(default="ltx-2.3-22b-distilled-lora-384.safetensors", description="3. LoRA для дистилляции и ускорения генерации")
+    spatial_upscaler: str = Field(default="ltx-2.3-spatial-upscaler-x2-1.1.safetensors", description="4. Пространственный апскейлер x2 в latent space")
+    video_vae: str = Field(default="LTX23_video_vae_bf16.safetensors", description="5. Видео VAE автоэнкодер")
+    audio_vae: str = Field(default="LTX23_audio_vae_bf16.safetensors", description="6. Аудио VAE автоэнкодер")
+
+
+class LTX23PromptSchema(BaseModel):
+    """
+    Технический промпт и ComfyUI JSON-workflow для генерации видео со звуком на мультимодальном движке LTX-2.3.
+    """
+
+    video_prompt: str = Field(..., description="Промпт для генерации динамического видеоряда")
+    audio_prompt: str = Field(..., description="Промпт для генерации синхронной аудиодорожки")
+    motion_bucket_id: int = Field(default=127, description="Коэффициент динамики движения")
+    fps: int = Field(default=24, description="Частота кадров в секунду")
+    aspect_ratio: str = Field(default="16:9", description="Соотношение сторон кадра (16:9, 9:16, 1:1)")
+    duration_seconds: float = Field(default=5.0, description="Длительность генерируемого видеоклипа")
+    config: LTX23ConfigSchema = Field(default_factory=LTX23ConfigSchema, description="Конфигурация 6 компонентов LTX-2.3")
+    comfyui_workflow: Dict[str, Any] = Field(default_factory=dict, description="JSON-workflow граф для ComfyUI Headless API")
+
+
+class PostGenerationTaskSchema(BaseModel):
+    """
+    Pydantic-схема задачи для генерации поста.
+    """
+
+    user_id: str = Field(..., description="Идентификатор пользователя")
+    framework: CopywritingFramework = Field(
+        default=CopywritingFramework.PAS,
+        description="Фреймворк копирайтинга (PAS, AIDA, PMHS)",
+    )
+
+
+class PublishRequestSchema(BaseModel):
+    """
+    Input schema for publishing a Human-in-the-Loop post to target platforms (Telegram, VK, Instagram, OK, MAX).
+    """
+
+    platforms: Optional[List[str]] = Field(
+        default=None,
+        description="List of target platforms (e.g., ['telegram', 'vk', 'instagram', 'ok', 'max'])",
+    )
+    target_platforms: List[str] = Field(
+        default=["telegram"],
+        description="List of target platforms (e.g., ['telegram', 'vk', 'instagram', 'ok', 'max'])",
+    )
+    custom_caption: Optional[str] = Field(
+        default=None,
+        description="Optional custom caption override provided by user prior to publishing",
+    )
+
+
+class PendingPostSchema(BaseModel):
+    """
+    Export schema for posts awaiting human-in-the-loop review in the web UI.
+    """
+
+    job_id: int = Field(..., description="FSM Task / Job ID")
+    user_id: str = Field(..., description="External user identifier")
+    status: str = Field(..., description="FSM Task Status")
+    post_text: Optional[str] = Field(None, description="Generated draft post text")
+    video_url: Optional[str] = Field(None, description="URL for video preview")
+    audio_url: Optional[str] = Field(None, description="URL for audio preview")
+    media_url: Optional[str] = Field(None, description="URL for combined media preview")
+    local_video_path: Optional[str] = Field(None, description="Local server file path for video")
+    local_audio_path: Optional[str] = Field(None, description="Local server file path for audio")
+    uniqueness_score: float = Field(default=1.0, description="Vector uniqueness score")
+    duplicates_found: bool = Field(default=False, description="Duplicate detection flag")
+

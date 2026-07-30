@@ -15,7 +15,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from integration.java_bridge import JavaBridgeClient, get_java_bridge_client
-from schemas.models import KandinskyPromptSchema, PostDraftSchema
+from schemas.models import LTX23PromptSchema, PostDraftSchema
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("test_java_bridge")
@@ -41,27 +41,29 @@ async def run_java_bridge_test():
         text="Test post draft content for integration test.",
         uniqueness_score=0.95,
         duplicates_found=False,
+        video_url="http://media-server/video1.mp4",
+        audio_url="http://media-server/audio1.mp3",
     )
     result = await custom_client.send_post_draft(job_id=101, draft=draft)
     assert result is False, "Expected False due to unreachable mock server"
     logger.info("[OK] send_post_draft error handling verified.")
 
-    # 4. Test sending Kandinsky prompts (should catch connection error and return False gracefully)
+    # 4. Test sending LTX-2.3 prompts (should catch connection error and return False gracefully)
     prompts = [
-        KandinskyPromptSchema(
-            prompt_text="Minimalist visual for tech brand",
-            style="corporate",
-            aspect_ratio="1:1",
+        LTX23PromptSchema(
+            video_prompt="Cinematic motion visual for tech brand",
+            audio_prompt="Ambient corporate soundscape",
+            aspect_ratio="16:9",
         ),
-        KandinskyPromptSchema(
-            prompt_text="Case study infographics banner",
-            style="vector",
+        LTX23PromptSchema(
+            video_prompt="Case study motion graphics video",
+            audio_prompt="Upbeat synth pads and audio effects",
             aspect_ratio="16:9",
         ),
     ]
-    prompts_result = await custom_client.send_kandinsky_prompts(job_id=101, prompts=prompts)
+    prompts_result = await custom_client.send_ltx23_prompts(job_id=101, prompts=prompts)
     assert prompts_result is False, "Expected False due to unreachable mock server"
-    logger.info("[OK] send_kandinsky_prompts error handling verified.")
+    logger.info("[OK] send_ltx23_prompts error handling verified.")
 
     logger.info("=== JavaBridgeClient Tests Completed Successfully ===")
 

@@ -119,7 +119,7 @@ async def run_pipeline_test() -> AgentContext:
         # Step 3.1: Agent_Interviewer
         logger.info("[FSM State: IDLE] Executing %s...", current_agent_name)
         interviewer = Agent_Interviewer(database=db)
-        context = interviewer.process(context)
+        context = await interviewer.process(context)
 
         assert (
             context.user_profile_id is not None
@@ -134,7 +134,7 @@ async def run_pipeline_test() -> AgentContext:
         current_agent_name = "Agent_Analyst"
         logger.info("[FSM State: DATA_COLLECTED] Executing %s...", current_agent_name)
         analyst = Agent_Analyst()
-        context = analyst.process(context)
+        context = await analyst.process(context)
 
         assert context.swot is not None, "Agent_Analyst failed to generate SWOT result"
         assert context.strategy is not None, "Agent_Analyst failed to generate strategy plan"
@@ -153,7 +153,7 @@ async def run_pipeline_test() -> AgentContext:
         logger.info("[FSM State: MARKET_ANALYZED] Executing %s...", current_agent_name)
         vector_store = InMemoryVectorStore()
         copywriter = Agent_Copywriter(vector_store=vector_store)
-        context = copywriter.process(context)
+        context = await copywriter.process(context)
 
         assert context.post_draft is not None, "Agent_Copywriter failed to produce post_draft"
         logger.info("[OK] %s completed.", current_agent_name)
@@ -166,7 +166,7 @@ async def run_pipeline_test() -> AgentContext:
 
         # Test deduplication by re-running copywriter with the same vector store
         logger.info("Testing vector store deduplication (InMemoryVectorStore)...")
-        copywriter.process(context)
+        await copywriter.process(context)
         logger.info(
             "Deduplication test score: %.2f | Duplicate Flag: %s",
             context.post_draft.uniqueness_score,
@@ -182,18 +182,18 @@ async def run_pipeline_test() -> AgentContext:
         fact_checker = Agent_FactChecker()
 
         # Iteration 1: FactChecker detects hallucination -> correction_attempts=1
-        context = fact_checker.process(context)
+        context = await fact_checker.process(context)
         assert context.post_draft.fact_checked is False, "FactChecker should reject draft with unverified_claims"
         assert context.correction_attempts == 1, f"Expected correction_attempts=1, got {context.correction_attempts}"
         logger.info("[OK] Reflection Loop Attempt #1: FactChecker caught hallucinated claims: %s", context.post_draft.removed_claims)
 
         # Copywriter re-runs with reflection critique
-        context = copywriter.process(context)
+        context = await copywriter.process(context)
         assert "ПРЕДЫДУЩАЯ ОШИБКА" in context.post_draft.text, "Copywriter should include reflection critique instruction"
         logger.info("[OK] Reflection Loop: Copywriter incorporated critique instruction.")
 
         # Iteration 2: FactChecker re-checks corrected draft -> passes cleanly
-        context = fact_checker.process(context)
+        context = await fact_checker.process(context)
         assert context.post_draft.fact_checked is True, "FactChecker should accept corrected draft"
         logger.info(
             "[OK] %s completed after reflection loop. Fact Checked: %s | Attempts: %d",
@@ -206,19 +206,21 @@ async def run_pipeline_test() -> AgentContext:
         current_agent_name = "Agent_Visual_Director"
         logger.info("[FSM State: CONTENT_READY] Executing %s...", current_agent_name)
         visual_director = Agent_Visual_Director()
-        context = visual_director.process(context)
+        context = await visual_director.process(context)
 
         assert context.grid_plan is not None, "Agent_Visual_Director failed to build grid_plan"
-        assert len(context.kandinsky_prompts) > 0, "Agent_Visual_Director generated no Kandinsky prompts"
+        assert len(context.ltx23_prompts) > 0, "Agent_Visual_Director generated no LTX-2.3 prompts"
         logger.info("[OK] %s completed.", current_agent_name)
         logger.info("Grid Tiles count: %d", len(context.grid_plan.tiles))
-        for idx, prompt in enumerate(context.kandinsky_prompts, 1):
+        for idx, prompt in enumerate(context.ltx23_prompts, 1):
             logger.info(
-                "Prompt #%d [%s, %s]: %s",
+                "LTX-2.3 Workflow #%d [%s, fps=%d, ckpt=%s]: Video: %s | Audio: %s",
                 idx,
-                prompt.style,
                 prompt.aspect_ratio,
-                prompt.prompt_text,
+                prompt.fps,
+                prompt.config.checkpoint,
+                prompt.video_prompt,
+                prompt.audio_prompt,
             )
 
         logger.info("=== Pipeline Integration Test SUCCESSFUL ===")

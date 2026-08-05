@@ -12,6 +12,8 @@ interface Ctx {
   /** true после восстановления состояния из sessionStorage (см. редирект в ReviewFlow). */
   hydrated: boolean;
   updateInput: (patch: Partial<WizardInput>) => void;
+  /** Редактирование готового бренд-профиля на экране ревью (персистится автоматически). */
+  updateProfile: (patch: Partial<BrandProfile>) => void;
   runAnalysis: () => Promise<void>;
   resetAll: () => void;
 }
@@ -45,6 +47,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setInput((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  const updateProfile = useCallback((patch: Partial<BrandProfile>) => {
+    setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   const runAnalysis = useCallback(async () => {
     const result = await analyzeBusiness(input);
     setProfile(result);
@@ -57,7 +63,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <OnboardingContext.Provider value={{ input, profile, hydrated, updateInput, runAnalysis, resetAll }}>
+    <OnboardingContext.Provider value={{ input, profile, hydrated, updateInput, updateProfile, runAnalysis, resetAll }}>
       {children}
     </OnboardingContext.Provider>
   );

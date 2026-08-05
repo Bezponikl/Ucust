@@ -3,6 +3,7 @@ export type ReviewPlatform = "2gis" | "yandex" | "google";
 export interface Review {
   id: string;
   author: string;
+  avatar?: string;
   rating: number; // 1..5
   platform: ReviewPlatform;
   date: string;
@@ -21,6 +22,7 @@ export const REVIEWS: Review[] = [
   {
     id: "r1",
     author: "Мария К.",
+    avatar: "/content/avatar-marina.jpg",
     rating: 5,
     platform: "yandex",
     date: "сегодня",
@@ -31,6 +33,7 @@ export const REVIEWS: Review[] = [
   {
     id: "r2",
     author: "Андрей П.",
+    avatar: "/content/avatars/andrey-p.jpg",
     rating: 4,
     platform: "2gis",
     date: "вчера",
@@ -41,6 +44,7 @@ export const REVIEWS: Review[] = [
   {
     id: "r3",
     author: "Елена С.",
+    avatar: "/content/avatars/elena-s.jpg",
     rating: 5,
     platform: "google",
     date: "2 дня назад",
@@ -51,6 +55,7 @@ export const REVIEWS: Review[] = [
   {
     id: "r4",
     author: "Дмитрий В.",
+    avatar: "/content/avatars/dmitry-v.jpg",
     rating: 3,
     platform: "yandex",
     date: "3 дня назад",

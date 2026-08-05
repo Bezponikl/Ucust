@@ -1,13 +1,14 @@
 "use client";
 
-import { FileText, Link2 } from "lucide-react";
+import Icon from "@/components/ui/Icon";
+import type { IconName } from "@/lib/icons/solar";
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
 import { Field, TextArea, TextInput } from "@/components/onboarding/Field";
 import type { AboutMode } from "@/lib/onboarding/types";
 
 export default function StepAbout() {
   const { input, updateInput } = useOnboarding();
-  const tab = (mode: AboutMode, label: string, Icon: typeof Link2) => (
+  const tab = (mode: AboutMode, label: string, icon: IconName) => (
     <button
       type="button"
       role="tab"
@@ -17,7 +18,7 @@ export default function StepAbout() {
         input.aboutMode === mode ? "bg-brand text-white" : "bg-surface-soft text-ink hover:text-brand"
       }`}
     >
-      <Icon size={16} aria-hidden="true" />
+      <Icon name={icon} size={16} aria-hidden="true" />
       {label}
     </button>
   );
@@ -31,8 +32,8 @@ export default function StepAbout() {
         </p>
       </header>
       <div role="tablist" className="flex gap-2">
-        {tab("link", "По ссылке", Link2)}
-        {tab("manual", "Вручную", FileText)}
+        {tab("link", "По ссылке", "link")}
+        {tab("manual", "Вручную", "file-text")}
       </div>
       {input.aboutMode === "link" ? (
         <Field
@@ -54,11 +55,11 @@ export default function StepAbout() {
               placeholder="Например: кофейня, салон красоты, юридические услуги"
             />
           </Field>
-          <Field label="Что отличает вас от конкурентов? (необязательно)">
+          <Field label="Коротко о бизнесе (необязательно)">
             <TextArea
               value={input.difference}
               onChange={(e) => updateInput({ difference: e.target.value })}
-              placeholder="В чём ваша уникальность?"
+              placeholder="Что предлагаете и чем полезны клиентам"
             />
           </Field>
         </div>

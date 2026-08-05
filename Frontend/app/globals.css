@@ -16,11 +16,13 @@
   --brand-pink: #ff5fa2;
   --brand-orange: #ff8c4b;
   --ink: #1f2433;
-  --ink-muted: #6b7280;
+  --ink-muted: #5f6672;
   --ink-strong: #1f2433;
+  --hero-ink: #3a3f4a; /* серый текст hero (светлая тема) — мягче чёрного */
   --kicker-on-blue: #c2d2ff;
   --kicker-on-light: #9ca3af;
   --success: #18a957;
+  --gsf-base: #c3c7d2; /* приглушённый цвет незалитого флагман-заголовка */
 
   /* Фирменный градиент: blue → purple → pink → orange */
   --gradient-brand: linear-gradient(120deg, #4f7dff 0%, #7b5cff 38%, #ff5fa2 72%, #ff8c4b 100%);
@@ -60,7 +62,9 @@
   --ink: #e8eaf1;
   --ink-muted: #969eb0;
   --ink-strong: #f5f7fb;
+  --hero-ink: #ffffff; /* белый текст hero (тёмная тема) */
   --kicker-on-light: #7c8598;
+  --gsf-base: #363b4a;
 
   --shadow-soft: 0 2px 14px rgba(0, 0, 0, 0.45);
   --shadow-lift: 0 10px 34px rgba(0, 0, 0, 0.55);
@@ -107,17 +111,97 @@
   --radius-card: var(--radius-card);
   --radius-card-sm: var(--radius-card-sm);
 
-  --container-page: 1200px;
+  --container-page: 1320px;
 }
 
 html {
   scroll-behavior: smooth;
+  /* iOS Safari: не «раздувать» текст автоматически (иначе бывает гор. оверфлоу) */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-body), system-ui, sans-serif;
+  /* Страховка от горизонтального выезда на мобиле (clip не создаёт scroll-контейнер,
+     поэтому sticky-топбар и fixed-навбар не ломаются) */
+  overflow-x: clip;
+}
+
+/* ── Фирменное свечение фона ──
+   Тот же приём, что понравился в онбординге: мягкие бренд-пятна вместо плоской
+   заливки. Класс вешаем на страницы приложения (вход, регистрация, онбординг),
+   лендинг со своими фонами не трогаем. */
+.uc-brand-canvas {
+  position: relative;
+  background:
+    radial-gradient(60rem 42rem at 4% -14%, color-mix(in srgb, var(--brand) 30%, transparent), transparent 68%),
+    radial-gradient(52rem 40rem at 104% 16%, color-mix(in srgb, var(--brand-purple) 26%, transparent), transparent 70%),
+    radial-gradient(44rem 34rem at 84% 96%, color-mix(in srgb, var(--brand-pink) 18%, transparent), transparent 72%),
+    radial-gradient(48rem 36rem at 26% 118%, color-mix(in srgb, var(--brand-orange) 22%, transparent), transparent 70%),
+    var(--canvas);
+  background-attachment: fixed;
+}
+
+.dark .uc-brand-canvas {
+  background:
+    radial-gradient(60rem 42rem at 4% -14%, color-mix(in srgb, var(--brand) 34%, transparent), transparent 66%),
+    radial-gradient(52rem 40rem at 104% 16%, color-mix(in srgb, var(--brand-purple) 30%, transparent), transparent 70%),
+    radial-gradient(44rem 34rem at 84% 96%, color-mix(in srgb, var(--brand-pink) 16%, transparent), transparent 72%),
+    radial-gradient(48rem 36rem at 26% 118%, color-mix(in srgb, var(--brand-orange) 20%, transparent), transparent 70%),
+    var(--canvas);
+  background-attachment: fixed;
+}
+
+/* iOS Safari зумит страницу при фокусе на поле со шрифтом < 16px и зум «прилипает».
+   На мобиле форсим ≥16px во всех полях ввода. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* ── Масштаб интерфейса под разрешение ──
+   Медиазапрос видит ширину без скроллбара: 2560-монитор ≈ 2543, 3840 ≈ 3823.
+   База 1320 / 16px комфортна вплоть до Full HD (на 1920 не растянуто).
+   На 2K/4K растим и ширину контейнера, и кегль: вся вёрстка в rem, поэтому
+   отступы, радиусы, иконки и карточки увеличиваются пропорционально.
+   Ступени мягкие (×1.09 / ×1.25) — интерфейс не «раздувается», а догоняет
+   физический размер пикселя на крупном мониторе. */
+:root {
+  --container-dash: 1280px;
+}
+
+@media (min-width: 2000px) {
+  html {
+    font-size: 17px;
+  }
+  :root {
+    --container-page: 1400px;
+    --container-dash: 1400px;
+  }
+}
+@media (min-width: 2400px) {
+  html {
+    font-size: 18px;
+  }
+  :root {
+    --container-page: 1560px;
+    --container-dash: 1560px;
+  }
+}
+@media (min-width: 3400px) {
+  html {
+    font-size: 21px;
+  }
+  :root {
+    --container-page: 1960px;
+    --container-dash: 1960px;
+  }
 }
 
 h1,
@@ -137,6 +221,55 @@ h4 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
+}
+
+/* ── Флагман-заголовок с заливкой градиентом по скроллу (GradientScrollText) ── */
+.gsf-line {
+  display: block;
+  position: relative;
+  color: var(--gsf-base);
+}
+.gsf-line::after {
+  content: attr(data-t);
+  position: absolute;
+  inset: 0;
+  white-space: pre-wrap;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* видимая доля растёт слева-направо по прогрессу скролла (--p: 0..1, задаётся из JS) */
+  clip-path: inset(0 calc((1 - var(--p, 0)) * 100%) 0 0);
+}
+/* Одно слово-акцент в обычном заголовке (уровень 2) */
+.accent-gradient {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hero-заголовок: сплошной контрастный текст без градиента —
+   тёмно-синий на светлой теме, белый на тёмной. */
+.hero-title {
+  color: var(--hero-ink);
+}
+.hero-title .ai {
+  color: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* без анимации заголовок сразу полностью залит */
+  .gsf-line { --p: 1 !important; }
+}
+
+/* ── Анимированные «сюжетные» сцены возможностей (FeatureScene) ── */
+/* Тему переключаем Tailwind-утилитами (dark:hidden / hidden dark:block) на обёртках.
+   Reduced-motion: замораживаем цикл на видимом кадре (~середина). */
+@media (prefers-reduced-motion: reduce) {
+  .fscene [style*="animation"] {
+    animation-delay: -5s !important;
+    animation-play-state: paused !important;
+  }
 }
 
 /* Базовая бенто-карточка */
@@ -162,6 +295,27 @@ h4 {
 }
 @utility bg-gradient-brand {
   background-image: var(--gradient-brand);
+}
+/* Фирменный градиент (--gradient-brand, тот же, что у text-gradient) обводка карточки —
+   активный тариф с "gradient"-акцентом. Двойной background-clip: внутренний слой —
+   заливка карточки, внешний — рамка. */
+.tariff-border-gradient {
+  border: 1.5px solid transparent;
+  background-image: linear-gradient(var(--card), var(--card)), var(--gradient-brand);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+/* Тот же приём для маленькой пилюли-бейджа ("Популярный") */
+.tariff-badge-gradient {
+  border: 1px solid transparent;
+  background-image: linear-gradient(var(--surface-soft), var(--surface-soft)), var(--gradient-brand);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+/* Градиентная заливка галочки: у path внутри Icon уже задан fill="currentColor",
+   он перебивает fill на корневом <svg>, поэтому красим сам path через CSS. */
+.tariff-check-gradient path {
+  fill: url("#tariff-check-gradient");
 }
 @utility glass {
   background: rgba(255, 255, 255, 0.55);
@@ -207,80 +361,57 @@ h4 {
 .btn-glass-blue,
 .btn-glass-dark {
   isolation: isolate;
+  border-radius: 9999px; /* единое закругление кнопок — пилюля (как навбар/тарифы) */
   transition: background-color 0.25s ease, background-image 0.25s ease,
     border-color 0.25s ease, box-shadow 0.25s ease, color 0.2s ease,
     transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Базовый вид «чистого стекла» (общий для .btn-glass и .btn-glass-fill) */
+/* Фейк-стекло (без backdrop-filter — без нагрузки), в тон нижней плашке.
+   Непрозрачность повышена (было 0.55/0.6) — на фото-фоне текст/иконки иначе теряют контраст. */
 .btn-glass,
 .btn-glass-fill {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
-  border: 1px solid rgba(168, 192, 255, 0.5);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 6px 18px -10px rgba(31, 49, 120, 0.28);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 6px 18px -10px rgba(31, 49, 120, 0.22);
   color: var(--ink-strong);
 }
-/* Обычные стеклянные кнопки: мягкое «переливание» без заливки */
-.btn-glass:hover {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(168, 192, 255, 0.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 11px 24px -10px rgba(31, 49, 120, 0.34);
-  transform: translateY(-1px);
-}
-/* Только «Зарегистрироваться»: прозрачное → наливается голубым на ховере */
+.btn-glass:hover,
 .btn-glass-fill:hover {
-  background-image: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 60%),
-    linear-gradient(150deg, rgba(196, 216, 255, 0.95), rgba(160, 191, 255, 0.78));
-  border-color: rgba(140, 175, 255, 0.85);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -14px 30px rgba(79, 125, 255, 0.16),
-    0 12px 26px -10px rgba(79, 125, 255, 0.4);
-  color: #2447b8;
+  background: rgba(255, 255, 255, 0.9);
+  background-image: none;
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 11px 24px -10px rgba(31, 49, 120, 0.28);
+  color: var(--ink-strong);
   transform: translateY(-1px);
 }
 
-/* Голубое стекло: оттенок уже в покое (главный CTA) */
+/* Главный CTA: голубое фейк-стекло. */
 .btn-glass-blue {
-  background-color: rgba(206, 223, 255, 0.72);
-  background-image: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 60%),
-    linear-gradient(150deg, rgba(190, 212, 255, 0.92), rgba(158, 190, 255, 0.7));
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -16px 34px rgba(79, 125, 255, 0.16),
-    0 10px 26px -10px rgba(79, 125, 255, 0.4);
+  background-color: rgba(184, 208, 255, 0.72);
+  background-image: none;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 22px -10px rgba(79, 125, 255, 0.35);
   color: #2447b8;
 }
 .btn-glass-blue:hover {
-  background-image: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0) 58%),
-    linear-gradient(150deg, rgba(170, 198, 255, 0.96), rgba(132, 170, 255, 0.82));
-  border-color: rgba(150, 182, 255, 0.9);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -18px 38px rgba(79, 125, 255, 0.22),
-    0 14px 30px -10px rgba(79, 125, 255, 0.5);
+  background-color: rgba(160, 190, 255, 0.82);
+  background-image: none;
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 28px -10px rgba(79, 125, 255, 0.45);
   transform: translateY(-1px);
 }
 
-/* Стекло для цветного/тёмного фона: морозно-белое, белый текст */
+/* Фейк-стекло на цветном/тёмном фоне: морозно-белое, белый текст. */
 .btn-glass-dark {
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 8px 22px -10px rgba(16, 27, 80, 0.3);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   color: #fff;
 }
 .btn-glass-dark:hover {
   background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 12px 26px -10px rgba(16, 27, 80, 0.36);
+  border-color: rgba(255, 255, 255, 0.7);
   transform: translateY(-1px);
 }
 
@@ -293,36 +424,33 @@ h4 {
   pointer-events: none;
 }
 
-/* ── Тёмная тема для стеклянных кнопок и голубой панели ── */
+/* ── Тёмная тема ── */
+/* Тонировано в --card (rgb 20,24,35), а не белым — иначе кнопки светлее сайдбара/окна и «стекло» на глаз разного тона. */
 .dark .btn-glass,
 .dark .btn-glass-fill {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(20, 24, 35, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 6px 18px -10px rgba(0, 0, 0, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: var(--ink-strong);
 }
-.dark .btn-glass:hover {
-  background: rgba(255, 255, 255, 0.13);
-  border-color: rgba(255, 255, 255, 0.22);
-}
+.dark .btn-glass:hover,
 .dark .btn-glass-fill:hover {
-  background-image: linear-gradient(150deg, rgba(93, 134, 255, 0.5), rgba(60, 99, 230, 0.42));
-  border-color: rgba(120, 150, 255, 0.6);
-  color: #dce6ff;
+  background: rgba(20, 24, 35, 0.72);
+  background-image: none;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ink-strong);
 }
 .dark .btn-glass-blue {
-  background-color: rgba(46, 67, 130, 0.55);
-  background-image: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
-    linear-gradient(150deg, rgba(80, 112, 220, 0.6), rgba(56, 84, 190, 0.45));
-  border: 1px solid rgba(120, 150, 255, 0.4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 10px 26px -10px rgba(0, 0, 0, 0.6);
-  color: #e3eaff;
+  background-color: rgba(79, 125, 255, 0.3);
+  background-image: none;
+  border: 1px solid rgba(120, 150, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: #eaf0ff;
 }
 .dark .btn-glass-blue:hover {
-  background-image: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 58%),
-    linear-gradient(150deg, rgba(96, 128, 240, 0.7), rgba(70, 100, 210, 0.55));
+  background-color: rgba(79, 125, 255, 0.42);
+  background-image: none;
+  border-color: rgba(120, 150, 255, 0.72);
 }
 .dark .panel-blue-glass {
   background-color: rgba(30, 44, 84, 0.55);
@@ -331,6 +459,26 @@ h4 {
   border: 1px solid rgba(120, 150, 255, 0.18);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
     inset 0 -18px 40px rgba(40, 70, 160, 0.25);
+}
+
+/* Сплошная (не-стеклянная) кнопка-иконка топбара дашборда — режим «Стандартная заливка».
+   Используется вместо .btn-glass, когда surfaceStyle === "solid" (см. lib/dashboard/surface.ts). */
+.btn-solid {
+  isolation: isolate;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--ink-strong);
+  box-shadow: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.btn-solid:hover {
+  background: var(--surface-soft);
+  color: var(--ink-strong);
+}
+.btn-solid:disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* Автозаполнение браузера: не даём Chrome красить поле белым (особенно в тёмной теме) */
@@ -353,6 +501,145 @@ input:-webkit-autofill:active {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Фирменный скроллбар под тему платформы ──
+   Chromium/WebKit: ТОЛЬКО ::-webkit-scrollbar (без scrollbar-width/color на элементах,
+   иначе Chromium 121+ игнорирует псевдоэлементы и рисует нативный со стрелками).
+   Цвета через --ink/--brand — сами меняются в .dark → корректно в обеих темах. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--brand) 65%, transparent);
+  background-clip: padding-box;
+}
+/* Убираем нативные стрелки-кнопки и угол */
+::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* Firefox (в Chromium @supports ложно — не конфликтует с webkit выше) */
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--ink) 22%, transparent) transparent;
+  }
+}
+
+/* ── Дашборд: переход страниц + каскадный вход карточек ── */
+@keyframes pg-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* fill-mode: backwards (не both) — иначе остаточный transform: translateY(0)
+   делает враппер containing-block для position:fixed, и модалки/оверлеи
+   внутри страницы смещаются на величину прокрутки. */
+@utility animate-page-enter {
+  animation: pg-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Каскадный вход для сеток — добавить класс stagger-grid на grid-контейнер */
+@utility stagger-grid {
+  & > *:nth-child(1) { animation: pg-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) 0ms both; }
+  & > *:nth-child(2) { animation: pg-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) 40ms both; }
+  & > *:nth-child(3) { animation: pg-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both; }
+  & > *:nth-child(4) { animation: pg-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both; }
+  & > *:nth-child(5) { animation: pg-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) 160ms both; }
+  & > *:nth-child(6) { animation: pg-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter,
+  .stagger-grid > * { animation: none; }
+}
+
+/* ── Анимации появления (модалка, оверлеи, поповеры) ── */
+@keyframes uc-modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes uc-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes uc-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes uc-flash {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 60%, transparent); background-color: color-mix(in srgb, var(--brand) 12%, transparent); }
+  35% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 30%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; background-color: transparent; }
+}
+.uc-modal-in { animation: uc-modal-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.uc-sheet-in { animation: uc-modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.uc-fade-in { animation: uc-fade-in 0.25s ease both; }
+.uc-pop-in { animation: uc-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.uc-flash { animation: uc-flash 1.25s ease-out both; }
+
+/* Контент дашборда не обрывается под топбаром, а мягко растворяется у кромки */
+.uc-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+}
+
+/* Смена вкладки: содержимое въезжает снизу, а не подменяется рывком */
+@keyframes uc-tab-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.uc-tab-in { animation: uc-tab-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Прогресс-бар доезжает до цели при появлении карточки */
+@keyframes uc-bar-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.uc-bar-fill {
+  transform-origin: left center;
+  animation: uc-bar-fill 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Вертикальные столбики графика растут снизу вверх */
+@keyframes uc-bar-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.uc-bar-rise {
+  transform-origin: bottom center;
+  animation: uc-bar-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uc-tab-in,
+  .uc-bar-fill,
+  .uc-bar-rise { animation: none; }
+}
+
+/* Кольцо подсказки тура: мягкая пульсация вокруг подсвеченного элемента */
+@keyframes uc-tour-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 34%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand) 0%, transparent); }
+}
+.uc-tour-ring { animation: uc-tour-ring 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .uc-tour-ring { animation: none; }
 }
 
 /* ── Hero-арт: чистый рендер (фон убран) + лёгкое парение + акценты ── */
@@ -480,7 +767,14 @@ input:-webkit-autofill:active {
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
-  border-radius: 4px;
+}
+
+/* Поля ввода/списки имеют собственную скруглённую подсветку (ring) —
+   убираем прямоугольную браузерную обводку, чтобы не двоилось. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -769,6 +1063,27 @@ input:-webkit-autofill:active {
   .features-bento .rays { display: none; }
 }
 
+/* ── Анимация отрисовки графика обзора (одноразово при загрузке/смене вкладки) ── */
+.reach-line {
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: reach-draw 1s cubic-bezier(0.4, 0, 0.2, 1) 0.05s forwards;
+}
+.reach-area {
+  opacity: 0;
+  animation: reach-fade 0.7s ease 0.45s forwards;
+}
+@keyframes reach-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes reach-fade {
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reach-line { stroke-dasharray: none; stroke-dashoffset: 0; animation: none; }
+  .reach-area { opacity: 1; animation: none; }
+}
+
 /* ── Слайдер конфигуратора тарифа ── */
 .tariff-range {
   -webkit-appearance: none;
@@ -813,4 +1128,26 @@ input:-webkit-autofill:active {
   height: 6px;
   border-radius: 999px;
   background: var(--brand);
+}
+
+/* Бегущая лента каналов — чистая CSS-анимация. Крутится на compositor-потоке,
+   а не на main-thread (как было с framer-motion animate={{x}}), поэтому не
+   подфризивает, когда основной поток занят (например, сценами возможностей). */
+@keyframes uc-marquee {
+  to {
+    transform: translateX(-33.3333%);
+  }
+}
+.uc-marquee {
+  animation: uc-marquee 32s linear infinite;
+  will-change: transform;
+}
+/* Пауза, когда секция ушла из вида (как у сцен возможностей) — не крутим впустую. */
+.uc-marquee.is-paused {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .uc-marquee {
+    animation: none;
+  }
 }

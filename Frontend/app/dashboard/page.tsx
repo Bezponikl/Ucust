@@ -1,5 +1,10 @@
 import Overview from "@/components/dashboard/overview/Overview";
+import PageWindow from "@/components/dashboard/PageWindow";
 
 export default function DashboardPage() {
-  return <Overview />;
+  return (
+    <PageWindow>
+      <Overview />
+    </PageWindow>
+  );
 }

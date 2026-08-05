@@ -1,4 +1,5 @@
 import type { ChannelId } from "@/lib/channels";
+import type { IconName } from "@/lib/icons/solar";
 
 export type AccentColor = "brand" | "purple" | "pink" | "orange" | "success";
 export type StatIcon = "views" | "engagement" | "subscribers" | "reviews";
@@ -11,6 +12,8 @@ export interface Stat {
   delta?: string;
   icon: StatIcon;
   color: AccentColor;
+  hintTone?: "warning";
+  sparkline?: number[];
 }
 
 export type ChartTab = "reach" | "engagement" | "clicks";
@@ -21,6 +24,8 @@ export interface AiTip {
   text: string;
   color: AccentColor;
   href: string;
+  /** Иконка по смыслу совета — одинаковые значки сливались в один ряд. */
+  icon: IconName;
 }
 
 export type PostStatus = "published" | "scheduled" | "draft" | "none";

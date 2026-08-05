@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Icon from "@/components/ui/Icon";
 import { useDashboard } from "./DashboardProvider";
-
-const MOCK_PROJECTS = ["Вердиктор", "Coffee Shop", "Fashion Store"];
+import { menuSurfaceClass } from "@/lib/dashboard/surface";
 
 export default function ProjectSwitcher() {
-  const { data } = useDashboard();
+  const { data, surfaceStyle, hasProject } = useDashboard();
   const current = data?.businessName ?? "Ваш бизнес";
+  // Показываем только созданные проекты: пока он один — тот, что собрал онбординг
+  const projects = hasProject ? [{ id: "current", name: current }] : [];
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -27,34 +30,46 @@ export default function ProjectSwitcher() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex max-w-[200px] items-center gap-2 rounded-xl border border-border bg-surface-soft px-3 py-1.5 text-left"
+        className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-surface-soft px-2.5 py-1.5 text-left"
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-xs font-bold text-brand" aria-hidden="true">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-[0.6875rem] font-bold text-brand" aria-hidden="true">
           {current.slice(0, 1).toUpperCase()}
         </span>
         <span className="min-w-0 leading-tight">
           <span className="block truncate text-sm font-semibold text-ink">{current}</span>
           <span className="block text-xs text-ink-muted">Проект</span>
         </span>
-        <ChevronDown size={16} className={`shrink-0 text-ink-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+        <Icon name="chevron-down" size={16} className={`shrink-0 text-ink-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-lift">
-          <button type="button" onClick={() => setOpen(false)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-surface-soft">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-tint text-xs font-bold text-brand" aria-hidden="true">{current.slice(0, 1).toUpperCase()}</span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{current}</span>
-            <Check size={16} className="text-brand" aria-hidden="true" />
-          </button>
-          {MOCK_PROJECTS.map((p) => (
-            <button key={p} type="button" onClick={() => setOpen(false)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-surface-soft">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-soft text-xs font-bold text-ink-muted" aria-hidden="true">{p.slice(0, 1)}</span>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{p}</span>
-            </button>
-          ))}
+        <div className={`absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-border p-1.5 shadow-lift ${menuSurfaceClass(surfaceStyle)}`}>
+          {projects.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-ink-muted">Проектов пока нет</p>
+          ) : (
+            projects.map((b) => {
+              const active = b.name === current;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-surface-soft"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-xs font-bold text-brand" aria-hidden="true">{b.name.slice(0, 1)}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{b.name}</span>
+                  {active && <Icon name="check" size={16} className="shrink-0 text-brand" aria-hidden="true" />}
+                </button>
+              );
+            })
+          )}
           <div className="my-1 h-px bg-border" />
-          <button type="button" onClick={() => setOpen(false)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-brand hover:bg-surface-soft">
-            <Plus size={16} aria-hidden="true" /> Добавить проект
+          <button
+            type="button"
+            onClick={() => { setOpen(false); try { sessionStorage.setItem("uc_show_setup", "1"); } catch {} router.push("/onboarding"); }}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-brand hover:bg-surface-soft"
+          >
+            <Icon name="plus" size={16} aria-hidden="true" /> Добавить проект
           </button>
         </div>
       )}

@@ -1,34 +1,38 @@
-import type { BrandProfile } from "@/lib/onboarding/types";
-import Chip from "@/components/onboarding/Chip";
+"use client";
 
-const DOTS = ["bg-brand-orange", "bg-brand-purple", "bg-brand-pink", "bg-brand"];
-const TONE_COLORS = ["orange", "purple", "pink", "brand"] as const;
+import type { BrandProfile } from "@/lib/onboarding/types";
+import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
+import { Panel, SectionHead } from "@/components/onboarding/OnboardingChrome";
+import EditableList from "./EditableList";
 
 export default function SectionGoals({ profile }: { profile: BrandProfile }) {
+  const { updateProfile } = useOnboarding();
+
   return (
-    <div className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-2xl font-bold text-ink sm:text-3xl">Цели</h1>
-        <p className="mt-2 text-sm text-ink-muted">Чего хотим достичь с помощью контента</p>
-      </header>
-      <div className="flex flex-col gap-3">
-        {profile.goals.map((g, i) => (
-          <div key={g} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOTS[i % DOTS.length]}`} aria-hidden="true" />
-            <span className="text-sm text-ink">{g}</span>
-          </div>
-        ))}
-      </div>
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <p className="mb-3 text-sm font-semibold text-ink-muted">Стиль общения с клиентами</p>
-        <div className="flex flex-wrap gap-2">
-          {profile.tone.map((t, i) => (
-            <Chip key={t} color={TONE_COLORS[i % TONE_COLORS.length]}>
-              {t}
-            </Chip>
-          ))}
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <SectionHead
+        icon="star"
+        kicker="Шаг 5 · Результат"
+        tone="orange"
+        title="Цели"
+        text="Ради чего всё это. По целям ИИ решает, о чём писать чаще и с каким призывом."
+      />
+      <Panel title="Цели контента" hint="Например: приводить новых гостей, возвращать постоянных">
+        <EditableList
+          value={profile.goals}
+          onChange={(goals) => updateProfile({ goals })}
+          placeholder="Цель"
+          addLabel="Добавить цель"
+        />
+      </Panel>
+      <Panel title="Стиль общения с клиентами" hint="Каким голосом бренд говорит в постах и ответах">
+        <EditableList
+          value={profile.tone}
+          onChange={(tone) => updateProfile({ tone })}
+          placeholder="Например: дружелюбный"
+          addLabel="Добавить стиль"
+        />
+      </Panel>
     </div>
   );
 }

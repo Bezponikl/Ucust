@@ -1,5 +1,10 @@
 import CreateView from "@/components/dashboard/create/CreateView";
+import PageWindow from "@/components/dashboard/PageWindow";
 
 export default function CreatePage() {
-  return <CreateView />;
+  return (
+    <PageWindow>
+      <CreateView />
+    </PageWindow>
+  );
 }

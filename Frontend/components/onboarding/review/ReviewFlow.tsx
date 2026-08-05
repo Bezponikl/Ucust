@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import OnboardingTopBar from "../OnboardingTopBar";
+import { OnboardingBackdrop } from "../OnboardingChrome";
+import Icon from "@/components/ui/Icon";
 import { useOnboarding } from "../OnboardingProvider";
 import ProfileSidebar from "./ProfileSidebar";
 import SectionAbout from "./SectionAbout";
@@ -10,11 +12,13 @@ import SectionMarket from "./SectionMarket";
 import SectionSwot from "./SectionSwot";
 import SectionServices from "./SectionServices";
 import SectionGoals from "./SectionGoals";
+import TourPrompt from "./TourPrompt";
 
 export default function ReviewFlow() {
   const router = useRouter();
   const { profile, hydrated } = useOnboarding();
   const [section, setSection] = useState(0);
+  const [askTour, setAskTour] = useState(false);
 
   // Редиректим только после гидрации из sessionStorage — иначе на прямой загрузке
   // /review профиль ещё null и нас бы выкинуло на визард до восстановления состояния.
@@ -33,42 +37,49 @@ export default function ReviewFlow() {
   ];
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="uc-brand-canvas flex min-h-dvh flex-col">
+      <OnboardingBackdrop />
       <OnboardingTopBar />
-      <div className="mx-auto flex w-full max-w-(--container-page) flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-10">
+      <div className="relative z-10 mx-auto flex w-full max-w-(--container-page) flex-1 flex-col gap-8 px-4 py-8 sm:px-6 lg:flex-row lg:gap-12">
         <ProfileSidebar current={section} onSelect={setSection} />
-        <main className="min-w-0 flex-1 pb-10 lg:pt-6">
+        <main className="min-w-0 flex-1 pb-12">
           {sections[section]}
-          <div className="mt-10 flex gap-3">
+
+          <div className="mt-10 flex items-center gap-3">
             {section > 0 && (
               <button
                 type="button"
                 onClick={() => setSection((s) => s - 1)}
-                className="btn-glass inline-flex flex-1 items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold"
+                className="btn-glass inline-flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold"
               >
-                Назад
+                <Icon name="arrow-left" size={16} aria-hidden="true" /> Назад
               </button>
             )}
             {section < 4 ? (
               <button
                 type="button"
                 onClick={() => setSection((s) => s + 1)}
-                className="btn-glass-blue inline-flex flex-1 items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold"
+                className="btn-glass-blue inline-flex flex-1 items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold sm:flex-none sm:min-w-56"
               >
-                Далее
+                Дальше <Icon name="arrow-right" size={16} aria-hidden="true" />
               </button>
             ) : (
               <button
                 type="button"
-                onClick={() => router.push("/dashboard")}
-                className="btn-glass-blue inline-flex flex-1 items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold"
+                onClick={() => setAskTour(true)}
+                className="btn-glass-blue inline-flex flex-1 items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold sm:flex-none sm:min-w-64"
               >
-                Готово — перейти в дашборд
+                <Icon name="check-bold" size={16} aria-hidden="true" /> Всё верно — в кабинет
               </button>
             )}
+            <span className="ml-auto hidden text-xs text-ink-muted sm:block">
+              Раздел {section + 1} из 5 · правки сохраняются сразу
+            </span>
           </div>
         </main>
       </div>
+
+      <TourPrompt open={askTour} onDone={() => router.push("/dashboard")} />
     </div>
   );
 }

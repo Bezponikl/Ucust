@@ -1,36 +1,70 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
-const ITEMS = ["1. О проекте", "2. Рынок", "3. SWOT анализ", "4. Услуги", "5. Цели"];
+const ITEMS = ["О проекте", "Рынок", "SWOT анализ", "Услуги", "Цели"];
 
+/**
+ * Навигация по разделам профиля. Это последовательная проверка досье,
+ * поэтому шаги пронумерованы, а пройденные отмечены галочкой.
+ */
 export default function ProfileSidebar({ current, onSelect }: { current: number; onSelect: (i: number) => void }) {
+  const progress = ((current + 1) / ITEMS.length) * 100;
+
   return (
-    <aside className="shrink-0 border-border lg:w-64 lg:border-r">
+    <aside className="shrink-0 lg:w-72">
       <Link
-        href="/"
-        className="mb-4 hidden items-center gap-2 px-4 pt-6 text-sm text-ink-muted hover:text-ink lg:flex"
+        href="/dashboard"
+        className="mb-6 hidden items-center gap-2 text-sm text-ink-muted transition hover:text-ink lg:flex"
       >
-        <ArrowLeft size={16} aria-hidden="true" /> На главную
+        <Icon name="arrow-left" size={16} aria-hidden="true" /> В кабинет
       </Link>
-      <p className="mb-2 hidden px-4 text-xs font-semibold uppercase tracking-wide text-ink-muted lg:block">
-        Проект
-      </p>
-      <nav className="flex gap-2 overflow-x-auto px-2 pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
-        {ITEMS.map((item, i) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onSelect(i)}
-            aria-current={i === current ? "page" : undefined}
-            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-left text-sm font-medium transition ${
-              i === current ? "bg-brand text-white" : "text-ink-muted hover:bg-surface-soft hover:text-ink"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
+
+      <div className="mb-4 hidden lg:block">
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Профиль бренда</span>
+          <span className="text-xs font-medium text-ink-muted">{current + 1} / {ITEMS.length}</span>
+        </div>
+        <div className="h-1 overflow-hidden rounded-full bg-border">
+          <div className="h-full rounded-full bg-brand transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      <nav className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0">
+        {ITEMS.map((item, i) => {
+          const active = i === current;
+          const done = i < current;
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onSelect(i)}
+              aria-current={active ? "step" : undefined}
+              className={`group flex shrink-0 items-center gap-3 whitespace-nowrap rounded-2xl px-3 py-2.5 text-left text-sm font-medium transition lg:w-full ${
+                active
+                  ? "bg-brand/12 text-ink ring-1 ring-brand/30"
+                  : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+              }`}
+            >
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
+                  active
+                    ? "bg-brand text-white"
+                    : done
+                      ? "bg-success/15 text-success"
+                      : "bg-surface-soft text-ink-muted group-hover:text-ink"
+                }`}
+              >
+                {done ? <Icon name="check-bold" size={13} aria-hidden="true" /> : i + 1}
+              </span>
+              {item}
+              {active && (
+                <Icon name="chevron-right" size={14} className="ml-auto hidden text-brand lg:block" aria-hidden="true" />
+              )}
+            </button>
+          );
+        })}
       </nav>
     </aside>
   );

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
-import Reveal from "./Reveal";
+import Icon from "./ui/Icon";
+import SectionHeading from "./SectionHeading";
 
 const FAQ_ITEMS = [
   {
@@ -31,7 +31,8 @@ const FAQ_ITEMS = [
   },
   {
     question: "Есть ли бесплатный период?",
-    answer: "Да, можно начать без привязки карты.",
+    answer:
+      "Да — пробный период 7 дней, без привязки карты. Успеете протестировать сервис на своём бизнесе.",
   },
 ];
 
@@ -43,14 +44,11 @@ export default function Faq() {
       id="faq"
       className="mx-auto max-w-(--container-page) px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
     >
-      <Reveal>
-        <p className="kicker mb-4 text-xs text-brand sm:text-sm">Вопросы</p>
-        <h2 className="max-w-2xl text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
-          Частые вопросы
-        </h2>
-      </Reveal>
+      <SectionHeading kicker="Вопросы">
+        Частые вопросы
+      </SectionHeading>
 
-      <div className="mt-10 flex flex-col divide-y divide-border rounded-[32px] bg-card px-6 shadow-soft sm:mt-12 sm:px-8 sm:py-2">
+      <div className="mt-10 flex w-full flex-col divide-y divide-border rounded-[32px] bg-card px-6 py-1 shadow-soft sm:mt-12 sm:px-8 sm:py-2 lg:px-10">
         {FAQ_ITEMS.map((item, index) => {
           const isOpen = openIndex === index;
           const panelId = `faq-panel-${index}`;
@@ -68,9 +66,9 @@ export default function Faq() {
                   className="flex w-full items-center justify-between gap-4 py-5 text-left text-base font-medium text-ink transition-colors hover:text-brand sm:py-6 sm:text-lg"
                 >
                   {item.question}
-                  <ChevronDown
+                  <Icon
+                    name="chevron-down"
                     size={20}
-                    aria-hidden="true"
                     className={`shrink-0 text-ink-muted transition-transform duration-300 ${
                       isOpen ? "rotate-180 text-brand" : ""
                     }`}
@@ -89,7 +87,7 @@ export default function Faq() {
                     transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden"
                   >
-                    <p className="pb-5 pr-10 text-sm leading-relaxed text-ink-muted sm:pb-6 sm:text-base">
+                    <p className="max-w-[68ch] pb-5 pr-10 text-sm leading-relaxed text-ink-muted sm:pb-6 sm:text-base">
                       {item.answer}
                     </p>
                   </motion.div>

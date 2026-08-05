@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import Reveal from "./Reveal";
+import SectionHeading from "./SectionHeading";
 import { CHANNELS, CHANNEL_ORDER } from "@/lib/channels";
+import { staggerContainer, fadeUp, viewportOnce } from "@/lib/motion";
+
+// Единый «магнитный» отклик на hover для всех карточек каналов.
+const CARD_HOVER =
+  "transition-[box-shadow,border-color] duration-300 ease-out hover:border-brand/40 hover:shadow-lift";
 
 function ChannelCard({ id }: { id: (typeof CHANNEL_ORDER)[number] }) {
   const channel = CHANNELS[id];
 
   if (channel.iconType === "wordmark" && channel.icon) {
     return (
-      <div className="flex shrink-0 items-center rounded-[20px] border border-border bg-card px-6 py-4 shadow-soft">
+      <div className={`flex shrink-0 items-center rounded-[20px] border border-border bg-card px-6 py-4 shadow-soft ${CARD_HOVER}`}>
         <Image
           src={channel.icon}
           alt={channel.label}
@@ -33,7 +38,7 @@ function ChannelCard({ id }: { id: (typeof CHANNEL_ORDER)[number] }) {
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-2.5 rounded-[20px] border border-border bg-card px-5 py-4 shadow-soft">
+    <div className={`flex shrink-0 items-center gap-2.5 rounded-[20px] border border-border bg-card px-5 py-4 shadow-soft ${CARD_HOVER}`}>
       {channel.icon ? (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
           <Image
@@ -56,6 +61,14 @@ function ChannelCard({ id }: { id: (typeof CHANNEL_ORDER)[number] }) {
       )}
       <span className="whitespace-nowrap text-sm font-medium text-ink sm:text-base">
         {channel.label}
+        {channel.id === "instagram" && (
+          <>
+            <sup className="ml-0.5 text-ink-muted" aria-hidden="true">*</sup>
+            <span className="sr-only">
+              {" "}— принадлежит Meta, признанной экстремистской организацией и запрещённой на территории РФ.
+            </span>
+          </>
+        )}
       </span>
     </div>
   );
@@ -71,35 +84,50 @@ export default function Channels() {
   const reduceMotion = mounted && prefersReducedMotion;
   const track = [...CHANNEL_ORDER, ...CHANNEL_ORDER, ...CHANNEL_ORDER];
 
+  // Пауза бегущей ленты, когда секция вне вьюпорта — не гоняем анимацию впустую.
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(true);
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), {
+      threshold: 0,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <section id="channels" className="py-12 sm:py-16 lg:py-20">
-      <Reveal className="mx-auto max-w-(--container-page) px-5 sm:px-6">
-        <p className="kicker mb-4 text-xs text-brand sm:text-sm">Каналы</p>
-        <h2 className="max-w-2xl text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
-          Публикуем туда, где ваши клиенты
-        </h2>
-        <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
-          Подключите аккаунты один раз — дальше UCust публикует автоматически.
-        </p>
-      </Reveal>
+      <SectionHeading
+        kicker="Каналы"
+        className="mx-auto max-w-(--container-page) px-5 sm:px-6"
+        subtitle="Подключите аккаунты один раз — дальше UCust публикует автоматически."
+      >
+        Публикуем туда, где ваши клиенты
+      </SectionHeading>
 
-      <div className="relative mt-16 overflow-hidden sm:mt-24 lg:mt-32 [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+      <div ref={viewportRef} className="relative mt-16 overflow-hidden sm:mt-24 lg:mt-32 [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
         {reduceMotion ? (
-          <div className="flex flex-wrap items-center justify-center gap-3 px-5 sm:gap-4 sm:px-6">
-            {CHANNEL_ORDER.map((id) => (
-              <ChannelCard key={id} id={id} />
-            ))}
-          </div>
-        ) : (
           <motion.div
-            className="flex w-max items-center gap-3 sm:gap-4"
-            animate={{ x: ["0%", "-33.3333%"] }}
-            transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
+            variants={staggerContainer(0.08)}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+            className="flex flex-wrap items-stretch justify-center gap-3 px-5 sm:gap-4 sm:px-6"
           >
+            {CHANNEL_ORDER.map((id) => (
+              <motion.div key={id} variants={fadeUp}>
+                <ChannelCard id={id} />
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <div className={`uc-marquee flex w-max items-stretch gap-3 sm:gap-4 ${inView ? "" : "is-paused"}`}>
             {track.map((id, i) => (
               <ChannelCard key={`${id}-${i}`} id={id} />
             ))}
-          </motion.div>
+          </div>
         )}
       </div>
     </section>

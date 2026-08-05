@@ -14,10 +14,10 @@ export function getDashboardData(profile: BrandProfile | null): DashboardData {
   return {
     businessName,
     stats: [
-      { id: "views", label: "Просмотры", value: "12.5K", hint: "За последнюю неделю", delta: "+18%", icon: "views", color: "brand" },
-      { id: "engagement", label: "Вовлечённость", value: "+24%", hint: "За последний месяц", icon: "engagement", color: "success" },
-      { id: "subscribers", label: "Новые подписчики", value: "+127", hint: "За последнюю неделю", icon: "subscribers", color: "purple" },
-      { id: "reviews", label: "Отзывы", value: "47", hint: "Требуют внимания", icon: "reviews", color: "orange" },
+      { id: "views",       label: "Просмотры",         value: "12.5K", hint: "За последнюю неделю", delta: "+18%", icon: "views",       color: "brand",   sparkline: [8, 10, 9, 11, 10, 13, 12.5] },
+      { id: "engagement", label: "Вовлечённость",     value: "+24%",  hint: "За последний месяц",              icon: "engagement", color: "success", sparkline: [18, 20, 22, 19, 23, 21, 24]  },
+      { id: "subscribers",label: "Новые подписчики",  value: "+127",  hint: "За последнюю неделю",             icon: "subscribers",color: "purple",  sparkline: [80, 95, 90, 110, 105, 120, 127] },
+      { id: "reviews",    label: "Отзывы",            value: "47",    hint: "Требуют внимания",                icon: "reviews",    color: "orange",  sparkline: [40, 42, 41, 44, 43, 45, 47], hintTone: "warning" },
     ],
     chart: {
       reach: [20, 35, 28, 42, 55, 48, 62, 58, 70, 65, 78, 92],
@@ -30,6 +30,7 @@ export function getDashboardData(profile: BrandProfile | null): DashboardData {
         title: `Создать пост о ${firstService.toLowerCase()}`,
         text: "Подписчики спрашивают про новинки — хороший повод для поста.",
         color: "pink",
+        icon: "file-text",
         href: "/dashboard/create",
       },
       {
@@ -37,6 +38,7 @@ export function getDashboardData(profile: BrandProfile | null): DashboardData {
         title: "Ответить на 3 новых отзыва",
         text: "Гости ждут вашего ответа — это повышает доверие.",
         color: "orange",
+        icon: "star",
         href: "/dashboard/reviews",
       },
       {
@@ -44,6 +46,7 @@ export function getDashboardData(profile: BrandProfile | null): DashboardData {
         title: "Запустить акцию «Счастливые часы»",
         text: `Цель «${firstGoal.toLowerCase()}» — акция поможет её достичь.`,
         color: "brand",
+        icon: "gift",
         href: "/dashboard/promos",
       },
     ],

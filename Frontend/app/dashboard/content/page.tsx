@@ -1,5 +1,10 @@
 import ContentView from "@/components/dashboard/content/ContentView";
+import PageWindow from "@/components/dashboard/PageWindow";
 
 export default function ContentPage() {
-  return <ContentView />;
+  return (
+    <PageWindow>
+      <ContentView />
+    </PageWindow>
+  );
 }

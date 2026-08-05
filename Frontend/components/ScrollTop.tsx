@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import Icon from "./ui/Icon";
 
 export default function ScrollTop() {
   const [show, setShow] = useState(false);
@@ -18,13 +18,13 @@ export default function ScrollTop() {
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Наверх"
-      className={`btn-glass fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${
+      className={`btn-glass fixed bottom-6 right-6 z-50 hidden h-12 w-12 items-center justify-center transition-all duration-300 lg:flex ${
         show
           ? "translate-y-0 opacity-100"
           : "pointer-events-none translate-y-3 opacity-0"
       }`}
     >
-      <ArrowUp size={20} aria-hidden="true" />
+      <Icon name="arrow-up" size={20} />
     </button>
   );
 }

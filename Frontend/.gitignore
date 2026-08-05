@@ -39,3 +39,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
+
+# local scratch / tooling
+dev-server.log
+/screenshots/
+/docs/_backup/
+/.superpowers/
+
+# one-off scratch / probe scripts (ITMO demo, render probes)
+/_*.mjs
+
+# heavy design reference (product screenshots for video-tour brief)
+/docs/design/video-tour/
+
+# hero background videos — not wired into the hero yet;
+# remove these lines and commit the assets when the video-hero lands
+/public/hero-bg-*

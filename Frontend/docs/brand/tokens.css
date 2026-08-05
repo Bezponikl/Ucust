@@ -1,0 +1,61 @@
+/* UCust — дизайн-токены бренда (v1.0)
+   Источник истины: docs/brand/UCust-brandbook.html
+   Существующие токены живут в app/globals.css; здесь — полный набор, включая новые
+   (статусы, палитра графиков, нейтральная шкала). Значения синхронизированы. */
+
+:root {
+  /* ── Бренд ── */
+  --brand: #4f7dff;
+  --brand-hover: #3d63e6;
+  --brand-tint: #e6ecff;
+  --brand-poster: #1a5bff; /* насыщенный акцент для «плакатных» блоков (hero «Мозг бренда») */
+
+  /* ── Акценты ── */
+  --brand-purple: #7b5cff;
+  --brand-pink: #ff5fa2;
+  --brand-orange: #ff8c4b;
+
+  /* ── Фирменный градиент ── */
+  --gradient-brand: linear-gradient(120deg, #4f7dff 0%, #7b5cff 38%, #ff5fa2 72%, #ff8c4b 100%);
+
+  /* ── Статусы (semantic) ── */
+  --success: #18a957;   --success-tint: #e3f5eb;
+  --warning: #f5a623;   --warning-tint: #fef4e1;
+  --error:   #e5484d;   --error-tint:   #fcebec;
+  --info:    #2d9cdb;   --info-tint:    #e4f1fb;
+
+  /* ── Палитра для графиков (категориальная) ── */
+  --chart-1: #4f7dff;
+  --chart-2: #7b5cff;
+  --chart-3: #ff5fa2;
+  --chart-4: #ff8c4b;
+  --chart-5: #12b5a5;
+  --chart-6: #f5c147;
+
+  /* ── Нейтральные 50 → 900 ── */
+  --n-50:  #f8f9fc;  /* = surface-soft */
+  --n-100: #f2f4f7;  /* = canvas */
+  --n-200: #e6e9f0;  /* = border */
+  --n-300: #d4d9e3;
+  --n-400: #b0b7c6;
+  --n-500: #6b7280;  /* = ink-muted */
+  --n-600: #4b5163;
+  --n-700: #363b4a;
+  --n-800: #272d3b;  /* = dark border */
+  --n-900: #1f2433;  /* = ink */
+
+  /* ── Роли (алиасы на нейтральные) ── */
+  --canvas: var(--n-100);
+  --surface-soft: var(--n-50);
+  --card: #ffffff;
+  --border: var(--n-200);
+  --ink: var(--n-900);
+  --ink-muted: var(--n-500);
+
+  /* ── Типографика ── */
+  --font-brand: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* ── Форма ── */
+  --radius-card: 32px;
+  --radius-card-sm: 18px;
+}

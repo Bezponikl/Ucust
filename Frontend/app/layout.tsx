@@ -34,11 +34,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={manrope.variable} suppressHydrationWarning>
+    <html lang="ru" className={`${manrope.variable} overflow-x-clip`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Литеральные семейства для анимированных сцен возможностей (Caveat — рукопись) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="min-h-screen bg-canvas text-ink antialiased">
+      <body className="min-h-screen overflow-x-clip bg-canvas text-ink antialiased">
         <AuthModalProvider>{children}</AuthModalProvider>
         <ScrollTop />
       </body>

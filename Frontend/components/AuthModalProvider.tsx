@@ -1,15 +1,11 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
-import LoginModal from "./LoginModal";
-import SignupModal from "./SignupModal";
-
-type AuthView = "login" | "signup" | null;
+import { createContext, useContext, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 interface AuthModalContextValue {
   openLogin: () => void;
   openSignup: () => void;
-  close: () => void;
 }
 
 const AuthModalContext = createContext<AuthModalContextValue | null>(null);
@@ -23,27 +19,12 @@ export function useAuthModal() {
 }
 
 export default function AuthModalProvider({ children }: { children: ReactNode }) {
-  const [view, setView] = useState<AuthView>(null);
+  const router = useRouter();
 
   const value: AuthModalContextValue = {
-    openLogin: () => setView("login"),
-    openSignup: () => setView("signup"),
-    close: () => setView(null),
+    openLogin: () => router.push("/login"),
+    openSignup: () => router.push("/signup"),
   };
 
-  return (
-    <AuthModalContext.Provider value={value}>
-      {children}
-      <LoginModal
-        open={view === "login"}
-        onClose={() => setView(null)}
-        onSwitchToSignup={() => setView("signup")}
-      />
-      <SignupModal
-        open={view === "signup"}
-        onClose={() => setView(null)}
-        onSwitchToLogin={() => setView("login")}
-      />
-    </AuthModalContext.Provider>
-  );
+  return <AuthModalContext.Provider value={value}>{children}</AuthModalContext.Provider>;
 }

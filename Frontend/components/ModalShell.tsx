@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 
 export default function ModalShell({
   open,
@@ -76,7 +76,7 @@ export default function ModalShell({
               aria-label="Закрыть"
               className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-ink-muted backdrop-blur transition-colors hover:bg-surface-soft hover:text-ink dark:bg-white/10 dark:hover:bg-white/15"
             >
-              <X size={20} aria-hidden="true" />
+              <Icon name="close" size={20} aria-hidden="true" />
             </button>
 
             {wide ? (

@@ -1,5 +1,6 @@
 import type { ChannelId } from "@/lib/channels";
 import type { AccentColor, ChartTab } from "./types";
+import type { IconName } from "@/lib/icons/solar";
 
 export interface MetricCard {
   id: string;
@@ -7,6 +8,7 @@ export interface MetricCard {
   value: string;
   delta: string;
   color: AccentColor;
+  icon: IconName;
 }
 
 export interface ChannelShare {
@@ -30,10 +32,10 @@ export const ANALYTICS_CHART: Record<ChartTab, number[]> = {
 };
 
 export const METRICS: MetricCard[] = [
-  { id: "reach", label: "Охват", value: "48.2K", delta: "+22%", color: "brand" },
-  { id: "engagement", label: "Вовлечённость", value: "6.4%", delta: "+1.3 п.п.", color: "success" },
-  { id: "subscribers", label: "Подписчики", value: "3 412", delta: "+127", color: "purple" },
-  { id: "clicks", label: "Клики", value: "1 980", delta: "+18%", color: "orange" },
+  { id: "reach", label: "Охват", value: "48.2K", delta: "+22%", color: "brand", icon: "eye" },
+  { id: "engagement", label: "Реакции", value: "42.4K", delta: "+16%", color: "success", icon: "heart" },
+  { id: "subscribers", label: "Подписчики", value: "3 412", delta: "+127", color: "purple", icon: "user-plus" },
+  { id: "clicks", label: "Клики", value: "1 980", delta: "+18%", color: "orange", icon: "trending" },
 ];
 
 export const CHANNEL_SHARE: ChannelShare[] = [

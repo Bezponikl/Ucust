@@ -33,4 +33,26 @@ export const staggerContainer = (
   },
 });
 
+export const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, ease: easeOut },
+  },
+};
+
+export const blurIn: Variants = {
+  hidden: { opacity: 0, y: 12, filter: "blur(8px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.6, ease: easeOut },
+  },
+};
+
+export const staggerFast: Variants = staggerContainer(0.06);
+export const staggerSlow: Variants = staggerContainer(0.18);
+
 export const viewportOnce = { once: true, margin: "-80px" };

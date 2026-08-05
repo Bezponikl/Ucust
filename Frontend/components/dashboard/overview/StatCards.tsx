@@ -1,40 +1,41 @@
-import { Eye, TrendingUp, UserPlus, MessageSquare, type LucideIcon } from "lucide-react";
-import type { AccentColor, Stat, StatIcon } from "@/lib/dashboard/types";
+import StatCard from "../StatCard";
+import type { IconName } from "@/lib/icons/solar";
+import type { Stat, StatIcon } from "@/lib/dashboard/types";
 
-const ICONS: Record<StatIcon, LucideIcon> = {
-  views: Eye,
-  engagement: TrendingUp,
-  subscribers: UserPlus,
-  reviews: MessageSquare,
+const ICONS: Record<StatIcon, IconName> = {
+  views:       "eye",
+  engagement:  "trending",
+  subscribers: "user-plus",
+  reviews:     "message",
 };
 
-const BG: Record<AccentColor, string> = {
-  brand: "bg-brand/12 text-brand",
-  purple: "bg-brand-purple/15 text-brand-purple",
-  pink: "bg-brand-pink/15 text-brand-pink",
-  orange: "bg-brand-orange/15 text-brand-orange",
-  success: "bg-success/15 text-success",
+/** Клик по показателю ведёт туда, где его можно разобрать подробно. */
+const HREFS: Record<StatIcon, string> = {
+  views:       "/dashboard/analytics?metric=reach",
+  engagement:  "/dashboard/analytics?metric=engagement",
+  subscribers: "/dashboard/analytics?metric=subscribers",
+  reviews:     "/dashboard/reviews",
 };
 
 export default function StatCards({ stats }: { stats: Stat[] }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      {stats.map((s) => {
-        const Icon = ICONS[s.icon];
-        return (
-          <div key={s.id} className="rounded-[20px] border border-border bg-card p-4 shadow-soft sm:p-5">
-            <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${BG[s.color]}`}>
-              <Icon size={18} aria-hidden="true" />
-            </span>
-            <p className="flex items-baseline gap-2">
-              <span className="font-display text-2xl font-extrabold text-ink">{s.value}</span>
-              {s.delta && <span className="text-xs font-semibold text-success">{s.delta}</span>}
-            </p>
-            <p className="mt-0.5 text-sm font-medium text-ink">{s.label}</p>
-            <p className="text-xs text-ink-muted">{s.hint}</p>
-          </div>
-        );
-      })}
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 stagger-grid">
+      {stats.map((s) => (
+        <StatCard
+          key={s.id}
+          id={s.id}
+          icon={ICONS[s.icon]}
+          iconTone={s.color}
+          value={s.value}
+          label={s.label}
+          delta={s.delta}
+          deltaTone={s.hintTone === "warning" ? "warning" : "success"}
+          hint={s.hint}
+          hintTone={s.hintTone}
+          sparkline={s.sparkline}
+          href={HREFS[s.icon]}
+        />
+      ))}
     </div>
   );
 }

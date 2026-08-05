@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@iconify-json/solar": "^1.2.5",
+    "@iconify/react": "^6.0.2",
+    "@paper-design/shaders-react": "^0.0.77",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "next": "16.2.9",

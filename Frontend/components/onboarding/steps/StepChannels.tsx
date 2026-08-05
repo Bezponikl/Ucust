@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { Check, ChevronDown, Upload, X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
 import { CHANNELS, CHANNEL_ORDER, type ChannelId, type ChannelMeta } from "@/lib/channels";
 
@@ -76,7 +76,7 @@ export default function StepChannels() {
                   {connected ? "Подключено" : "Нажмите для подключения"}
                 </span>
               </span>
-              {connected && <Check size={18} className="ml-auto text-brand" aria-hidden="true" />}
+              {connected && <Icon name="check" size={18} className="ml-auto text-brand" aria-hidden="true" />}
             </button>
           );
         })}
@@ -90,7 +90,7 @@ export default function StepChannels() {
           className="inline-flex items-center justify-center gap-1.5 self-center text-sm font-medium text-brand hover:text-brand-hover"
         >
           {expanded ? "Свернуть" : `Показать все (${CHANNEL_ORDER.length})`}
-          <ChevronDown size={16} className={`transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
+          <Icon name="chevron-down" size={16} className={`transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
         </button>
       )}
 
@@ -101,7 +101,7 @@ export default function StepChannels() {
           onClick={() => fileRef.current?.click()}
           className="flex w-full flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed border-border bg-surface-soft px-6 py-8 text-center transition hover:border-brand/50"
         >
-          <Upload size={24} className="text-brand" aria-hidden="true" />
+          <Icon name="upload" size={24} className="text-brand" aria-hidden="true" />
           <span className="text-sm font-medium text-ink">Прайс, презентация, каталог</span>
           <span className="text-xs text-ink-muted">PDF, DOC, XLSX (макс. 10 файлов)</span>
         </button>
@@ -120,7 +120,7 @@ export default function StepChannels() {
                   onClick={() => updateInput({ files: input.files.filter((_, j) => j !== i) })}
                   className="text-ink-muted hover:text-ink"
                 >
-                  <X size={16} aria-hidden="true" />
+                  <Icon name="close" size={16} aria-hidden="true" />
                 </button>
               </li>
             ))}

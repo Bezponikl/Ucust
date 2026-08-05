@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import Icon from "@/components/ui/Icon";
 import type { ReactNode } from "react";
 
 const COLORS = {
@@ -23,7 +23,7 @@ export default function Chip({
       {children}
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label="Удалить" className="opacity-70 hover:opacity-100">
-          <X size={12} aria-hidden="true" />
+          <Icon name="close" size={12} aria-hidden="true" />
         </button>
       )}
     </span>

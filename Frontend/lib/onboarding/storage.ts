@@ -34,3 +34,20 @@ export function clearOnboarding(): void {
     /* ignore */
   }
 }
+
+/**
+ * Сброс рабочей области под нового пользователя: профиль проекта и следы прошлой
+ * сессии (подсказки, трекер настройки). Нужен после регистрации — иначе демо-проект,
+ * засеянный входом в той же вкладке, покажет новому аккаунту чужой дашборд.
+ */
+export function clearWorkspace(): void {
+  if (typeof window === "undefined") return;
+  clearOnboarding();
+  try {
+    ["uc_tour", "uc_setup_done", "uc_setup_dismissed"].forEach((k) =>
+      window.sessionStorage.removeItem(k),
+    );
+  } catch {
+    /* ignore */
+  }
+}

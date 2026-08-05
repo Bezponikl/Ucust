@@ -20,7 +20,7 @@ export default function HeroArt() {
       {/* чистый рендер сцены (фон убран) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/hero.webp?v=6"
+        src="/hero.webp?v=15"
         alt="ИИ собирает контент-план, генерирует посты с текстом и фото и публикует их во все соцсети"
         width={1040}
         height={1040}

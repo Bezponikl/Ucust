@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import Icon from "./ui/Icon";
 
-export default function ThemeToggle({ className = "" }: { className?: string }) {
+export default function ThemeToggle({ className = "", glass = true }: { className?: string; glass?: boolean }) {
   const [dark, setDark] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -26,13 +26,13 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
       type="button"
       onClick={toggle}
       aria-label={dark ? "Светлая тема" : "Тёмная тема"}
-      className={`btn-glass flex h-9 w-9 items-center justify-center rounded-full ${className}`}
+      className={`${glass ? "btn-glass" : "btn-solid"} flex h-9 w-9 items-center justify-center ${className}`}
     >
       {/* до монтирования рендерим нейтральную иконку, чтобы избежать рассинхрона гидрации */}
       {mounted && dark ? (
-        <Sun size={17} aria-hidden="true" />
+        <Icon name="sun" size={17} />
       ) : (
-        <Moon size={17} aria-hidden="true" />
+        <Icon name="moon" size={17} />
       )}
     </button>
   );

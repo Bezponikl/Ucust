@@ -1,21 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  LayoutGrid,
-  CalendarDays,
-  PenLine,
-  BarChart3,
-  Settings,
-  Sparkles,
-} from "lucide-react";
+import Icon from "./ui/Icon";
+import type { IconName } from "@/lib/icons/solar";
 
-const NAV = [
-  { icon: LayoutGrid, active: false },
-  { icon: CalendarDays, active: true },
-  { icon: PenLine, active: false },
-  { icon: BarChart3, active: false },
-  { icon: Settings, active: false },
+const NAV: { icon: IconName; active: boolean }[] = [
+  { icon: "grid", active: false },
+  { icon: "calendar", active: true },
+  { icon: "edit", active: false },
+  { icon: "bar-chart", active: false },
+  { icon: "settings", active: false },
 ];
 
 type Post = { ch: string; color: string; label: string };
@@ -56,7 +50,7 @@ export default function ProductMockup() {
         <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-        <span className="font-display mx-auto translate-x-[-14px] text-[11px] text-ink-muted">
+        <span className="font-display mx-auto translate-x-[-14px] text-[0.6875rem] text-ink-muted">
           UCust · Контент-план
         </span>
       </div>
@@ -64,17 +58,17 @@ export default function ProductMockup() {
       <div className="flex min-h-0 flex-1">
         {/* сайдбар */}
         <div className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface-soft py-3">
-          <span className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-[11px] font-bold text-white">
+          <span className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-[0.6875rem] font-bold text-white">
             U
           </span>
-          {NAV.map(({ icon: Icon, active }, i) => (
+          {NAV.map(({ icon, active }, i) => (
             <span
               key={i}
               className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                 active ? "bg-brand-tint text-brand" : "text-ink-muted"
               }`}
             >
-              <Icon size={16} aria-hidden="true" />
+              <Icon name={icon} size={16} aria-hidden="true" />
             </span>
           ))}
         </div>
@@ -84,12 +78,12 @@ export default function ProductMockup() {
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-ink">Эта неделя</span>
-              <span className="rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold text-brand">
+              <span className="rounded-full bg-brand-tint px-2 py-0.5 text-[0.625rem] font-semibold text-brand">
                 7 постов
               </span>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[10px] font-semibold text-white">
-              <Sparkles size={10} aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[0.625rem] font-semibold text-white">
+              <Icon name="sparkles" size={10} aria-hidden="true" />
               Сгенерировать
             </span>
           </div>
@@ -104,10 +98,10 @@ export default function ProductMockup() {
                 }`}
               >
                 <div className="mb-1 flex items-baseline justify-between px-0.5">
-                  <span className="text-[10px] font-medium text-ink-muted">
+                  <span className="text-[0.625rem] font-medium text-ink-muted">
                     {d.day}
                   </span>
-                  <span className="text-[10px] font-semibold text-ink">
+                  <span className="text-[0.625rem] font-semibold text-ink">
                     {d.date}
                   </span>
                 </div>
@@ -125,7 +119,7 @@ export default function ProductMockup() {
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ background: p.color }}
                       />
-                      <span className="truncate text-[9px] font-medium text-ink">
+                      <span className="truncate text-[0.5625rem] font-medium text-ink">
                         {p.label}
                       </span>
                     </motion.div>
@@ -141,11 +135,11 @@ export default function ProductMockup() {
           {/* аналитика */}
           <div className="mt-auto flex items-end gap-4 rounded-xl bg-surface-soft px-3 py-2.5">
             <div className="shrink-0">
-              <div className="text-[10px] text-ink-muted">Охват за неделю</div>
+              <div className="text-[0.625rem] text-ink-muted">Охват за неделю</div>
               <div className="font-display text-base font-bold leading-tight text-ink">
                 12 480
               </div>
-              <div className="text-[10px] font-semibold text-success">
+              <div className="text-[0.625rem] font-semibold text-success">
                 +18% к прошлой
               </div>
             </div>

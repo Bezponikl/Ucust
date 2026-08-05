@@ -1,5 +1,10 @@
 import AnalyticsView from "@/components/dashboard/analytics/AnalyticsView";
+import PageWindow from "@/components/dashboard/PageWindow";
 
 export default function AnalyticsPage() {
-  return <AnalyticsView />;
+  return (
+    <PageWindow>
+      <AnalyticsView />
+    </PageWindow>
+  );
 }

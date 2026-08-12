@@ -1,18 +1,20 @@
 package com.n4d3sh1k4.security_service.service;
 
+import com.n4d3sh1k4.common.dto.UserEmailConfirmedEvent;
 import com.n4d3sh1k4.common.exception.*;
-import com.n4d3sh1k4.security_service.domain.model.security.PasswordResetToken;
 import com.n4d3sh1k4.security_service.domain.model.security.RefreshToken;
-import com.n4d3sh1k4.security_service.domain.model.security.VerificationToken;
+import com.n4d3sh1k4.security_service.domain.model.security.Token;
+import com.n4d3sh1k4.security_service.domain.model.security.TokenType;
 import com.n4d3sh1k4.security_service.domain.model.users.User;
-import com.n4d3sh1k4.security_service.domain.repository.PasswordResetTokenRepository;
-import com.n4d3sh1k4.security_service.domain.repository.RoleRepository;
-import com.n4d3sh1k4.security_service.domain.repository.UserRepository;
-import com.n4d3sh1k4.security_service.domain.repository.VerificationTokenRepository;
+import com.n4d3sh1k4.security_service.domain.model.users.UserIdentity;
+import com.n4d3sh1k4.security_service.domain.repository.*;
 import com.n4d3sh1k4.security_service.dto.AuthServiceResult;
+import com.n4d3sh1k4.security_service.dto.event.EmailChangeMessage;
+import com.n4d3sh1k4.security_service.dto.event.LoginEvent;
 import com.n4d3sh1k4.security_service.dto.event.NotificationEmailEvent;
 import com.n4d3sh1k4.security_service.dto.event.PasswordResetEvent;
 import com.n4d3sh1k4.security_service.dto.event.UserRegisteredInternalEvent;
+import com.n4d3sh1k4.security_service.dto.request_dto.LinkSocialRequest;
 import com.n4d3sh1k4.security_service.dto.request_dto.LoginRequest;
 import com.n4d3sh1k4.security_service.dto.request_dto.RegisterRequest;
 import com.n4d3sh1k4.security_service.jwt.JwtProvider;
@@ -34,19 +36,29 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    @Value("${email.resend.activated.time}")
-    String emailResendActivatedTime;
+    @Value("${token.activation.activate.ttl}")
+    String accountActivationTokenTtl;
+
+    @Value("${token.activation.resend.ttl}")
+    String accountActivationResendTokenTtl;
+
+    @Value("${token.password.reset.ttl}")
+    String passwordResetTokenTtl;
+
+    @Value("${email.send.cooldown}")
+    String accountActivationEmailResendCooldown;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final VerificationTokenRepository verificationTokenRepository;
+    private final TokenRepository tokenRepository;
+    private final UserIdentityRepository userIdentityRepository;
 
     private final RefreshTokenService refreshTokenService;
 
@@ -56,6 +68,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxPublisher outboxPublisher;
 
 
     @Transactional
@@ -73,11 +86,13 @@ public class AuthService {
         userRepository.save(user);
 
         String tokenValue = UUID.randomUUID().toString();
-        VerificationToken verificationToken = new VerificationToken();
-        verificationToken.setUser(user);
-        verificationToken.setToken(tokenValue);
-        verificationToken.setExpiryDate(Instant.now().plus(Duration.ofHours(1)));
-        verificationTokenRepository.save(verificationToken);
+        Token verificationToken = Token.builder()
+                .user(user)
+                .token(tokenValue)
+                .expiryDate(Instant.now().plus(Duration.ofMinutes(Long.parseLong(accountActivationTokenTtl))))
+                .type(TokenType.VERIFICATION)
+                .build();
+        tokenRepository.save(verificationToken);
 
         eventPublisher.publishEvent(new UserRegisteredInternalEvent(
                 user.getId(),
@@ -90,25 +105,29 @@ public class AuthService {
         eventPublisher.publishEvent(new NotificationEmailEvent(
                 user.getEmail(),
                 req.getFirstName() + " " +  req.getLastName(),
-                tokenValue
+                tokenValue,
+                accountActivationTokenTtl
         ));
     }
 
     @Transactional
     public void activateUser(String tokenValue) {
-        VerificationToken verificationToken = verificationTokenRepository.findByToken(tokenValue)
+        Token token = tokenRepository.findByToken(tokenValue)
                 .orElseThrow(() -> new TokenNotFoundException("Activate token not found or provided", "NOT_FOUND", HttpStatus.NOT_FOUND));
 
-        if (verificationToken.getExpiryDate().isBefore(Instant.now())) {
-            verificationTokenRepository.delete(verificationToken);
+        if (token.isExpired()) {
+            tokenRepository.delete(token);
             throw new TokenNotFoundException("This link is no longer valid.", "LINK_EXPIRED", HttpStatus.GONE);
         }
 
-        User user = verificationToken.getUser();
+        User user = token.getUser();
         user.setEnabled(true);
         userRepository.save(user);
 
-        verificationTokenRepository.delete(verificationToken);
+        tokenRepository.delete(token);
+
+        outboxPublisher.publish("user.email.confirmed",
+                new UserEmailConfirmedEvent(user.getId(), user.getEmail()));
 
         log.info("User {} successfully activated", user.getEmail());
     }
@@ -122,35 +141,38 @@ public class AuthService {
             throw new UserAlreadyActivatedException("The account has already been verified");
         }
 
-        verificationTokenRepository.findByUser(user).ifPresent(token -> {
-            if (token.getCreatedAt() == null) {
+        tokenRepository.findByUserAndType(user, TokenType.VERIFICATION).ifPresent(t -> {
+            if (t.getCreatedAt() == null) {
                 throw new TokenCreationException("The old activation token exists, but its creation date is NULL.");
             }
 
-            if (token.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(Integer.parseInt(emailResendActivatedTime)))) {
+            if (t.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(Integer.parseInt(accountActivationEmailResendCooldown)))) {
                 throw new TooManyRequestsException("Too fast!");
             }
         });
 
-        verificationTokenRepository.deleteByUser(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.VERIFICATION);
 
         String tokenValue = UUID.randomUUID().toString();
-        VerificationToken verificationToken = new VerificationToken();
-        verificationToken.setUser(user);
-        verificationToken.setToken(tokenValue);
-        verificationToken.setExpiryDate(Instant.now().plus(Duration.ofHours(1)));
-        verificationTokenRepository.save(verificationToken);
+        Token verificationToken = Token.builder()
+                .user(user)
+                .token(tokenValue)
+                .expiryDate(Instant.now().plus(Duration.ofMinutes(Long.parseLong(accountActivationResendTokenTtl))))
+                .type(TokenType.VERIFICATION)
+                .build();
+        tokenRepository.save(verificationToken);
 
         eventPublisher.publishEvent(new NotificationEmailEvent(
                 user.getEmail(),
                 null,
-                tokenValue
+                tokenValue,
+                accountActivationTokenTtl
         ));
 
         log.info("Resent confirmation token to: {}", email);
     }
 
-    public AuthServiceResult loginUser(LoginRequest req) {
+    public AuthServiceResult loginUser(LoginRequest req, String ipAddress, String userAgent) {
         User user = userRepository.findByEmail(req.getEmail())
             .orElseThrow(() -> new ContentNotFoundException("User not found"));
 
@@ -168,6 +190,9 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        outboxPublisher.publish("user.login.email",
+                new LoginEvent(user.getEmail(), ipAddress, userAgent, Instant.now()));
 
         return new AuthServiceResult(
                 jwtProvider.generateAccessToken(user),
@@ -200,6 +225,11 @@ public class AuthService {
         RefreshToken oldToken = refreshTokenService.findByToken(refreshToken)
             .orElseThrow(() -> new TokenNotFoundException("Refresh token not found or provided.","REFRESH_TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
 
+        if (oldToken.getExpiryDate().isBefore(Instant.now())) {
+            refreshTokenService.deleteByToken(refreshToken);
+            throw new TokenNotFoundException("Refresh token expired", "REFRESH_TOKEN_EXPIRED", HttpStatus.UNAUTHORIZED);
+        }
+
         User user = oldToken.getUser();
         boolean rememberMe = oldToken.isRememberMe();
 
@@ -214,39 +244,146 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User with this email not found."));
 
-        passwordResetTokenRepository.findByUser(user).ifPresent(token -> {
-            if (token.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5))) {
+        tokenRepository.findByUserAndType(user, TokenType.PASSWORD_RESET).ifPresent(t -> {
+            if (t.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(Long.parseLong(accountActivationEmailResendCooldown)))) {
                 throw new TooManyRequestsException("Too fast!");
             }
         });
 
-        passwordResetTokenRepository.deleteByUser(user);
+        tokenRepository.deleteByUserAndType(user, TokenType.PASSWORD_RESET);
 
-        passwordResetTokenRepository.flush();
+        String tokenValue = UUID.randomUUID().toString();
+        Token resetToken = Token.builder()
+                .user(user)
+                .token(tokenValue)
+                .expiryDate(Instant.now().plus(Duration.ofMinutes(Long.parseLong(passwordResetTokenTtl))))
+                .type(TokenType.PASSWORD_RESET)
+                .build();
+        tokenRepository.save(resetToken);
 
-        String token = UUID.randomUUID().toString();
-        PasswordResetToken myToken = new PasswordResetToken();
-        myToken.setToken(token);
-        myToken.setUser(user);
-        myToken.setExpiryDate(LocalDateTime.now().plusMinutes(15));
-        passwordResetTokenRepository.save(myToken);
-
-        eventPublisher.publishEvent(new PasswordResetEvent(user.getEmail(), token));
+        eventPublisher.publishEvent(new PasswordResetEvent(user.getEmail(), tokenValue, passwordResetTokenTtl));
     }
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+        Token resetToken = tokenRepository.findByToken(token)
                 .orElseThrow(() -> new TokenNotFoundException("Token no found.","TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
 
         if (resetToken.isExpired()) {
-            passwordResetTokenRepository.delete(resetToken);
+            tokenRepository.delete(resetToken);
             throw new TokenNotFoundException("Token expired.","TOKEN_EXPIRED", HttpStatus.GONE);
         }
         User user = resetToken.getUser();
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         refreshTokenService.deleteByUser(user);
-        passwordResetTokenRepository.delete(resetToken);
+        tokenRepository.delete(resetToken);
+    }
+
+    @Transactional
+    public AuthServiceResult linkSocialAccount(LinkSocialRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        boolean exists = userIdentityRepository.findByProviderAndProviderUserId(request.getProvider(), request.getProviderUserId()).isPresent();
+
+        if (!exists) {
+            UserIdentity identity = new UserIdentity();
+            identity.setUser(user);
+            identity.setProvider(request.getProvider());
+            identity.setProviderUserId(request.getProviderUserId());
+            userIdentityRepository.save(identity);
+            log.info("Successfully linked {} identity to user {}", request.getProvider(), user.getEmail());
+        }
+
+        return new AuthServiceResult(
+                jwtProvider.generateAccessToken(user),
+                cookieUtils.generateRefreshTokenCookie(user, true).toString()
+        );
+    }
+
+    @Transactional
+    public void initiateEmailChange(String password, Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new BaseException("Invalid password", "INVALID_PASSWORD", HttpStatus.FORBIDDEN);
+        }
+
+        tokenRepository.deleteByUserAndType(user, TokenType.EMAIL_CHANGE);
+
+        String tokenValue = UUID.randomUUID().toString();
+        Token token = Token.builder()
+                .user(user)
+                .token(tokenValue)
+                .expiryDate(Instant.now().plus(Duration.ofHours(1)))
+                .type(TokenType.EMAIL_CHANGE)
+                .build();
+        tokenRepository.save(token);
+
+        outboxPublisher.publish("user.email.change.init",
+                new EmailChangeMessage(user.getEmail(), tokenValue, null, user.getId()));
+
+        log.info("Email change initiated for user {}", user.getEmail());
+    }
+
+    @Transactional
+    public void setNewEmail(String tokenValue, String newEmail) {
+        Token token = tokenRepository.findByToken(tokenValue)
+                .orElseThrow(() -> new TokenNotFoundException("Token not found", "TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
+
+        if (token.isExpired()) {
+            tokenRepository.delete(token);
+            throw new TokenNotFoundException("Token expired", "TOKEN_EXPIRED", HttpStatus.GONE);
+        }
+
+        if (userRepository.findByEmail(newEmail).isPresent()) {
+            throw new BaseException("Email already in use", "EMAIL_EXISTS", HttpStatus.CONFLICT);
+        }
+
+        String code = String.format("%06d", ThreadLocalRandom.current().nextInt(999999));
+        token.setNewEmail(newEmail);
+        token.setCode(code);
+        tokenRepository.save(token);
+
+        outboxPublisher.publish("user.email.change.new",
+                new EmailChangeMessage(newEmail, tokenValue, code, token.getUser().getId()));
+
+        log.info("New email {} set for change, code sent", newEmail);
+    }
+
+    @Transactional
+    public void confirmEmailChange(String tokenValue, String code) {
+        Token token = tokenRepository.findByToken(tokenValue)
+                .orElseThrow(() -> new TokenNotFoundException("Token not found", "TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
+
+        if (token.isExpired()) {
+            tokenRepository.delete(token);
+            throw new TokenNotFoundException("Token expired", "TOKEN_EXPIRED", HttpStatus.GONE);
+        }
+
+        if (token.getNewEmail() == null) {
+            throw new BaseException("New email not set yet", "INVALID_STATE", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!code.equals(token.getCode())) {
+            throw new BaseException("Invalid confirmation code", "INVALID_CODE", HttpStatus.FORBIDDEN);
+        }
+
+        User user = token.getUser();
+        user.setEmail(token.getNewEmail());
+        userRepository.save(user);
+
+        tokenRepository.delete(token);
+
+        outboxPublisher.publish("user.email.change.done",
+                new EmailChangeMessage(user.getEmail(), null, null, user.getId()));
+
+        log.info("Email changed for user {}", user.getId());
     }
 }

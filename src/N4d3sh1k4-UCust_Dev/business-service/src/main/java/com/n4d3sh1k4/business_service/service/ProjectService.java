@@ -6,11 +6,13 @@ import com.n4d3sh1k4.business_service.dto.ProjectRequest;
 import com.n4d3sh1k4.business_service.dto.ProjectResponse;
 import com.n4d3sh1k4.business_service.dto.UpdateProjectRequest;
 import com.n4d3sh1k4.business_service.mapper.ProjectMapper;
+import com.n4d3sh1k4.common.dto.ProjectCreatedEvent;
 import com.n4d3sh1k4.common.exception.ContentNotFoundException;
 import com.n4d3sh1k4.common.exception.UniversalExeption;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -26,15 +28,39 @@ public class ProjectService {
     private final ProjectRepository repository;
     private final ProjectMapper mapper;
     private final MinioService minioService;
+    private final ProjectEventPublisher eventPublisher;
+
+    @Value("${project.default-post-count}")
+    private int defaultPostCount;
 
     @Transactional
     public ProjectResponse create(ProjectRequest request, UUID ownerId) {
         Project project = mapper.toEntity(request);
         project.setOwnerId(ownerId);
-        return mapper.toResponse(repository.save(project));
+        ProjectResponse response = mapper.toResponse(repository.save(project));
+
+        eventPublisher.projectCreated(new ProjectCreatedEvent(
+                project.getId(),
+                ownerId,
+                request.industry().name(),
+                request.description(),
+                request.targetAudience(),
+                request.toneOfVoice().name(),
+                request.city(),
+                defaultPostCount
+        ));
+
+        return response;
     }
 
-    @Transactional()
+    @Transactional
+    public ProjectResponse getById(UUID id, UUID ownerId) {
+        Project project = repository.findByIdAndOwnerId(id, ownerId)
+                .orElseThrow(() -> new ContentNotFoundException("Project not found."));
+        return mapper.toResponse(project);
+    }
+
+    @Transactional
     public List<ProjectResponse> getAllByOwner(UUID ownerId) {
         return repository.findAllByOwnerId(ownerId).stream()
                 .map(mapper::toResponse).toList();

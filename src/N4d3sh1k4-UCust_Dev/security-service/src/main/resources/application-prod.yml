@@ -19,13 +19,12 @@ spring:
     username: service-user
     password: servicepassword
     virtual-host: universal-host
-  security:
-    oauth2:
-      client:
-        registration:
-          yandex:
-            client-id: ${YANDEX_CLIENT_ID}
-            client-secret: ${YANDEX_CLIENT_SECRET}
+app:
+  oauth2:
+    redirect-uri: "https://api.ucust.n4d3sh1k4.site/api/v0/login/oauth2/code/{registrationId}"
+  default-admin:
+    email: ${DEFAULT_ADMIN_EMAIL}
+    password: ${DEFAULT_ADMIN_PASSWORD}
 
 server:
   port: 8101

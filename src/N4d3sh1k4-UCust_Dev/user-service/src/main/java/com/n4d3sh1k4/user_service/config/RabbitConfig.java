@@ -8,19 +8,43 @@ import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 
 @Configuration
 public class RabbitConfig {
 
     public static final String QUEUE = "user-profile-queue";
+    public static final String DLQ = QUEUE + ".dlq";
+    public static final String DLX = "user-exchange.dlx";
     public static final String EXCHANGE = "user-exchange";
     public static final String ROUTING_KEY = "user.created";
 
     // 1. Создаем очередь
     @Bean
     public Queue queue() {
-        return new Queue(QUEUE, true); // true = надежная (не пропадет при рестарте Rabbit)
+        Map<String, Object> args = new HashMap<>();
+        args.put("x-dead-letter-exchange", DLX);
+        args.put("x-dead-letter-routing-key", DLQ);
+        return new Queue(QUEUE, true, false, false, args); // true = надежная (не пропадет при рестарте Rabbit)
+    }
+
+    // 1.1 Очередь для отброшенных сообщений (DLQ)
+    @Bean
+    public Queue dlqUserProfile() {
+        return new Queue(DLQ, true);
+    }
+
+    @Bean
+    public TopicExchange dlx() {
+        return new TopicExchange(DLX);
+    }
+
+    @Bean
+    public Binding dlqBinding(Queue dlqUserProfile, TopicExchange dlx) {
+        return BindingBuilder.bind(dlqUserProfile).to(dlx).with(DLQ);
     }
 
     // 2. Создаем обменник

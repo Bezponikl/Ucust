@@ -3,17 +3,19 @@ package com.n4d3sh1k4.security_service.controller;
 import com.n4d3sh1k4.security_service.domain.repository.RoleRepository;
 import com.n4d3sh1k4.security_service.domain.repository.UserRepository;
 import com.n4d3sh1k4.security_service.dto.*;
-import com.n4d3sh1k4.security_service.dto.request_dto.ForgotPasswordRequest;
-import com.n4d3sh1k4.security_service.dto.request_dto.LoginRequest;
-import com.n4d3sh1k4.security_service.dto.request_dto.RegisterRequest;
-import com.n4d3sh1k4.security_service.dto.request_dto.ResetPasswordRequest;
+import com.n4d3sh1k4.security_service.dto.request_dto.*;
+import com.n4d3sh1k4.security_service.dto.request_dto.VerifyPasswordRequest;
+import com.n4d3sh1k4.security_service.dto.request_dto.SetNewEmailRequest;
+import com.n4d3sh1k4.security_service.dto.request_dto.ConfirmEmailChangeRequest;
 import com.n4d3sh1k4.security_service.jwt.JwtProvider;
 import com.n4d3sh1k4.security_service.security.UserDetailsServiceImpl;
 import com.n4d3sh1k4.security_service.service.AuthService;
 import com.n4d3sh1k4.security_service.service.RefreshTokenService;
+import com.n4d3sh1k4.security_service.service.YandexAuthService;
 import com.n4d3sh1k4.security_service.utils.CookieUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,10 +36,12 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final AuthService authService;
+    private final YandexAuthService  yandexAuthService;
 
-    public AuthController(AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, UserRepository userRepository, UserDetailsServiceImpl userDetailsService, JwtProvider jwtProvider, UserDetailsServiceImpl userDetailsServiceImpl, PasswordEncoder passwordEncoder, RoleRepository roleRepository, CookieUtils cookieUtils, AuthService authService) {
+    public AuthController(AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, UserRepository userRepository, UserDetailsServiceImpl userDetailsService, JwtProvider jwtProvider, UserDetailsServiceImpl userDetailsServiceImpl, PasswordEncoder passwordEncoder, RoleRepository roleRepository, CookieUtils cookieUtils, AuthService authService, YandexAuthService yandexAuthService) {
         this.authenticationManager = authenticationManager;
         this.authService = authService;
+        this.yandexAuthService = yandexAuthService;
     }
 
     @Operation(summary = "Регистрация пользователей", description = "Позволяет добавить пользователя в систему. После регистрации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
@@ -64,10 +68,17 @@ public class AuthController {
 
     @Operation(summary = "Авторизация пользователей", description = "Позволяет авторизоваться пользователю в системе. После авторизации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        AuthServiceResult result = authService.loginUser(loginRequest);
+
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) {
+            ip = request.getRemoteAddr();
+        }
+        String userAgent = request.getHeader("User-Agent");
+
+        AuthServiceResult result = authService.loginUser(loginRequest, ip, userAgent);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
                 .body(new JwtResponse(result.getAccesToken()));
@@ -96,27 +107,29 @@ public class AuthController {
                 .body("Logged out successfully");
     }
 
-    @Operation(summary = "Восстановление пароля", description = "Принимает почту пользователя и отправляет на неё письмо для восстановления пароля.")
+    @Operation(summary = "Смена/Восстановление пароля Шаг 1", description = "Принимает почту пользователя и отправляет на неё письмо для восстановления пароля.")
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.createPasswordResetToken(request.getEmail());
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Смена пароля", description = "Позволяет сменить пароль при наличии токена из письма с почты.")
+    @Operation(summary = "Смена/Восстановление пароля Шаг 2", description = "Позволяет сменить пароль при наличии токена из письма с почты.")
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Авторизация через Яндекс (мобильное приложение)",
+               description = "Принимает access token от Яндекс OAuth и возвращает JWT токены.")
     @PostMapping("/yandex-mobile")
     public ResponseEntity<?> yandexMobile(@RequestBody YandexMobileTokenRequest request) {
         AuthServiceResult result = yandexAuthService.authenticateMobile(request.getAccessToken());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
-                .body(new JwtResponse(result.getAccessToken()));
+                .body(new JwtResponse(result.getAccesToken()));
     }
 
     @Operation(summary = "Привязка соцсети", description = "Привязывает соцсеть к аккаунту после ввода пароля.")
@@ -125,6 +138,27 @@ public class AuthController {
         AuthServiceResult result = authService.linkSocialAccount(request);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
-                .body(new JwtResponse(result.getAccessToken()));
+                .body(new JwtResponse(result.getAccesToken()));
+    }
+
+    @Operation(summary = "Смена почты Шаг 1", description = "Подтвердить пароль для смены почты")
+    @PostMapping("/change-email/verify-password")
+    public ResponseEntity<?> verifyPassword(@Valid @RequestBody VerifyPasswordRequest request, Authentication authentication) {
+        authService.initiateEmailChange(request.getPassword(), authentication);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Смена почты Шаг 2", description = "Отправить код на новую почту")
+    @PostMapping("/change-email/set-new-email")
+    public ResponseEntity<?> setNewEmail(@Valid @RequestBody SetNewEmailRequest request) {
+        authService.setNewEmail(request.getToken(), request.getNewEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Смена почты Шаг 3", description = "Подтвердить смену почты")
+    @PostMapping("/change-email/confirm")
+    public ResponseEntity<?> confirmEmailChange(@Valid @RequestBody ConfirmEmailChangeRequest request) {
+        authService.confirmEmailChange(request.getToken(), request.getCode());
+        return ResponseEntity.ok().build();
     }
 }

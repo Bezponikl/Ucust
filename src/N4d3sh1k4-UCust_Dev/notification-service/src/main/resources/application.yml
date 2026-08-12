@@ -5,11 +5,14 @@ spring:
     config:
       enabled: false
   rabbitmq:
-    host: localhost
+    host: 127.0.0.1
     port: 5680
     username: ${RABBITMQ_USER:service-user}
     password: ${RABBITMQ_PASS:servicepassword}
     virtual-host: universal-host
+    listener:
+      simple:
+        default-requeue-rejected: false
     template:
       retry:
         enabled: true
@@ -27,6 +30,11 @@ spring:
           starttls:
             enable: true
           localhost: localhost
+email:
+  support: ${SUPPORT_EMAIL:support@ucust.com}
+
+url:
+  backend: ${BACKEND_URL:http://localhost:8180 }
 
 server:
   port: 8103

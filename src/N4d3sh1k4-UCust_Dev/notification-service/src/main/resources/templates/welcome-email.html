@@ -4,75 +4,97 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { margin: 0; padding: 0; background-color: #f4f7f9; }
-        .email-container {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
+        /* Базовые сбросы для почтовых клиентов */
+        html, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; background-color: #F8FAFC; }
+        * { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+        div[style*="margin: 16px 0"] { margin: 0 !important; }
+        table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+        table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
+        img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+
+        .main-card {
             background-color: #ffffff;
-            /* Для современных клиентов (Gmail, Apple Mail, Web) */
-            background-image: linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)), url('https://i.imgur.com/ieDazYi.png');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
+            border-top: 4px solid #00A3E0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
+
         .content-cell {
-            padding: 40px 50px;
-            font-family: "Montserrat", sans-serif;
-            color: #333333;
+            padding: 48px 40px;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .btn-link:hover {
+            background-color: #0082B3 !important;
+        }
+
+        .info-block {
+            background-color: #F1F5F9;
+            border-left: 4px solid #CBD5E1;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+
+        /* Адаптация под мобильные устройства */
+        @media only screen and (max-width: 620px) {
+            .wrapper-table {
+                width: 100% !important;
+            }
+            .main-card {
+                width: 95% !important;
+                border-radius: 4px !important;
+            }
+            .content-cell {
+                padding: 32px 20px !important;
+            }
+            .mobile-full-width {
+                width: 100% !important;
+                display: block !important;
+            }
+            .btn-link {
+                display: block !important;
+                text-align: center !important;
+                padding: 16px 0 !important;
+            }
+            .mobile-center {
+                text-align: center !important;
+            }
+            .mobile-center img {
+                margin: 0 auto !important;
+            }
+        }
+
+        /* Поддержка Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            body, .outer-bg { background-color: #0F172A !important; }
+            .main-card { background-color: #1E293B !important; }
+            h1, strong { color: #F8FAFC !important; }
+            p, td { color: #CBD5E1 !important; }
+            .info-block { background-color: #334155 !important; border-left-color: #475569 !important; }
+            .info-block p { color: #94A3B8 !important; }
+            hr { border-top-color: #334155 !important; }
         }
     </style>
 </head>
-<body>
-<v:fill type="frame"
-            src="https://i.imgur.com/ieDazYi.png"
-            color="#ffffff"
-            opacity="20%"
-            position="1,0"
-            aspect="atleast" />
-    <v:textbox inset="0,0,0,0">
-<![endif]-->
-    <center>
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f7f9; padding: 20px 0;">
+<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #F8FAFC;">
+    <center style="width: 100%; background-color: #F8FAFC;" class="outer-bg">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; padding: 20px 0;" class="outer-bg">
             <tr>
                 <td align="center">
-                    <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="600">
+                    <table class="main-card wrapper-table" role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="width: 600px; max-width: 600px;">
                         <tr>
-                            <td class="content-cell">
-                                <div style="margin-bottom: 30px;">
-                                    <img src="https://i.imgur.com/huFpdnM.png" alt="Ucust" width="120" style="display: block; border: 0;">
+                            <td class="content-cell" align="left">
+                                <div style="margin-bottom: 32px;" class="mobile-center">
+                                    <img src="https://i.imgur.com/huFpdnM.png" alt="Ucust" width="110" style="display: block; border: 0;">
                                 </div>
 
                                 <h1 style="font-size: 18px; color: #1a1a1a; margin-bottom: 20px;">Здравствуйте, <span th:text="${username}">Уважаемый пользователь</span>!</h1>
 
                                 <p style="font-size: 16px; line-height: 1.5; margin-bottom: 25px;">
                                     Спасибо, что решили присоединиться<br> к нам на платформе Ucust!<br><br>
-                                    Для завершения регистрации,<br>перейдите по указанной ниже ссылке:
-                                </p>
-
-                                <table border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
-                                    <tr>
-                                        <td align="center" bgcolor="#00A3E0" style="border-radius: 25px;">
-                                            <a th:href="${activationUrl}"
-                                               target="_blank"
-                                               style="font-size: 16px;
-                                                      font-family: 'Segoe UI', Arial, sans-serif;
-                                                      color: #ffff;
-                                                      text-decoration: none;
-                                                      padding: 12px 30px;
-                                                      border-radius: 25px;
-                                                      border: 1px solid #00A3E0;
-                                                      display: inline-block;
-                                                      font-weight: bold;">
-                                                Подтвердить регистрацию
-                                            </a>
-                                        </td>
-                                    </tr>
-                                </table>
-
-                                <p style="color: #888888; font-size: 13px; margin-bottom: 30px;">
-                                    Ссылка действительна в течение <span th:text="${expiryMinutes}">15</span> минут.<br><br>
-                                    Если вы не запрашивали регистрацию <br>проигнорируйте это письмо.
                                 </p>
 
                                 <hr style="border: 0; border-top: 1px solid #e0e6ed; margin-bottom: 25px;">
@@ -89,8 +111,7 @@
                             </td>
                         </tr>
                     </table>
-
-                    </td>
+                </td>
             </tr>
         </table>
     </center>

@@ -14,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,7 +55,6 @@ public class UserService {
                             finalLastName,
                             phone
                     ));
-
                     return newUser;
                 });
     }

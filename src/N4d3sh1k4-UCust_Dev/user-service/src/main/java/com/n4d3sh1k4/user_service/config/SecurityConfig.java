@@ -26,12 +26,16 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**").permitAll() // Для мониторинга
-                .requestMatchers("/api/v0/users/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated() // Все остальные запросы должны иметь X-User-Id
+                .requestMatchers(
+                        "/actuator/**",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/actuator/**"
+                ).permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
             )
             .addFilterBefore(internalUserFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 }

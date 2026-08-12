@@ -2,9 +2,12 @@ package com.n4d3sh1k4.security_service.utils;
 
 import com.n4d3sh1k4.security_service.domain.model.users.User;
 import com.n4d3sh1k4.security_service.service.RefreshTokenService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 @Component
 public class CookieUtils {
@@ -16,12 +19,18 @@ public class CookieUtils {
     @Value("${cookie.secure.state}")
     private Boolean cookieSecureState;
 
+    @Value("${token.refresh.isremember.ttl}")
+    private Duration refreshTTLisRemember;
+
+    @Value("${token.refresh.noremember.ttl}")
+    private Duration refreshTTLnoRemember;
+
     public CookieUtils(RefreshTokenService refreshTokenService) {
         this.refreshTokenService = refreshTokenService;
     }
 
     public ResponseCookie generateRefreshTokenCookie(User user, boolean rememberMe) {
-        long maxAge = rememberMe ? 30 * 24 * 60 * 60L : -1L;
+        long maxAge = rememberMe ? refreshTTLisRemember.getSeconds() : refreshTTLnoRemember.getSeconds();
 
         return ResponseCookie.from(cookieName, refreshTokenService.createRefreshToken(user, rememberMe).getToken())
                 .httpOnly(true)

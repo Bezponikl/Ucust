@@ -1,6 +1,7 @@
 spring:
   rabbitmq:
     host: rabbitmq
+    port: 5672
     username: service-user
     password: servicepassword
     virtual-host: universal-host

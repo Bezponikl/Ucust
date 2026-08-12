@@ -9,6 +9,7 @@ import com.n4d3sh1k4.security_service.utils.CookieUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.util.Objects;
 
 @Slf4j
 @Component
@@ -31,9 +31,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final UserService userService;
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication) throws IOException {
+    public void onAuthenticationSuccess(@NonNull HttpServletRequest request,
+                                        @NonNull HttpServletResponse response,
+                                        @NonNull Authentication authentication) throws IOException {
 
         OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
         OAuth2User oAuth2User = oauthToken.getPrincipal();

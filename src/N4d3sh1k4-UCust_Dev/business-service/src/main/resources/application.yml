@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:postgresql://127.0.0.1:5440/business_service_db
     username: ${DB_USER:ETA_DBUser}
-    password: ${DB_PASSWORD:ux$kgfmpJysjHBMNhXX!jFnH9@YQp!eW}
+    password: ${DB_PASSWORD:devpassword123}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -17,11 +17,14 @@ spring:
 server:
   port: 8104
 
+project:
+  default-post-count: 5
+
 minio:
   endpoint: http://127.0.0.1:9020
-  access-key: ${MINIO_ACCESS_KEY:admin}
-  secret-key: ${MINIO_SECRET_KEY:password123}
-  bucket: user-service
+  access-key: ${MINIO_ACCESS_KEY:business-service-user}
+  secret-key: ${MINIO_SECRET_KEY:bus-strong-pass}
+  bucket: business-service
   default:
     path: http://localhost:9020/business-service/
     logo: b84e7c4a19b762c769541cd557e97f7f.png

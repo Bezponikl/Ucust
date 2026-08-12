@@ -6,12 +6,12 @@ services:
     container_name: postgres-db
     environment:
       POSTGRES_USER: ETA_DBUser
-      POSTGRES_PASSWORD: ux$kgfmpJysjHBMNhXX!jFnH9@YQp!eW
+      POSTGRES_PASSWORD: devpassword123
     ports:
       - "5440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./ucust-ops/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./ops/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ETA_DBUser"]
       interval: 10s
@@ -24,11 +24,21 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: rmuser
       RABBITMQ_DEFAULT_PASS: rmpassword
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: >-
+        -rabbitmq_management load_definitions "/etc/rabbitmq/definitions.json"
+        -rabbitmq_server deprecated_features_permitted [transient_nonexcl_queues]
+        -rabbitmq_management path_prefix "/admin/rabbit"
     ports:
       - "5680:5672"
       - "15673:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./ops/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio
@@ -36,6 +46,7 @@ services:
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password123
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:8100/admin/minio/
     command: server /data --console-address ":9001"
     ports:
       - "9020:9000"
@@ -48,77 +59,71 @@ services:
       timeout: 5s
       retries: 5
 
-  api-gateway:
-    image: ghcr.io/n4d3sh1k4-ucust-developing/api-gateway:latest
-    container_name: api-gateway
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./ops/minio/policies:/policies:ro
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 admin password123;
+
+      # Buckets
+      mc mb local/business-service --ignore-existing;
+      mc mb local/generative-orchestration --ignore-existing;
+
+      # Policies
+      mc admin policy create local business-service-rw /policies/business-service-rw.json;
+      mc admin policy create local generative-orchestration-rw /policies/generative-orchestration-rw.json;
+
+      # Users
+      mc admin user add local business-service-user bus-strong-pass;
+      mc admin user add local generative-orchestration-user gen-strong-pass;
+
+      # Attach policies
+      mc admin policy attach local business-service-rw --user business-service-user;
+      mc admin policy attach local generative-orchestration-rw --user generative-orchestration-user;
+
+      exit 0;
+      "
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
-      - "8100:8100"
+      - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - JAVA_OPTS=-Xmx256m -Xms128m
-      - JWT_SECRET_ACCESS=dGhpcy1pcy1hLWxvY2FsLWRldi1zZWNsLyZXQtYmFzZsLTY0LWtleQ==
+      - DOZZLE_TAILSIZE=1000
+      - DOZZLE_BASE=/admin/monitoring
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
     depends_on:
       postgres-db:
         condition: service_healthy
-    restart: unless-stopped
-
-  security-service:
-    image: ghcr.io/n4d3sh1k4-ucust-developing/security-service:latest
-    container_name: security-service
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - JAVA_OPTS=-Xmx384m -Xms256m
-      - DB_PASSWORD=ux$kgfmpJysjHBMNhXX!jFnH9@YQp!eW
-      - JWT_SECRET_ACCESS=dGhpcy1pcy1hLWxvY2FsLWRldi1zZWNsLyZXQtYmFzZsLTY0LWtleQ==
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-    restart: unless-stopped
-
-  user-service:
-    image: ghcr.io/n4d3sh1k4-ucust-developing/user-service:latest
-    container_name: user-service
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - JAVA_OPTS=-Xmx512m -Xms256m
-      - DB_PASSWORD=ux$kgfmpJysjHBMNhXX!jFnH9@YQp!eW
-      - SERVER_TAILSCALE_IP=127.0.0.1
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-    restart: unless-stopped
-
-  business-service:
-    image: ghcr.io/n4d3sh1k4-ucust-developing/business-service:latest
-    container_name: business-service
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - JAVA_OPTS=-Xmx512m -Xms256m
-      - DB_PASSWORD=ux$kgfmpJysjHBMNhXX!jFnH9@YQp!eW
-      - SERVER_TAILSCALE_IP=127.0.0.1
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-    restart: unless-stopped
-
-  notification-service:
-    image: ghcr.io/n4d3sh1k4-ucust-developing/notification-service:latest
-    container_name: notification-service
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - JAVA_OPTS=-Xmx512m -Xms256m
-    depends_on:
-      rabbitmq:
-        condition: service_started
+      PGADMIN_DEFAULT_EMAIL: admin@ucust.ru
+      PGADMIN_DEFAULT_PASSWORD: devpassword123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_PROXY_PATH: "'/admin/pgadmin'"
+      PGADMIN_CONFIG_WTF_CSRF_ENABLED: "False"
+    ports:
+      - "9022:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./ops/pgadmin/servers.json:/pgadmin4/servers.json:ro
     restart: unless-stopped
 
 volumes:
   postgres_data:
   rabbitmq_data:
   minio_data:
+  pgadmin_data:

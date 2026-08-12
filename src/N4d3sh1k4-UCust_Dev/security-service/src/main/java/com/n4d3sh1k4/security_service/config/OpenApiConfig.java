@@ -20,19 +20,19 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("UCust API")
-                        .description("Personal Internet Marketer")
-                        .version("0.0.1")
+                        .title("Security Service API")
+                        .description("Responsible for secure manipulation of user accounts.")
+                        .version("0.3.0")
                         .contact(new Contact()
                                 .name("Mihail Krivosheev")
                                 .url("https://github.com/NEXUSPROGECT")))
 
                 .servers(List.of(
                         new Server()
-                                .url("https://thunderobot911.tail5f28aa.ts.net/apivTest")
-                                .description("Production (Tailscale)"),
+                                .url("https://api.ucust.n4d3sh1k4.site/api/v0")
+                                .description("Production"),
                         new Server()
-                                .url("http://localhost:8080/apivTest")
+                                .url("http://localhost:8100/api/v0")
                                 .description("Local Environment")
                 ))
 

@@ -1,7 +1,6 @@
 package com.n4d3sh1k4.security_service.domain.model.users;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,7 +21,7 @@ public class User {
     @Column(name = "id")
     private UUID id;
 
-    @Column(name = "password_hash", nullable = true)
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(name = "email")

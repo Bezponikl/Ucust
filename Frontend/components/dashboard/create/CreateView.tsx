@@ -246,7 +246,7 @@ export default function CreateView() {
         payload: {
           prompt: topic,
           format: format,
-          tone: tone,
+          tone: voice,
           refCount: photos.items.length,
         },
       });

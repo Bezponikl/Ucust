@@ -24,6 +24,7 @@ class SaigaLLMSkill:
         self.repetition_penalty = repetition_penalty
         self._llm = None
         self._is_loaded = False
+        self._init_prompt()
 
     def _resolve_path(self, path_str: str) -> str:
         if os.path.exists(path_str):
@@ -35,8 +36,23 @@ class SaigaLLMSkill:
         alt_repo = os.path.normpath(os.path.join(base_dir, "..", "..", path_str))
         if os.path.exists(alt_repo):
             return alt_repo
-        return path_str
         
+        # Автоматический поиск любого GGUF файла в папке models/saiga/
+        for candidate_dir in [
+            os.path.normpath(os.path.join(base_dir, "..", "models", "saiga")),
+            os.path.normpath(os.path.join(base_dir, "..", "..", "ai", "models", "saiga")),
+            "models/saiga",
+            "/opt/ucust/ai/models/saiga"
+        ]:
+            if os.path.exists(candidate_dir):
+                for fname in os.listdir(candidate_dir):
+                    if fname.endswith(".gguf"):
+                        found = os.path.join(candidate_dir, fname)
+                        print(f"[SaigaSkill] 🔍 Автоматически обнаружен файл модели: {found}")
+                        return found
+        return path_str
+
+    def _init_prompt(self):
         self.system_prompt = (
             "Ты - профессиональный SMM-копирайтер и контент-менеджер, который пишет живо, емко и по делу. "
             "Твои тексты звучат так, будто их написал живой, думающий человек, а не бездушный генератор маркетинговых шаблонов.\n\n"

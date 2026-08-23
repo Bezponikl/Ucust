@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: generative-orchestration-service
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5440/generative_orchestration_service_db
+    username: ${DB_USER:ETA_DBUser}
+    password: ${DB_PASSWORD:devpassword123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5680
+    username: ${RABBITMQ_USER:service-user}
+    password: ${RABBITMQ_PASS:servicepassword}
+    virtual-host: universal-host
+    listener:
+      simple:
+        default-requeue-rejected: false
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+
+jwt:
+  secret:
+    access: ${JWT_SECRET_ACCESS:dGhpcy1pcy1hLWxvY2FsLWRldi1zZWNsLyZXQtYmFzZsLTY0LWtleQ==}
+
+server:
+  port: 8107
+
+services:
+  billing-service:
+    uri: ${BILLING_SERVICE_URI:http://localhost:8106}
+  ai-service:
+    uri: ${AI_SERVICE_URI:http://localhost:8200}
+
+logging:
+  level:
+    root: INFO

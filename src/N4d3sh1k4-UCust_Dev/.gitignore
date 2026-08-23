@@ -1,0 +1,14 @@
+.gradle/
+.idea/
+**/build/
+*.iml
+out/
+.DS_Store
+
+# Local environment (secrets)
+.env
+*.env
+
+# Ops infrastructure (deployed independently)
+ucust-ops/
+ucust-admin-spa/

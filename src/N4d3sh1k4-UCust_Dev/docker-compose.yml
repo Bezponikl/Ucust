@@ -1,0 +1,97 @@
+name: ucust-app
+
+networks:
+  ucust-net:
+    external: true
+
+services:
+  api-gateway:
+    image: ghcr.io/n4d3sh1k4-ucust-developing/api-gateway:latest
+    container_name: api-gateway-ucust
+    ports:
+      - "8100:8100"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx256m -Xms128m
+      - JWT_SECRET_ACCESS=${JWT_SECRET_ACCESS}
+      - PGADMIN_URI=http://pgadmin-ucust:80
+      - RABBITMQ_ADMIN_URI=http://rabbitmq-ucust:15672
+      - MINIO_ADMIN_URI=http://minio-ucust:9001
+      - SERVICES_DOZZLE_URI=http://dozzle-ucust:8080
+    networks:
+      - ucust-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  security-service:
+    image: ghcr.io/n4d3sh1k4-ucust-developing/security-service:latest
+    container_name: security-service-ucust
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx384m -Xms256m
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET_ACCESS=${JWT_SECRET_ACCESS}
+      - YANDEX_CLIENT_ID=${YANDEX_CLIENT_ID}
+      - YANDEX_CLIENT_SECRET=${YANDEX_CLIENT_SECRET}
+      - VK_CLIENT_ID=${VK_CLIENT_ID}
+      - VK_CLIENT_SECRET=${VK_CLIENT_SECRET}
+      - DEFAULT_ADMIN_EMAIL=${DEFAULT_ADMIN_EMAIL}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
+    networks:
+      - ucust-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  user-service:
+    image: ghcr.io/n4d3sh1k4-ucust-developing/user-service:latest
+    container_name: user-service-ucust
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SERVER_TAILSCALE_IP=${SERVER_TAILSCALE_IP}
+    networks:
+      - ucust-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  business-service:
+    image: ghcr.io/n4d3sh1k4-ucust-developing/business-service:latest
+    container_name: business-service-ucust
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SERVER_TAILSCALE_IP=${SERVER_TAILSCALE_IP}
+    networks:
+      - ucust-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  notification-service:
+    image: ghcr.io/n4d3sh1k4-ucust-developing/notification-service:latest
+    container_name: notification-service-ucust
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL}
+      - BACKEND_URL=${BACKEND_URL}
+    networks:
+      - ucust-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 412M

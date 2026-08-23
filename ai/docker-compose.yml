@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: ucust_postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_smm}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_smm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. UCust.AI Core API & Agents Service (Single-Server Deployment)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ucust_ai_api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - UCUST_DB_HOST=${UCUST_DB_HOST:-db}
+      - UCUST_DB_PORT=${UCUST_DB_PORT:-5432}
+      - UCUST_DB_NAME=${POSTGRES_DB:-ai_smm}
+      - UCUST_DB_USER=${POSTGRES_USER:-postgres}
+      - UCUST_DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - COMFYUI_SERVER_ADDRESS=${COMFYUI_SERVER_ADDRESS:-127.0.0.1:8188}
+      - COMFYUI_OUTPUT_DIR=${COMFYUI_OUTPUT_DIR:-/app/output}
+    ports:
+      - "8000:8000"
+    # Enable NVIDIA GPU Passthrough for Saiga 3 & LTX-2.3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Connect to ComfyUI running on host machine
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Mount local host directories directly into container to read generated .mp4 and .wav files
+    volumes:
+      - ./output:/app/output
+      - ${HOST_COMFYUI_OUTPUT_DIR:-./output}:/app/output_comfyui
+
+volumes:
+  postgres_data:
+    driver: local

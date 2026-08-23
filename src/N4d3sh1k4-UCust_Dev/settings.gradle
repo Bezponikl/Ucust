@@ -1,9 +1,0 @@
-rootProject.name = 'UCust'
-
-include 'common'
-include 'api-gateway'
-include 'user-service'
-include 'security-service'
-include 'business-service'
-include 'configuration-service'
-include 'notification-service'

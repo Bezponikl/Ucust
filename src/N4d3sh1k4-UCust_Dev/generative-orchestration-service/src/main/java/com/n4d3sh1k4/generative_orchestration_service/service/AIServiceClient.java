@@ -22,6 +22,31 @@ public class AIServiceClient {
 
     public SubmitTaskResponse submitTask(UUID taskId, GenerateRequest request, UUID userId) {
         try {
+            // First try unified task endpoint
+            Map<String, Object> payload = Map.of(
+                    "prompt", request.getPrompt() != null ? request.getPrompt() : "",
+                    "city", request.getCity() != null ? request.getCity() : "Москва",
+                    "niche", request.getIndustry() != null ? request.getIndustry() : "Бизнес",
+                    "company_name", request.getDescription() != null ? request.getDescription() : "UCust"
+            );
+
+            UnifiedTaskRequest unifiedReq = new UnifiedTaskRequest(
+                    userId.toString(),
+                    taskId.toString(),
+                    "generate_post",
+                    payload
+            );
+
+            UnifiedTaskResponse resp = restClient.post()
+                    .uri("/api/v1/ai/task")
+                    .body(unifiedReq)
+                    .retrieve()
+                    .body(UnifiedTaskResponse.class);
+
+            if (resp != null && resp.data() != null) {
+                return new SubmitTaskResponse(taskId.toString());
+            }
+
             return restClient.post()
                     .uri("/ai/generate")
                     .body(new SubmitTaskRequest(taskId, request, userId))
@@ -30,6 +55,43 @@ public class AIServiceClient {
         } catch (Exception e) {
             log.error("Failed to submit task to AI service: {}", e.getMessage());
             throw e;
+        }
+    }
+
+    public UnifiedTaskResponse executeUnifiedTask(String userId, String sessionId, String taskType, Map<String, Object> payload) {
+        try {
+            return restClient.post()
+                    .uri("/api/v1/ai/task")
+                    .body(new UnifiedTaskRequest(userId, sessionId, taskType, payload))
+                    .retrieve()
+                    .body(UnifiedTaskResponse.class);
+        } catch (Exception e) {
+            log.error("Failed to execute unified task: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public Map<String, Object> getTrends(String niche) {
+        try {
+            return restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/api/v1/ai/trends").queryParam("niche", niche).build())
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.error("Failed to fetch trends for niche {}: {}", niche, e.getMessage());
+            return Map.of("status", "fallback", "niche", niche, "trends", java.util.List.of());
+        }
+    }
+
+    public Map<String, Object> getAnalyticsGraphs() {
+        try {
+            return restClient.get()
+                    .uri("/api/v1/ai/analytics/graphs")
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.error("Failed to fetch analytics graphs: {}", e.getMessage());
+            return Map.of("status", "fallback");
         }
     }
 
@@ -44,6 +106,18 @@ public class AIServiceClient {
             return new TaskResultResponse("UNKNOWN", null, null);
         }
     }
+
+    public record UnifiedTaskRequest(
+            String user_id,
+            String session_id,
+            String task_type,
+            Map<String, Object> payload
+    ) {}
+
+    public record UnifiedTaskResponse(
+            String status,
+            Map<String, Object> data
+    ) {}
 
     public record SubmitTaskRequest(
             UUID taskId,

@@ -16,6 +16,7 @@ import { DateField } from "@/components/dashboard/content/EditorControls";
 import TimeInput from "@/components/ui/TimeInput";
 import { fmtDayMonth, isoOffset } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
+import { submitAiTask } from "@/lib/api/ai";
 
 type Format = "post" | "video";
 type ImgSource = "none" | "upload" | "ai";
@@ -228,24 +229,52 @@ export default function CreateView() {
     return media.kind === "image" ? media : { kind: "none" };
   };
 
-  const runGeneration = () => {
+  const runGeneration = async () => {
     if (!canCreate) return;
     setMode("generating");
     setDoneSteps(0);
     let done = 0;
+
     timer.current = setInterval(() => {
-      done += 1;
+      done = Math.min(done + 1, aiSteps.length - 1);
       setDoneSteps(done);
-      if (done >= aiSteps.length) {
-        if (timer.current) clearInterval(timer.current);
-        setTimeout(() => {
+    }, 450);
+
+    try {
+      const res = await submitAiTask({
+        task_type: "generate_post",
+        payload: {
+          prompt: topic,
+          format: format,
+          tone: tone,
+          refCount: photos.items.length,
+        },
+      });
+
+      if (timer.current) clearInterval(timer.current);
+      setDoneSteps(aiSteps.length);
+
+      setTimeout(() => {
+        if (res?.data?.post_text) {
+          setText(res.data.post_text);
+        } else {
           setText(generateBody(topic, format, photos.items.length));
-          setHashtags(deriveHashtags(topic));
-          setMedia(resolveMedia());
-          setMode("edit");
-        }, 460);
-      }
-    }, 520);
+        }
+        setHashtags(deriveHashtags(topic));
+        setMedia(resolveMedia());
+        setMode("edit");
+      }, 400);
+    } catch (err) {
+      console.warn("AI Gateway offline, using local generator:", err);
+      if (timer.current) clearInterval(timer.current);
+      setDoneSteps(aiSteps.length);
+      setTimeout(() => {
+        setText(generateBody(topic, format, photos.items.length));
+        setHashtags(deriveHashtags(topic));
+        setMedia(resolveMedia());
+        setMode("edit");
+      }, 400);
+    }
   };
 
   const runTextAi = (key: string) => {

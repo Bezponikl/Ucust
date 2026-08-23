@@ -1,0 +1,5 @@
+﻿models/
+venv/
+*.db
+*.session
+.git/

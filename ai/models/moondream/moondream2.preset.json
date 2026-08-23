@@ -1,0 +1,13 @@
+{
+  "name": "Moondream 2",
+  "inference_params": {
+    "input_prefix": "\n\nQuestion: ",
+    "input_suffix": "\n\nAnswer:",
+    "antiprompt": [
+      "\n\nQuestion:"
+    ],
+    "pre_prompt": "",
+    "pre_prompt_suffix": "",
+    "pre_prompt_prefix": ""
+  }
+}

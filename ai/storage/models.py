@@ -26,6 +26,8 @@ class UserProfile(Base):
     user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     niche: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, default="Россия")
+    location_details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
     target_audience: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     step1: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -33,6 +35,9 @@ class UserProfile(Base):
     step3: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     step4: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     step5: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    # Ссылки на соцсети, собранные Интервьюером (Telegram, VK и т.д.)
+    social_links: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -107,43 +112,20 @@ class ContentTask(Base):
         self.post_draft_json = value
 
 
-class NicheInsight(Base):
+class OrchestratorTrace(Base):
     """
-    Глобальная База Знаний маркетинговых уловок и кейсов по нишам (Growth Hacker Knowledge Base).
-    Накапливает и переиспользует аналитику между всеми пользователями системы.
+    ORM model for tracing agent interactions and hashing state.
+    Used by the Chief Orchestrator to checkpoint the pipeline stages and recover sessions.
     """
-
-    __tablename__ = "niche_insights"
+    __tablename__ = "orchestrator_traces"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    niche_slug: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
-    psychological_hooks: Mapped[dict] = mapped_column(JSON, nullable=False, default=list)
-    successful_cases: Mapped[dict] = mapped_column(JSON, nullable=False, default=list)
-    promotional_mechanics: Mapped[dict] = mapped_column(JSON, nullable=False, default=list)
-    last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class OutboxEvent(Base):
-    """
-    Таблица Transactional Outbox Pattern для гарантии отложенной публикации постов и ответов на отзывы.
-    Исключает двойную запись и обеспечивает отказоустойчивость при сбоях соцсетей.
-    """
-
-    __tablename__ = "outbox_events"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    job_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    target_platform: Mapped[str] = mapped_column(String(32), nullable=False)  # 'telegram', 'vk', 'yandex_maps', 'twogis'
-    event_type: Mapped[str] = mapped_column(String(32), nullable=False)  # 'PROMO_POST', 'REVIEW_REPLY'
-    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-
-    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)  # PENDING, PROCESSING, COMPLETED, FAILED
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    attempts: Mapped[int] = mapped_column(Integer, default=0)
-    next_attempt_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    published_url: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    session_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    agent_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    payload_hash: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 __all__ = [
@@ -151,6 +133,5 @@ __all__ = [
     "ProjectMetadata",
     "PublicationHistory",
     "ContentTask",
-    "NicheInsight",
-    "OutboxEvent",
+    "OrchestratorTrace",
 ]

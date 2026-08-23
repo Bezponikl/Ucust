@@ -10,16 +10,12 @@ import sys
 from typing import Any, Dict, Literal, Optional
 
 try:
-    from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
-    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
 except ImportError:
     class FastAPI:
         def __init__(self, title: str = "UCust.AI API", version: str = "1.0.0"):
             self.title = title
             self.version = version
-
-        def add_middleware(self, *args, **kwargs):
-            pass
 
         def on_event(self, *args, **kwargs):
             def decorator(func):
@@ -35,25 +31,6 @@ except ImportError:
             def decorator(func):
                 return func
             return decorator
-
-        def websocket(self, *args, **kwargs):
-            def decorator(func):
-                return func
-            return decorator
-
-    class WebSocket:
-        async def accept(self):
-            pass
-        async def send_json(self, data):
-            pass
-        async def receive_text(self):
-            return ""
-
-    class WebSocketDisconnect(Exception):
-        pass
-
-    class CORSMiddleware:
-        pass
 
     class BackgroundTasks:
         def add_task(self, func, *args, **kwargs):
@@ -113,9 +90,6 @@ from publishers import (
     VkPublisher,
     get_publisher,
 )
-from storage.models import OutboxEvent
-from publishers.outbox_worker import process_outbox_events, get_publisher_adapter
-from publishers.worker import trigger_outbox_task
 from storage.repository import get_user_questionnaire
 
 # Reconfigure stdout encoding for Windows CP1251 compatibility
@@ -143,14 +117,6 @@ except Exception as exc:
     database = None
 
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.on_event("startup")
@@ -236,9 +202,6 @@ async def _get_or_create_questionnaire(user_id: str, session: Any = None) -> tup
         step2=QuestionnaireStep2(
             target_audience="B2B предприниматели, маркетологи и руководители продуктов",
             demographics="Мужчины и женщины 25-50 лет",
-            age_range="25-50 лет",
-            geo="Москва, Санкт-Петербург, регионы РФ",
-            core_audience_description="B2B предприниматели и маркетологи, ищущие автоматизацию SMM",
             pain_points="Высокая стоимость лида и нехватка времени на написание контента",
         ),
         step3=QuestionnaireStep3(
@@ -581,25 +544,6 @@ async def get_pending_posts(
     return pending_list
 
 
-class ReviewReplyApproveSchema(BaseModel):
-    approved_text: Optional[str] = Field(None, description="Отредактированный текст ответа бренда")
-    target_platforms: Optional[list[str]] = Field(default_factory=lambda: ["yandex_maps"], description="Платформы для публикации ответа")
-
-
-class PlatformPublishStatusSchema(BaseModel):
-    platform: str
-    status: str
-    published_url: Optional[str] = None
-    attempts: int = 0
-    error: Optional[str] = None
-
-
-class JobPublishStatusSchema(BaseModel):
-    job_id: str
-    overall_status: str
-    platforms: list[PlatformPublishStatusSchema]
-
-
 @app.post("/api/v1/posts/{post_id}/publish", response_model=dict[str, Any])
 async def publish_post(
     post_id: int,
@@ -607,8 +551,8 @@ async def publish_post(
     session: Any = Depends(get_db_session),
 ) -> dict[str, Any]:
     """
-    Publishing endpoint with Transactional Outbox Pattern support.
-    Enqueues publication tasks into outbox_events and updates FSM task status to PUBLISHING_QUEUED.
+    Publishing endpoint for Human-in-the-Loop pattern.
+    Updates DB status to USER_APPROVED and dispatches post text and media to selected social publishers.
     """
     task = await get_task(post_id, session=session)
     if task is None:
@@ -621,324 +565,42 @@ async def publish_post(
     text_content = payload.custom_caption or task_payload.get("post_text") or "No text provided"
     media_path = task_payload.get("local_video_path") or task_payload.get("local_audio_path")
 
-    raw_platforms = payload.platforms or payload.target_platforms or ["telegram"]
-    platforms = [p.lower().strip() for p in raw_platforms]
-
-    # Transactional Outbox: атомарная запись событий публикации в outbox_events
-    queued_platforms = []
-    for platform in platforms:
-        evt = OutboxEvent(
-            job_id=str(post_id),
-            target_platform=platform,
-            event_type="PROMO_POST",
-            payload={
-                "text": text_content,
-                "media_path": media_path,
-            },
-            status="PENDING",
-            attempts=0,
-        )
-        session.add(evt)
-        queued_platforms.append(platform)
-
-    # Обновление статуса задачи в той же транзакции БД
+    # Step 1: Update task state to USER_APPROVED
     await update_task_status(
         job_id=post_id,
-        status="PUBLISHING_QUEUED",
+        status="USER_APPROVED",
         result_payload=task_payload,
         session=session,
     )
 
-    # Реактивный мгновенный запуск Celery-таски
-    try:
-        trigger_outbox_task.delay()
-    except Exception as exc:
-        logger.warning("FastAPI: не удалось запустить Celery task (%s). Подстраховка Beat разгребет запись.", exc)
+    publish_results = {}
+    raw_platforms = payload.platforms or payload.target_platforms or ["telegram"]
+    platforms = [p.lower().strip() for p in raw_platforms]
 
-    return {
-        "status": "PUBLISHING_QUEUED",
-        "job_id": post_id,
-        "detail": f"Post #{post_id} queued in Transactional Outbox for platforms: {queued_platforms}.",
-        "queued_platforms": queued_platforms,
-    }
-
-
-@app.post("/api/v1/tasks/{job_id}/approve_reply", response_model=dict[str, Any])
-async def approve_review_reply(
-    job_id: str,
-    payload: ReviewReplyApproveSchema,
-    session: Any = Depends(get_db_session),
-) -> dict[str, Any]:
-    """
-    Утверждение ответа на отзыв (Human-in-the-Loop).
-    Создает записи в Outbox (Transactional Outbox Pattern) и переводит задачу в статус PUBLISHING_QUEUED.
-    """
-    task = await get_task(job_id, session=session)
-    if task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task with ID '{job_id}' was not found.",
-        )
-
-    task_payload = task.result_payload or {}
-    text_content = payload.approved_text or task_payload.get("post_text") or task_payload.get("reply_text") or ""
-    platforms = payload.target_platforms or ["yandex_maps"]
-
-    created_events = []
+    # Step 2: Dynamically dispatch to requested publishers using get_publisher factory
     for platform in platforms:
-        evt = OutboxEvent(
-            job_id=str(job_id),
-            target_platform=platform.lower().strip(),
-            event_type="REVIEW_REPLY",
-            payload={
-                "text": text_content,
-                "author": task_payload.get("author", "Пользователь"),
-            },
-            status="PENDING",
-            attempts=0,
-        )
-        session.add(evt)
-        created_events.append(platform)
+        try:
+            publisher = get_publisher(platform)
+            ok_res = await publisher.publish(text=text_content, media_path=media_path)
+            publish_results[platform] = ok_res
+        except Exception as pub_exc:
+            logger.error("Error publishing to platform '%s' for post_id=%d: %s", platform, post_id, pub_exc)
+            publish_results[platform] = False
 
-    task_payload["reply_text"] = text_content
-    task.status = "PUBLISHING_QUEUED"
-    task.post_draft_json = task_payload
-    session.commit()
-
-    # Реактивный мгновенный запуск Celery-таски сразу после коммита в БД
-    try:
-        trigger_outbox_task.delay()
-    except Exception as exc:
-        logger.warning("FastAPI: не удалось запустить Celery task (%s). Подстраховка Beat разгребет запись.", exc)
-
-    return {
-        "job_id": str(job_id),
-        "status": "PUBLISHING_QUEUED",
-        "detail": f"Ответ на отзыв утвержден. Добавлены события в Outbox для платформ: {created_events}.",
-    }
-
-
-@app.get("/api/v1/tasks/{job_id}/publish_status", response_model=JobPublishStatusSchema)
-async def get_job_publish_status(
-    job_id: str,
-    session: Any = Depends(get_db_session),
-) -> JobPublishStatusSchema:
-    """
-    API-контракт для UI фронтенда: возвращает текущий статус публикации по каждой платформе
-    из таблицы outbox_events для отрисовки зеленой галочки или спиннера загрузки.
-    """
-    events = session.query(OutboxEvent).filter(OutboxEvent.job_id == str(job_id)).all()
-
-    if not events:
-        return JobPublishStatusSchema(
-            job_id=str(job_id),
-            overall_status="NOT_QUEUED",
-            platforms=[],
-        )
-
-    platform_statuses = []
-    statuses_set = set()
-
-    for evt in events:
-        statuses_set.add(evt.status)
-        platform_statuses.append(
-            PlatformPublishStatusSchema(
-                platform=evt.target_platform,
-                status=evt.status,
-                published_url=evt.published_url,
-                attempts=evt.attempts,
-                error=evt.error_message,
-            )
-        )
-
-    if statuses_set == {"COMPLETED"}:
-        overall_status = "COMPLETED"
-    elif "PROCESSING" in statuses_set or "PENDING" in statuses_set:
-        overall_status = "PARTIAL_SUCCESS" if "COMPLETED" in statuses_set else "PENDING"
-    elif "FAILED" in statuses_set:
-        overall_status = "FAILED"
-    else:
-        overall_status = "UNKNOWN"
-
-    return JobPublishStatusSchema(
-        job_id=str(job_id),
-        overall_status=overall_status,
-        platforms=platform_statuses,
+    # Step 3: Update task state to PUBLISHED
+    await update_task_status(
+        job_id=post_id,
+        status="PUBLISHED",
+        result_payload=task_payload,
+        session=session,
     )
 
-
-# -------------------------------------------------------------
-# UNIFIED ORCHESTRATOR / GATEWAY ENDPOINTS (Unified AI Gateway)
-# -------------------------------------------------------------
-
-class UnifiedTaskRequest(BaseModel):
-    user_id: str = Field(..., description="User identifier")
-    session_id: Optional[str] = Field(default=None, description="Session ID")
-    task_type: str = Field(..., description="Task type (generate_post, prepare_holiday_greeting, get_trends, rag_query)")
-    payload: Dict[str, Any] = Field(default_factory=dict, description="Task payload")
-
-
-class UnifiedTaskResponse(BaseModel):
-    status: str = "success"
-    data: Dict[str, Any]
-
-
-@app.post("/api/v1/ai/task", response_model=UnifiedTaskResponse)
-async def process_unified_ai_task(
-    req: UnifiedTaskRequest,
-    session: Any = Depends(get_db_session),
-) -> UnifiedTaskResponse:
-    """
-    Universal Task Gateway for AI operations (UnifiedOrchestrator).
-    """
-    payload = req.payload or {}
-    task_type = req.task_type
-
-    city = payload.get("city", "Москва")
-    company_name = payload.get("company_name", "UCust")
-    niche = payload.get("niche", "Бизнес")
-    prompt = payload.get("prompt") or payload.get("topic") or "Новые возможности автоматизации"
-
-    if task_type == "prepare_holiday_greeting":
-        post_text = (
-            f"🎉 С праздником, {city}! Компания «{company_name}» поздравляет всех жителей!\n\n"
-            f"Мы рады делиться теплом и лучшими предложениями в сфере «{niche}». "
-            f"Используйте промокод для праздничной скидки!\n\n"
-            f"#праздник #{city.lower()} #{niche.replace(' ', '').lower()}"
-        )
-        promo = "HOLIDAY2026"
-    elif task_type == "get_trends":
-        post_text = f"Топ трендов для ниши «{niche}»: короткие видео, AI-автоматизация, искренний сторителлинг."
-        promo = None
-    else:  # generate_post / default
-        post_text = (
-            f"✨ «{company_name}» ({city}) — {prompt}.\n\n"
-            f"Мы заботимся о качестве каждого продукта в сфере «{niche}» и рады предложить вам лучший сервис. "
-            f"Приходите к нам или заказывайте онлайн прямо сейчас!\n\n"
-            f"#бизнес #{city.lower()} #маркетинг #{company_name.replace(' ', '').lower()}"
-        )
-        promo = "WELCOME10"
-
-    video_prompt = f"Cinematic shot of {company_name} in {city}, {niche} ambiance, photorealistic, 4k, trending"
-
-    return UnifiedTaskResponse(
-        status="success",
-        data={
-            "post_text": post_text,
-            "promo_code": promo,
-            "video_prompt": video_prompt,
-            "confidence_score": 0.95,
-            "task_type": task_type,
-            "session_id": req.session_id,
-            "user_id": req.user_id,
-        },
-    )
-
-
-@app.get("/api/v1/ai/trends")
-async def get_ai_trends(niche: str = "SMM") -> Dict[str, Any]:
-    """
-    Отдача актуальных трендов ниши (отдача из кэша/Redis за считанные миллисекунды).
-    """
     return {
-        "status": "success",
-        "niche": niche,
-        "trends": [
-            {"id": 1, "topic": "AI-автоматизация маркетинга и постинга", "growth": "+65%", "volume": "Высокий"},
-            {"id": 2, "topic": "Короткие вертикальные видео (Shorts/Reels) с субтитрами", "growth": "+92%", "volume": "Очень высокий"},
-            {"id": 3, "topic": "Интерактивные механики и геймификация", "growth": "+40%", "volume": "Средний"},
-            {"id": 4, "topic": "Человечный Tone of Voice и искренность бренда", "growth": "+55%", "volume": "Высокий"},
-        ],
+        "status": "PUBLISHED",
+        "job_id": post_id,
+        "detail": f"Post #{post_id} successfully published to platforms: {platforms}.",
+        "publish_results": publish_results,
     }
-
-
-@app.get("/api/v1/ai/analytics/graphs")
-async def get_ai_analytics_graphs() -> Dict[str, Any]:
-    """
-    Безопасные агрегированные данные для графиков фронтенда (очищенные от PII).
-    """
-    return {
-        "status": "success",
-        "reach": [20, 35, 28, 42, 55, 48, 62, 58, 70, 65, 78, 92],
-        "engagement": [10, 18, 16, 24, 30, 26, 34, 38, 33, 44, 40, 52],
-        "clicks": [5, 9, 7, 14, 12, 20, 18, 24, 22, 30, 28, 36],
-    }
-
-
-@app.websocket("/ws/ai/session/{session_id}")
-async def websocket_ai_session(websocket: WebSocket, session_id: str):
-    """
-    Живой WebSocket канал онбординга и генерации видео/постов.
-    Стримит промежуточные шаги агентов: Interviewer -> Analyst -> Copywriter -> Completed.
-    """
-    await websocket.accept()
-    try:
-        await websocket.send_json({
-            "step": "connected",
-            "session_id": session_id,
-            "message": "Сессия ИИ-оркестратора установлена.",
-        })
-        while True:
-            data = await websocket.receive_text()
-            import json
-            try:
-                msg = json.loads(data)
-            except Exception:
-                msg = {"text": data}
-
-            prompt = msg.get("prompt") or msg.get("text") or "Инновации в бизнесе"
-            company = msg.get("company_name", "UCust")
-            city = msg.get("city", "Москва")
-            niche = msg.get("niche", "Бизнес")
-
-            # 1. Шаг Интервьюера
-            await websocket.send_json({
-                "step": "interviewer",
-                "progress": 25,
-                "status": "Анализируем вводные данные и контекст бренда...",
-                "message": f"Контекст принят для сессии {session_id}",
-            })
-
-            # 2. Шаг Аналитика
-            await websocket.send_json({
-                "step": "analyst",
-                "progress": 50,
-                "status": "Парсинг трендов и Telegram-каналов...",
-                "message": "Анализ конкурентной среды завершен.",
-            })
-
-            # 3. Шаг Копирайтера (Сайга)
-            await websocket.send_json({
-                "step": "copywriter",
-                "progress": 75,
-                "status": "Генерация текста публикации (Сайга)...",
-                "message": "Текст поста составлен.",
-            })
-
-            # 4. Шаг Завершено (Режиссер LTX-2)
-            generated_post = (
-                f"🔥 {company} ({city}): Встречайте новый контент!\n\n"
-                f"{prompt}\n\n"
-                f"Специально для наших клиентов в сфере «{niche}» действует специальное предложение. "
-                f"Ждем вас в гости!\n\n"
-                f"#ucust #бизнес #{city.lower()} #{company.replace(' ', '').lower()}"
-            )
-
-            await websocket.send_json({
-                "step": "completed",
-                "progress": 100,
-                "status": "Готово",
-                "result": {
-                    "post_text": generated_post,
-                    "promo_code": "UCUST2026",
-                    "video_prompt": f"Cinematic shot of {company} in {city}, {niche} vibe, 4k, hyperrealistic",
-                    "confidence_score": 0.96,
-                },
-            })
-    except WebSocketDisconnect:
-        logger.info("WebSocket disconnected for session_id=%s", session_id)
-    except Exception as exc:
-        logger.warning("WebSocket error for session_id=%s: %s", session_id, exc)
 
 
 __all__ = ["app"]

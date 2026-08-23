@@ -1,290 +1,194 @@
-# File: core/orchestrator.py | Module: orchestrator | Part of Intellectual Property Submission.
-"""Recursive orchestration logic for the multi-agent marketing pipeline."""
+import uuid
+import json
+import hashlib
+from typing import Any, Dict, List, Optional
+from storage.models import UserProfile, OrchestratorTrace
 
-from __future__ import annotations
-
-from enum import Enum
-from typing import Optional, Sequence
-
-from storage.db import Database
-from storage.vector_store import InMemoryVectorStore
-
-from .agents import (
-    AgentContext,
-    Agent_Analyst,
-    Agent_Copywriter,
-    Agent_FactChecker,
-    Agent_Interviewer,
-    Agent_Visual_Director,
-    BaseAgent,
-)
-from .notification_bridge import ApprovalDecision, NotificationBridge
-
-
-class AgentState(Enum):
-    """Finite state machine values used by the orchestrator."""
-
-    IDLE = "IDLE"
-    DATA_COLLECTED = "DATA_COLLECTED"
-    MARKET_ANALYZED = "MARKET_ANALYZED"
-    DRAFT_GENERATED = "DRAFT_GENERATED"
-    CONTENT_READY = "CONTENT_READY"
-    AWAITING_USER_DECISION = "AWAITING_USER_DECISION"
-    USER_APPROVED = "USER_APPROVED"
-    REVIEW_PENDING_APPROVAL = "REVIEW_PENDING_APPROVAL"
-    READY_FOR_PUBLISHING = "READY_FOR_PUBLISHING"
-    ERROR = "ERROR"
-
-
-class UserApprovalNode:
-    """Human-in-the-loop node that captures approval decisions."""
-
-    # Step 1: Initialize approval node dependencies.
-    def __init__(self, bridge: NotificationBridge) -> None:
-        self.bridge = bridge
-
-    # Step 2: Request user decision through the notification bridge.
-    def intercept(self, context: AgentContext) -> ApprovalDecision:
-        if context.post_draft is None:
-            raise ValueError("Post draft is required before requesting user approval.")
-
-        decision = self.bridge.notify_content_ready(context.post_draft.text)
-        context.approval_status = decision.value
-        context.pending_user_action = decision != ApprovalDecision.APPROVED
-        context.add_log(f"UserApprovalNode: decision={decision.value}.")
-        return decision
-
-    # Step 3: Apply an externally provided command to the current context.
-    def apply_user_command(self, context: AgentContext, command: str) -> ApprovalDecision:
-        normalized_command = command.strip().upper()
-        decision = ApprovalDecision(normalized_command)
-        context.approval_status = decision.value
-        context.pending_user_action = decision != ApprovalDecision.APPROVED
-        context.add_log(f"UserApprovalNode: external command applied ({decision.value}).")
-        return decision
-
-
-class AgentOrchestrator:
-    """Orchestrator implementing recursive state transitions and regeneration logic."""
-
-    # Step 4: Initialize orchestrator internals and bind agent references.
-    def __init__(
-        self,
-        agents: Sequence[BaseAgent],
-        approval_node: Optional[UserApprovalNode] = None,
-        require_user_approval: bool = False,
-        max_cycles: int = 30,
-    ) -> None:
-        self.agents = list(agents)
-        self.current_state = AgentState.IDLE
-        self.approval_node = approval_node
-        self.require_user_approval = require_user_approval
-        self.max_cycles = max_cycles
-
-        self._agent_by_name = {agent.name: agent for agent in self.agents}
-        self._interviewer = self._agent_by_name.get("Agent_Interviewer")
-        self._analyst = self._agent_by_name.get("Agent_Analyst")
-        self._copywriter = self._agent_by_name.get("Agent_Copywriter")
-        self._factchecker = self._agent_by_name.get("Agent_FactChecker")
-        self._visual = self._agent_by_name.get("Agent_Visual_Director")
-
-    # Step 5: Transition the state machine to the provided state.
-    def transition_to(self, new_state: AgentState) -> None:
-        self.current_state = new_state
-
-    # Step 6: Execute one agent safely and propagate failure state on exception.
-    async def _execute_agent(self, context: AgentContext, agent: Optional[BaseAgent]) -> AgentContext:
-        if agent is None:
-            raise RuntimeError("Required agent is not configured in orchestrator.")
-
-        agent.check_state(self.current_state.value)
-        context.add_log(f"AgentOrchestrator: executing {agent.name}.")
-        try:
-            await agent.activate(context)
-            context = await agent.run(context)
-            await agent.standby(context)
-            return context
-        except Exception:
-            self.transition_to(AgentState.ERROR)
-            try:
-                await agent.standby(context)
-            except Exception:
-                pass
-            raise
-
-    # Step 7: Resolve a user decision and update pipeline state transitions.
-    async def _handle_decision(self, context: AgentContext, decision: ApprovalDecision) -> Optional[AgentContext]:
-        if decision == ApprovalDecision.APPROVED:
-            self.transition_to(AgentState.USER_APPROVED)
-            return context
-
-        if decision == ApprovalDecision.REGENERATE:
-            context.pending_user_action = False
-            context.approval_status = None
-            context.user_event_type = None
-            context.user_event_context = None
-            self.transition_to(AgentState.MARKET_ANALYZED)
-            context.add_log("AgentOrchestrator: regeneration requested; resetting to MARKET_ANALYZED.")
-            return None
-
-        if decision == ApprovalDecision.EDIT:
-            if context.user_event_type:
-                if self._copywriter is None:
-                    raise RuntimeError("Copywriter agent is required for edit events.")
-                context = await self._copywriter.process_user_event(
-                    context=context,
-                    event_type=context.user_event_type,
-                    event_context=context.user_event_context or "",
-                )
-                context.user_event_type = None
-                context.user_event_context = None
-                self.transition_to(AgentState.CONTENT_READY)
-                context.add_log("AgentOrchestrator: edit event applied; returning to CONTENT_READY.")
-                return None
-
-            self.transition_to(AgentState.AWAITING_USER_DECISION)
-            context.pending_user_action = True
-            context.add_log("AgentOrchestrator: edit requested; awaiting detailed user event context.")
-            return context
-
-        self.transition_to(AgentState.AWAITING_USER_DECISION)
-        context.pending_user_action = True
-        context.add_log("AgentOrchestrator: awaiting user decision.")
-        return context
-
-    # Step 8: Execute recursive orchestration until USER_APPROVED or user interaction pause.
-    async def run_pipeline(self, context: AgentContext) -> AgentContext:
-        cycles = 0
-
-        while self.current_state != AgentState.USER_APPROVED:
-            cycles += 1
-            if cycles > self.max_cycles:
-                raise RuntimeError("Maximum orchestration cycles exceeded.")
-
-            if self.current_state == AgentState.IDLE:
-                context.validate("IDLE")
-                context = await self._execute_agent(context, self._interviewer)
-                self.transition_to(AgentState.DATA_COLLECTED)
-                continue
-
-            if self.current_state == AgentState.DATA_COLLECTED:
-                context.validate("DATA_COLLECTED")
-                context = await self._execute_agent(context, self._analyst)
-                self.transition_to(AgentState.MARKET_ANALYZED)
-                continue
-
-            if self.current_state == AgentState.MARKET_ANALYZED:
-                context = await self._execute_agent(context, self._copywriter)
-
-                # ORM Hybrid Routing check for Review Reply tasks
-                if context.review_reply is not None:
-                    if context.review_reply.requires_manual_approval:
-                        self.transition_to(AgentState.REVIEW_PENDING_APPROVAL)
-                        context.pending_user_action = True
-                        context.add_log("AgentOrchestrator: paused in REVIEW_PENDING_APPROVAL state for manual review approval.")
-                        return context
-                    else:
-                        self.transition_to(AgentState.READY_FOR_PUBLISHING)
-                        context.pending_user_action = False
-                        context.add_log("AgentOrchestrator: auto-reply approved. Transitioned to READY_FOR_PUBLISHING.")
-                        return context
-
-                self.transition_to(AgentState.DRAFT_GENERATED)
-                continue
-
-            if self.current_state == AgentState.REVIEW_PENDING_APPROVAL:
-                if context.pending_user_action:
-                    context.add_log("AgentOrchestrator: pipeline paused waiting for frontend approval of review reply.")
-                    return context
-                else:
-                    self.transition_to(AgentState.READY_FOR_PUBLISHING)
-                    continue
-
-            if self.current_state == AgentState.READY_FOR_PUBLISHING:
-                self.transition_to(AgentState.USER_APPROVED)
-                context.add_log("AgentOrchestrator: review reply ready for publishing to adapters.")
-                return context
-
-            if self.current_state == AgentState.DRAFT_GENERATED:
-                context = await self._execute_agent(context, self._factchecker)
-
-                # Reflection Loop check: if FactChecker flagged unverified claims, re-run Copywriter
-                if context.post_draft and not context.post_draft.fact_checked:
-                    context.add_log(
-                        f"AgentOrchestrator: Reflection loop active (attempt {context.correction_attempts}/3). "
-                        "Resetting state to MARKET_ANALYZED for Copywriter regeneration with critique."
-                    )
-                    self.transition_to(AgentState.MARKET_ANALYZED)
-                    continue
-
-                self.transition_to(AgentState.CONTENT_READY)
-                continue
-
-            if self.current_state == AgentState.CONTENT_READY:
-                context = await self._execute_agent(context, self._visual)
-
-                if not self.require_user_approval:
-                    self.transition_to(AgentState.USER_APPROVED)
-                    continue
-
-                if self.approval_node is None:
-                    raise RuntimeError("UserApprovalNode is required when human approval is enabled.")
-
-                decision = self.approval_node.intercept(context)
-                handled = await self._handle_decision(context, decision)
-                if handled is not None:
-                    return handled
-                continue
-
-            if self.current_state == AgentState.AWAITING_USER_DECISION:
-                if self.approval_node is None:
-                    raise RuntimeError("UserApprovalNode is required in AWAITING_USER_DECISION state.")
-
-                status_value = (context.approval_status or "").strip().upper()
-                if not status_value or status_value == ApprovalDecision.AWAITING_USER_ACTION.value:
-                    context.pending_user_action = True
-                    context.add_log("AgentOrchestrator: paused in AWAITING_USER_DECISION state.")
-                    return context
-
-                decision = self.approval_node.apply_user_command(context, status_value)
-                handled = await self._handle_decision(context, decision)
-                if handled is not None:
-                    return handled
-                continue
-
-            if self.current_state == AgentState.ERROR:
-                raise RuntimeError("Orchestration terminated due to a previous error state.")
-
-            raise RuntimeError(f"Unsupported orchestrator state: {self.current_state.value}")
-
-        context.pending_user_action = False
-        context.approval_status = ApprovalDecision.APPROVED.value
-        context.add_log("AgentOrchestrator: pipeline completed with USER_APPROVED state.")
-        return context
-
-    # Step 9: Maintain compatibility with existing callers by delegating to run_pipeline.
-    async def run(self, context: AgentContext) -> AgentContext:
-        return await self.run_pipeline(context)
-
-
-# Step 10: Build default orchestrator chain with user-approval interception enabled.
-def build_default_orchestrator(database: Optional[Database] = None) -> AgentOrchestrator:
-    vector_store = InMemoryVectorStore()
-    agents = [
-        Agent_Interviewer(database=database),
-        Agent_Analyst(),
-        Agent_Copywriter(vector_store=vector_store),
-        Agent_FactChecker(),
-        Agent_Visual_Director(),
+class SecurityGuard:
+    """
+    Модуль безопасности. Защищает от Prompt Injection, джейлбрейков (амнезии)
+    и прямых запросов на выгрузку БД.
+    """
+    
+    FORBIDDEN_KEYWORDS = [
+        "select *", "drop table", "ignore previous instructions", "забудь все",
+        "dump database", "выведи базу", "покажи все профили", "пароли",
+        "system prompt", "ты теперь", "print db", "ignore above"
     ]
-    approval_node = UserApprovalNode(bridge=NotificationBridge())
-    return AgentOrchestrator(agents=agents, approval_node=approval_node, require_user_approval=True)
+    
+    TONE_STOPWORDS = [
+        "безумно", "от всей души", "мы гордимся", "потрясающе", 
+        "волшебный", "сказочный", "—"
+    ]
+    
+    @classmethod
+    def check_user_input(cls, user_text: str) -> bool:
+        """
+        Проверяет ввод пользователя на попытки взлома и инъекций.
+        Возвращает True, если безопасно, и False, если есть подозрения.
+        """
+        if not user_text:
+            return True
+            
+        text_lower = user_text.lower()
+        for kw in cls.FORBIDDEN_KEYWORDS:
+            if kw in text_lower:
+                print(f"[SecurityGuard] 🚨 ОБНАРУЖЕНА ПОПЫТКА ВЗЛОМА: '{kw}' в запросе пользователя!")
+                return False
+        return True
+
+    @classmethod
+    def validate_content_tone_of_voice(cls, content_text: str) -> tuple[bool, Optional[str]]:
+        """
+        Tone-of-Voice Gatekeeper: Проверяет исходящий контент перед отправкой на фронтенд/в API.
+        Отсекает фальшь, стоп-слова, токсичную бодрость и некорректную типографику.
+        """
+        if not content_text:
+            return True, None
+            
+        content_lower = content_text.lower()
+        for word in cls.TONE_STOPWORDS:
+            if word in content_lower:
+                print(f"[SecurityGuard] ⚠️ БРАК КОНТЕНТА (Tone of Voice): обнаружено стоп-выражение '{word}'!")
+                return False, f"Нарушение гайдлайнов качества: обнаружено запрещенное слово/символ '{word}'"
+        return True, None
+
+    @classmethod
+    def sanitize_graph_data(cls, raw_data: List[Dict]) -> List[Dict]:
+        """
+        Очищает данные перед отправкой на фронтенд для отрисовки графов.
+        Удаляет все PII (персональные данные), хэши и внутренние ID.
+        """
+        sanitized = []
+        for item in raw_data:
+            clean_item = {
+                "metric_name": item.get("niche", "Unknown"),
+                "value": item.get("count", 0)
+            }
+            sanitized.append(clean_item)
+        return sanitized
 
 
-__all__ = [
-    "AgentContext",
-    "AgentOrchestrator",
-    "AgentState",
-    "UserApprovalNode",
-    "build_default_orchestrator",
-]
+class UnifiedOrchestrator:
+    """
+    Унифицированный Архитектор (Chief Orchestrator).
+    Единая точка входа для всех задач (пайплайны, графы, фронтенд).
+    Полностью контролирует безопасность и потоки данных.
+    """
+    def __init__(self, db_session, vector_store=None, redis_cache=None):
+        from storage.pgvector_store import PGVectorStore
+        from core.redis_cache import RedisCacheManager
+        
+        self.db = db_session
+        self.vector_store = vector_store or PGVectorStore(self.db)
+        self.redis_cache = redis_cache or RedisCacheManager()
+
+    def _hash_payload(self, payload: Any) -> str:
+        payload_str = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+        return hashlib.sha256(payload_str.encode('utf-8')).hexdigest()
+
+    def _log_trace(self, session_id: str, agent_name: str, action: str, payload: Any):
+        payload_hash = self._hash_payload(payload)
+        
+        # 1. Сохраняем в SQL
+        trace = OrchestratorTrace(
+            session_id=session_id,
+            agent_name=agent_name,
+            action=action,
+            payload_hash=payload_hash,
+            payload=payload if isinstance(payload, dict) else {"data": payload}
+        )
+        self.db.add(trace)
+        self.db.commit()
+        
+        # 2. Кешируем стейт в Redis для ускорения будущих запусков
+        self.redis_cache.set_cached_result(action, payload_hash, payload)
+
+    async def execute_task(self, task_type: str, user_data: dict, session_id: Optional[str] = None) -> dict:
+        """
+        Универсальный обработчик задач (точка входа для фронтенда и API).
+        """
+        session_id = session_id or str(uuid.uuid4())
+        print(f"\n[UnifiedOrchestrator] ⚖️ Новая задача '{task_type}', сессия: {session_id}")
+        
+        # 1. Проверка безопасности (Security Layer)
+        raw_input = user_data.get("raw_social_input", "")
+        if not SecurityGuard.check_user_input(raw_input):
+            return {"status": "error", "message": "Security Violation: запрос отклонен."}
+            
+        # Здесь будет маршрутизация к разным пайплайнам
+        if task_type == "onboarding":
+            print("[UnifiedOrchestrator] ⚖️ Делегирую задачу пайплайну онбординга...")
+            # ... запуск агентов Интервьюер, Аналитик, Сайга ...
+            self._log_trace(session_id, "Orchestrator", "TaskStarted", {"type": task_type})
+            return {"status": "success", "profile_id": 1}
+            
+        if task_type == "get_trends":
+            from core.trend_scheduler import WeeklyTrendScheduler
+            niche = user_data.get("niche", "IT и Автоматизация")
+            scheduler = WeeklyTrendScheduler(self.redis_cache, self.vector_store)
+            trends = await scheduler.get_trends_for_niche(niche)
+            self._log_trace(session_id, "TrendHunter", "TrendsRetrieved", {"niche": niche})
+            return {"status": "success", "trends": trends}
+
+        if task_type == "prepare_holiday_greeting":
+            from collectors.event_holiday_collector import EventHolidayCollector
+            from skills.holiday_congratulator import HolidayCongratulatorSkill
+            
+            city = user_data.get("city", "Казань")
+            country = user_data.get("country", "Россия")
+            company_name = user_data.get("company_name", "Наша Компания")
+            niche = user_data.get("niche", "Услуги")
+            
+            # 1. Сбор праздников через парсер
+            collector = EventHolidayCollector()
+            events = await collector.fetch_city_and_national_events(city, country)
+            
+            # 2. Сайга готовит поздравление и промокод
+            congratulator = HolidayCongratulatorSkill()
+            greeting = congratulator.generate_holiday_post(company_name, niche, city, events[0] if events else {})
+            
+            # 3. Tone of Voice Gatekeeper & Self-Healing Loop (автоматическое исправление)
+            max_attempts = 2
+            attempts = 0
+            is_valid = False
+            error_msg = None
+            
+            while not is_valid and attempts < max_attempts:
+                attempts += 1
+                is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(greeting.get("post_text", ""))
+                if not is_valid:
+                    print(f"[UnifiedOrchestrator] 🔄 Gatekeeper отклонил текст (попытка {attempts}): {error_msg}")
+                    print(f"[UnifiedOrchestrator] 📨 Отправка текста автору (Сайге) на автономное самоисправление...")
+                    healed_text = congratulator.saiga.self_heal_text(greeting.get("post_text", ""), error_msg)
+                    greeting["post_text"] = healed_text
+                else:
+                    print(f"[UnifiedOrchestrator] 🛡️ Текст успешно валидирован Tone-of-Voice Gatekeeper (без стоп-слов и тавтологий).")
+                    
+            if not is_valid:
+                print(f"[UnifiedOrchestrator] ❌ Не удалось автоматически исправить текст после {max_attempts} попыток.")
+                return {"status": "retry_needed", "error": error_msg}
+                
+            self._log_trace(session_id, "HolidaySkill", "GreetingGenerated", {"city": city, "holiday": greeting.get("holiday_title")})
+            return {"status": "success", "events": events, "prepared_greeting": greeting}
+            
+        return {"status": "error", "message": "Неизвестная задача"}
+
+    def get_frontend_graph_data(self) -> List[dict]:
+        """
+        Безопасная отдача данных фронтенду для графиков.
+        Гарантирует, что исходники БД никогда не утекут напрямую.
+        """
+        print("\n[UnifiedOrchestrator] 📊 Фронтенд запросил данные для графов...")
+        
+        # Моделируем агрегированный запрос к БД
+        # SELECT niche, count(*) FROM user_profiles GROUP BY niche;
+        mock_raw_db_data = [
+            {"niche": "IT Automation", "count": 15, "secret_id": "sys_999", "pass_hash": "xxx"},
+            {"niche": "Beauty SMM", "count": 8, "secret_id": "sys_123", "pass_hash": "yyy"}
+        ]
+        
+        # 2. Очистка данных перед отдачей клиенту (Data Loss Prevention)
+        safe_data = SecurityGuard.sanitize_graph_data(mock_raw_db_data)
+        print(f"[UnifiedOrchestrator] 🛡️ Данные очищены: {safe_data}")
+        return safe_data

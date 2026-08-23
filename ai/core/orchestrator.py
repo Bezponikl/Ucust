@@ -172,7 +172,65 @@ class UnifiedOrchestrator:
             self._log_trace(session_id, "HolidaySkill", "GreetingGenerated", {"city": city, "holiday": greeting.get("holiday_title")})
             return {"status": "success", "events": events, "prepared_greeting": greeting}
             
-        return {"status": "error", "message": "Неизвестная задача"}
+        if task_type == "generate_post":
+            from skills.holiday_congratulator import HolidayCongratulatorSkill
+            from skills.advanced_visual_director import AdvancedVisualDirector
+            
+            prompt = user_data.get("prompt") or user_data.get("topic") or "Новое предложение для клиентов"
+            format_type = user_data.get("format", "post")
+            tone = user_data.get("tone", "Естественный и живой")
+            niche = user_data.get("niche", "Бизнес")
+            city = user_data.get("city", "Москва")
+            company_name = user_data.get("company_name", "UCust")
+            
+            print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', формат: {format_type}, тон: {tone}")
+            
+            # 1. Генерация текста через Сайгу
+            congratulator = HolidayCongratulatorSkill()
+            gen_result = congratulator.generate_holiday_post(
+                company_name=company_name,
+                niche=niche,
+                city=city,
+                holiday_info={"title": prompt}
+            )
+            post_text = gen_result.get("post_text", "")
+            promo_code = gen_result.get("promo_code", "UCUST2026")
+            
+            # 2. Валидация качества текста (Tone of Voice Gatekeeper)
+            is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
+            if not is_valid:
+                post_text = congratulator.saiga.self_heal_text(post_text, error_msg or "")
+            
+            # 3. Формирование видео/визуального промпта по стандарту LTX-2
+            director = AdvancedVisualDirector(brand_images=[])
+            video_prompt = gen_result.get("video_prompt", "")
+            
+            self._log_trace(session_id, "SaigaCopywriter", "PostGenerated", {"topic": prompt, "format": format_type})
+            return {
+                "status": "success",
+                "post_text": post_text,
+                "promo_code": promo_code,
+                "video_prompt": video_prompt,
+                "confidence_score": 0.96,
+                "format": format_type,
+                "tone": tone
+            }
+
+        if task_type == "rag_query":
+            from rag.pipeline import CleanRAGPipeline
+            query_text = user_data.get("query", "")
+            rag = CleanRAGPipeline(min_confidence_threshold=0.65)
+            rag_res = await rag.query_async(query_text)
+            return {
+                "status": "success",
+                "query": query_text,
+                "has_sufficient_context": rag_res.has_sufficient_context,
+                "context": rag_res.formatted_context,
+                "top_score": rag_res.top_score,
+                "fallback_message": rag_res.fallback_message
+            }
+
+        return {"status": "error", "message": f"Неизвестная задача '{task_type}'"}
 
     def get_frontend_graph_data(self) -> List[dict]:
         """

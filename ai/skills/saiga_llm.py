@@ -1,3 +1,4 @@
+import os
 import json
 import time
 
@@ -21,6 +22,20 @@ class SaigaLLMSkill:
         self.top_k = top_k
         self.max_tokens = max_tokens
         self.repetition_penalty = repetition_penalty
+        self._llm = None
+        self._is_loaded = False
+
+    def _resolve_path(self, path_str: str) -> str:
+        if os.path.exists(path_str):
+            return path_str
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        alt_ai = os.path.normpath(os.path.join(base_dir, "..", path_str))
+        if os.path.exists(alt_ai):
+            return alt_ai
+        alt_repo = os.path.normpath(os.path.join(base_dir, "..", "..", path_str))
+        if os.path.exists(alt_repo):
+            return alt_repo
+        return path_str
         
         self.system_prompt = (
             "Ты - профессиональный SMM-копирайтер и контент-менеджер, который пишет живо, емко и по делу. "

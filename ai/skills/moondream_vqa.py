@@ -25,13 +25,28 @@ class MoondreamVQASkill:
         self._llm = None
         self._is_loaded = False
 
+    def _resolve_path(self, path_str: str) -> str:
+        if os.path.exists(path_str):
+            return path_str
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        alt_ai = os.path.normpath(os.path.join(base_dir, "..", path_str))
+        if os.path.exists(alt_ai):
+            return alt_ai
+        alt_repo = os.path.normpath(os.path.join(base_dir, "..", "..", path_str))
+        if os.path.exists(alt_repo):
+            return alt_repo
+        return path_str
+
     def load_model(self) -> bool:
         """Загружает модель в память (CPU/RAM)."""
         if self._is_loaded:
             return True
             
-        if not os.path.exists(self.model_path) or not os.path.exists(self.mmproj_path):
-            logger.error(f"[Moondream] Не найдены GGUF файлы модели или проектора.")
+        resolved_model = self._resolve_path(self.model_path)
+        resolved_mmproj = self._resolve_path(self.mmproj_path)
+        
+        if not os.path.exists(resolved_model) or not os.path.exists(resolved_mmproj):
+            logger.error(f"[Moondream] Не найдены GGUF файлы модели или проектора: {resolved_model}")
             return False
 
         try:

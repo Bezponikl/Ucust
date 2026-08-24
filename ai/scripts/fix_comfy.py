@@ -61,5 +61,26 @@ def fix():
             except Exception as e:
                 print(f'[FixComfy] Error patching LTXVideo: {e}')
 
+    # 3. Sync Ltx_generations.json into ComfyUI internal workflow folders
+    src_json = 'ai/Ltx_generations.json'
+    if not os.path.exists(src_json):
+        src_json = '/opt/ucust/ai/Ltx_generations.json'
+    if os.path.exists(src_json):
+        import shutil
+        target_dirs = [
+            '/opt/ucust/ComfyUI/user/default/workflows',
+            '/opt/ucust/ComfyUI/user/workflows',
+            'ComfyUI/user/default/workflows',
+            'ComfyUI/user/workflows'
+        ]
+        for td in target_dirs:
+            try:
+                os.makedirs(td, exist_ok=True)
+                dest = os.path.join(td, 'Ltx_generations.json')
+                shutil.copy2(src_json, dest)
+                print(f'[FixComfy] 📋 Synced workflow to {dest}')
+            except Exception as e:
+                pass
+
 if __name__ == '__main__':
     fix()

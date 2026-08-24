@@ -34,7 +34,7 @@ module.exports = {
       env: {
         PORT: 3000,
         NODE_ENV: "production",
-        NEXT_PUBLIC_AI_GATEWAY_URL: "http://localhost:8000/api/v1"
+        NEXT_PUBLIC_AI_GATEWAY_URL: "/api/v1"
       },
       restart_delay: 3000,
       max_restarts: 10,

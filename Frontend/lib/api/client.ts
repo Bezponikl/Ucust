@@ -9,7 +9,7 @@ export const API_BASE_URL =
 export const AI_GATEWAY_URL =
   process.env.NEXT_PUBLIC_AI_URL ||
   (process.env.NEXT_PUBLIC_AI_GATEWAY_URL ? process.env.NEXT_PUBLIC_AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "") : "") ||
-  "http://localhost:8000";
+  "";
 
 export const AI_WS_URL =
   process.env.NEXT_PUBLIC_AI_WS_URL || "ws://localhost:8000";
@@ -25,7 +25,8 @@ export async function apiClient<T>(
 ): Promise<T> {
   const { params, headers, ...customConfig } = options;
 
-  let url = `${baseUrl.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+  const cleanEndpoint = endpoint.replace(/^\/+/, "");
+  let url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/${cleanEndpoint}` : `/${cleanEndpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();

@@ -27,8 +27,8 @@ apt-get install -y \
     curl \
     wget \
     ffmpeg \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
+    libgl1 \
+    libglx-mesa0 \
     libsm6 \
     libxext6 \
     libxrender-dev \

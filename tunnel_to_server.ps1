@@ -1,9 +1,8 @@
-# PowerShell SSH Tunnel Script for UCust vm-8720
+# PowerShell SSH Tunnel Script for UCust 194.67.95.119
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "🌐 UCUST REMOTE SERVER TUNNEL (194.67.95.119)" -ForegroundColor Yellow
-Write-Host "   Сервер: vm-8720.user-project-3970.cloud.intcld.ru (194.67.95.119)" -ForegroundColor Gray
 Write-Host "======================================================================" -ForegroundColor Cyan
 
 Write-Host ""
@@ -16,4 +15,4 @@ Write-Host "Введите пароль от root@194.67.95.119 при запр�
 Write-Host "(Окно консоли должно оставаться открытым во время работы)" -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-ssh -N -L 3000:localhost:3000 -L 8000:localhost:8000 -L 8188:localhost:8188 root@194.67.95.119
+ssh -N -L 3000:127.0.0.1:3000 -L 8000:127.0.0.1:8000 -L 8188:127.0.0.1:8188 root@194.67.95.119

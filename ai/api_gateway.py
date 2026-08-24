@@ -74,6 +74,10 @@ class VisionAnalyzeRequest(BaseModel):
     company_name: Optional[str] = Field("UCust", example="UCust")
 
 
+class WebsiteAnalyzeRequest(BaseModel):
+    url: str = Field(..., example="https://ucust.ai", description="URL веб-сайта компании для парсинга и анализа")
+
+
 # -------------------------------------------------------------------
 # 2. Инициализация FastAPI приложения
 # -------------------------------------------------------------------
@@ -249,6 +253,29 @@ async def analyze_visual_media(request: VisionAnalyzeRequest):
     return {
         "status": "success",
         "vision_analyst": "Moondream2",
+        "data": result
+    }
+
+
+@app.post("/api/v1/ai/website/analyze", tags=["Web & Social Intelligence"])
+async def analyze_website(request: WebsiteAnalyzeRequest):
+    """
+    Глубокий парсинг и ИИ-анализ веб-сайта компании (B2B, e-commerce, лендинги).
+    Извлекает УТП, заголовки, описание услуг, контакты, соцсети и готовит контекст для LLM.
+    """
+    from collectors.website_collector import WebsiteCollector
+    collector = WebsiteCollector()
+    result = await collector.collect_website_async(request.url)
+    
+    if result.get("status") == "error":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Не удалось распарсить сайт: {result.get('error')}"
+        )
+        
+    return {
+        "status": "success",
+        "analyst": "WebsiteCollector",
         "data": result
     }
 

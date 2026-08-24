@@ -43,6 +43,14 @@ async def interviewer_chat(user_data: dict) -> Dict[str, Any]:
         yandex_links = re.findall(r'yandex\.(?:ru|com)/maps/org/[a-zA-Z0-9_-]+/\d+', raw)
         twogis_links = re.findall(r'2gis\.(?:ru|kz)/[a-zA-Z]+/firm/\d+', raw)
         
+        # Автоматическое распознавание веб-сайтов компании (любые домены кроме соцсетей и карт)
+        raw_urls = re.findall(r'https?://[^\s,;]+|(?:www\.)?[a-zA-Z0-9-]+\.(?:ru|com|io|org|net|pro|ai|me|cc|by|kz|tech|online|store|shop|app|dev)(?:/[^\s,;]*)?', raw)
+        websites = []
+        for u in raw_urls:
+            u_clean = u.strip()
+            if not any(excluded in u_clean.lower() for excluded in ["t.me", "vk.com", "yandex.", "2gis."]):
+                websites.append(u_clean)
+        
         alerts = []
         valid_tg = []
         # Проверка на потенциальные опечатки (слишком короткие имена или спецсимволы)
@@ -57,6 +65,7 @@ async def interviewer_chat(user_data: dict) -> Dict[str, Any]:
             "vk": [f"vk.com/{link}" for link in vk_links],
             "yandex_maps": yandex_links,
             "2gis": twogis_links,
+            "websites": websites,
             "alerts": alerts
         }
     
@@ -86,8 +95,9 @@ async def analyst_parser(social_links: dict) -> Tuple[List[str], List[str]]:
     vk_groups = social_links.get("vk", [])
     yandex_urls = social_links.get("yandex_maps", [])
     twogis_urls = social_links.get("2gis", [])
+    websites = social_links.get("websites", [])
 
-    print(f"[Agent_Analyst] 🚀 Server Mode: Запуск конкурентного сбора данных... TG={len(tg_channels)}, VK={len(vk_groups)}, Yandex={len(yandex_urls)}, 2GIS={len(twogis_urls)}")
+    print(f"[Agent_Analyst] 🚀 Server Mode: Запуск сбора данных... TG={len(tg_channels)}, VK={len(vk_groups)}, Web={len(websites)}, Yandex={len(yandex_urls)}, 2GIS={len(twogis_urls)}")
     
     parsed_posts = []
     downloaded_media = []
@@ -103,6 +113,22 @@ async def analyst_parser(social_links: dict) -> Tuple[List[str], List[str]]:
             if text: texts.append(text)
             if msg.get("media_path"): media.append(msg.get("media_path"))
         return texts, media
+
+    async def fetch_website(url):
+        print(f"[Agent_Analyst] 🌐 Глубокий парсинг веб-сайта {url}...")
+        try:
+            from collectors.website_collector import WebsiteCollector
+            collector = WebsiteCollector()
+            res = await collector.collect_website_async(url)
+            if res.get("status") == "success":
+                dossier = res.get("structured_dossier", "")
+                media = []
+                if res.get("og_image"):
+                    media.append(res.get("og_image"))
+                return [dossier], media
+        except Exception as e:
+            print(f"[Agent_Analyst] ⚠️ Ошибка парсинга сайта {url}: {e}")
+        return [], []
 
     async def fetch_vk(group):
         print(f"[Agent_Analyst] ⏳ Парсинг VK {group} (mock)...")
@@ -130,6 +156,7 @@ async def analyst_parser(social_links: dict) -> Tuple[List[str], List[str]]:
     # Формируем пул задач
     tasks = []
     for c in tg_channels: tasks.append(fetch_tg(c))
+    for w in websites: tasks.append(fetch_website(w))
     for g in vk_groups: tasks.append(fetch_vk(g))
     for u in yandex_urls: tasks.append(fetch_yandex(u))
     for u in twogis_urls: tasks.append(fetch_twogis(u))

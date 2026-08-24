@@ -151,23 +151,58 @@ class UnifiedOrchestrator:
 
         if task_type in {"onboarding", "analyze_brand", "interviewer"}:
             from skills.saiga_llm import SaigaLLMSkill
+            from collectors.website_collector import WebsiteCollector
+            import re
             
             company_name = user_data.get("name") or user_data.get("company_name") or "UCust"
-            raw_social_input = user_data.get("raw_social_input") or user_data.get("link") or ""
+            raw_social_input = user_data.get("raw_social_input") or user_data.get("link") or user_data.get("website") or ""
             activity = user_data.get("activity") or user_data.get("niche") or "IT Automation"
             city = user_data.get("city") or "Москва"
             
             print(f"[UnifiedOrchestrator] 🎙️ Агент-Интервьюер: Анализ входных данных для '{company_name}' ({activity})...")
+            
+            # Автоматический глубокий анализ сайта компании, если передан URL
+            website_data = None
+            found_urls = re.findall(r'https?://[^\s,;]+|(?:www\.)?[a-zA-Z0-9-]+\.(?:ru|com|io|org|net|pro|ai|me|cc|by|kz|tech|online|store|shop|app|dev)(?:/[^\s,;]*)?', raw_social_input)
+            for u in found_urls:
+                if not any(excluded in u.lower() for excluded in ["t.me", "vk.com", "yandex.", "2gis."]):
+                    try:
+                        collector = WebsiteCollector()
+                        website_data = await collector.collect_website_async(u)
+                        if website_data.get("status") == "success":
+                            self._log_trace(session_id, "WebsiteCollector", "WebsiteAnalyzed", {
+                                "url": website_data.get("url"),
+                                "title": website_data.get("title"),
+                                "description": website_data.get("description")
+                            })
+                            # Обогащаем user_data
+                            user_data["website_dossier"] = website_data.get("structured_dossier")
+                            if website_data.get("description") and activity == "IT Automation":
+                                user_data["niche"] = website_data.get("description")[:80]
+                            break
+                    except Exception as wex:
+                        print(f"[UnifiedOrchestrator] ⚠️ Ошибка парсинга сайта: {wex}")
+
             self._log_trace(session_id, "Agent_Interviewer", "Extracted_Context", {
                 "company_name": company_name,
                 "raw_social_input": raw_social_input,
                 "activity": activity,
-                "city": city
+                "city": city,
+                "has_website_data": bool(website_data)
             })
             
-            # Сайга и Аналитик формируют бренд-профиль с учетом визуальных данных Moondream
+            # Сайга и Аналитик формируют бренд-профиль с учетом веб-аналитики и Moondream
             saiga = SaigaLLMSkill()
-            brand_profile = saiga.analyze_brand_profile(user_data)
+            clean_posts_input = [website_data["structured_dossier"]] if website_data and website_data.get("structured_dossier") else None
+            brand_profile = saiga.analyze_brand_profile(user_data, clean_posts=clean_posts_input)
+            if website_data:
+                brand_profile["website_data"] = {
+                    "title": website_data.get("title"),
+                    "description": website_data.get("description"),
+                    "headings": website_data.get("headings", []),
+                    "contacts": website_data.get("contacts", {}),
+                    "social_links": website_data.get("social_links", {})
+                }
             if moondream_analysis and moondream_analysis.get("colors"):
                 brand_profile["brand_colors"] = moondream_analysis.get("colors")
                 brand_profile["visual_summary"] = moondream_analysis.get("summary")

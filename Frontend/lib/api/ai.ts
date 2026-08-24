@@ -183,7 +183,22 @@ export async function analyzeVisualMedia(params: {
 }
 
 /**
- * 5. WebSocket Streaming for Live Agent Steps
+ * 6. Analyze Company Website
+ * POST /api/v1/ai/website/analyze
+ */
+export async function analyzeWebsite(url: string): Promise<any> {
+  return apiClient<any>(
+    "/api/v1/ai/website/analyze",
+    {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    },
+    AI_GATEWAY_URL
+  );
+}
+
+/**
+ * 7. WebSocket Streaming for Live Agent Steps
  * WS /ws/ai/session/{session_id}
  */
 export function connectAiSessionWs(

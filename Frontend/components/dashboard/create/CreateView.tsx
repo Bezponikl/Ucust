@@ -39,13 +39,13 @@ const IDEAS: { label: string; text: string }[] = [
 ];
 
 const AI_STEPS = [
-  "Анализируем нишу и контекст запроса",
-  "Сайга создаёт текст в фирменном стиле",
-  "ИИ-фотограф генерирует SMM-визуал",
-  "Проверяем стоп-факторы и Tone-of-Voice",
-  "Собираем хэштеги и финальную публикацию"
+  "Анализируем бренд",
+  "Определяем тон сообщения",
+  "Создаем структуру публикации",
+  "Подбираем медиа и хештеги",
+  "Проверяем текст"
 ];
-const PHOTO_STEP = "Анализируем кадры через Moondream VQA";
+const PHOTO_STEP = "Анализируем прикреплённые фото через Moondream";
 
 
 const IMAGE_POOL = ["/content/drinks.jpg", "/content/barista.jpg", "/content/interior.jpg", "/content/beans.jpg", "/content/newdrink.jpg", "/content/latteart.jpg", "/content/pastry.jpg"];
@@ -321,13 +321,19 @@ export default function CreateView() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      {/* ══ ЛЕВО ══ */}
-      <div className="flex flex-col gap-6">
+      {/* ══ ЛЕВО: ПАРАМЕТРЫ И ДЕЙСТВИЯ ══ */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between pb-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            {mode === "edit" ? "Управление публикацией" : "Параметры генерации"}
+          </span>
+        </div>
+
         {mode === "edit" ? (
           <div className="uc-fade-in flex flex-col gap-4">
-            <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
+            <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 shadow-sm">
               <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Действия с публикацией</span>
-              <button type="button" onClick={runGeneration} className="btn-glass-blue flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold">
+              <button type="button" onClick={runGeneration} className="btn-glass-blue flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-sm">
                 <Icon name="refresh" size={16} aria-hidden="true" /> Перегенерировать
               </button>
               <button type="button" onClick={() => setMode("create")} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-soft px-4 py-2.5 text-left text-sm font-medium text-ink transition hover:border-brand/40">
@@ -424,7 +430,7 @@ export default function CreateView() {
                 </div>
 
                 <button type="button" onClick={runGeneration} disabled={!canCreate}
-                  className="btn-glass-blue mt-1 inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50 lg:mt-auto">
+                  className="btn-glass-blue mt-1 inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50 lg:mt-auto shadow-md">
                   <Icon name="sparkles" size={18} aria-hidden="true" /> Создать публикацию
                 </button>
               </div>
@@ -435,10 +441,21 @@ export default function CreateView() {
         <input ref={videoInput} type="file" accept="video/*" hidden onChange={onVideo} />
       </div>
 
-      {/* ══ ПРАВО ══ */}
-      <div className="flex min-h-0 flex-col">
+      {/* ══ ПРАВО: РАЗДЕЛ ГЕНЕРАЦИИ И ГОТОВОЙ ПУБЛИКАЦИИ ══ */}
+      <div className="flex min-h-0 flex-col gap-4">
+        <div className="flex items-center justify-between pb-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            {mode === "edit" ? "Сгенерированная публикация" : mode === "generating" ? "Раздел генерации" : "Предпросмотр"}
+          </span>
+          {mode === "edit" && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
+              <Icon name="check-bold" size={13} aria-hidden="true" /> Готово к публикации
+            </span>
+          )}
+        </div>
+
         {mode === "edit" ? (
-          <div className="uc-fade-in flex flex-col gap-4 rounded-[28px] border border-border bg-card p-5 sm:p-6 lg:min-h-0 lg:flex-1">
+          <div className="uc-fade-in flex flex-col gap-4 rounded-[28px] border border-border bg-card p-5 sm:p-6 lg:min-h-0 lg:flex-1 shadow-sm">
             {/* Медиа */}
             {(format === "post" || media.kind !== "none") && (
               <div className="lg:min-h-[220px] lg:flex-[1.3]">
@@ -464,7 +481,7 @@ export default function CreateView() {
                   </div>
                 )}
               </div>
-              {/* Поле с футером: слева счётчик, справа эмодзи — как в редактировании */}
+              {/* Поле с футером: слева счётчик, справа эмодзи */}
               <div className="flex flex-col rounded-2xl border border-transparent bg-surface-soft transition focus-within:border-brand/40 focus-within:bg-card lg:min-h-0 lg:flex-1">
                 <textarea ref={textRef} value={text} onChange={(e) => setText(e.target.value)} rows={5}
                   className="w-full flex-1 resize-none bg-transparent px-4 pt-3 text-sm leading-relaxed text-ink outline-none" />
@@ -494,7 +511,7 @@ export default function CreateView() {
             <div className="flex items-center gap-2 rounded-2xl bg-success/8 px-3.5 py-2.5 text-sm">
               <Icon name="check-bold" size={16} className="shrink-0 text-success" aria-hidden="true" />
               <span className="font-medium text-ink">Пост готов к публикации</span>
-              <span className="truncate text-ink-muted">· изменён только что</span>
+              <span className="truncate text-ink-muted">· проверено AI</span>
             </div>
 
             {/* Действия */}
@@ -505,20 +522,38 @@ export default function CreateView() {
             </div>
           </div>
         ) : (
-          <div className="flex min-h-[540px] flex-col rounded-[28px] border border-border bg-card p-6 sm:p-7 lg:min-h-0 lg:flex-1">
+          <div className="flex min-h-[540px] flex-col rounded-[28px] border border-border bg-card p-6 sm:p-7 lg:min-h-0 lg:flex-1 shadow-sm">
             {mode === "generating" ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
-                <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-brand/10 text-brand"><Icon name="sparkles" size={30} className="animate-pulse" aria-hidden="true" /></span>
-                <div><p className="text-lg font-bold text-ink">UCust готовит публикацию</p><p className="mt-1 text-sm text-ink-muted">Несколько секунд — и готово</p></div>
-                <ul className="flex w-full max-w-xs flex-col gap-3 text-left">
+                <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-brand/10 text-brand shadow-sm">
+                  <Icon name="sparkles" size={30} className="animate-pulse" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-lg font-bold text-ink">UCust готовит публикацию</p>
+                  <p className="mt-1 text-sm text-ink-muted">Синхронизация с командой ИИ-агентов</p>
+                </div>
+                <ul className="flex w-full max-w-xs flex-col gap-3.5 text-left">
                   {aiSteps.map((step, i) => {
-                    const done = i < doneSteps; const active = i === doneSteps;
+                    const done = i < doneSteps;
+                    const active = i === doneSteps;
                     return (
-                      <li key={step} className={`flex items-center gap-3 text-sm transition ${done || active ? "text-ink" : "text-ink-muted/50"}`}>
-                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${done ? "bg-success text-white" : active ? "bg-brand/15 text-brand" : "bg-surface-soft text-ink-muted/50"}`}>
-                          {done ? <Icon name="check" size={12} aria-hidden="true" /> : active ? <Icon name="refresh" size={12} className="animate-spin" aria-hidden="true" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                      <li key={step} className={`flex items-center gap-3 text-sm font-medium transition-all ${done || active ? "text-ink" : "text-ink-muted/50"}`}>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all ${
+                          done
+                            ? "bg-success text-white shadow-sm"
+                            : active
+                            ? "bg-brand text-white shadow-md animate-pulse"
+                            : "bg-surface-soft text-ink-muted/50"
+                        }`}>
+                          {done ? (
+                            <Icon name="check" size={13} aria-hidden="true" />
+                          ) : active ? (
+                            <Icon name="refresh" size={13} className="animate-spin" aria-hidden="true" />
+                          ) : (
+                            <span>{i + 1}</span>
+                          )}
                         </span>
-                        {step}
+                        <span>{i + 1}. {step}</span>
                       </li>
                     );
                   })}
@@ -527,7 +562,9 @@ export default function CreateView() {
             ) : (
               /* Плейсхолдер будущей публикации */
               <div className="flex flex-1 flex-col gap-5">
-                <div className="grid h-56 w-full sm:h-64 lg:h-auto lg:flex-1 place-items-center rounded-2xl bg-surface-soft text-ink-muted/40"><Icon name={format === "video" ? "clapperboard" : "image"} size={32} aria-hidden="true" /></div>
+                <div className="grid h-56 w-full sm:h-64 lg:h-auto lg:flex-1 place-items-center rounded-2xl bg-surface-soft text-ink-muted/40">
+                  <Icon name={format === "video" ? "clapperboard" : "image"} size={32} aria-hidden="true" />
+                </div>
                 <div className="flex flex-col gap-2.5">
                   <div className="h-3.5 w-3/4 rounded-full bg-surface-soft" />
                   <div className="h-3.5 w-full rounded-full bg-surface-soft" />
@@ -537,7 +574,9 @@ export default function CreateView() {
                 <div className="flex flex-wrap gap-2">
                   {[52, 40, 64, 36].map((w, i) => <span key={i} className="h-6 rounded-full bg-surface-soft" style={{ width: w }} />)}
                 </div>
-                <p className="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm text-ink-muted"><Icon name="sparkles" size={14} className="text-brand" aria-hidden="true" /> Здесь появится готовая публикация</p>
+                <p className="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm text-ink-muted">
+                  <Icon name="sparkles" size={14} className="text-brand" aria-hidden="true" /> Здесь в реальном времени появится сгенерированная публикация
+                </p>
               </div>
             )}
           </div>

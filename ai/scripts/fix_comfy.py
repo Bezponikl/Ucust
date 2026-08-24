@@ -26,8 +26,7 @@ def fix():
                         if 'List' not in c:
                             c = c.replace('from typing import ', 'from typing import List, ')
                     else:
-                        c = 'from typing import List
-' + c
+                        c = "from typing import List\n" + c
 
                 if c != orig:
                     with open(filepath, 'w', encoding='utf-8') as f:

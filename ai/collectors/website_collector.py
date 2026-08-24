@@ -97,7 +97,7 @@ class WebsiteCollector:
 
     async def collect_website_async(self, raw_url: str) -> Dict[str, Any]:
         url = self._normalize_url(raw_url)
-        print(f'[WebsiteCollector] 🌐 Запуск парсинга сайта: {url}...')
+        print(f"[WebsiteCollector] Parsing website: {url}...")
         html_content = ''
         final_url = url
         try:
@@ -114,7 +114,7 @@ class WebsiteCollector:
                         final_url = str(resp.url)
                         html_content = await resp.text()
             except Exception as e2:
-                print(f'[WebsiteCollector] ❌ Ошибка подключения: {e2}')
+                print(f"[WebsiteCollector] Connection error for {url}: {e2}")
                 return {'status': 'error', 'url': url, 'error': str(e2), 'source': 'website'}
 
         parser = CleanHTMLParser()
@@ -164,7 +164,7 @@ class WebsiteCollector:
         if phones or emails:
             summary_dossier += f'Контакты: Телефоны={phones[:2]}, Email={emails[:2]}\n'
 
-        print(f'[WebsiteCollector] ✅ Сайт успешно проанализирован: {title}')
+        print(f"[WebsiteCollector] Website parsed successfully: {title}")
         return {
             'status': 'success',
             'source': 'website',

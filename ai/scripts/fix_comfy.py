@@ -38,28 +38,19 @@ def fix():
 
     print(f'[FixComfy] Total comfy_kitchen files patched: {patched_count}')
 
-    # 2. Patch ComfyUI-LTXVideo kornia.geometry.transform.pyramid import issue
-    ltx_custom_nodes = [
-        '/opt/ucust/ComfyUI/custom_nodes/ComfyUI-LTXVideo/pyramid_blending.py',
-        'ComfyUI/custom_nodes/ComfyUI-LTXVideo/pyramid_blending.py',
-        '../ComfyUI/custom_nodes/ComfyUI-LTXVideo/pyramid_blending.py'
+    # 2. Install compatible kornia version and restore clean ComfyUI-LTXVideo
+    print('[FixComfy] 2. Ensuring kornia==0.7.3 compatibility for ComfyUI-LTXVideo...')
+    subprocess.run([sys.executable, '-m', 'pip', 'install', 'kornia==0.7.3'], check=False)
+    
+    ltx_repos = [
+        '/opt/ucust/ComfyUI/custom_nodes/ComfyUI-LTXVideo',
+        'ComfyUI/custom_nodes/ComfyUI-LTXVideo',
+        '../ComfyUI/custom_nodes/ComfyUI-LTXVideo'
     ]
-    for p in ltx_custom_nodes:
-        if os.path.exists(p):
-            try:
-                with open(p, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                # Restore any broken variable names
-                content = content.replace("0_right", "pad_right").replace("0_down", "pad_down")
-                if "from torch.nn.functional import pad" not in content:
-                    content = "from torch.nn.functional import pad\n" + content
-                # Remove pad only from the kornia import list
-                content = content.replace("    pad,\n", "\n").replace("    pad,", "")
-                with open(p, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                print(f'[FixComfy] ✅ Successfully patched ComfyUI-LTXVideo pyramid_blending.py at {p}')
-            except Exception as e:
-                print(f'[FixComfy] Error patching LTXVideo: {e}')
+    for r in ltx_repos:
+        if os.path.exists(r):
+            subprocess.run(['git', '-C', r, 'checkout', '.'], check=False)
+            print(f'[FixComfy] ✅ Restored clean ComfyUI-LTXVideo at {r}')
 
     # 3. Sync Ltx_generations.json into ComfyUI internal workflow folders
     src_json = 'ai/Ltx_generations.json'

@@ -49,15 +49,15 @@ def fix():
             try:
                 with open(p, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if "from kornia.geometry.transform.pyramid import" in content and "from torch.nn.functional import pad" not in content:
+                # Restore any broken variable names
+                content = content.replace("0_right", "pad_right").replace("0_down", "pad_down")
+                if "from torch.nn.functional import pad" not in content:
                     content = "from torch.nn.functional import pad\n" + content
-                    content = content.replace("    pad,\n", "")
-                    content = content.replace("    pad,", "")
-                    content = content.replace(", pad", "")
-                    content = content.replace("pad,", "")
-                    with open(p, 'w', encoding='utf-8') as f:
-                        f.write(content)
-                    print(f'[FixComfy] ✅ Successfully patched ComfyUI-LTXVideo pyramid_blending.py at {p}')
+                # Remove pad only from the kornia import list
+                content = content.replace("    pad,\n", "\n").replace("    pad,", "")
+                with open(p, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                print(f'[FixComfy] ✅ Successfully patched ComfyUI-LTXVideo pyramid_blending.py at {p}')
             except Exception as e:
                 print(f'[FixComfy] Error patching LTXVideo: {e}')
 

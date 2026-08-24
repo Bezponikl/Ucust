@@ -19,7 +19,7 @@ module.exports = {
     {
       name: "ucust-comfyui",
       script: "/opt/ucust/ai/venv/bin/python3",
-      args: "main.py --listen 0.0.0.0 --port 8188 --normalvram",
+      args: "main.py --listen 0.0.0.0 --port 8188",
       cwd: "/opt/ucust/ComfyUI",
       interpreter: "none",
       restart_delay: 5000,

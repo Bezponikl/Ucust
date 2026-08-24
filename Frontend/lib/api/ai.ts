@@ -100,7 +100,7 @@ export async function submitAiTask(request: AITaskRequest): Promise<AITaskRespon
   const userId = request.user_id || "guest_user";
   const sessionId = request.session_id || `sess_${Date.now()}`;
 
-  return apiClient<AITaskResponse>(
+  const res = await apiClient<AITaskResponse>(
     "/api/v1/ai/task",
     {
       method: "POST",
@@ -113,6 +113,12 @@ export async function submitAiTask(request: AITaskRequest): Promise<AITaskRespon
     },
     AI_GATEWAY_URL
   );
+
+  if (res && res.status === "error") {
+    throw new Error((res as any).error || (res as any).message || "Ошибка выполнения задачи ИИ");
+  }
+
+  return res;
 }
 
 /**

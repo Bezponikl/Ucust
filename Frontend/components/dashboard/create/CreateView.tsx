@@ -222,7 +222,40 @@ export default function CreateView() {
 
   const onTopic = (v: string) => { setTopic(v); if (v.trim().length >= REVEAL_AT) setSettingsShown(true); };
   const trackUrl = (u: string) => { objectUrls.current.push(u); return u; };
-  const aiImage = () => setMedia({ kind: "image", src: IMAGE_POOL[Math.floor(Math.random() * IMAGE_POOL.length)] });
+
+  const aiImage = async () => {
+    const savedState = loadOnboarding();
+    const activeCompanyName = savedState?.profile?.name || savedState?.input?.name || "UCust";
+    const activeNiche = savedState?.profile?.field || savedState?.input?.activity || "Бизнес и услуги";
+    const queryPrompt = (topic || text || activeCompanyName).trim();
+
+    toast("🎨 Запуск генерации фото через ИИ...");
+    try {
+      const res = await submitAiTask({
+        task_type: "generate_image",
+        payload: {
+          prompt: queryPrompt,
+          niche: activeNiche,
+          aspect_ratio: "1:1",
+        },
+      });
+
+      const photoUrl = res?.data?.image_url || res?.data?.photo_url || (res as any)?.image_url;
+      if (photoUrl) {
+        const fullUrl = photoUrl.startsWith("http")
+          ? photoUrl
+          : (AI_GATEWAY_URL ? `${AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "")}${photoUrl}` : photoUrl);
+        setMedia({ kind: "image", src: fullUrl });
+        toast("✅ Фото успешно сформировано!");
+      } else {
+        throw new Error("Файл изображения не сформирован");
+      }
+    } catch (err: any) {
+      console.error("Ошибка при генерации фото:", err);
+      toast(`Ошибка генерации фото: ${err?.message || "Проверьте шлюз"}`);
+    }
+  };
+
   const aiVideo = () => setMedia({ kind: "video-ai", poster: IMAGE_POOL[0] });
   const onPhoto = (e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setMedia({ kind: "image", src: trackUrl(URL.createObjectURL(f)) }); e.target.value = ""; };
   const onVideo = (e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setMedia({ kind: "video-file", src: trackUrl(URL.createObjectURL(f)) }); e.target.value = ""; };
@@ -254,6 +287,7 @@ export default function CreateView() {
     const activeCompanyName = savedState?.profile?.name || savedState?.input?.name || "UCust";
     const activeNiche = savedState?.profile?.field || savedState?.input?.activity || "Бизнес и услуги";
     const activeCity = savedState?.profile?.market?.geography || "Москва";
+    const shouldGenImage = imgSource === "ai";
 
     try {
       const res = await submitAiTask({
@@ -265,7 +299,7 @@ export default function CreateView() {
           company_name: activeCompanyName,
           niche: activeNiche,
           city: activeCity,
-          generate_image: true,
+          generate_image: shouldGenImage,
           aspect_ratio: "1:1",
           refCount: photos.items.length,
         },
@@ -275,24 +309,31 @@ export default function CreateView() {
         throw new Error("Не получен сгенерированный текст от AI-шлюза");
       }
 
-      const generatedPhoto = res?.data?.image_url || res?.data?.photo_url;
-      if (!generatedPhoto) {
-        throw new Error("Фотография не была сформирована генератором");
+      let fullPhotoUrl = "";
+      if (shouldGenImage) {
+        const generatedPhoto = res?.data?.image_url || res?.data?.photo_url;
+        if (!generatedPhoto) {
+          throw new Error("Фотография не была сформирована генератором");
+        }
+        fullPhotoUrl = generatedPhoto.startsWith("http")
+          ? generatedPhoto
+          : (AI_GATEWAY_URL ? `${AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "")}${generatedPhoto}` : generatedPhoto);
+      } else if (imgSource === "upload" && media.kind === "image") {
+        fullPhotoUrl = media.src;
       }
 
       if (timer.current) clearInterval(timer.current);
       setDoneSteps(aiSteps.length);
 
-      const gatewayBase = AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "");
-      const fullPhotoUrl = generatedPhoto.startsWith("http")
-        ? generatedPhoto
-        : `${gatewayBase}${generatedPhoto}`;
-
       // Финальное окно открывается ТОЛЬКО когда фото и текст реально получены от генератора
       setTimeout(() => {
         setText(res.data.post_text || "");
         setHashtags(deriveHashtags(topic));
-        setMedia({ kind: "image", src: fullPhotoUrl });
+        if (fullPhotoUrl) {
+          setMedia({ kind: "image", src: fullPhotoUrl });
+        } else {
+          setMedia({ kind: "none" });
+        }
         setMode("edit");
         addActivity({
           text: `Сгенерирована публикация «${topic.trim().slice(0, 45) || "Новый пост"}»`,

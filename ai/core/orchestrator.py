@@ -173,40 +173,42 @@ class UnifiedOrchestrator:
             return {"status": "success", "events": events, "prepared_greeting": greeting}
             
         if task_type == "generate_post":
-            from skills.holiday_congratulator import HolidayCongratulatorSkill
+            from skills.saiga_llm import SaigaLLMSkill
             from skills.advanced_visual_director import AdvancedVisualDirector
             from skills.photo_generator import PhotoGeneratorSkill
             
             prompt = user_data.get("prompt") or user_data.get("topic") or "Новое предложение для клиентов"
             format_type = user_data.get("format", "post")
             tone = user_data.get("tone", "Естественный и живой")
-            niche = user_data.get("niche", "Бизнес")
+            niche = user_data.get("niche", "IT Automation / Сервис контента")
             city = user_data.get("city", "Москва")
             company_name = user_data.get("company_name", "UCust")
             should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
             aspect_ratio = user_data.get("aspect_ratio", "1:1")
             
-            print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', формат: {format_type}, тон: {tone}")
+            print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', компания: '{company_name}', ниша: '{niche}', формат: {format_type}, тон: {tone}")
             
-            # 1. Генерация текста через Сайгу
-            congratulator = HolidayCongratulatorSkill()
-            gen_result = congratulator.generate_holiday_post(
+            # 1. Генерация аутентичного SMM текста через Сайгу
+            saiga = SaigaLLMSkill()
+            gen_result = saiga.generate_smm_post(
+                topic=prompt,
                 company_name=company_name,
                 niche=niche,
                 city=city,
-                holiday_info={"title": prompt}
+                tone=tone,
+                format_type=format_type
             )
             post_text = gen_result.get("post_text", "")
-            promo_code = gen_result.get("promo_code", "UCUST2026")
+            promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")
             
             # 2. Валидация качества текста (Tone of Voice Gatekeeper)
             is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
             if not is_valid:
-                post_text = congratulator.saiga.self_heal_text(post_text, error_msg or "")
+                post_text = saiga.self_heal_text(post_text, error_msg or "")
             
             # 3. Формирование видео/визуального промпта по стандарту LTX-2
             director = AdvancedVisualDirector(brand_images=[])
-            video_prompt = gen_result.get("video_prompt", "")
+            video_prompt = f"Cinematic SMM video for {company_name}. Topic: {prompt}. High resolution, 4k, crisp details."
 
             # 4. Генерация SMM Фотографии
             image_url = None

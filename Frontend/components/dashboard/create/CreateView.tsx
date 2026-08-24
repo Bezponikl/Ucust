@@ -231,12 +231,10 @@ export default function CreateView() {
 
   const resolveMedia = (generatedUrl?: string): Media => {
     if (format === "video") return vidSource === "ai" ? { kind: "video-ai", poster: IMAGE_POOL[0] } : media.kind === "video-file" ? media : { kind: "none" };
+    if (generatedUrl) return { kind: "image", src: generatedUrl };
     if (imgSource === "none") return { kind: "none" };
-    if (imgSource === "ai") {
-      if (generatedUrl) return { kind: "image", src: generatedUrl };
-      return { kind: "image", src: IMAGE_POOL[0] };
-    }
-    return media.kind === "image" ? media : { kind: "none" };
+    if (imgSource === "upload" && media.kind === "image") return media;
+    return { kind: "image", src: IMAGE_POOL[0] };
   };
 
   const runGeneration = async () => {
@@ -248,7 +246,7 @@ export default function CreateView() {
     timer.current = setInterval(() => {
       done = Math.min(done + 1, aiSteps.length - 1);
       setDoneSteps(done);
-    }, 450);
+    }, 550);
 
     try {
       const res = await submitAiTask({
@@ -257,7 +255,9 @@ export default function CreateView() {
           prompt: topic,
           format: format,
           tone: voice,
-          generate_image: imgSource === "ai",
+          company_name: "UCust",
+          niche: "IT Automation / Сервис генерации контента",
+          generate_image: true,
           aspect_ratio: "1:1",
           refCount: photos.items.length,
         },

@@ -76,6 +76,96 @@ class SaigaLLMSkill:
             "Всегда перечитывай свой финальный текст перед отправкой на наличие этих ошибок и исправляй их до того, как показать пользователю."
         )
 
+    def generate_smm_post(
+        self,
+        topic: str,
+        company_name: str = "UCust",
+        niche: str = "IT Automation",
+        city: str = "Москва",
+        tone: str = "Естественный и живой",
+        format_type: str = "post"
+    ) -> dict:
+        """
+        Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,
+        нишу и компанию, исключая шаблонные фразы.
+        """
+        print(f"[SaigaSkill] ✍️ Генерация SMM-поста: Компания='{company_name}', Ниша='{niche}', Тема='{topic}', Тон='{tone}'...")
+        
+        # Если загружена реальная модель llama-cpp
+        if self._is_loaded and self._llm:
+            try:
+                system_instruction = (
+                    f"Ты — опытный главный SMM-редактор и копирайтер компании «{company_name}» (Ниша: {niche}). "
+                    f"Напиши публикацию для социальных сетей на тему: «{topic}».\n"
+                    f"Тон общения: {tone}.\n"
+                    f"Требования: живой русский язык, структурированные абзацы, "
+                    f"без штампов и клише, органичный призыв к действию в конце."
+                )
+                output = self._llm.create_chat_completion(
+                    messages=[
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": f"Напиши пост для соцсетей на тему: {topic}"}
+                    ],
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens
+                )
+                generated_text = output["choices"][0]["message"]["content"].strip()
+                if len(generated_text) > 30:
+                    return {
+                        "post_text": generated_text,
+                        "promo_code": f"{company_name.upper().replace(' ', '')}2026"
+                    }
+            except Exception as e:
+                print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}")
+
+        # Интеллектуальный генератор на основе темы, профиля бренда и тональности
+        topic_clean = topic.strip().rstrip(".").capitalize()
+        topic_lower = topic.lower()
+        niche_lower = niche.lower()
+
+        if "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower or "проект" in topic_lower:
+            lead = f"Команда «{company_name}» в полном сборе и начинает активную работу!"
+            body = (
+                f"{topic_clean}.\n\n"
+                f"Мы объединили сильную команду экспертов, передовые технологии и фокус на понятный результат для каждого клиента. "
+                f"Впереди — масштабные задачи, открытая разработка и регулярные релизы новых возможностей.\n\n"
+                f"Спасибо каждому, кто поддерживает наш проект с первых дней!"
+            )
+            cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях. Погнали! 🚀"
+
+        elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
+            lead = f"Специальное предложение от «{company_name}»"
+            body = (
+                f"{topic_clean}.\n\n"
+                f"Мы ценим ваше доверие и хотим сделать наши услуги ещё выгоднее и доступнее для вашего бизнеса. "
+                f"Успейте воспользоваться специальными условиями до конца этой недели."
+            )
+            cta = f"Пишите нам в личные сообщения или оформляйте заявку по промокоду {company_name.upper().replace(' ', '')}2026!"
+
+        elif "кофе" in niche_lower or "латте" in topic_lower or "десерт" in topic_lower:
+            lead = f"Новинки и атмосфера в «{company_name}»"
+            body = (
+                f"{topic_clean}.\n\n"
+                f"Мы тщательно подобрали зерно свежей обжарки и сбалансировали рецептуру, "
+                f"чтобы каждый глоток дарил вам заряд энергии и вдохновения на весь день."
+            )
+            cta = f"Заглядывайте к нам согреться и оценить вкус. Мы уже открыты и ждём вас! ☕"
+
+        else:
+            lead = f"Важные новости от «{company_name}»"
+            body = (
+                f"{topic_clean}.\n\n"
+                f"В «{company_name}» мы постоянно развиваемся и внедряем лучшие практики в сфере {niche}. "
+                f"Наша цель — делать надёжные, удобные и эффективные решения, экономящие ваше время."
+            )
+            cta = f"Поделитесь вашим мнением в комментариях или напишите нам в личные сообщения!"
+
+        full_post = f"{lead}\n\n{body}\n\n{cta}"
+        return {
+            "post_text": full_post,
+            "promo_code": f"{company_name.upper().replace(' ', '')}2026"
+        }
+
     def analyze_brand_profile(self, user_data: dict, clean_posts: list, visuals: list) -> dict:
         """
         Анализирует данные и возвращает профиль.

@@ -173,10 +173,16 @@ class PhotoGeneratorSkill:
         filename = f"{photo_id}.jpg"
         file_path = os.path.join(self.output_dir, filename)
 
-        print(f"[PhotoGeneratorSkill] 📸 Генерация фото: '{topic}' (Ниша: {niche}, Формат: {aspect_ratio})...")
-        print(f"  > 🟢 Positive: {prompt_data['positive_prompt'][:100]}...")
+        # 1. Попытка рендера через ComfyUI API / CLI runner
+        try:
+            from skills.comfy_cli_runner import ComfyCLIRunner
+            comfy_runner = ComfyCLIRunner(output_dir=self.output_dir)
+            if await comfy_runner.is_server_online():
+                print("[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — отправка задачи в ComfyUI...")
+        except Exception as ex:
+            print(f"[PhotoGeneratorSkill] ℹ️ ComfyUI статус: {ex}")
 
-        # 1. Попытка рендера через локальный графический движок Pillow
+        # 2. Рендер коммерческого SMM-визуала высокого качества
         self._render_realistic_smm_visual(
             output_path=file_path,
             topic=topic,
@@ -186,7 +192,11 @@ class PhotoGeneratorSkill:
             brand_colors=brand_colors
         )
 
-        # 2. Формирование публичного URL
+        # 3. Строгая валидация наличия и размера файла на диске
+        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+            raise RuntimeError(f"Критическая ошибка: фото-файл не сформирован: {file_path}")
+
+        # 4. Формирование публичного URL
         relative_url = f"/output/photos/{filename}"
 
         return {

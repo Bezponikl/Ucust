@@ -270,35 +270,35 @@ export default function CreateView() {
         },
       });
 
+      if (!res?.data || !res.data.post_text) {
+        throw new Error("Не получен сгенерированный текст от AI-шлюза");
+      }
+
+      const generatedPhoto = res?.data?.image_url || res?.data?.photo_url;
+      if (!generatedPhoto) {
+        throw new Error("Фотография не была сформирована генератором");
+      }
+
       if (timer.current) clearInterval(timer.current);
       setDoneSteps(aiSteps.length);
 
-      const generatedPhoto = res?.data?.image_url || res?.data?.photo_url;
       const gatewayBase = AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "");
-      const fullPhotoUrl = generatedPhoto
-        ? (generatedPhoto.startsWith("http") ? generatedPhoto : `${gatewayBase}${generatedPhoto}`)
-        : undefined;
+      const fullPhotoUrl = generatedPhoto.startsWith("http")
+        ? generatedPhoto
+        : `${gatewayBase}${generatedPhoto}`;
 
+      // Финальное окно открывается ТОЛЬКО когда фото и текст реально получены от генератора
       setTimeout(() => {
-        if (res?.data?.post_text) {
-          setText(res.data.post_text);
-        } else {
-          setText(generateBody(topic, format, photos.items.length));
-        }
+        setText(res.data.post_text);
         setHashtags(deriveHashtags(topic));
-        setMedia(resolveMedia(fullPhotoUrl));
+        setMedia({ kind: "image", src: fullPhotoUrl });
         setMode("edit");
       }, 400);
     } catch (err) {
-      console.warn("AI Gateway offline, using local generator:", err);
+      console.error("Ошибка при генерации публикации:", err);
       if (timer.current) clearInterval(timer.current);
-      setDoneSteps(aiSteps.length);
-      setTimeout(() => {
-        setText(generateBody(topic, format, photos.items.length));
-        setHashtags(deriveHashtags(topic));
-        setMedia(resolveMedia());
-        setMode("edit");
-      }, 400);
+      toast("Не удалось завершить генерацию: проверьте работу AI-шлюза.");
+      setMode("create");
     }
   };
 

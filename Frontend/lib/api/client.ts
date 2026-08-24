@@ -7,7 +7,9 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 export const AI_GATEWAY_URL =
-  process.env.NEXT_PUBLIC_AI_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_AI_URL ||
+  (process.env.NEXT_PUBLIC_AI_GATEWAY_URL ? process.env.NEXT_PUBLIC_AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "") : "") ||
+  "http://localhost:8000";
 
 export const AI_WS_URL =
   process.env.NEXT_PUBLIC_AI_WS_URL || "ws://localhost:8000";

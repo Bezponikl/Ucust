@@ -299,10 +299,11 @@ export default function CreateView() {
           color: "brand",
         });
       }, 400);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Ошибка при генерации публикации:", err);
       if (timer.current) clearInterval(timer.current);
-      toast("Не удалось завершить генерацию: проверьте работу AI-шлюза.");
+      const msg = err?.message ? `Ошибка генерации: ${err.message}` : "Не удалось завершить генерацию: проверьте работу AI-шлюза.";
+      toast(msg);
       setMode("create");
     }
   };

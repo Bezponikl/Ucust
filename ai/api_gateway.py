@@ -111,6 +111,8 @@ rag_pipeline = CleanRAGPipeline(min_confidence_threshold=0.65)
 # -------------------------------------------------------------------
 
 @app.get("/api/v1/ai/health", tags=["System"])
+@app.get("/health", tags=["System"])
+@app.get("/", tags=["System"])
 async def health_check():
     """Проверка доступности ИИ-шлюза и агентов."""
     return {

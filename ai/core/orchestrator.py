@@ -268,7 +268,9 @@ class UnifiedOrchestrator:
                     photo_res = await photo_skill.generate_photo(
                         topic=prompt,
                         niche=niche,
-                        aspect_ratio=aspect_ratio
+                        aspect_ratio=aspect_ratio,
+                        company_name=company_name,
+                        attachments=user_data.get("attachments")
                     )
                     image_url = photo_res.get("image_url")
                     photo_prompt = photo_res.get("positive_prompt")
@@ -297,6 +299,8 @@ class UnifiedOrchestrator:
             aspect_ratio = user_data.get("aspect_ratio", "1:1")
             style = user_data.get("style", "photorealistic")
             brand_colors = user_data.get("brand_colors")
+            company_name = user_data.get("company_name", "UCust")
+            attachments = user_data.get("attachments")
             
             photo_skill = PhotoGeneratorSkill()
             photo_res = await photo_skill.generate_photo(
@@ -304,7 +308,9 @@ class UnifiedOrchestrator:
                 niche=niche,
                 aspect_ratio=aspect_ratio,
                 brand_colors=brand_colors,
-                style=style
+                style=style,
+                company_name=company_name,
+                attachments=attachments
             )
             
             self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {"topic": prompt, "aspect_ratio": aspect_ratio})

@@ -7,6 +7,7 @@ export interface Attachment {
   id: string;
   url: string;
   name: string;
+  dataUrl?: string;
 }
 
 export const MAX_ATTACHMENTS = 4;
@@ -32,7 +33,20 @@ export function useAttachments(max = MAX_ATTACHMENTS) {
         const next = files.slice(0, room).map((f, i) => {
           const url = URL.createObjectURL(f);
           urls.current.push(url);
-          return { id: `${f.name}-${prev.length + i}-${f.size}`, url, name: f.name };
+          const att: Attachment = { id: `${f.name}-${prev.length + i}-${f.size}`, url, name: f.name };
+          
+          // Read base64 dataUrl
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (e.target?.result && typeof e.target.result === "string") {
+              setItems((current) =>
+                current.map((item) => (item.id === att.id ? { ...item, dataUrl: e.target?.result as string } : item))
+              );
+            }
+          };
+          reader.readAsDataURL(f);
+
+          return att;
         });
         return [...prev, ...next];
       });

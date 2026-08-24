@@ -236,7 +236,13 @@ export default function CreateView() {
         payload: {
           prompt: queryPrompt,
           niche: activeNiche,
+          company_name: activeCompanyName,
           aspect_ratio: "1:1",
+          attachments: photos.items.map((p) => ({
+            name: p.name,
+            url: p.url,
+            dataUrl: p.dataUrl,
+          })),
         },
       });
 
@@ -302,6 +308,11 @@ export default function CreateView() {
           generate_image: shouldGenImage,
           aspect_ratio: "1:1",
           refCount: photos.items.length,
+          attachments: photos.items.map((p) => ({
+            name: p.name,
+            url: p.url,
+            dataUrl: p.dataUrl,
+          })),
         },
       });
 

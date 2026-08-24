@@ -150,16 +150,44 @@ class PhotoGeneratorSkill:
             "topic": topic
         }
 
+    def _get_font(self, size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+        """
+        Кроссплатформенный загрузчик шрифтов с гарантированной поддержкой кириллицы.
+        """
+        font_candidates = [
+            "C:/Windows/Fonts/segoeui.ttf" if not bold else "C:/Windows/Fonts/segoeuib.ttf",
+            "C:/Windows/Fonts/arial.ttf" if not bold else "C:/Windows/Fonts/arialbd.ttf",
+            "C:/Windows/Fonts/calibri.ttf" if not bold else "C:/Windows/Fonts/calibrib.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+            "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
+            "arial.ttf"
+        ]
+
+        for path in font_candidates:
+            if os.path.exists(path):
+                try:
+                    return ImageFont.truetype(path, size)
+                except Exception:
+                    continue
+        try:
+            return ImageFont.load_default()
+        except Exception:
+            return None
+
     async def generate_photo(
         self,
         topic: str,
         niche: str = "Бизнес",
         aspect_ratio: str = "1:1",
         brand_colors: Optional[List[str]] = None,
-        style: str = "photorealistic"
+        style: str = "photorealistic",
+        company_name: str = "UCust",
+        attachments: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
-        Полный цикл генерации SMM фотографии.
+        Полный цикл генерации профессиональной SMM фотографии и коммерческого визуала.
         """
         prompt_data = self.create_smm_prompt(
             topic=topic,
@@ -182,14 +210,16 @@ class PhotoGeneratorSkill:
         except Exception as ex:
             print(f"[PhotoGeneratorSkill] ℹ️ ComfyUI статус: {ex}")
 
-        # 2. Рендер коммерческого SMM-визуала высокого качества
+        # 2. Рендер высококачественного брендового SMM-визуала
         self._render_realistic_smm_visual(
             output_path=file_path,
             topic=topic,
             niche=niche,
             width=prompt_data["width"],
             height=prompt_data["height"],
-            brand_colors=brand_colors
+            brand_colors=brand_colors,
+            company_name=company_name,
+            attachments=attachments
         )
 
         # 3. Строгая валидация наличия и размера файла на диске
@@ -220,84 +250,201 @@ class PhotoGeneratorSkill:
         niche: str,
         width: int,
         height: int,
-        brand_colors: Optional[List[str]] = None
+        brand_colors: Optional[List[str]] = None,
+        company_name: str = "UCust",
+        attachments: Optional[List[Any]] = None
     ) -> None:
         """
-        Рендерит высококачественный брендовый SMM-визуал с градиентом, типографикой и эффектом глубины.
+        Рендерит высококачественный коммерческий SMM-визуал с градиентами, логотипом бренда и типографикой.
         """
         if not PIL_AVAILABLE:
             with open(output_path, "wb") as f:
                 f.write(b"MOCK_JPEG_IMAGE_DATA")
             return
 
-        img = Image.new("RGB", (width, height), color=(26, 28, 35))
-        draw = ImageDraw.Draw(img)
-
-        # 1. Создаем стильный градиентный фон в зависимости от ниши
-        top_color = (20, 24, 33)
-        bottom_color = (36, 42, 56)
+        import base64
+        import io
 
         niche_lower = niche.lower()
+        topic_lower = topic.lower()
+
+        # 1. Цветовая палитра под нишу бизнеса
         if "кофе" in niche_lower or "ресторан" in niche_lower:
-            top_color = (48, 28, 16)
-            bottom_color = (18, 12, 10)
-        elif "красота" in niche_lower:
-            top_color = (52, 28, 44)
-            bottom_color = (24, 16, 22)
-        elif "it" in niche_lower or "автоматиз" in niche_lower:
-            top_color = (16, 32, 54)
-            bottom_color = (8, 16, 30)
+            bg_top = (38, 22, 14)
+            bg_bottom = (16, 10, 8)
+            glow_primary = (255, 140, 60, 70)
+            glow_secondary = (220, 90, 40, 60)
+            glow_accent = (160, 60, 30, 50)
+            accent_pill = (230, 110, 35, 230)
+            dot_color = (255, 180, 80, 255)
+        elif "красот" in niche_lower or "космет" in niche_lower or "спа" in niche_lower:
+            bg_top = (42, 20, 34)
+            bg_bottom = (18, 10, 16)
+            glow_primary = (255, 90, 160, 70)
+            glow_secondary = (210, 60, 180, 60)
+            glow_accent = (120, 40, 160, 50)
+            accent_pill = (235, 60, 140, 230)
+            dot_color = (255, 140, 200, 255)
+        elif "авто" in niche_lower or "детейл" in niche_lower:
+            bg_top = (20, 24, 30)
+            bg_bottom = (10, 12, 16)
+            glow_primary = (0, 210, 255, 70)
+            glow_secondary = (255, 45, 85, 60)
+            glow_accent = (0, 140, 255, 50)
+            accent_pill = (0, 160, 240, 230)
+            dot_color = (0, 220, 255, 255)
+        else: # IT, UCust, Сервисы, Контент, Автоматизация
+            bg_top = (14, 20, 38)
+            bg_bottom = (8, 12, 24)
+            glow_primary = (0, 150, 255, 75)
+            glow_secondary = (255, 60, 120, 65)
+            glow_accent = (130, 40, 230, 60)
+            accent_pill = (0, 130, 255, 230)
+            dot_color = (0, 210, 255, 255)
 
-        # Рисуем вертикальный градиент
+        img = Image.new("RGBA", (width, height), color=(*bg_top, 255))
+
+        # 2. Рендер вертикального градиентного фона
         for y in range(height):
-            factor = y / float(height)
-            r = int(top_color[0] * (1 - factor) + bottom_color[0] * factor)
-            g = int(top_color[1] * (1 - factor) + bottom_color[1] * factor)
-            b = int(top_color[2] * (1 - factor) + bottom_color[2] * factor)
-            draw.line([(0, y), (width, y)], fill=(r, g, b))
+            f = y / float(height)
+            r = int(bg_top[0] * (1 - f) + bg_bottom[0] * f)
+            g = int(bg_top[1] * (1 - f) + bg_bottom[1] * f)
+            b = int(bg_top[2] * (1 - f) + bg_bottom[2] * f)
+            ImageDraw.Draw(img).line([(0, y), (width, y)], fill=(r, g, b, 255))
 
-        # 2. Декоративные световые акценты (Ambient Glow)
-        glow_center = (int(width * 0.5), int(height * 0.45))
-        glow_radius = int(min(width, height) * 0.35)
-        for r_step in range(glow_radius, 0, -10):
-            alpha_ratio = (1.0 - (r_step / glow_radius)) * 0.15
-            accent_color = (255, 180, 100) if "кофе" in niche_lower else (80, 160, 255)
-            c = (
-                int(top_color[0] * (1 - alpha_ratio) + accent_color[0] * alpha_ratio),
-                int(top_color[1] * (1 - alpha_ratio) + accent_color[1] * alpha_ratio),
-                int(top_color[2] * (1 - alpha_ratio) + accent_color[2] * alpha_ratio),
-            )
-            draw.ellipse(
-                [
-                    glow_center[0] - r_step,
-                    glow_center[1] - r_step,
-                    glow_center[0] + r_step,
-                    glow_center[1] + r_step,
-                ],
-                fill=c,
-            )
+        # 3. Атмосферное фоновое свечение (Luminous Mesh Glow)
+        glow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        gdraw = ImageDraw.Draw(glow_layer)
+        gdraw.ellipse([int(width * 0.05), int(height * 0.1), int(width * 0.55), int(height * 0.55)], fill=glow_primary)
+        gdraw.ellipse([int(width * 0.48), int(height * 0.12), int(width * 0.95), int(height * 0.60)], fill=glow_secondary)
+        gdraw.ellipse([int(width * 0.25), int(height * 0.35), int(width * 0.75), int(height * 0.85)], fill=glow_accent)
+        glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(int(min(width, height) * 0.08)))
+        img = Image.alpha_composite(img, glow_layer)
 
-        # 3. Декоративная рамка
+        # 4. Центральная стеклянная карточка (Glassmorphism Container)
+        card_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        cdraw = ImageDraw.Draw(card_layer)
         margin = int(width * 0.05)
-        draw.rectangle(
-            [margin, margin, width - margin, height - margin],
-            outline=(255, 255, 255, 40),
+        card_top = int(height * 0.12)
+        card_bottom = int(height * 0.88)
+        cdraw.rounded_rectangle(
+            [margin, card_top, width - margin, card_bottom],
+            radius=36,
+            fill=(255, 255, 255, 14),
+            outline=(255, 255, 255, 50),
             width=2
         )
+        img = Image.alpha_composite(img, card_layer)
 
-        # 4. Брендовый бейдж (UCust AI Commercial Photography)
-        badge_text = f"✨ UCust SMM • {niche.upper()}"
-        draw.text((margin + 20, margin + 20), badge_text, fill=(200, 210, 230))
+        # 5. Обработка прикрепленного логотипа или бренд-изображения
+        logo_img = None
+        if attachments and len(attachments) > 0:
+            first_att = attachments[0]
+            att_data = first_att.get("dataUrl") or first_att.get("url") if isinstance(first_att, dict) else str(first_att)
+            if att_data and att_data.startswith("data:image"):
+                try:
+                    header, b64data = att_data.split(",", 1)
+                    logo_bytes = base64.b64decode(b64data)
+                    logo_img = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+                except Exception as e:
+                    print(f"[PhotoGeneratorSkill] ⚠️ Ошибка декодирования логотипа из base64: {e}")
 
-        # 5. Заголовок темы по центру
-        title = topic.strip() if topic.strip() else "Специальное предложение"
-        if len(title) > 60:
-            title = title[:57] + "..."
+        # Проверяем логотипы в стандартных директориях
+        if logo_img is None:
+            default_logo_paths = [
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "Frontend", "public", "icon.png"),
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "Frontend", "public", "brand-logo.png"),
+            ]
+            for lp in default_logo_paths:
+                if os.path.exists(lp):
+                    try:
+                        logo_img = Image.open(lp).convert("RGBA")
+                        break
+                    except Exception:
+                        pass
 
-        draw.text((margin + 20, int(height * 0.78)), title, fill=(255, 255, 255))
-        draw.text((margin + 20, int(height * 0.84)), "Commercial 8K Photo • Auto-generated by UCust", fill=(140, 160, 185))
+        # Размещение логотипа в карточке
+        logo_placed_y = card_top + 45
+        if logo_img:
+            target_w = int(width * 0.42)
+            target_h = int(logo_img.height * (target_w / float(logo_img.width)))
+            if target_h > int(height * 0.22):
+                target_h = int(height * 0.22)
+                target_w = int(logo_img.width * (target_h / float(logo_img.height)))
 
-        # Сохраняем в высоком качестве
+            # Масштабируем
+            logo_img = logo_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+            
+            # Размещаем логотип на чистой аккуратной белой подложке
+            badge_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            bdraw = ImageDraw.Draw(badge_layer)
+            bw, bh = target_w + 50, target_h + 30
+            bx = (width - bw) // 2
+            by = card_top + 40
+            bdraw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=22, fill=(255, 255, 255, 245), outline=(255, 255, 255, 255), width=1)
+            img = Image.alpha_composite(img, badge_layer)
+            img.paste(logo_img, ((width - target_w) // 2, by + 15), logo_img)
+            logo_placed_y = by + bh + 25
+
+        # 6. Загружаем шрифты с поддержкой кириллицы
+        font_badge = self._get_font(22, bold=True)
+        font_title = self._get_font(38, bold=True)
+        font_sub = self._get_font(25, bold=False)
+        font_tag = self._get_font(21, bold=False)
+
+        draw = ImageDraw.Draw(img)
+
+        # 7. Статусный бейдж-пилюля (Status Pill)
+        pill_w = 340
+        pill_h = 44
+        pill_x = (width - pill_w) // 2
+        pill_y = logo_placed_y
+        draw.rounded_rectangle([pill_x, pill_y, pill_x + pill_w, pill_y + pill_h], radius=22, fill=accent_pill, outline=(255, 255, 255, 180), width=1)
+        
+        status_title = "СТАРТ РАЗРАБОТКИ 2026" if ("коллектив" in topic_lower or "проект" in topic_lower or "команд" in topic_lower) else f"{company_name.upper()} • ОФИЦИАЛЬНО"
+        draw.text((pill_x + 30, pill_y + 10), status_title, font=font_badge, fill=(255, 255, 255))
+
+        # 8. Главный заголовок темы
+        clean_topic = topic.strip() if topic.strip() else "Специальное предложение"
+        title_lines = []
+        words = clean_topic.split()
+        curr_line = []
+        for w in words:
+            curr_line.append(w)
+            if len(" ".join(curr_line)) > 28:
+                title_lines.append(" ".join(curr_line[:-1]))
+                curr_line = [w]
+        if curr_line:
+            title_lines.append(" ".join(curr_line))
+        title_lines = title_lines[:2]
+
+        ty = pill_y + 65
+        for i, line in enumerate(title_lines):
+            line_color = (255, 255, 255) if i == 0 else (255, 205, 80)
+            draw.text((margin + 45, ty), line, font=font_title, fill=line_color)
+            ty += 52
+
+        # 9. Описание / Подзаголовок
+        sub_y = ty + 15
+        sub_line1 = f"Команда «{company_name}» объединила экспертов и AI-технологии."
+        sub_line2 = "Фокус на понятный и измеримый результат для каждого клиента."
+        draw.text((margin + 45, sub_y), sub_line1, font=font_sub, fill=(215, 225, 245))
+        draw.text((margin + 45, sub_y + 36), sub_line2, font=font_sub, fill=(170, 185, 215))
+
+        # 10. Нижние плашки преимуществ (Feature Badges) с акцентными светящимися точками
+        features = ["Сильная команда", "Открытая разработка", "AI-инновации"] if "it" in niche_lower or "ucust" in company_name.lower() else ["Премиум качество", "Забота о гостях", "Новый сезон"]
+        fx = margin + 45
+        fy = card_bottom - 80
+        for f_text in features:
+            fw = int((width - margin * 2 - 120) / len(features))
+            draw.rounded_rectangle([fx, fy, fx + fw, fy + 46], radius=20, fill=(255, 255, 255, 22), outline=(255, 255, 255, 45), width=1)
+            # Светящаяся акцентная точка
+            draw.ellipse([fx + 16, fy + 18, fx + 26, fy + 28], fill=dot_color)
+            draw.text((fx + 34, fy + 11), f_text, font=font_tag, fill=(255, 255, 255))
+            fx += fw + 14
+
+        # 11. Сохранение в высоком коммерческом качестве
+        img = img.convert("RGB")
         img.save(output_path, "JPEG", quality=95)
         print(f"[PhotoGeneratorSkill] ✅ Фото успешно сохранено: {output_path}")
 

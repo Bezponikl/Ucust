@@ -18,6 +18,7 @@ import { fmtDayMonth, isoOffset } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import { submitAiTask } from "@/lib/api/ai";
 import { AI_GATEWAY_URL } from "@/lib/api/client";
+import { loadOnboarding } from "@/lib/onboarding/storage";
 
 type Format = "post" | "video";
 type ImgSource = "none" | "upload" | "ai";
@@ -248,6 +249,11 @@ export default function CreateView() {
       setDoneSteps(done);
     }, 550);
 
+    const savedState = loadOnboarding();
+    const activeCompanyName = savedState?.profile?.name || savedState?.input?.name || "UCust";
+    const activeNiche = savedState?.profile?.field || savedState?.input?.activity || "Бизнес и услуги";
+    const activeCity = savedState?.profile?.market?.geography || "Москва";
+
     try {
       const res = await submitAiTask({
         task_type: "generate_post",
@@ -255,8 +261,9 @@ export default function CreateView() {
           prompt: topic,
           format: format,
           tone: voice,
-          company_name: "UCust",
-          niche: "IT Automation / Сервис генерации контента",
+          company_name: activeCompanyName,
+          niche: activeNiche,
+          city: activeCity,
           generate_image: true,
           aspect_ratio: "1:1",
           refCount: photos.items.length,

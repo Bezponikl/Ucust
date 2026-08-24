@@ -67,6 +67,36 @@ class PhotoGeneratorSkill:
             "environment": "modern energetic gym interior, clean architectural lines, motivational atmosphere",
             "lighting": "dramatic directional rim light, high contrast, energizing mood",
             "camera": "Nikon Z9, 70-200mm f/2.8 lens, high shutter speed, sharp athletic focus"
+        },
+        "авто": {
+            "subject": "luxury sleek sports car, glossy ceramic coating reflections, polished alloy wheels",
+            "environment": "high-end modern detailing studio, clean architectural lighting, dark aesthetic floor",
+            "lighting": "dramatic linear studio light strips, high contrast reflections, premium automotive mood",
+            "camera": "Hasselblad H6D-100c, 50mm lens, tack sharp reflections, Top Gear editorial aesthetic"
+        },
+        "недвижимость": {
+            "subject": "spacious modern luxury apartment interior, contemporary design furniture, panoramic city view",
+            "environment": "sunlit penthouse living room, marble accents, minimalist decor, indoor olive tree",
+            "lighting": "bright warm natural daylight, soft interior ambient lighting, Architectural Digest look",
+            "camera": "Sony A7R V, 16-35mm f/2.8 wide lens, perfect straight verticals, magazine architecture quality"
+        },
+        "одежда": {
+            "subject": "stylish premium clothing collection on minimalist hangers, luxury fabric textures, fashion accessories",
+            "environment": "contemporary boutique showroom, neutral warm tones, textured lime plaster walls",
+            "lighting": "soft diffused editorial lighting, gentle highlights on fabric grain, high-end lookbook mood",
+            "camera": "Canon EOS R5, 85mm f/1.2 lens, shallow depth of field, Vogue lookbook photography"
+        },
+        "медицина": {
+            "subject": "modern state-of-the-art dental clinic equipment, pristine medical tools, gentle reassuring atmosphere",
+            "environment": "ultra-clean premium clinic interior, soft ambient glowing lighting, comfortable patient chair",
+            "lighting": "clean bright soft diffused medical lighting, reassuring and calm atmosphere",
+            "camera": "Sony A7 IV, 50mm f/1.8 lens, crisp clinical sharpness, trustworthy healthcare aesthetic"
+        },
+        "услуги": {
+            "subject": "modern business planning desk, neat tablet with analytics dashboard, stylish leather notebook, pen",
+            "environment": "sleek contemporary executive office, minimalist glass partitions, soft ambient background",
+            "lighting": "balanced soft daylight, warm accent lamp, crisp professional commercial atmosphere",
+            "camera": "Sony A7R IV, 50mm f/1.4 lens, clean commercial corporate photography"
         }
     }
 

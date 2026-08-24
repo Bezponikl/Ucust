@@ -6,6 +6,13 @@ PhotoGeneratorSkill — Модуль автономной генерации ф�
 
 from __future__ import annotations
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 import os
 import uuid
 import logging
@@ -154,7 +161,11 @@ class PhotoGeneratorSkill:
         """
         Кроссплатформенный загрузчик шрифтов с гарантированной поддержкой кириллицы.
         """
+        bundled_font = os.path.normpath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "fonts", "brand_font.ttf")
+        )
         font_candidates = [
+            bundled_font,
             "C:/Windows/Fonts/segoeui.ttf" if not bold else "C:/Windows/Fonts/segoeuib.ttf",
             "C:/Windows/Fonts/arial.ttf" if not bold else "C:/Windows/Fonts/arialbd.ttf",
             "C:/Windows/Fonts/calibri.ttf" if not bold else "C:/Windows/Fonts/calibrib.ttf",
@@ -351,9 +362,11 @@ class PhotoGeneratorSkill:
 
         # Проверяем логотипы в стандартных директориях
         if logo_img is None:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
             default_logo_paths = [
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "Frontend", "public", "icon.png"),
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "Frontend", "public", "brand-logo.png"),
+                os.path.normpath(os.path.join(base_dir, "..", "assets", "brand-logo.png")),
+                os.path.normpath(os.path.join(base_dir, "..", "..", "Frontend", "public", "brand-logo.png")),
+                os.path.normpath(os.path.join(base_dir, "..", "..", "Frontend", "public", "icon.png")),
             ]
             for lp in default_logo_paths:
                 if os.path.exists(lp):
@@ -437,7 +450,7 @@ class PhotoGeneratorSkill:
         fy = card_bottom - 80
         for f_text in features:
             fw = int((width - margin * 2 - 120) / len(features))
-            draw.rounded_rectangle([fx, fy, fx + fw, fy + 46], radius=20, fill=(255, 255, 255, 22), outline=(255, 255, 255, 45), width=1)
+            draw.rounded_rectangle([fx, fy, fx + fw, fy + 46], radius=20, fill=(30, 42, 68), outline=(80, 110, 160), width=1)
             # Светящаяся акцентная точка
             draw.ellipse([fx + 16, fy + 18, fx + 26, fy + 28], fill=dot_color)
             draw.text((fx + 34, fy + 11), f_text, font=font_tag, fill=(255, 255, 255))

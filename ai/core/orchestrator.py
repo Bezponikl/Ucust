@@ -119,6 +119,36 @@ class UnifiedOrchestrator:
         if not SecurityGuard.check_user_input(raw_input):
             return {"status": "error", "message": "Security Violation: запрос отклонен."}
             
+        # 2. Универсальный Vision Analyst (Moondream2) для любых загруженных пользователем фото
+        attachments = user_data.get("attachments") or user_data.get("photos") or []
+        if isinstance(attachments, dict):
+            attachments = [attachments]
+        if not attachments and user_data.get("image_url"):
+            attachments = [{"url": user_data.get("image_url")}]
+        if not attachments and user_data.get("dataUrl"):
+            attachments = [{"dataUrl": user_data.get("dataUrl")}]
+
+        moondream_analysis = None
+        if attachments:
+            try:
+                from skills.moondream_vqa import MoondreamVQASkill
+                moondream = MoondreamVQASkill()
+                company_name_for_md = user_data.get("company_name") or user_data.get("name") or "UCust"
+                prompt_for_md = user_data.get("prompt") or user_data.get("topic") or ""
+                moondream_analysis = moondream.analyze_attachments_batch(
+                    attachments=attachments,
+                    topic=prompt_for_md,
+                    company_name=company_name_for_md
+                )
+                self._log_trace(session_id, "MoondreamAnalyst", "AttachmentsAnalyzed", {
+                    "count": moondream_analysis.get("count", 0),
+                    "colors": moondream_analysis.get("colors", []),
+                    "summary": moondream_analysis.get("summary", "")
+                })
+                print(f"[UnifiedOrchestrator] 🧠 Moondream успешно проанализировал {moondream_analysis.get('count')} фото пользователя!")
+            except Exception as e:
+                print(f"[UnifiedOrchestrator] ⚠️ Ошибка Moondream анализа: {e}")
+
         if task_type in {"onboarding", "analyze_brand", "interviewer"}:
             from skills.saiga_llm import SaigaLLMSkill
             
@@ -135,9 +165,12 @@ class UnifiedOrchestrator:
                 "city": city
             })
             
-            # Сайга и Аналитик формируют бренд-профиль
+            # Сайга и Аналитик формируют бренд-профиль с учетом визуальных данных Moondream
             saiga = SaigaLLMSkill()
             brand_profile = saiga.analyze_brand_profile(user_data)
+            if moondream_analysis and moondream_analysis.get("colors"):
+                brand_profile["brand_colors"] = moondream_analysis.get("colors")
+                brand_profile["visual_summary"] = moondream_analysis.get("summary")
             self._log_trace(session_id, "Agent_Saiga", "Synthesized_Profile", brand_profile)
             
             # Сохранение в БД
@@ -237,15 +270,17 @@ class UnifiedOrchestrator:
             
             print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', компания: '{company_name}', ниша: '{niche}', формат: {format_type}, тон: {tone}")
             
-            # 1. Генерация аутентичного SMM текста через Сайгу
+            # 1. Генерация аутентичного SMM текста через Сайгу (с учетом визуального контекста от Moondream)
             saiga = SaigaLLMSkill()
+            visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
             gen_result = saiga.generate_smm_post(
                 topic=prompt,
                 company_name=company_name,
                 niche=niche,
                 city=city,
                 tone=tone,
-                format_type=format_type
+                format_type=format_type,
+                visual_context=visual_ctx
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")
@@ -257,7 +292,9 @@ class UnifiedOrchestrator:
             
             # 3. Формирование видео/визуального промпта по стандарту LTX-2
             director = AdvancedVisualDirector(brand_images=[])
-            video_prompt = f"Cinematic SMM video for {company_name}. Topic: {prompt}. High resolution, 4k, crisp details."
+            prompt_kw = moondream_analysis.get("prompt_keywords") if moondream_analysis else ""
+            visual_kw_str = f" Visual features: {prompt_kw}." if prompt_kw else ""
+            video_prompt = f"Cinematic SMM video for {company_name}. Topic: {prompt}.{visual_kw_str} High resolution, 4k, crisp details."
 
             # 4. Генерация SMM Фотографии
             image_url = None
@@ -270,6 +307,7 @@ class UnifiedOrchestrator:
                         niche=niche,
                         aspect_ratio=aspect_ratio,
                         company_name=company_name,
+                        brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None),
                         attachments=user_data.get("attachments")
                     )
                     image_url = photo_res.get("image_url")
@@ -288,7 +326,8 @@ class UnifiedOrchestrator:
                 "photo_url": image_url,
                 "confidence_score": 0.96,
                 "format": format_type,
-                "tone": tone
+                "tone": tone,
+                "moondream_analysis": moondream_analysis
             }
 
         if task_type in ["generate_image", "generate_photo"]:
@@ -298,7 +337,7 @@ class UnifiedOrchestrator:
             niche = user_data.get("niche", "Бизнес")
             aspect_ratio = user_data.get("aspect_ratio", "1:1")
             style = user_data.get("style", "photorealistic")
-            brand_colors = user_data.get("brand_colors")
+            brand_colors = user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
             company_name = user_data.get("company_name", "UCust")
             attachments = user_data.get("attachments")
             
@@ -312,6 +351,7 @@ class UnifiedOrchestrator:
                 company_name=company_name,
                 attachments=attachments
             )
+            photo_res["moondream_analysis"] = moondream_analysis
             
             self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {"topic": prompt, "aspect_ratio": aspect_ratio})
             return photo_res

@@ -163,6 +163,26 @@ export async function generateAiImage(params: ImageGenerateRequest): Promise<Ima
 }
 
 /**
+ * 5. Analyze Uploaded Media via Moondream Vision Analyst
+ * POST /api/v1/ai/vision/analyze
+ */
+export async function analyzeVisualMedia(params: {
+  image?: string;
+  attachments?: Array<{ name: string; url?: string; dataUrl?: string }>;
+  topic?: string;
+  company_name?: string;
+}): Promise<any> {
+  return apiClient<any>(
+    "/api/v1/ai/vision/analyze",
+    {
+      method: "POST",
+      body: JSON.stringify(params),
+    },
+    AI_GATEWAY_URL
+  );
+}
+
+/**
  * 5. WebSocket Streaming for Live Agent Steps
  * WS /ws/ai/session/{session_id}
  */

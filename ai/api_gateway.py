@@ -58,9 +58,6 @@ class ImageGenerateRequest(BaseModel):
     niche: str = Field("Кофейня", example="Кофейня")
     aspect_ratio: str = Field("1:1", example="1:1")
     style: str = Field("photorealistic", example="photorealistic")
-    brand_colors: Optional[List[str]] = None
-
-
 class RAGQueryRequest(BaseModel):
     query: str = Field(..., example="Сколько стоит тариф Pro?")
     top_k: int = Field(5, ge=1, le=20)
@@ -68,6 +65,13 @@ class RAGQueryRequest(BaseModel):
 
 class RAGIngestRequest(BaseModel):
     documents: List[Dict[str, Any]] = Field(..., description="Список документов для базы знаний")
+
+
+class VisionAnalyzeRequest(BaseModel):
+    image: Optional[str] = Field(None, description="Base64 DataUrl или путь к изображению")
+    attachments: Optional[List[Dict[str, Any]]] = Field(None, description="Список вложений")
+    topic: Optional[str] = Field("", example="Летний фестиваль напитков")
+    company_name: Optional[str] = Field("UCust", example="UCust")
 
 
 # -------------------------------------------------------------------
@@ -213,6 +217,40 @@ async def generate_smm_image(request: ImageGenerateRequest):
         session_id=f"img_{uuid.uuid4().hex[:8]}"
     )
     return result
+
+
+@app.post("/api/v1/ai/vision/analyze", tags=["Visual & Media"])
+async def analyze_visual_media(request: VisionAnalyzeRequest):
+    """
+    Анализ загруженного фото через ИИ-аналитика Moondream2.
+    Извлекает доминирующие цвета, ключевые объекты, композицию и готовит промпт.
+    """
+    from skills.moondream_vqa import MoondreamVQASkill
+    moondream = MoondreamVQASkill()
+    
+    if request.attachments:
+        result = moondream.analyze_attachments_batch(
+            attachments=request.attachments,
+            topic=request.topic or "",
+            company_name=request.company_name or "UCust"
+        )
+    elif request.image:
+        result = moondream.extract_visual_dossier(
+            image_input=request.image,
+            topic=request.topic or "",
+            company_name=request.company_name or "UCust"
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Не передано изображение или список вложений для анализа."
+        )
+        
+    return {
+        "status": "success",
+        "vision_analyst": "Moondream2",
+        "data": result
+    }
 
 
 @app.post("/api/v1/ai/rag/query", tags=["Knowledge Base RAG"])

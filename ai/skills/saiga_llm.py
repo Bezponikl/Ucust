@@ -185,7 +185,10 @@ class SaigaLLMSkill:
         if "кофе" in text_lower or "пекарн" in text_lower or "десерт" in text_lower:
             field = "Общепит / Кофейня"
             positioning = f"«{company_name}» — место притяжения для ценителей свежей обжарки, уютной атмосферы и искреннего гостеприимства."
-            competitors = ["Локальные спешелти-кофейни", "Сетевые городские кофейни", "Кафе формата 'кофе с собой'"]
+            direct_competitors = ["Surf Coffee (https://surfcoffee.ru)", "Skuratov Coffee (https://skuratovcoffee.ru)", "Drinkit (https://drinkit.ru)"]
+            network_competitors = ["Кофе Хауз (https://coffeehouse.ru)", "Cofix (https://cofix.ru)", "Шоколадница (https://shoko.ru)"]
+            local_competitors = [f"Локальные спешелти-кофейни г. {city}", f"Пекарни и кондитерские у дома", f"Кофе-точки формата To-Go"]
+            competitors = direct_competitors + network_competitors + local_competitors
             segment = "Жители и гости района 20-45 лет, ценящие качественный кофе, уют и быстрое обслуживание"
             trends = ["Спешелти зерно свежей обжарки", "Сезонные авторские напитки", "Экологичная упаковка и программа лояльности"]
             strengths = ["Высокое качество зерна и свежая выпечка", "Теплая и уютная атмосфера", "Удобное расположение", "Быстрое и приветливое обслуживание"]
@@ -203,7 +206,10 @@ class SaigaLLMSkill:
         elif "красот" in text_lower or "барбер" in text_lower or "салон" in text_lower or "космет" in text_lower:
             field = "Красота и персональный уход"
             positioning = f"«{company_name}» — пространство эстетики и заботы о себе с экспертным подходом к каждому клиенту."
-            competitors = ["Сетевые салоны красоты", "Частные студии премиум-класса", "Индивидуальные топ-мастера"]
+            direct_competitors = ["Persona Lab (https://persona.ru)", "NailMaker Bar (https://nailmaker.bar)", "Точка Красоты (https://tochkafamily.ru)"]
+            network_competitors = ["TopGun Barbershop (https://topgun.ru)", "OldBoy Barbershop (https://oldboybarbershop.com)", "Студии Лены Лениной (https://llmanikur.ru)"]
+            local_competitors = [f"Частные бьюти-мастера г. {city}", f"Локальные студии маникюра и бровей", f"Косметологические кабинеты"]
+            competitors = direct_competitors + network_competitors + local_competitors
             segment = "Женщины и мужчины 22-50 лет, ценящие безупречный сервис, чистоту и профессионализм мастеров"
             trends = ["Натуральные эко-составы и бережный уход", "Персонализированные уходовые протоколы", "Онлайн-запись в один клик"]
             strengths = ["Сертифицированные мастера с опытом", "Премиальные материалы и косметика", "Высокий уровень сервиса и стерильности", "Высокий процент возвращаемости клиентов"]
@@ -221,7 +227,10 @@ class SaigaLLMSkill:
         elif "авто" in text_lower or "детейлинг" in text_lower or "ремонт" in text_lower:
             field = "Автомобильные услуги и детейлинг"
             positioning = f"«{company_name}» — профессиональный уход и надежное обслуживание автомобилей с гарантией результата."
-            competitors = ["Официальные дилерские центры", "Специализированные детейлинг-боксы", "Универсальные городские автосервисы"]
+            direct_competitors = ["Detailing World (https://detailingworld.ru)", "Brooklands Detailing (https://brooklands.ru)", "Koch24 (https://koch24.ru)"]
+            network_competitors = ["Fit Service (https://fitauto.ru)", "Вилгуд (https://wilgood.ru)", "Колесо.ру (https://koleso.ru)"]
+            local_competitors = [f"Автосервисы и СТО района г. {city}", f"Частные детейлинг-боксы", f"Мойки самообслуживания"]
+            competitors = direct_competitors + network_competitors + local_competitors
             segment = "Автовладельцы 25-55 лет, ценящие идеальный вид и техническую надежность своего автомобиля"
             trends = ["Керамические и полиуретановые защитные покрытия", "Прозрачные фото/видео отчеты о работах", "Комплексный сезонный детейлинг"]
             strengths = ["Профессиональное оборудование и химия", "Строгое соблюдение регламентов", "Честная гарантия на все виды работ", "Прозрачные цены без скрытых доплат"]
@@ -237,12 +246,15 @@ class SaigaLLMSkill:
             tone = ["Уверенный", "Технически грамотный", "Честный", "Надежный"]
 
         else:
-            # Универсальный профиль (IT, услуги, агентство, B2B, UCust)
-            field = activity if activity != "Услуги и коммерция" else "IT и автоматизация бизнеса"
-            positioning = f"«{company_name}» — современный сервис с фокусом на результат, прозрачность и экономию времени клиентов."
-            competitors = ["Традиционные агентства", "Фриланс-специалисты", "Специализированные SaaS-платформы"]
-            segment = "Предприниматели, маркетологи и руководители, которым важно получать результат быстро и без рутины"
-            trends = ["Внедрение ИИ в ежедневные процессы", "Автоматизация рутины и контент-маркетинга", "Прозрачная аналитика и окупаемость вложений"]
+            # Универсальный профиль (IT, контент-генерация, услуги, SaaS, UCust)
+            field = activity if activity != "Услуги и коммерция" else "IT и автоматизация контента"
+            positioning = f"«{company_name}» — современный онлайн-сервис для генерации постов и контента с экспертным подходом и понятным результатом для клиента."
+            direct_competitors = ["SMMplanner (https://smmplanner.com)", "LiveDune (https://livedune.com)", "Postmypost (https://postmypost.ru)"]
+            network_competitors = ["Яндекс.Бизнес (https://business.yandex.ru)", "VK Реклама (https://ads.vk.com)", "TgStat (https://tgstat.ru)"]
+            local_competitors = ["Локальные digital-агентства", "Контент-фрилансеры на Kwork/FL", "Штатные копирайтеры"]
+            competitors = direct_competitors + network_competitors + local_competitors
+            segment = "Предприниматели, маркетологи и SMM-специалисты, которым важно получать качественный контент без рутины"
+            trends = ["Внедрение ИИ в ежедневные SMM-процессы", "Автоматизация создания контента и планирования", "Прозрачная аналитика и окупаемость вложений"]
             strengths = ["Высокая скорость и автоматизация процессов", "Понятный и удобный интерфейс", "Экспертная поддержка на всех этапах", "Ощутимая экономия времени и бюджета"]
             weaknesses = ["Необходимость обучения клиентов новым возможностям", "Высокие требования к отказоустойчивости", "Постоянная потребность в обновлениях функционала", "Конкуренция за внимание аудитории"]
             opportunities = ["Масштабирование на новые ниши и рынки", "Запуск интеграций с популярными платформами", "Партнерские программы для бизнеса", "Создание базы знаний и обучающих материалов"]
@@ -261,6 +273,9 @@ class SaigaLLMSkill:
             "positioning": positioning,
             "market": {
                 "competitors": competitors,
+                "directCompetitors": direct_competitors,
+                "networkCompetitors": network_competitors,
+                "localCompetitors": local_competitors,
                 "geography": city,
                 "segment": segment,
                 "trends": trends

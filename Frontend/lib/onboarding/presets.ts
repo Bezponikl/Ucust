@@ -12,6 +12,9 @@ const coffee: PresetProfile = {
   positioning: "Уютная городская кофейня с авторскими напитками и зерном собственной обжарки",
   market: {
     competitors: ["Surf Coffee", "Cofix", "Skuratov Coffee"],
+    directCompetitors: ["Surf Coffee (https://surfcoffee.ru)", "Skuratov Coffee (https://skuratovcoffee.ru)", "Drinkit (https://drinkit.ru)"],
+    networkCompetitors: ["Кофе Хауз (https://coffeehouse.ru)", "Cofix (https://cofix.ru)", "Шоколадница (https://shoko.ru)"],
+    localCompetitors: ["Локальные спешелти-кофейни", "Пекарни и кондитерские у дома", "Кофе-точки формата To-Go"],
     geography: "Россия, Ростов-на-Дону",
     segment: "Жители района, офисные сотрудники, студенты, любители кофе",
     trends: [
@@ -43,7 +46,10 @@ const beauty: PresetProfile = {
   field: "Салон красоты — уход и эстетические услуги",
   positioning: "Современный салон красоты с индивидуальным подходом и премиальным сервисом",
   market: {
-    competitors: ["Чёрный Жемчуг", "Persona", "Локальные мастера"],
+    competitors: ["Persona Lab", "NailMaker Bar", "Точка Красоты"],
+    directCompetitors: ["Persona Lab (https://persona.ru)", "NailMaker Bar (https://nailmaker.bar)", "Точка Красоты (https://tochkafamily.ru)"],
+    networkCompetitors: ["TopGun Barbershop (https://topgun.ru)", "OldBoy Barbershop (https://oldboybarbershop.com)", "Студии Лены Лениной (https://llmanikur.ru)"],
+    localCompetitors: ["Частные бьюти-мастера района", "Локальные студии маникюра и бровей", "Косметологические кабинеты"],
     geography: "Россия, Москва",
     segment: "Женщины 20–45 лет, заботящиеся о внешности, жители района",
     trends: [
@@ -75,7 +81,10 @@ const retail: PresetProfile = {
   field: "Розничный магазин — товары для покупателей",
   positioning: "Магазин с продуманным ассортиментом и удобным сервисом для покупателей",
   market: {
-    competitors: ["Маркетплейсы", "Сетевые магазины", "Локальные точки"],
+    competitors: ["Lamoda", "Ozon", "Wildberries"],
+    directCompetitors: ["Lamoda (https://lamoda.ru)", "Ozon (https://ozon.ru)", "Wildberries (https://wildberries.ru)"],
+    networkCompetitors: ["Стокманн (https://stockmann.ru)", "Золотое Яблоко (https://goldapple.ru)", "Лэтуаль (https://letu.ru)"],
+    localCompetitors: ["Локальные бутики и шоурумы", "Тематические ярмарки и маркеты", "Крафтовые мастерские"],
     geography: "Россия",
     segment: "Покупатели района и онлайн-аудитория, ценящие удобство и качество",
     trends: [
@@ -107,7 +116,10 @@ const services: PresetProfile = {
   field: "Услуги — сервис для клиентов и бизнеса",
   positioning: "Надёжный сервис с экспертным подходом и понятным результатом для клиента",
   market: {
-    competitors: ["Профильные агентства", "Фрилансеры", "Сетевые компании"],
+    competitors: ["SMMplanner", "LiveDune", "Postmypost"],
+    directCompetitors: ["SMMplanner (https://smmplanner.com)", "LiveDune (https://livedune.com)", "Postmypost (https://postmypost.ru)"],
+    networkCompetitors: ["Яндекс.Бизнес (https://business.yandex.ru)", "VK Реклама (https://ads.vk.com)", "TgStat (https://tgstat.ru)"],
+    localCompetitors: ["Локальные digital-агентства", "Контент-фрилансеры на Kwork/FL", "Штатные копирайтеры"],
     geography: "Россия",
     segment: "Малый и средний бизнес, частные клиенты, которым важны результат и надёжность",
     trends: [
@@ -140,6 +152,9 @@ const fallback: PresetProfile = {
   positioning: "Бизнес с фокусом на качество и заботу о клиентах",
   market: {
     competitors: ["Прямые конкуренты", "Сетевые игроки", "Локальные альтернативы"],
+    directCompetitors: ["SMMplanner (https://smmplanner.com)", "LiveDune (https://livedune.com)", "Postmypost (https://postmypost.ru)"],
+    networkCompetitors: ["Яндекс.Бизнес (https://business.yandex.ru)", "VK Реклама (https://ads.vk.com)", "TgStat (https://tgstat.ru)"],
+    localCompetitors: ["Локальные студии и агентства", "Частные специалисты", "Сервисы у дома"],
     geography: "Россия",
     segment: "Целевая аудитория района и онлайн, ценящая качество и сервис",
     trends: [

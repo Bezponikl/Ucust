@@ -15,6 +15,9 @@ export interface WizardInput {
 
 export interface MarketInfo {
   competitors: string[];
+  directCompetitors?: string[];
+  networkCompetitors?: string[];
+  localCompetitors?: string[];
   geography: string;
   segment: string;
   trends: string[];

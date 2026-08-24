@@ -289,7 +289,7 @@ export default function CreateView() {
 
       // Финальное окно открывается ТОЛЬКО когда фото и текст реально получены от генератора
       setTimeout(() => {
-        setText(res.data.post_text);
+        setText(res.data.post_text || "");
         setHashtags(deriveHashtags(topic));
         setMedia({ kind: "image", src: fullPhotoUrl });
         setMode("edit");

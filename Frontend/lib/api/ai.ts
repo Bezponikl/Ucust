@@ -26,16 +26,19 @@ export interface AITaskRequest {
 }
 
 export interface AITaskResultData {
-  post_text: string;
+  post_text?: string;
   promo_code?: string | null;
   video_prompt?: string;
   photo_prompt?: string;
   image_url?: string;
   photo_url?: string;
-  confidence_score: number;
+  confidence_score?: number;
   task_type?: string;
   session_id?: string;
   user_id?: string;
+  profile?: Record<string, any>;
+  profile_id?: number;
+  [key: string]: unknown;
 }
 
 export interface ImageGenerateRequest {

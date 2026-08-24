@@ -119,12 +119,58 @@ class UnifiedOrchestrator:
         if not SecurityGuard.check_user_input(raw_input):
             return {"status": "error", "message": "Security Violation: запрос отклонен."}
             
-        # Здесь будет маршрутизация к разным пайплайнам
-        if task_type == "onboarding":
-            print("[UnifiedOrchestrator] ⚖️ Делегирую задачу пайплайну онбординга...")
-            # ... запуск агентов Интервьюер, Аналитик, Сайга ...
-            self._log_trace(session_id, "Orchestrator", "TaskStarted", {"type": task_type})
-            return {"status": "success", "profile_id": 1}
+        if task_type in {"onboarding", "analyze_brand", "interviewer"}:
+            from skills.saiga_llm import SaigaLLMSkill
+            
+            company_name = user_data.get("name") or user_data.get("company_name") or "UCust"
+            raw_social_input = user_data.get("raw_social_input") or user_data.get("link") or ""
+            activity = user_data.get("activity") or user_data.get("niche") or "IT Automation"
+            city = user_data.get("city") or "Москва"
+            
+            print(f"[UnifiedOrchestrator] 🎙️ Агент-Интервьюер: Анализ входных данных для '{company_name}' ({activity})...")
+            self._log_trace(session_id, "Agent_Interviewer", "Extracted_Context", {
+                "company_name": company_name,
+                "raw_social_input": raw_social_input,
+                "activity": activity,
+                "city": city
+            })
+            
+            # Сайга и Аналитик формируют бренд-профиль
+            saiga = SaigaLLMSkill()
+            brand_profile = saiga.analyze_brand_profile(user_data)
+            self._log_trace(session_id, "Agent_Saiga", "Synthesized_Profile", brand_profile)
+            
+            # Сохранение в БД
+            profile_id = None
+            if self.db:
+                try:
+                    profile = UserProfile(
+                        external_user_id=user_data.get("user_id", "default_user"),
+                        user_id=user_data.get("user_id", "default_user"),
+                        niche=brand_profile.get("field", activity),
+                        city=brand_profile.get("market", {}).get("geography", city),
+                        target_audience=brand_profile.get("market", {}).get("segment", ""),
+                        step1={"voice_and_tone": brand_profile.get("tone", []), "positioning": brand_profile.get("positioning", "")},
+                        step2=brand_profile.get("market", {}),
+                        step3=brand_profile.get("swot", {}),
+                        step4={"services": brand_profile.get("services", [])},
+                        step5={"goals": brand_profile.get("goals", [])},
+                        social_links={"link": raw_social_input, "socials": user_data.get("socials", [])}
+                    )
+                    self.db.add(profile)
+                    self.db.commit()
+                    self.db.refresh(profile)
+                    profile_id = profile.id
+                    self._log_trace(session_id, "ChiefOrchestrator", "ProfileSaved", {"profile_id": profile_id})
+                    print(f"[UnifiedOrchestrator] ✅ Профиль #{profile_id} ('{company_name}') успешно сохранен в БД!")
+                except Exception as e:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения профиля в БД: {e}")
+            
+            return {
+                "status": "success",
+                "profile": brand_profile,
+                "profile_id": profile_id or 1
+            }
             
         if task_type == "get_trends":
             from core.trend_scheduler import WeeklyTrendScheduler

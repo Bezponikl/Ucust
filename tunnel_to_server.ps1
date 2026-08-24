@@ -1,13 +1,10 @@
-# PowerShell SSH Tunnel Script for UCust
+# PowerShell SSH Tunnel Script for UCust vm-8720
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "🌐 UCUST REMOTE SERVER TUNNEL (SSH PORT FORWARDING)" -ForegroundColor Yellow
+Write-Host "🌐 UCUST REMOTE SERVER TUNNEL (vm-8720)" -ForegroundColor Yellow
+Write-Host "   Сервер: vm-8720.user-project-3970.cloud.intcld.ru (194.67.95.164)" -ForegroundColor Gray
 Write-Host "======================================================================" -ForegroundColor Cyan
-
-$serverIp = Read-Host "Введите IP адрес вашего сервера"
-$serverUser = Read-Host "Введите пользователя сервера [по умолчанию: root]"
-if ([string]::IsNullOrWhiteSpace($serverUser)) { $serverUser = "root" }
 
 Write-Host ""
 Write-Host "⏳ Устанавливаем защищенный SSH-туннель:" -ForegroundColor Green
@@ -15,7 +12,8 @@ Write-Host "   • Порт 3000 (Фронтенд Next.js)  -> http://localhost
 Write-Host "   • Порт 8000 (AI Gateway / API)  -> http://localhost:8000" -ForegroundColor White
 Write-Host "   • Порт 8188 (ComfyUI / LTX-2)   -> http://localhost:8188" -ForegroundColor White
 Write-Host ""
-Write-Host "После ввода пароля окно туннеля должно оставаться открытым!" -ForegroundColor Yellow
+Write-Host "Введите пароль от root@194.67.95.164 при запросе." -ForegroundColor Yellow
+Write-Host "(Окно консоли должно оставаться открытым во время работы)" -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-ssh -N -L 3000:localhost:3000 -L 8000:localhost:8000 -L 8188:localhost:8188 "$serverUser@$serverIp"
+ssh -N -L 3000:localhost:3000 -L 8000:localhost:8000 -L 8188:localhost:8188 root@194.67.95.164

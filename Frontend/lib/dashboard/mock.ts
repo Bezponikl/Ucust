@@ -1,5 +1,6 @@
 import type { BrandProfile } from "@/lib/onboarding/types";
 import type { DashboardData } from "./types";
+import { loadActivities } from "./activity";
 
 /**
  * Данные обзора дашборда. Мок: статы/график/рекомендации локальные, имя и часть
@@ -59,10 +60,6 @@ export function getDashboardData(profile: BrandProfile | null): DashboardData {
       { weekday: "Сб", day: 6, status: "scheduled", channels: ["vk"] },
       { weekday: "Вс", day: 7, status: "none", channels: [] },
     ],
-    activity: [
-      { id: "a1", text: "Опубликован пост «Летняя акция»", time: "2 часа назад", color: "success" },
-      { id: "a2", text: "Новый отзыв от Марии К.", time: "3 часа назад", color: "orange" },
-      { id: "a3", text: "Запущена акция «День рождения»", time: "5 часов назад", color: "pink" },
-    ],
+    activity: loadActivities(),
   };
 }

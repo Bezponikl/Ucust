@@ -19,6 +19,7 @@ import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import { submitAiTask } from "@/lib/api/ai";
 import { AI_GATEWAY_URL } from "@/lib/api/client";
 import { loadOnboarding } from "@/lib/onboarding/storage";
+import { addActivity } from "@/lib/dashboard/activity";
 
 type Format = "post" | "video";
 type ImgSource = "none" | "upload" | "ai";
@@ -293,6 +294,10 @@ export default function CreateView() {
         setHashtags(deriveHashtags(topic));
         setMedia({ kind: "image", src: fullPhotoUrl });
         setMode("edit");
+        addActivity({
+          text: `Сгенерирована публикация «${topic.trim().slice(0, 45) || "Новый пост"}»`,
+          color: "brand",
+        });
       }, 400);
     } catch (err) {
       console.error("Ошибка при генерации публикации:", err);
@@ -592,6 +597,7 @@ export default function CreateView() {
       </div>
 
       <PublishFlow mode={publishMode} channels={channels} onChange={setChannels}
+        topic={topic}
         onClose={() => setPublishMode(null)}
         onDone={() => { setPublishMode(null); router.push("/dashboard/content"); }}
         onNewPost={() => { setPublishMode(null); startNew(); }} />
@@ -624,9 +630,9 @@ function ChannelCard({ id, on, onToggle }: { id: ChannelId; on: boolean; onToggl
   );
 }
 
-function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost }: {
+function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, topic }: {
   mode: null | "publish" | "schedule"; channels: ChannelId[]; onChange: (v: ChannelId[]) => void;
-  onClose: () => void; onDone: () => void; onNewPost: () => void;
+  onClose: () => void; onDone: () => void; onNewPost: () => void; topic?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<"form" | "done">("form");
@@ -693,8 +699,20 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost }: {
 
             <div className="flex items-center gap-2 border-t border-border p-4">
               <button type="button" onClick={onClose} className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-medium text-ink-muted transition hover:text-ink">Отмена</button>
-              <button type="button" onClick={() => setStep("done")} disabled={chosen.length === 0}
-                className="btn-glass-blue ml-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("done");
+                  addActivity({
+                    text: isSchedule
+                      ? `Запланирован пост «${(topic || "").trim().slice(0, 45) || "Новая публикация"}»`
+                      : `Опубликован пост «${(topic || "").trim().slice(0, 45) || "Новая публикация"}»`,
+                    color: isSchedule ? "purple" : "success",
+                  });
+                }}
+                disabled={chosen.length === 0}
+                className="btn-glass-blue ml-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 <Icon name={isSchedule ? "calendar-plus" : "send"} size={16} aria-hidden="true" />
                 {isSchedule ? "Запланировать" : "Опубликовать сейчас"}
               </button>

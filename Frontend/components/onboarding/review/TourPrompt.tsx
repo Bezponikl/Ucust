@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Icon from "@/components/ui/Icon";
 import { setTourState } from "@/lib/dashboard/tour";
+import { addActivity } from "@/lib/dashboard/activity";
 
 /**
  * Финальный шаг онбординга: спрашиваем, провести ли по интерфейсу.
@@ -26,6 +27,7 @@ export default function TourPrompt({
 
   const choose = (withTour: boolean) => {
     setTourState(withTour ? "pending" : "skipped");
+    addActivity({ text: "Профиль компании успешно создан и настроен", color: "brand" });
     onDone();
   };
 

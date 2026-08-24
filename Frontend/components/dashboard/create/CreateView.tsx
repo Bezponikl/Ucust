@@ -38,8 +38,14 @@ const IDEAS: { label: string; text: string }[] = [
   { label: "Отзыв гостя", text: "Поделись тёплым отзывом гостя и поблагодари за доверие." },
 ];
 
-const AI_STEPS = ["Анализируем бренд", "Определяем стиль общения", "Создаём структуру публикации", "Подбираем медиа и хэштеги", "Проверяем текст"];
-const PHOTO_STEP = "Смотрим, что на фото";
+const AI_STEPS = [
+  "Анализируем нишу и контекст запроса",
+  "Сайга создаёт текст в фирменном стиле",
+  "ИИ-фотограф генерирует SMM-визуал",
+  "Проверяем стоп-факторы и Tone-of-Voice",
+  "Собираем хэштеги и финальную публикацию"
+];
+const PHOTO_STEP = "Анализируем кадры через Moondream VQA";
 
 
 const IMAGE_POOL = ["/content/drinks.jpg", "/content/barista.jpg", "/content/interior.jpg", "/content/beans.jpg", "/content/newdrink.jpg", "/content/latteart.jpg", "/content/pastry.jpg"];
@@ -318,15 +324,27 @@ export default function CreateView() {
       {/* ══ ЛЕВО ══ */}
       <div className="flex flex-col gap-6">
         {mode === "edit" ? (
-          <div className="uc-fade-in flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Действия</span>
-              <button type="button" onClick={() => setMode("create")} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium text-ink transition hover:bg-surface-soft"><Icon name="edit" size={17} className="text-ink-muted" aria-hidden="true" /> Изменить запрос</button>
-              <button type="button" onClick={runGeneration} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium text-ink transition hover:bg-surface-soft"><Icon name="refresh" size={17} className="text-ink-muted" aria-hidden="true" /> Пересоздать</button>
-              <button type="button" onClick={() => toast("История версий скоро появится")} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium text-ink transition hover:bg-surface-soft"><Icon name="clock" size={17} className="text-ink-muted" aria-hidden="true" /> История версий</button>
+          <div className="uc-fade-in flex flex-col gap-4">
+            <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
+              <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Действия с публикацией</span>
+              <button type="button" onClick={runGeneration} className="btn-glass-blue flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold">
+                <Icon name="refresh" size={16} aria-hidden="true" /> Перегенерировать
+              </button>
+              <button type="button" onClick={() => setMode("create")} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-soft px-4 py-2.5 text-left text-sm font-medium text-ink transition hover:border-brand/40">
+                <Icon name="edit" size={16} className="text-brand" aria-hidden="true" /> Изменить запрос / тему
+              </button>
+              <button type="button" onClick={() => setAiOpen(true)} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-soft px-4 py-2.5 text-left text-sm font-medium text-ink transition hover:border-brand/40">
+                <Icon name="sparkles" size={16} className="text-brand" aria-hidden="true" /> Улучшить текст с AI
+              </button>
             </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-ink-muted">Текущая тема запроса</span>
+              <p className="rounded-xl bg-surface-soft p-3 text-xs leading-relaxed text-ink line-clamp-4">{topic || "Запрос без темы"}</p>
+            </div>
+
             {photos.items.length > 0 && (
-              <div className="border-t border-border pt-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   <Icon name="image" size={13} aria-hidden="true" /> Учтены при написании
                 </span>
@@ -340,8 +358,10 @@ export default function CreateView() {
               </div>
             )}
 
-            <div className="border-t border-border pt-4">
-              <button type="button" onClick={startNew} className="inline-flex items-center gap-2 text-sm font-medium text-brand transition hover:text-brand-hover"><Icon name="plus" size={16} aria-hidden="true" /> Создать новую публикацию</button>
+            <div className="pt-2">
+              <button type="button" onClick={startNew} className="inline-flex items-center gap-2 text-sm font-medium text-brand transition hover:text-brand-hover">
+                <Icon name="plus" size={16} aria-hidden="true" /> Создать новую публикацию
+              </button>
             </div>
           </div>
         ) : (

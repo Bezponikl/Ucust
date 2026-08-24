@@ -36,7 +36,30 @@ def fix():
             except Exception as e:
                 print(f'[FixComfy] Error: {e}')
 
-    print(f'[FixComfy] Total files patched: {patched_count}')
+    print(f'[FixComfy] Total comfy_kitchen files patched: {patched_count}')
+
+    # 2. Patch ComfyUI-LTXVideo kornia.geometry.transform.pyramid import issue
+    ltx_custom_nodes = [
+        '/opt/ucust/ComfyUI/custom_nodes/ComfyUI-LTXVideo/pyramid_blending.py',
+        'ComfyUI/custom_nodes/ComfyUI-LTXVideo/pyramid_blending.py',
+        '../ComfyUI/custom_nodes/ComfyUI-LTXVideo/pyramid_blending.py'
+    ]
+    for p in ltx_custom_nodes:
+        if os.path.exists(p):
+            try:
+                with open(p, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                if "from kornia.geometry.transform.pyramid import" in content and "from torch.nn.functional import pad" not in content:
+                    content = "from torch.nn.functional import pad\n" + content
+                    content = content.replace("    pad,\n", "")
+                    content = content.replace("    pad,", "")
+                    content = content.replace(", pad", "")
+                    content = content.replace("pad,", "")
+                    with open(p, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    print(f'[FixComfy] ✅ Successfully patched ComfyUI-LTXVideo pyramid_blending.py at {p}')
+            except Exception as e:
+                print(f'[FixComfy] Error patching LTXVideo: {e}')
 
 if __name__ == '__main__':
     fix()

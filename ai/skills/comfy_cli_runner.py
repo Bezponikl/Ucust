@@ -26,6 +26,7 @@ logger = logging.getLogger("comfy_cli_runner")
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT_WORKFLOW = os.path.join(PROJECT_ROOT, "Ltx_generations.json")
+MODELS_LTX_WORKFLOW = os.path.join(PROJECT_ROOT, "models", "ltx_video", "Ltx_generations.json")
 DEFAULT_WORKFLOW_DESKTOP_PATH = r"C:\Users\Metal\Desktop\Ltx_generations.json"
 LOCAL_TEMPLATE_PATH = os.path.join(PROJECT_ROOT, "skills", "templates", "Ltx_generations.json")
 
@@ -48,11 +49,13 @@ class ComfyCLIRunner:
             workflow_template_path
             or os.getenv("COMFYUI_WORKFLOW_PATH")
             or (
-                PROJECT_ROOT_WORKFLOW
+                MODELS_LTX_WORKFLOW
+                if os.path.exists(MODELS_LTX_WORKFLOW)
+                else PROJECT_ROOT_WORKFLOW
                 if os.path.exists(PROJECT_ROOT_WORKFLOW)
-                else DEFAULT_WORKFLOW_DESKTOP_PATH
-                if os.path.exists(DEFAULT_WORKFLOW_DESKTOP_PATH)
                 else LOCAL_TEMPLATE_PATH
+                if os.path.exists(LOCAL_TEMPLATE_PATH)
+                else DEFAULT_WORKFLOW_DESKTOP_PATH
             )
         )
         self.timeout = timeout

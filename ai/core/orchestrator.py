@@ -75,12 +75,12 @@ class UnifiedOrchestrator:
     Единая точка входа для всех задач (пайплайны, графы, фронтенд).
     Полностью контролирует безопасность и потоки данных.
     """
-    def __init__(self, db_session, vector_store=None, redis_cache=None):
+    def __init__(self, db_session=None, vector_store=None, redis_cache=None):
         from storage.pgvector_store import PGVectorStore
         from core.redis_cache import RedisCacheManager
         
         self.db = db_session
-        self.vector_store = vector_store or PGVectorStore(self.db)
+        self.vector_store = vector_store or (PGVectorStore(self.db) if self.db else None)
         self.redis_cache = redis_cache or RedisCacheManager()
 
     def _hash_payload(self, payload: Any) -> str:
@@ -90,16 +90,19 @@ class UnifiedOrchestrator:
     def _log_trace(self, session_id: str, agent_name: str, action: str, payload: Any):
         payload_hash = self._hash_payload(payload)
         
-        # 1. Сохраняем в SQL
-        trace = OrchestratorTrace(
-            session_id=session_id,
-            agent_name=agent_name,
-            action=action,
-            payload_hash=payload_hash,
-            payload=payload if isinstance(payload, dict) else {"data": payload}
-        )
-        self.db.add(trace)
-        self.db.commit()
+        if self.db:
+            try:
+                trace = OrchestratorTrace(
+                    session_id=session_id,
+                    agent_name=agent_name,
+                    action=action,
+                    payload_hash=payload_hash,
+                    payload=payload if isinstance(payload, dict) else {"data": payload}
+                )
+                self.db.add(trace)
+                self.db.commit()
+            except Exception as e:
+                print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения трейса в БД: {e}")
         
         # 2. Кешируем стейт в Redis для ускорения будущих запусков
         self.redis_cache.set_cached_result(action, payload_hash, payload)

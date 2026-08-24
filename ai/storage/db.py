@@ -134,16 +134,13 @@ async def init_db(engine: Any = None) -> None:
     logger.info("Database tables initialized successfully via init_db().")
 
 
-# Import models after Base is defined to avoid circular dependency
-from storage.models import ContentTask, UserProfile  # noqa: E402
-
-
 async def create_task(
     user_id: str,
     user_profile_id: Optional[int] = None,
     status: str = "PENDING",
     session: Any = None,
 ) -> int:
+    from storage.models import ContentTask
     """
     Creates a new ContentTask in DB asynchronously and returns job_id (task.id).
 
@@ -205,6 +202,7 @@ async def update_task_status(
     error_message: Optional[str] = None,
     session: Any = None,
 ) -> None:
+    from storage.models import ContentTask
     """
     Updates ContentTask status and payload in DB asynchronously.
 
@@ -262,7 +260,8 @@ async def update_task_status(
 async def get_task(
     job_id: int,
     session: Any = None,
-) -> Optional[ContentTask]:
+) -> Optional[Any]:
+    from storage.models import ContentTask
     """
     Retrieves ContentTask by job_id asynchronously.
 
@@ -275,7 +274,7 @@ async def get_task(
         res = await session.execute(stmt)
         return res.scalar_one_or_none()
 
-    def sync_get() -> Optional[ContentTask]:
+    def sync_get() -> Optional[Any]:
         if hasattr(session, "query"):
             return session.query(ContentTask).filter(ContentTask.id == job_id).first()
 
@@ -289,7 +288,8 @@ async def get_task(
 
 async def get_pending_tasks(
     session: Any = None,
-) -> List[ContentTask]:
+) -> List[Any]:
+    from storage.models import ContentTask
     """
     Retrieves all ContentTasks with status 'AWAITING_USER_ACTION' or 'AWAITING_USER_DECISION'.
     """

@@ -213,9 +213,9 @@
         "Node name for S&R": "EmptyLTXVLatentVideo"
       },
       "widgets_values": [
-        960,
-        544,
-        121,
+        768,
+        512,
+        25,
         1
       ]
     },
@@ -711,8 +711,8 @@
         "Node name for S&R": "LoraLoaderModelOnly"
       },
       "widgets_values": [
-        "ltx\\ltx-2.3-22b-distilled-lora-384.safetensors",
-        0.5
+        "ltx/ltx-2.3-22b-distilled-lora-384.safetensors",
+        1.0
       ]
     },
     {
@@ -847,7 +847,7 @@
         "Node name for S&R": "PrimitiveInt"
       },
       "widgets_values": [
-        5,
+        1,
         "fixed"
       ]
     },
@@ -1026,7 +1026,7 @@
         "Node name for S&R": "LTXVImgToVideoConditionOnly"
       },
       "widgets_values": [
-        0.7,
+        0.0,
         false
       ]
     },
@@ -1386,7 +1386,7 @@
         "Node name for S&R": "PrimitiveStringMultiline"
       },
       "widgets_values": [
-        ""
+        "A cinematic smooth push-in shot of a hot ceramic coffee cup with beautiful latte art sitting on a dark wooden table in a sunlit modern cafe. Soft warm morning sunlight, subtle steam rising, photorealistic textures, 8k resolution, crisp focus, rich coffee crema."
       ]
     },
     {

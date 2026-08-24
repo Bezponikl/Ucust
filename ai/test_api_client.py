@@ -59,6 +59,43 @@ def test_full_gateway_integration():
     print("Графы (без PII):", resp.json()["data"])
     assert resp.status_code == 200
 
+    # 4.1 Генерация SMM фото (POST /api/v1/ai/generate-image)
+    print("\n--- 4.1 ГЕНЕРАЦИЯ SMM ФОТО (POST /api/v1/ai/generate-image) ---")
+    img_payload = {
+        "prompt": "Карамельный латте и свежий круассан",
+        "niche": "Кофейня",
+        "aspect_ratio": "1:1"
+    }
+    resp = client.post("/api/v1/ai/generate-image", json=img_payload)
+    print("Статус код фото:", resp.status_code)
+    img_data = resp.json()
+    print("Сгенерированное фото:", img_data.get("image_url"))
+    print("Промпт фотографии:", img_data.get("positive_prompt")[:100], "...")
+    assert resp.status_code == 200
+    assert img_data.get("status") == "success"
+    assert img_data.get("image_url") is not None
+
+    # 4.2 Генерация полного SMM поста с фото (POST /api/v1/ai/task: generate_post)
+    print("\n--- 4.2 ГЕНЕРАЦИЯ ПОСТА С ФОТО (POST /api/v1/ai/task -> generate_post) ---")
+    post_payload = {
+        "user_id": "client_b2b_02",
+        "task_type": "generate_post",
+        "payload": {
+            "prompt": "Запуск сезонного весеннего меню напитков",
+            "format": "post",
+            "tone": "Тёплый и дружелюбный",
+            "niche": "Кофейня"
+        }
+    }
+    resp = client.post("/api/v1/ai/task", json=post_payload)
+    print("Статус код поста:", resp.status_code)
+    post_data = resp.json()
+    print("Текст поста:\n", post_data["data"]["post_text"])
+    print("Прикрепленное фото:", post_data["data"].get("image_url"))
+    assert resp.status_code == 200
+    assert post_data["status"] == "success"
+    assert post_data["data"].get("image_url") is not None
+
     # 5. Clean RAG Query
     print("\n--- 5. CLEAN RAG QUERY (POST /api/v1/ai/rag/query) ---")
     rag_payload = {"query": "Сколько стоит тариф Pro?", "top_k": 3}

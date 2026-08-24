@@ -12,14 +12,16 @@ export interface AITaskPayload {
   company_name?: string;
   niche?: string;
   tone?: string;
-  format?: "post" | "video";
+  format?: "post" | "video" | "photo";
+  aspect_ratio?: "1:1" | "4:5" | "16:9" | "9:16";
+  generate_image?: boolean;
   [key: string]: unknown;
 }
 
 export interface AITaskRequest {
   user_id?: string;
   session_id?: string;
-  task_type: "generate_post" | "prepare_holiday_greeting" | "get_trends" | "rag_query" | string;
+  task_type: "generate_post" | "generate_image" | "prepare_holiday_greeting" | "get_trends" | "rag_query" | string;
   payload: AITaskPayload;
 }
 
@@ -27,10 +29,30 @@ export interface AITaskResultData {
   post_text: string;
   promo_code?: string | null;
   video_prompt?: string;
+  photo_prompt?: string;
+  image_url?: string;
+  photo_url?: string;
   confidence_score: number;
   task_type?: string;
   session_id?: string;
   user_id?: string;
+}
+
+export interface ImageGenerateRequest {
+  prompt: string;
+  niche?: string;
+  aspect_ratio?: "1:1" | "4:5" | "16:9" | "9:16";
+  style?: string;
+  brand_colors?: string[];
+}
+
+export interface ImageGenerateResponse {
+  status: "success" | "error";
+  photo_id?: string;
+  image_url: string;
+  positive_prompt?: string;
+  negative_prompt?: string;
+  aspect_ratio?: string;
 }
 
 export interface AITaskResponse {
@@ -117,7 +139,22 @@ export async function fetchAiAnalyticsGraphs(): Promise<AIAnalyticsResponse> {
 }
 
 /**
- * 4. WebSocket Streaming for Live Agent Steps
+ * 4. Generate SMM Commercial Image
+ * POST /api/v1/ai/generate-image
+ */
+export async function generateAiImage(params: ImageGenerateRequest): Promise<ImageGenerateResponse> {
+  return apiClient<ImageGenerateResponse>(
+    "/api/v1/ai/generate-image",
+    {
+      method: "POST",
+      body: JSON.stringify(params),
+    },
+    AI_GATEWAY_URL
+  );
+}
+
+/**
+ * 5. WebSocket Streaming for Live Agent Steps
  * WS /ws/ai/session/{session_id}
  */
 export function connectAiSessionWs(

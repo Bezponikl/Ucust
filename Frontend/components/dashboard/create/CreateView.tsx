@@ -17,6 +17,7 @@ import TimeInput from "@/components/ui/TimeInput";
 import { fmtDayMonth, isoOffset } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import { submitAiTask } from "@/lib/api/ai";
+import { AI_GATEWAY_URL } from "@/lib/api/client";
 
 type Format = "post" | "video";
 type ImgSource = "none" | "upload" | "ai";
@@ -222,10 +223,13 @@ export default function CreateView() {
   const aiSteps = photos.items.length > 0 ? [PHOTO_STEP, ...AI_STEPS] : AI_STEPS;
   const canCreate = topic.trim().length > 0 || photos.items.length > 0;
 
-  const resolveMedia = (): Media => {
+  const resolveMedia = (generatedUrl?: string): Media => {
     if (format === "video") return vidSource === "ai" ? { kind: "video-ai", poster: IMAGE_POOL[0] } : media.kind === "video-file" ? media : { kind: "none" };
     if (imgSource === "none") return { kind: "none" };
-    if (imgSource === "ai") return { kind: "image", src: IMAGE_POOL[0] };
+    if (imgSource === "ai") {
+      if (generatedUrl) return { kind: "image", src: generatedUrl };
+      return { kind: "image", src: IMAGE_POOL[0] };
+    }
     return media.kind === "image" ? media : { kind: "none" };
   };
 
@@ -247,12 +251,20 @@ export default function CreateView() {
           prompt: topic,
           format: format,
           tone: voice,
+          generate_image: imgSource === "ai",
+          aspect_ratio: "1:1",
           refCount: photos.items.length,
         },
       });
 
       if (timer.current) clearInterval(timer.current);
       setDoneSteps(aiSteps.length);
+
+      const generatedPhoto = res?.data?.image_url || res?.data?.photo_url;
+      const gatewayBase = AI_GATEWAY_URL.replace(/\/api\/v1\/?$/, "");
+      const fullPhotoUrl = generatedPhoto
+        ? (generatedPhoto.startsWith("http") ? generatedPhoto : `${gatewayBase}${generatedPhoto}`)
+        : undefined;
 
       setTimeout(() => {
         if (res?.data?.post_text) {
@@ -261,7 +273,7 @@ export default function CreateView() {
           setText(generateBody(topic, format, photos.items.length));
         }
         setHashtags(deriveHashtags(topic));
-        setMedia(resolveMedia());
+        setMedia(resolveMedia(fullPhotoUrl));
         setMode("edit");
       }, 400);
     } catch (err) {

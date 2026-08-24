@@ -18,6 +18,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Quer
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 from storage.db import DatabaseFactory
 from core.orchestrator import UnifiedOrchestrator, SecurityGuard
 from rag.pipeline import CleanRAGPipeline
@@ -28,9 +31,9 @@ from rag.models import Document
 # -------------------------------------------------------------------
 
 class TaskRequest(BaseModel):
-    user_id: str = Field(..., example="usr_94812", description="Идентификатор пользователя")
+    user_id: str = Field("default_user", example="usr_94812", description="Идентификатор пользователя")
     session_id: Optional[str] = Field(None, example="sess_abc123", description="ID сессии диалога")
-    task_type: str = Field(..., example="prepare_holiday_greeting", description="Тип задачи: onboarding | prepare_holiday_greeting | get_trends | rag_query")
+    task_type: str = Field(..., example="generate_post", description="Тип задачи: generate_post | generate_image | prepare_holiday_greeting | get_trends | rag_query")
     payload: Dict[str, Any] = Field(default_factory=dict, description="Параметры задачи")
 
 
@@ -50,6 +53,14 @@ class TrendResponse(BaseModel):
     cached: bool = True
 
 
+class ImageGenerateRequest(BaseModel):
+    prompt: str = Field(..., example="Сезонный тыквенный латте с корицей и круассан")
+    niche: str = Field("Кофейня", example="Кофейня")
+    aspect_ratio: str = Field("1:1", example="1:1")
+    style: str = Field("photorealistic", example="photorealistic")
+    brand_colors: Optional[List[str]] = None
+
+
 class RAGQueryRequest(BaseModel):
     query: str = Field(..., example="Сколько стоит тариф Pro?")
     top_k: int = Field(5, ge=1, le=20)
@@ -66,7 +77,7 @@ class RAGIngestRequest(BaseModel):
 app = FastAPI(
     title="UCust AI Service Gateway",
     description="Единая точка входа для бэкенда и фронтенда к команде автономных ИИ-агентов UCust.",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 # Разрешаем CORS для любых фронтендов (React, Next.js, Vue, Mobile)
@@ -77,6 +88,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Раздача сгенерированных фото и медиа файлов
+output_static_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"))
+os.makedirs(os.path.join(output_static_dir, "photos"), exist_ok=True)
+app.mount("/output", StaticFiles(directory=output_static_dir), name="output")
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -182,6 +198,19 @@ async def get_frontend_graphs():
         "status": "success",
         "data": graphs_data
     }
+
+
+@app.post("/api/v1/ai/generate-image", tags=["Visual & Media"])
+async def generate_smm_image(request: ImageGenerateRequest):
+    """
+    Генерация качественного SMM-изображения для постов, баннеров и сторис.
+    """
+    result = await orchestrator.execute_task(
+        task_type="generate_image",
+        user_data=request.dict(),
+        session_id=f"img_{uuid.uuid4().hex[:8]}"
+    )
+    return result
 
 
 @app.post("/api/v1/ai/rag/query", tags=["Knowledge Base RAG"])

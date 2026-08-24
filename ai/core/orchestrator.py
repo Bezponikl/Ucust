@@ -175,6 +175,7 @@ class UnifiedOrchestrator:
         if task_type == "generate_post":
             from skills.holiday_congratulator import HolidayCongratulatorSkill
             from skills.advanced_visual_director import AdvancedVisualDirector
+            from skills.photo_generator import PhotoGeneratorSkill
             
             prompt = user_data.get("prompt") or user_data.get("topic") or "Новое предложение для клиентов"
             format_type = user_data.get("format", "post")
@@ -182,6 +183,8 @@ class UnifiedOrchestrator:
             niche = user_data.get("niche", "Бизнес")
             city = user_data.get("city", "Москва")
             company_name = user_data.get("company_name", "UCust")
+            should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
+            aspect_ratio = user_data.get("aspect_ratio", "1:1")
             
             print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', формат: {format_type}, тон: {tone}")
             
@@ -204,6 +207,22 @@ class UnifiedOrchestrator:
             # 3. Формирование видео/визуального промпта по стандарту LTX-2
             director = AdvancedVisualDirector(brand_images=[])
             video_prompt = gen_result.get("video_prompt", "")
+
+            # 4. Генерация SMM Фотографии
+            image_url = None
+            photo_prompt = None
+            if should_gen_image:
+                try:
+                    photo_skill = PhotoGeneratorSkill()
+                    photo_res = await photo_skill.generate_photo(
+                        topic=prompt,
+                        niche=niche,
+                        aspect_ratio=aspect_ratio
+                    )
+                    image_url = photo_res.get("image_url")
+                    photo_prompt = photo_res.get("positive_prompt")
+                except Exception as ex:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка генерации фото: {ex}")
             
             self._log_trace(session_id, "SaigaCopywriter", "PostGenerated", {"topic": prompt, "format": format_type})
             return {
@@ -211,10 +230,34 @@ class UnifiedOrchestrator:
                 "post_text": post_text,
                 "promo_code": promo_code,
                 "video_prompt": video_prompt,
+                "photo_prompt": photo_prompt,
+                "image_url": image_url,
+                "photo_url": image_url,
                 "confidence_score": 0.96,
                 "format": format_type,
                 "tone": tone
             }
+
+        if task_type in ["generate_image", "generate_photo"]:
+            from skills.photo_generator import PhotoGeneratorSkill
+            
+            prompt = user_data.get("prompt") or user_data.get("topic") or "Специальное предложение"
+            niche = user_data.get("niche", "Бизнес")
+            aspect_ratio = user_data.get("aspect_ratio", "1:1")
+            style = user_data.get("style", "photorealistic")
+            brand_colors = user_data.get("brand_colors")
+            
+            photo_skill = PhotoGeneratorSkill()
+            photo_res = await photo_skill.generate_photo(
+                topic=prompt,
+                niche=niche,
+                aspect_ratio=aspect_ratio,
+                brand_colors=brand_colors,
+                style=style
+            )
+            
+            self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {"topic": prompt, "aspect_ratio": aspect_ratio})
+            return photo_res
 
         if task_type == "rag_query":
             from rag.pipeline import CleanRAGPipeline

@@ -13,15 +13,25 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 try:
+    from dotenv import load_dotenv
+    for _env in [".env", "ai/.env", os.path.join(os.path.dirname(__file__), "..", ".env"), "/opt/ucust/ai/.env", "/opt/ucust/.env"]:
+        if os.path.exists(_env):
+            load_dotenv(_env)
+except Exception:
+    pass
+
+try:
     from telethon import TelegramClient
 except ImportError:
     TelegramClient = None
 
 class AchievementBroadcaster:
     DEFAULT_CHANNEL = "@UcustAi"
+    DEFAULT_BOT_TOKEN = "8840988455:AAFsUPjrOSvQdMpuK5c-MkQdPcVB092tPzw"
 
     def __init__(self, target_channel: Optional[str] = None):
         self.target_channel = target_channel or os.getenv("UCUST_ACHIEVEMENT_CHANNEL", self.DEFAULT_CHANNEL)
+        self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("UCUST_TELEGRAM_BOT_TOKEN") or self.DEFAULT_BOT_TOKEN
         self.api_id = os.getenv("TELETHON_API_ID") or os.getenv("TELEGRAM_API_ID", "37805806")
         self.api_hash = os.getenv("TELETHON_API_HASH") or os.getenv("TELEGRAM_API_HASH", "3edb95f2db1a5bf4d67608d79db10bbf")
         
@@ -116,7 +126,7 @@ class AchievementBroadcaster:
         """
         Публикация через официальный Telegram Bot API по HTTPS (без таймаутов MTProto).
         """
-        bot_token = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("UCUST_TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN")
+        bot_token = self.bot_token
         if not bot_token:
             return None
 

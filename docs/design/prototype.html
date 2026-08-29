@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UCust — прототип визуала v0.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --brand: #4f7dff; --brand-tint: #e6ecff;
+    --ink: #1f2433; --ink-muted: #6b7280; --ink-soft: #c3c7d2;
+    --canvas: #f2f4f7; --card: #fff; --border: #e6e9f0;
+    --gradient-brand: linear-gradient(110deg, #4f7dff 0%, #7b5cff 38%, #ff5fa2 72%, #ff8c4b 100%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: "Manrope", system-ui, sans-serif; color: var(--ink); background: var(--canvas); line-height: 1.5; overflow-x: clip; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+  section { padding: 11vh 0; }
+  .kicker { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .16em; color: var(--brand); margin-bottom: 16px; }
+  .sub { margin-top: 20px; max-width: 60ch; font-size: 18px; color: var(--ink-muted); }
+  .tierlab { font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 8px; opacity: .8; }
+  .foot { text-align: center; color: var(--ink-muted); font-size: 14px; padding: 8vh 0 12vh; }
+  .hint { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
+    background: rgba(255,255,255,.7); backdrop-filter: blur(14px) saturate(180%);
+    border: 1px solid rgba(168,192,255,.5); border-radius: 999px; padding: 9px 18px;
+    font-size: 13px; font-weight: 600; color: var(--ink); box-shadow: 0 6px 18px -10px rgba(31,49,120,.34); }
+
+  /* ══════ ИЕРАРХИЯ ЗАГОЛОВКОВ ══════ */
+  /* Уровень 1 — ФЛАГМАН: крупный + заливка градиентом по скроллу (редко!) */
+  .h1-fill { font-size: clamp(38px, 6.4vw, 78px); font-weight: 800; letter-spacing: -.035em; line-height: 1.03; }
+  .h1-fill .line { display: block; position: relative; color: var(--ink-soft); }
+  .h1-fill .line::after {
+    content: attr(data-t); position: absolute; inset: 0; white-space: pre-wrap;
+    background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+    clip-path: inset(0 calc((1 - var(--p, 0)) * 100%) 0 0);
+  }
+  /* Уровень 2 — обычный заголовок секции: тёмный, лишь одно слово-акцент в градиенте */
+  .h2-normal { font-size: clamp(26px, 3.6vw, 42px); font-weight: 800; letter-spacing: -.02em; line-height: 1.12; color: var(--ink); }
+  .h2-normal .accent { background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* Уровень 3 — рядовой заголовок: просто тёмный, спокойный */
+  .h3-plain { font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; color: var(--ink); }
+
+  /* ══════ ИИ-СФЕРА → РАДУЖНАЯ ПОЛОСА (расширенная) ══════ */
+  .orb-stage { position: relative; height: 420px; border-radius: 32px; overflow: hidden;
+    background: radial-gradient(130% 130% at 50% 115%, #1b2138, #0a0c15 70%); display: flex; align-items: center; justify-content: center; }
+  .stars { position: absolute; inset: 0; opacity: .7;
+    background-image: radial-gradient(1.4px 1.4px at 20% 30%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 70% 20%, #cfe0ff, transparent),
+      radial-gradient(1.6px 1.6px at 40% 70%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 85% 60%, #bcd0ff, transparent),
+      radial-gradient(1.4px 1.4px at 60% 85%, #fff, transparent),
+      radial-gradient(1px 1px at 30% 50%, #9db8ff, transparent);
+    animation: twinkleBg 5s ease-in-out infinite; }
+  @keyframes twinkleBg { 0%,100%{opacity:.45} 50%{opacity:.85} }
+
+  .orb { position: relative; width: 170px; height: 170px; }
+  /* Внешний пульсирующий ореол */
+  .orb .halo { position: absolute; inset: -60%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,125,255,.5), rgba(123,92,255,.18) 45%, transparent 70%);
+    filter: blur(6px); animation: halo 3.4s ease-in-out infinite; }
+  @keyframes halo { 0%,100%{transform:scale(.85);opacity:.5} 50%{transform:scale(1.1);opacity:.9} }
+  /* Вращающееся энергокольцо из нашего градиента */
+  .orb .ring { position: absolute; inset: -14%; border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(79,125,255,0) 160deg, #4f7dff 250deg, #7b5cff 300deg, #ff5fa2 340deg, transparent 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%, #000 72%, transparent 74%);
+    mask: radial-gradient(circle, transparent 60%, #000 62%, #000 72%, transparent 74%);
+    animation: spin 7s linear infinite; }
+  .orb .ring.r2 { inset: -30%; animation: spin 11s linear infinite reverse; opacity: .55; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Ядро-сфера */
+  .orb .core { position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at 36% 30%, #fff 0%, #cfe0ff 15%, #4f7dff 45%, #2445c9 72%, #101b50 100%);
+    box-shadow: 0 0 70px rgba(79,125,255,.55), inset -7px -9px 22px rgba(4,16,64,.6), inset 7px 7px 18px rgba(255,255,255,.55);
+    animation: orbMorph 6.5s ease-in-out infinite; }
+  .orb .core::after { content:""; position:absolute; top:14%; left:20%; width:36%; height:28%; border-radius:50%;
+    background: radial-gradient(circle, rgba(255,255,255,.95), transparent 72%); filter: blur(1px); }
+  /* Орбитирующие частицы */
+  .orbit { position: absolute; inset: -14%; animation: spin 9s linear infinite; }
+  .orbit .p { position: absolute; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+  .orbit .p1 { top: -2px; left: 50%; color: #7b5cff; background: #7b5cff; }
+  .orbit .p2 { bottom: 6%; left: -2px; color: #ff5fa2; background: #ff5fa2; }
+  .orbit .p3 { bottom: 10%; right: 2%; color: #ff8c4b; background: #ff8c4b; }
+  /* Морф в полосу света */
+  .orb .bar { position: absolute; top: 50%; left: 50%; width: 300px; height: 54px; transform: translate(-50%,-50%) scaleX(0);
+    border-radius: 999px; background: var(--gradient-brand); filter: blur(16px); opacity: 0; animation: barMorph 6.5s ease-in-out infinite; }
+  .orb .barcore { position: absolute; top: 50%; left: 50%; width: 270px; height: 10px; transform: translate(-50%,-50%) scaleX(0);
+    border-radius: 999px; background: linear-gradient(90deg, transparent, #fff 18%, #cfe0ff 50%, #fff 82%, transparent);
+    opacity: 0; animation: barMorph 6.5s ease-in-out infinite; }
+  /* Эквалайзер под полосой (голос ИИ) */
+  .eq { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 42px); display: flex; gap: 6px; align-items: flex-end; height: 40px; opacity: 0; animation: eqShow 6.5s ease-in-out infinite; }
+  .eq i { width: 5px; border-radius: 3px; background: var(--gradient-brand); }
+  .eq i:nth-child(1){animation:eq 1s ease-in-out infinite}
+  .eq i:nth-child(2){animation:eq 1s ease-in-out .15s infinite}
+  .eq i:nth-child(3){animation:eq 1s ease-in-out .3s infinite}
+  .eq i:nth-child(4){animation:eq 1s ease-in-out .45s infinite}
+  .eq i:nth-child(5){animation:eq 1s ease-in-out .6s infinite}
+  @keyframes eq { 0%,100%{height:8px} 50%{height:34px} }
+  @keyframes eqShow { 0%,40%{opacity:0} 52%,64%{opacity:.9} 78%,100%{opacity:0} }
+  @keyframes orbMorph { 0%,30%{transform:scale(1);opacity:1} 50%{transform:scale(.35);opacity:0} 70%,100%{transform:scale(1);opacity:1} }
+  @keyframes barMorph { 0%,34%{transform:translate(-50%,-50%) scaleX(0);opacity:0} 50%,62%{transform:translate(-50%,-50%) scaleX(1);opacity:1} 78%,100%{transform:translate(-50%,-50%) scaleX(0);opacity:0} }
+
+  /* ══════ КАРТОЧКИ (демо hover — реальные «сюжеты» генерим в Claude Design) ══════ */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+  .card { border-radius: 28px; overflow: hidden; background: var(--card); border: 1px solid var(--border);
+    box-shadow: 0 2px 14px rgba(10,14,26,.05); transition: transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s; }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 20px 44px -18px rgba(31,49,120,.32); }
+  .card .art { position: relative; aspect-ratio: 4/5; overflow: hidden;
+    background: radial-gradient(120% 95% at 50% 0%, #eaf1ff, #d6e4ff); display: flex; align-items: center; justify-content: center; }
+  .card .badge { position: absolute; top: 14px; left: 14px; font-size: 11px; font-weight: 700; color: var(--brand);
+    background: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.8); border-radius: 999px; padding: 4px 10px; }
+  .card .scene { font-size: 13px; font-weight: 600; color: #46506b; text-align: center; padding: 0 20px; }
+  .card .m { padding: 18px 22px 22px; }
+  .card .m h4 { font-size: 19px; font-weight: 700; }
+  .card .m p { margin-top: 5px; font-size: 13px; color: var(--ink-muted); }
+
+  /* ══════ ВЕЕР УСТРОЙСТВ ══════ */
+  .cluster { position: relative; height: 440px; display: flex; align-items: center; justify-content: center; }
+  .panel { position: absolute; width: 150px; height: 300px; border-radius: 26px; background: var(--card);
+    border: 1px solid var(--border); box-shadow: 0 24px 50px -20px rgba(31,49,120,.4); overflow: hidden; transition: transform .1s linear; will-change: transform; }
+  .panel .bar-top { height: 26px; background: var(--brand-tint); }
+  .panel .row { height: 14px; margin: 12px; border-radius: 6px; background: #eef1f7; }
+  .panel .row.a{width:70%} .panel .row.b{width:90%} .panel .row.c{width:55%}
+  .panel .thumb { height: 92px; margin: 12px; border-radius: 12px; background: var(--gradient-brand); opacity: .85; }
+  .panel.center { z-index: 5; width: 172px; height: 336px; }
+  .panel.center .bar-top { background: var(--brand); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .h1-fill .line::after { clip-path: none; }
+    .orb .core, .orb .bar, .orb .barcore, .orbit, .orb .ring, .eq, .halo, .stars { animation: none; }
+    .orb .bar, .orb .barcore, .eq { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="hint">↓ Листай — градиент только на флагманах, сфера с деталями, устройства собираются</div>
+
+<!-- ФЛАГМАН -->
+<section class="wrap" style="padding-top:19vh">
+  <div class="kicker">UCust · прототип визуала v0.2</div>
+  <h1 class="h1-fill"><span class="line" data-t="Соцсети бизнеса" data-fillword>Соцсети бизнеса</span><span class="line" data-t="ведёт ИИ." data-fillword>ведёт ИИ.</span></h1>
+  <p class="sub">Заливка градиентом — приём для 2–3 ключевых заголовков на всю страницу (герой, финал). Не на каждом блоке — иначе теряется вес.</p>
+</section>
+
+<!-- ИЕРАРХИЯ ЗАГОЛОВКОВ -->
+<section class="wrap">
+  <div class="tierlab">Уровень 1 — флагман (крупный + заливка на скролле)</div>
+  <h2 class="h1-fill"><span class="line" data-t="Расскажите один раз —" data-fillword>Расскажите один раз —</span><span class="line" data-t="дальше работает ИИ." data-fillword>дальше работает ИИ.</span></h2>
+
+  <div style="height:8vh"></div>
+  <div class="tierlab">Уровень 2 — обычный заголовок секции (акцент — одно слово)</div>
+  <h3 class="h2-normal">Всё для соцсетей — <span class="accent">в одном месте</span></h3>
+
+  <div style="height:6vh"></div>
+  <div class="tierlab">Уровень 3 — рядовой заголовок (спокойный, тёмный)</div>
+  <h4 class="h3-plain">Частые вопросы</h4>
+
+  <p class="sub">Так держится иерархия: глаз цепляется за флагман, остальное читается спокойно. Это и есть «не всё большим шрифтом».</p>
+</section>
+
+<!-- СФЕРА -->
+<section class="wrap">
+  <div class="kicker">ИИ-сфера → радужная полоса · больше деталей</div>
+  <div class="orb-stage">
+    <div class="stars"></div>
+    <div class="orb">
+      <div class="halo"></div>
+      <div class="ring"></div>
+      <div class="ring r2"></div>
+      <div class="orbit"><span class="p p1"></span><span class="p p2"></span><span class="p p3"></span></div>
+      <div class="core"></div>
+      <div class="bar"></div>
+      <div class="barcore"></div>
+      <div class="eq"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+  <p class="sub">Добавил: звёздное поле, пульсирующий ореол, два встречно вращающихся энергокольца из нашего градиента, орбитирующие частицы-цвета бренда, эквалайзер «голоса ИИ» на фазе полосы. Хочешь — добавлю ещё: реакцию на курсор, вылет частиц-публикаций к иконкам каналов, «дыхание» в такт тексту.</p>
+</section>
+
+<!-- КАРТОЧКИ-СЮЖЕТЫ -->
+<section class="wrap">
+  <div class="kicker">Карточки-сюжеты (превью идеи — сцены генерим в Claude Design)</div>
+  <div class="cards">
+    <div class="card">
+      <div class="art"><span class="badge">Сюжет</span><div class="scene">Фраза владельца кафе<br/>расцветает в готовый пост<br/>с фото и подписью</div></div>
+      <div class="m"><h4>Генерация постов</h4><p>Одна фраза → готовый пост.</p></div>
+    </div>
+    <div class="card">
+      <div class="art"><span class="badge">Сюжет</span><div class="scene">Мини-посты сдаются<br/>в клетки календаря,<br/>как колода карт</div></div>
+      <div class="m"><h4>Контент-план</h4><p>Месяц вперёд за секунды.</p></div>
+    </div>
+    <div class="card">
+      <div class="art"><span class="badge">Сюжет</span><div class="scene">Самолётик-пост вылетает<br/>и разлетается ручьями<br/>к VK · TG · MAX ночью</div></div>
+      <div class="m"><h4>Автопостинг</h4><p>Публикует, пока вы спите.</p></div>
+    </div>
+  </div>
+  <p class="sub">Это не «иконка + текст», а маленькая история на каждую функцию (как у Apple). Полные детальные сцены — в брифе для Claude Design: <b>docs/design/claude-design-brief.md</b>.</p>
+</section>
+
+<!-- ВЕЕР -->
+<section class="wrap">
+  <div class="kicker">Сборка «веера устройств» на скролле</div>
+  <div class="cluster" id="cluster">
+    <div class="panel p-l2"><div class="bar-top"></div><div class="thumb"></div><div class="row a"></div><div class="row b"></div></div>
+    <div class="panel p-l1"><div class="bar-top"></div><div class="row a"></div><div class="thumb"></div><div class="row c"></div></div>
+    <div class="panel center"><div class="bar-top"></div><div class="thumb"></div><div class="row b"></div><div class="row a"></div><div class="row c"></div></div>
+    <div class="panel p-r1"><div class="bar-top"></div><div class="row b"></div><div class="thumb"></div><div class="row a"></div></div>
+    <div class="panel p-r2"><div class="bar-top"></div><div class="thumb"></div><div class="row c"></div><div class="row b"></div></div>
+  </div>
+  <p class="sub">Реальные экраны приложения (могу наснять Playwright’ом) раскладываются веером по мере прокрутки.</p>
+</section>
+
+<div class="foot">UCust · прототип v0.2 · Manrope + фирменный градиент · открой в Chrome на десктопе</div>
+
+<script>
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lines = [...document.querySelectorAll('[data-fillword]')];
+  function tick() {
+    const vh = innerHeight;
+    for (const el of lines) {
+      const r = el.getBoundingClientRect();
+      const start = vh * 0.85, end = vh * 0.45;
+      let p = (start - r.top) / (start - end);
+      p = Math.max(0, Math.min(1, p));
+      el.style.setProperty('--p', reduce ? 1 : p.toFixed(3));
+    }
+  }
+  const cluster = document.getElementById('cluster');
+  const q = s => document.querySelector(s);
+  const panels = { l2:q('.p-l2'), l1:q('.p-l1'), r1:q('.p-r1'), r2:q('.p-r2') };
+  function clusterTick() {
+    const r = cluster.getBoundingClientRect(), vh = innerHeight;
+    let p = (vh*0.9 - r.top) / (vh*0.7);
+    p = Math.max(0, Math.min(1, reduce ? 1 : p));
+    const set = (el,x,rot) => { el.style.transform = `translateX(${x*p}px) rotate(${rot*p}deg)`; el.style.opacity = 0.4+0.6*p; };
+    set(panels.l2,-300,-14); set(panels.l1,-155,-7); set(panels.r1,155,7); set(panels.r2,300,14);
+  }
+  function frame(){ tick(); clusterTick(); }
+  addEventListener('scroll', frame, { passive: true });
+  addEventListener('resize', frame);
+  frame();
+</script>
+</body>
+</html>

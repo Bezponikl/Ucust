@@ -58,7 +58,7 @@ class AchievementBroadcaster:
             f"🚀 <b>UCust AI: {title}</b>",
             f"📅 <i>{now_str}</i> | 🏷️ <code>#{category.replace(' ', '_')}</code>",
             "",
-            f"🏆 <b>Суть достижения:</b>",
+            f"🔥 <b>Ключевые изменения:</b>",
             f"{description.strip()}",
             ""
         ]

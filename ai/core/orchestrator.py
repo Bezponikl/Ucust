@@ -195,6 +195,20 @@ class UnifiedOrchestrator:
             saiga = SaigaLLMSkill()
             clean_posts_input = [website_data["structured_dossier"]] if website_data and website_data.get("structured_dossier") else None
             brand_profile = saiga.analyze_brand_profile(user_data, clean_posts=clean_posts_input)
+            
+            # Генерация глубокой контент-стратегии и портрета покупателя (Persona & Strategy Engine)
+            from skills.content_strategy_engine import ContentStrategyEngine
+            strat_engine = ContentStrategyEngine()
+            strategy_data = strat_engine.generate_strategy(
+                company_name=company_name,
+                niche=brand_profile.get("field", activity),
+                target_audience=brand_profile.get("market", {}).get("segment", ""),
+                key_usp=brand_profile.get("positioning", "")
+            )
+            brand_profile["buyer_persona"] = strategy_data.get("buyer_persona", {})
+            brand_profile["funnel_matrix"] = strategy_data.get("funnel_matrix", {})
+            brand_profile["viral_hooks"] = strategy_data.get("hooks_arsenal", [])
+
             if website_data:
                 brand_profile["website_data"] = {
                     "title": website_data.get("title"),
@@ -207,6 +221,7 @@ class UnifiedOrchestrator:
                 brand_profile["brand_colors"] = moondream_analysis.get("colors")
                 brand_profile["visual_summary"] = moondream_analysis.get("summary")
             self._log_trace(session_id, "Agent_Saiga", "Synthesized_Profile", brand_profile)
+            self._log_trace(session_id, "Agent_ContentStrategist", "StrategySynthesized", strategy_data)
             
             # Сохранение в БД
             profile_id = None
@@ -320,10 +335,22 @@ class UnifiedOrchestrator:
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")
             
-            # 2. Валидация качества текста (Tone of Voice Gatekeeper)
+            # 2. Валидация качества текста (Tone of Voice Gatekeeper & Charlie Munger Pre-Mortem)
+            from skills.critic_munger import CriticMungerSkill
             is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
             if not is_valid:
                 post_text = saiga.self_heal_text(post_text, error_msg or "")
+                
+            critic = CriticMungerSkill(strictness=0.80)
+            critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche)
+            if not critic_res.get("passed"):
+                print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
+                post_text = saiga.self_heal_text(post_text, critic_res.get("actionable_feedback", ""))
+                # Повторная проверка
+                critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche)
+                self._log_trace(session_id, "Agent_Critic_Munger", "PostReviewedAndHealed", critic_res)
+            else:
+                self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", critic_res)
             
             # 3. Формирование видео/визуального промпта по стандарту LTX-2
             director = AdvancedVisualDirector(brand_images=[])
@@ -362,6 +389,7 @@ class UnifiedOrchestrator:
                 "confidence_score": 0.96,
                 "format": format_type,
                 "tone": tone,
+                "critic_review": critic_res,
                 "moondream_analysis": moondream_analysis
             }
 
@@ -390,6 +418,46 @@ class UnifiedOrchestrator:
             
             self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {"topic": prompt, "aspect_ratio": aspect_ratio})
             return photo_res
+
+        if task_type in ["analyze_competitor", "competitive_intel"]:
+            from skills.competitive_intel import CompetitiveIntelSkill
+            url = user_data.get("url") or user_data.get("competitor_url") or ""
+            niche = user_data.get("niche", "")
+            intel = CompetitiveIntelSkill()
+            res = await intel.analyze_competitor_async(url, my_company_niche=niche)
+            self._log_trace(session_id, "CompetitiveIntelAnalyst", "CompetitorAnalyzed", {
+                "competitor_url": url,
+                "status": res.get("status")
+            })
+            return res
+
+        if task_type in ["generate_strategy", "content_strategy"]:
+            from skills.content_strategy_engine import ContentStrategyEngine
+            company_name = user_data.get("company_name", "UCust")
+            niche = user_data.get("niche", "Бизнес")
+            target_audience = user_data.get("target_audience", "")
+            usp = user_data.get("usp", "")
+            engine = ContentStrategyEngine()
+            strat_res = engine.generate_strategy(company_name, niche, target_audience, usp)
+            self._log_trace(session_id, "ContentStrategyEngine", "StrategyGenerated", {
+                "company_name": company_name,
+                "niche": niche
+            })
+            return strat_res
+
+        if task_type in ["critic_review", "review_content"]:
+            from skills.critic_munger import CriticMungerSkill
+            text = user_data.get("text") or user_data.get("content") or ""
+            topic = user_data.get("topic", "")
+            niche = user_data.get("niche", "")
+            strictness = float(user_data.get("strictness", 0.85))
+            critic = CriticMungerSkill(strictness=strictness)
+            review = critic.review_content(text, topic=topic, target_audience=niche)
+            self._log_trace(session_id, "Agent_Critic_Munger", "ManualReviewCompleted", review)
+            return {
+                "status": "success",
+                "review": review
+            }
 
         if task_type == "rag_query":
             from rag.pipeline import CleanRAGPipeline

@@ -78,6 +78,25 @@ class WebsiteAnalyzeRequest(BaseModel):
     url: str = Field(..., example="https://ucust.ai", description="URL веб-сайта компании для парсинга и анализа")
 
 
+class CompetitorAnalyzeRequest(BaseModel):
+    url: str = Field(..., example="https://competitor.com", description="URL сайта конкурента для декомпозиции")
+    niche: Optional[str] = Field("Бизнес", example="Автосервис", description="Ниша вашей компании")
+
+
+class StrategyGenerateRequest(BaseModel):
+    company_name: Optional[str] = Field("UCust", example="UCust")
+    niche: str = Field(..., example="IT Автоматизация")
+    target_audience: Optional[str] = Field("", example="Предприниматели 25-45 лет")
+    usp: Optional[str] = Field("", example="Автономный маркетинг за 1 день")
+
+
+class CriticReviewRequest(BaseModel):
+    text: str = Field(..., description="Текст поста или оффера для инверсионного аудита Чарли Мангера")
+    topic: Optional[str] = Field("", description="Тема поста")
+    niche: Optional[str] = Field("", description="Целевая ниша")
+    strictness: Optional[float] = Field(0.85, description="Строгость критика (0.5 - мягкая, 0.95 - жесткая)")
+
+
 # -------------------------------------------------------------------
 # 2. Инициализация FastAPI приложения
 # -------------------------------------------------------------------
@@ -276,6 +295,70 @@ async def analyze_website(request: WebsiteAnalyzeRequest):
     return {
         "status": "success",
         "analyst": "WebsiteCollector",
+        "data": result
+    }
+
+
+@app.post("/api/v1/ai/competitor/analyze", tags=["Web & Social Intelligence"])
+async def analyze_competitor(request: CompetitorAnalyzeRequest):
+    """
+    Глубокая декомпозиция конкурента (Strengths, Weaknesses, Pricing, UVP)
+    и генерация контр-стратегии отстройки для SMM.
+    """
+    from skills.competitive_intel import CompetitiveIntelSkill
+    intel = CompetitiveIntelSkill()
+    result = await intel.analyze_competitor_async(request.url, my_company_niche=request.niche)
+    
+    if result.get("status") == "error":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ошибка анализа конкурента: {result.get('error')}"
+        )
+        
+    return {
+        "status": "success",
+        "analyst": "CompetitiveIntelSkill",
+        "data": result
+    }
+
+
+@app.post("/api/v1/ai/strategy/generate", tags=["Content Strategy & Personas"])
+async def generate_content_strategy(request: StrategyGenerateRequest):
+    """
+    Генерация воронки контента (TOFU / MOFU / BOFU), арсенала виральных хуков
+    и глубокого портрета покупателя (Jobs-to-be-Done, Pains, Triggers).
+    """
+    from skills.content_strategy_engine import ContentStrategyEngine
+    engine = ContentStrategyEngine()
+    result = engine.generate_strategy(
+        company_name=request.company_name or "UCust",
+        niche=request.niche,
+        target_audience=request.target_audience or "",
+        key_usp=request.usp or ""
+    )
+    return {
+        "status": "success",
+        "strategist": "ContentStrategyEngine",
+        "data": result
+    }
+
+
+@app.post("/api/v1/ai/critic/review", tags=["Content Quality & Pre-Mortem"])
+async def review_content_with_critic(request: CriticReviewRequest):
+    """
+    Инверсионный Pre-Mortem аудит текста (методология Чарли Мангера):
+    выявление клише, скучных хуков, отсутствия CTA и генерация правок для автора.
+    """
+    from skills.critic_munger import CriticMungerSkill
+    critic = CriticMungerSkill(strictness=request.strictness or 0.85)
+    result = critic.review_content(
+        text=request.text,
+        topic=request.topic or "",
+        target_audience=request.niche or ""
+    )
+    return {
+        "status": "success",
+        "critic": "Charlie Munger Pre-Mortem Agent",
         "data": result
     }
 

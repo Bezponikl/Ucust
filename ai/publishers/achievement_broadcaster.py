@@ -82,6 +82,36 @@ class AchievementBroadcaster:
         except Exception:
             return raw_post
 
+    def _get_proxy_config(self) -> Optional[dict]:
+        proxy_url = os.getenv("TELETHON_PROXY_URL", "").strip()
+        proxy_type_env = os.getenv("TELETHON_PROXY_TYPE", "").strip().lower()
+        proxy_host = os.getenv("TELETHON_PROXY_HOST", "").strip()
+        proxy_port = os.getenv("TELETHON_PROXY_PORT", "").strip()
+        proxy_user = os.getenv("TELETHON_PROXY_USER", "").strip() or None
+        proxy_pass = os.getenv("TELETHON_PROXY_PASSWORD", "").strip() or None
+
+        if proxy_url:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(proxy_url)
+            proxy_type_env = parsed.scheme.lower()
+            proxy_host = parsed.hostname or ""
+            proxy_port = str(parsed.port or 1080)
+            proxy_user = parsed.username
+            proxy_pass = parsed.password
+
+        if not proxy_host or not proxy_port or not proxy_port.isdigit():
+            return None
+
+        ptype = 2 if "socks5" in proxy_type_env else (1 if "socks4" in proxy_type_env else 3)
+        return {
+            'proxy_type': ptype,
+            'addr': proxy_host,
+            'port': int(proxy_port),
+            'username': proxy_user,
+            'password': proxy_pass,
+            'rdns': True
+        }
+
     async def broadcast_milestone_async(
         self,
         title: str,
@@ -117,7 +147,16 @@ class AchievementBroadcaster:
                 "message": f"Некорректный API_ID: {self.api_id}"
             }
 
-        client = TelegramClient(self.session_name, api_id_int, self.api_hash)
+        proxy = self._get_proxy_config()
+        client = TelegramClient(
+            self.session_name,
+            api_id_int,
+            self.api_hash,
+            proxy=proxy,
+            timeout=30.0,
+            use_ipv6=False,
+            connection_retries=5
+        )
         
         try:
             await client.connect()

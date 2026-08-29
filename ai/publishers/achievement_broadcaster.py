@@ -112,6 +112,53 @@ class AchievementBroadcaster:
             'rdns': True
         }
 
+    async def _publish_via_bot_api(self, post_text: str, media_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Публикация через официальный Telegram Bot API по HTTPS (без таймаутов MTProto).
+        """
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("UCUST_TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN")
+        if not bot_token:
+            return None
+
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                if media_path and os.path.exists(media_path):
+                    with open(media_path, "rb") as f:
+                        resp = await client.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                            data={
+                                "chat_id": self.target_channel,
+                                "caption": post_text,
+                                "parse_mode": "HTML"
+                            },
+                            files={"photo": f}
+                        )
+                else:
+                    resp = await client.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        json={
+                            "chat_id": self.target_channel,
+                            "text": post_text,
+                            "parse_mode": "HTML"
+                        }
+                    )
+                
+                data = resp.json()
+                if data.get("ok"):
+                    print(f"[AchievementBroadcaster] Post published via Telegram Bot API to {self.target_channel}!")
+                    return {
+                        "status": "success",
+                        "method": "telegram_bot_api",
+                        "channel": self.target_channel,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                else:
+                    print(f"[AchievementBroadcaster] Bot API error: {data}")
+        except Exception as e:
+            print(f"[AchievementBroadcaster] Bot API exception: {e}")
+        return None
+
     async def broadcast_milestone_async(
         self,
         title: str,
@@ -132,6 +179,12 @@ class AchievementBroadcaster:
             author_agent=author_agent
         )
 
+        # 1. Сначала пробуем Telegram Bot API по HTTPS (самый быстрый и надежный в датацентрах)
+        bot_res = await self._publish_via_bot_api(post_text, media_path)
+        if bot_res:
+            return bot_res
+
+        # 2. Если Bot Token не задан, используем Telethon UserBot
         if not TelegramClient:
             return {
                 "status": "warning",
@@ -153,9 +206,9 @@ class AchievementBroadcaster:
             api_id_int,
             self.api_hash,
             proxy=proxy,
-            timeout=30.0,
+            timeout=15.0,
             use_ipv6=False,
-            connection_retries=5
+            connection_retries=2
         )
         
         try:

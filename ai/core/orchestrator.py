@@ -459,6 +459,24 @@ class UnifiedOrchestrator:
                 "review": review
             }
 
+        if task_type in ["broadcast_achievement", "post_milestone"]:
+            from publishers.achievement_broadcaster import AchievementBroadcaster
+            title = user_data.get("title", "Новое достижение UCust AI")
+            desc = user_data.get("description") or user_data.get("desc", "Команда ИИ-агентов завершила важный этап.")
+            metrics = user_data.get("metrics", [])
+            media_path = user_data.get("media_path") or user_data.get("media")
+            channel = user_data.get("channel", "@UcustAi")
+            
+            broadcaster = AchievementBroadcaster(target_channel=channel)
+            res = await broadcaster.broadcast_milestone_async(
+                title=title,
+                description=desc,
+                metrics=metrics,
+                media_path=media_path
+            )
+            self._log_trace(session_id, "AchievementBroadcaster", "MilestoneBroadcasted", res)
+            return res
+
         if task_type == "rag_query":
             from rag.pipeline import CleanRAGPipeline
             query_text = user_data.get("query", "")

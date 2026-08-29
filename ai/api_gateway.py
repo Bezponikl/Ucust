@@ -97,6 +97,14 @@ class CriticReviewRequest(BaseModel):
     strictness: Optional[float] = Field(0.85, description="Строгость критика (0.5 - мягкая, 0.95 - жесткая)")
 
 
+class AchievementBroadcastRequest(BaseModel):
+    title: str = Field(..., example="Релиз автономного SMM-пайплайна 2.0", description="Заголовок достижения")
+    description: str = Field(..., example="Команда ИИ-агентов UCust завершила интеграцию критика и LTX-2.", description="Описание достижения")
+    metrics: Optional[List[str]] = Field(default_factory=list, example=["Скорость: 60 сек", "Качество: 98%"], description="Ключевые показатели")
+    media_path: Optional[str] = Field(None, description="Путь к фото или видео")
+    channel: Optional[str] = Field("@UcustAi", example="@UcustAi", description="Целевой Telegram-канал")
+
+
 # -------------------------------------------------------------------
 # 2. Инициализация FastAPI приложения
 # -------------------------------------------------------------------
@@ -359,6 +367,32 @@ async def review_content_with_critic(request: CriticReviewRequest):
     return {
         "status": "success",
         "critic": "Charlie Munger Pre-Mortem Agent",
+        "data": result
+    }
+
+
+@app.post("/api/v1/ai/achievements/post", tags=["Telegram Achievement Broadcaster"])
+async def broadcast_achievement_endpoint(request: AchievementBroadcastRequest):
+    """
+    Публикация крупного достижения / релиза в официальный Telegram-канал (@UcustAi).
+    Поддерживает прикрепление медиафайлов, форматирование метрик и HTML-теги.
+    """
+    from publishers.achievement_broadcaster import AchievementBroadcaster
+    broadcaster = AchievementBroadcaster(target_channel=request.channel or "@UcustAi")
+    result = await broadcaster.broadcast_milestone_async(
+        title=request.title,
+        description=request.description,
+        metrics=request.metrics,
+        media_path=request.media_path
+    )
+    if result.get("status") == "error":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ошибка публикации достижения: {result.get('error') or result.get('message')}"
+        )
+    return {
+        "status": "success",
+        "broadcaster": "Telethon AchievementBroadcaster",
         "data": result
     }
 

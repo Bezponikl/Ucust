@@ -132,7 +132,7 @@ class AchievementBroadcaster:
 
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=20.0, verify=False) as client:
                 if media_path and os.path.exists(media_path):
                     with open(media_path, "rb") as f:
                         resp = await client.post(

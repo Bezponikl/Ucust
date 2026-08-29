@@ -27,6 +27,45 @@ _SESSION = os.getenv("TELETHON_SESSION", "ucust_session").strip()
 _IS_CONFIGURED = bool(_API_ID and _API_HASH and _API_ID.isdigit())
 
 
+def _get_proxy_config() -> Optional[dict]:
+    """
+    Формирует конфигурацию прокси для Telethon из .env (SOCKS5 / HTTP / MTProto).
+    Поддерживает как TELETHON_PROXY_URL, так и раздельные параметры.
+    """
+    proxy_url = os.getenv("TELETHON_PROXY_URL", "").strip()
+    proxy_type_env = os.getenv("TELETHON_PROXY_TYPE", "").strip().lower()
+    proxy_host = os.getenv("TELETHON_PROXY_HOST", "").strip()
+    proxy_port = os.getenv("TELETHON_PROXY_PORT", "").strip()
+    proxy_user = os.getenv("TELETHON_PROXY_USER", "").strip() or None
+    proxy_pass = os.getenv("TELETHON_PROXY_PASSWORD", "").strip() or None
+
+    if proxy_url:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(proxy_url)
+        proxy_type_env = parsed.scheme.lower()
+        proxy_host = parsed.hostname or ""
+        proxy_port = str(parsed.port or 1080)
+        proxy_user = parsed.username
+        proxy_pass = parsed.password
+
+    if not proxy_host or not proxy_port or not proxy_port.isdigit():
+        return None
+
+    # Определение типа прокси (1=SOCKS4, 2=SOCKS5, 3=HTTP)
+    ptype = 2 if "socks5" in proxy_type_env else (1 if "socks4" in proxy_type_env else 3)
+    
+    proxy_dict = {
+        'proxy_type': ptype,
+        'addr': proxy_host,
+        'port': int(proxy_port),
+        'username': proxy_user,
+        'password': proxy_pass,
+        'rdns': True
+    }
+    print(f"[TelethonCollector] 🛡️ Использование прокси: {proxy_type_env or 'socks5'}://{proxy_host}:{proxy_port}")
+    return proxy_dict
+
+
 def _mock_payload(channel: str, limit: int) -> dict:
     """Возвращает фиктивные данные когда ключи не настроены."""
     return {
@@ -46,7 +85,8 @@ async def _fetch_channel_async(channel: str, limit: int) -> dict:
     from telethon import TelegramClient
     from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 
-    client = TelegramClient(_SESSION, int(_API_ID), _API_HASH)
+    proxy = _get_proxy_config()
+    client = TelegramClient(_SESSION, int(_API_ID), _API_HASH, proxy=proxy)
 
     messages_data = []
     try:

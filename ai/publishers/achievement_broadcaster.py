@@ -130,9 +130,18 @@ class AchievementBroadcaster:
         if not bot_token:
             return None
 
+        import ssl
+        import json
+        import urllib.request
+
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+
+        # 1. Сначала пробуем httpx с отключенной верификацией SSL
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=20.0, verify=False) as client:
+            async with httpx.AsyncClient(timeout=20.0, verify=ssl_ctx) as client:
                 if media_path and os.path.exists(media_path):
                     with open(media_path, "rb") as f:
                         resp = await client.post(
@@ -156,7 +165,7 @@ class AchievementBroadcaster:
                 
                 data = resp.json()
                 if data.get("ok"):
-                    print(f"[AchievementBroadcaster] Post published via Telegram Bot API to {self.target_channel}!")
+                    print(f"[AchievementBroadcaster] 🎉 Post published via Telegram Bot API to {self.target_channel}!")
                     return {
                         "status": "success",
                         "method": "telegram_bot_api",
@@ -166,7 +175,30 @@ class AchievementBroadcaster:
                 else:
                     print(f"[AchievementBroadcaster] Bot API error: {data}")
         except Exception as e:
-            print(f"[AchievementBroadcaster] Bot API exception: {e}")
+            print(f"[AchievementBroadcaster] httpx Bot API exception: {e}")
+
+        # 2. Fallback через стандартный urllib с unverified SSL context
+        try:
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            payload = json.dumps({
+                "chat_id": self.target_channel,
+                "text": post_text,
+                "parse_mode": "HTML"
+            }).encode('utf-8')
+            req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as response:
+                res_data = json.loads(response.read().decode())
+                if res_data.get("ok"):
+                    print(f"[AchievementBroadcaster] 🎉 Post published via urllib fallback to {self.target_channel}!")
+                    return {
+                        "status": "success",
+                        "method": "urllib_bot_api",
+                        "channel": self.target_channel,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+        except Exception as exc:
+            print(f"[AchievementBroadcaster] urllib fallback exception: {exc}")
+
         return None
 
     async def broadcast_milestone_async(

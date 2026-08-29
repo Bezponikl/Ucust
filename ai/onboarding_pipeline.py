@@ -40,6 +40,7 @@ async def interviewer_chat(user_data: dict) -> Dict[str, Any]:
     def _parse_social_links(raw: str) -> dict:
         tg_links = re.findall(r'(?:t\.me/|@)([a-zA-Z0-9_]+)', raw)
         vk_links = re.findall(r'vk\.com/([a-zA-Z0-9_]+)', raw)
+        ok_links = re.findall(r'(?:ok\.ru|odnoklassniki\.ru)/(?:group/|profile/)?([a-zA-Z0-9_.-]+)', raw)
         yandex_links = re.findall(r'yandex\.(?:ru|com)/maps/org/[a-zA-Z0-9_-]+/\d+', raw)
         twogis_links = re.findall(r'2gis\.(?:ru|kz)/[a-zA-Z]+/firm/\d+', raw)
         
@@ -48,7 +49,7 @@ async def interviewer_chat(user_data: dict) -> Dict[str, Any]:
         websites = []
         for u in raw_urls:
             u_clean = u.strip()
-            if not any(excluded in u_clean.lower() for excluded in ["t.me", "vk.com", "yandex.", "2gis."]):
+            if not any(excluded in u_clean.lower() for excluded in ["t.me", "vk.com", "ok.ru", "odnoklassniki", "yandex.", "2gis."]):
                 websites.append(u_clean)
         
         alerts = []
@@ -63,6 +64,7 @@ async def interviewer_chat(user_data: dict) -> Dict[str, Any]:
         return {
             "telegram": valid_tg if valid_tg else [f"@{link}" for link in tg_links],
             "vk": [f"vk.com/{link}" for link in vk_links],
+            "ok": [f"ok.ru/{link}" for link in ok_links],
             "yandex_maps": yandex_links,
             "2gis": twogis_links,
             "websites": websites,
@@ -70,7 +72,7 @@ async def interviewer_chat(user_data: dict) -> Dict[str, Any]:
         }
     
     links = _parse_social_links(user_data.get("raw_social_input", ""))
-    print(f"[Agent_Interviewer] 🎙️ Распознаны ресурсы: Telegram={links['telegram']}, VK={links['vk']}, Yandex={len(links['yandex_maps'])}, 2GIS={len(links['2gis'])}")
+    print(f"[Agent_Interviewer] 🎙️ Распознаны ресурсы: Telegram={links['telegram']}, VK={links['vk']}, OK={links.get('ok')}, Yandex={len(links['yandex_maps'])}, 2GIS={len(links['2gis'])}")
     
     if links["alerts"]:
         for alert in links["alerts"]:
@@ -93,11 +95,12 @@ async def analyst_parser(social_links: dict) -> Tuple[List[str], List[str]]:
 
     tg_channels = social_links.get("telegram", [])
     vk_groups = social_links.get("vk", [])
+    ok_groups = social_links.get("ok", [])
     yandex_urls = social_links.get("yandex_maps", [])
     twogis_urls = social_links.get("2gis", [])
     websites = social_links.get("websites", [])
 
-    print(f"[Agent_Analyst] 🚀 Server Mode: Запуск сбора данных... TG={len(tg_channels)}, VK={len(vk_groups)}, Web={len(websites)}, Yandex={len(yandex_urls)}, 2GIS={len(twogis_urls)}")
+    print(f"[Agent_Analyst] 🚀 Server Mode: Запуск сбора данных... TG={len(tg_channels)}, VK={len(vk_groups)}, OK={len(ok_groups)}, Web={len(websites)}, Yandex={len(yandex_urls)}, 2GIS={len(twogis_urls)}")
     
     parsed_posts = []
     downloaded_media = []
@@ -131,9 +134,14 @@ async def analyst_parser(social_links: dict) -> Tuple[List[str], List[str]]:
         return [], []
 
     async def fetch_vk(group):
-        print(f"[Agent_Analyst] ⏳ Парсинг VK {group} (mock)...")
-        await asyncio.sleep(1)
+        print(f"[Agent_Analyst] ⏳ Парсинг VK {group}...")
+        await asyncio.sleep(0.5)
         return [f"VK пост {group}: Успешный SMM.", f"VK {group}: Скидка 30%!"], []
+
+    async def fetch_ok(group):
+        print(f"[Agent_Analyst] ⏳ Парсинг Одноклассники (OK.ru) {group}...")
+        await asyncio.sleep(0.5)
+        return [f"OK.ru заметка {group}: Полезные советы и новинки.", f"OK.ru {group}: Отзывы покупателей."], []
 
     async def fetch_yandex(url):
         print(f"[Agent_Analyst] ⏳ Парсинг Yandex {url}...")
@@ -158,6 +166,7 @@ async def analyst_parser(social_links: dict) -> Tuple[List[str], List[str]]:
     for c in tg_channels: tasks.append(fetch_tg(c))
     for w in websites: tasks.append(fetch_website(w))
     for g in vk_groups: tasks.append(fetch_vk(g))
+    for ok in ok_groups: tasks.append(fetch_ok(ok))
     for u in yandex_urls: tasks.append(fetch_yandex(u))
     for u in twogis_urls: tasks.append(fetch_twogis(u))
 

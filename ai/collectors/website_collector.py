@@ -127,12 +127,14 @@ class WebsiteCollector:
         phones = list(set(re.findall(r'(?:\+7|8)[\s\-]?(?:\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2})', all_text_blob)))
         emails = list(set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', all_text_blob)))
         
-        social_profiles = {'telegram': [], 'vk': [], 'whatsapp': [], 'youtube': []}
+        social_profiles = {'telegram': [], 'vk': [], 'ok': [], 'whatsapp': [], 'youtube': []}
         for link in parser.links:
             if 't.me/' in link or 'telegram.me/' in link:
                 social_profiles['telegram'].append(link)
             elif 'vk.com/' in link:
                 social_profiles['vk'].append(link)
+            elif 'ok.ru/' in link or 'odnoklassniki.ru/' in link:
+                social_profiles['ok'].append(link)
             elif 'wa.me/' in link or 'whatsapp.com' in link:
                 social_profiles['whatsapp'].append(link)
             elif 'youtube.com' in link:

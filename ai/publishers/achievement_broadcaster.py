@@ -69,11 +69,18 @@ class AchievementBroadcaster:
                 lines.append(f" • {m}")
             lines.append("")
 
-        lines.append(f"⚡ <i>Автономно сгенерировано и подтверждено: {author_agent}</i>")
+        lines.append(f"⚡ <i>Автономно подтверждено: {author_agent}</i>")
         lines.append("")
-        lines.append("#UCust #UcustAI #ArtificialIntelligence #Automation #SMM #Milestone")
+        lines.append("#UCust #Достижения")
 
-        return "\n".join(lines)
+        raw_post = "\n".join(lines)
+        
+        # Строгая защита коммерческой тайны: фильтрация любых внутренних моделей, нод и параметров
+        try:
+            from core.orchestrator import SecurityGuard
+            return SecurityGuard.sanitize_public_text(raw_post)
+        except Exception:
+            return raw_post
 
     async def broadcast_milestone_async(
         self,

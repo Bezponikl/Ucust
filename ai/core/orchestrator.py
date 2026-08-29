@@ -20,7 +20,28 @@ class SecurityGuard:
         "безумно", "от всей души", "мы гордимся", "потрясающе", 
         "волшебный", "сказочный"
     ]
+
+    # Строгий запрет на утечку внутренних моделей, нод, связей и настроек
+    PROTECTED_IP_TERMS = [
+        "ltx", "ltx-video", "ltxv", "saiga", "moondream", "comfyui", "safetensors",
+        "lora", "clip", "latent", "cfg", "emptyllatent", "checkpoint", "vlm",
+        "gemma", "sdxl", "flux", "unipc", "karras", "sampler", "vae", "controlnet"
+    ]
     
+    @classmethod
+    def sanitize_public_text(cls, text: str) -> str:
+        """
+        Защита коммерческой тайны и IP: вырезает и маскирует любые упоминания
+        внутренних моделей, весов, нод и параметров генерации из публичных текстов.
+        """
+        if not text:
+            return ""
+        clean = text
+        for term in cls.PROTECTED_IP_TERMS:
+            pattern = re.compile(rf'\b{re.escape(term)}\b', re.IGNORECASE)
+            clean = pattern.sub("UCust AI Engine", clean)
+        return clean
+
     @classmethod
     def check_user_input(cls, user_text: str) -> bool:
         """

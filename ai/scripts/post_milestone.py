@@ -19,7 +19,7 @@ async def main():
     parser = argparse.ArgumentParser(description="Broadcast milestones to @UcustAi")
     parser.add_argument("--title", type=str, default="Новый рубеж автономии UCust AI", help="Заголовок достижения")
     parser.add_argument("--desc", type=str, default="Команда ИИ-агентов UCust успешно развернула автономный пайплайн генерации контента и анализа конкурентов.", help="Описание достижения")
-    parser.add_argument("--metrics", nargs="*", default=["Точность анализа: 98.4%", "Время отклика: 0.8s", "Генерация 4K LTX-2: Готова"], help="Список метрик")
+    parser.add_argument("--metrics", nargs="*", default=["Точность анализа: 98.4%", "Время отклика: 0.8s", "Генерация 4K UltraHD: Готова"], help="Список метрик")
     parser.add_argument("--media", type=str, default=None, help="Путь к фото или видео файлу")
     parser.add_argument("--channel", type=str, default="@UcustAi", help="Целевой Telegram-канал")
 

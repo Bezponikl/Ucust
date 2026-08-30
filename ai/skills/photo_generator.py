@@ -130,17 +130,40 @@ class PhotoGeneratorSkill:
         """
         Составляет аутентичный, живой промпт для мобильной фотографии на iPhone (UGC / Lifestyle).
         """
-        niche_key = "кофейня"
-        for k in self.NICHE_PRESETS:
-            if k in niche.lower() or k in topic.lower():
-                niche_key = k
-                break
+        niche_text = f"{niche} {topic}".lower()
+
+        # Безопасный поиск ниши по смысловым маркерам (исключая ложные срабатывания типа "автономный" -> "авто")
+        niche_key = "it"
+        if "кофе" in niche_text or "капучино" in niche_text or "латте" in niche_text:
+            niche_key = "кофейня"
+        elif "ресторан" in niche_text or "еда" in niche_text or "блюдо" in niche_text or "кухн" in niche_text:
+            niche_key = "ресторан"
+        elif "красот" in niche_text or "космет" in niche_text or "уход" in niche_text or "спа" in niche_text:
+            niche_key = "красота"
+        elif "фитнес" in niche_text or "спорт" in niche_text or "трениров" in niche_text:
+            niche_key = "фитнес"
+        elif any(w in niche_text for w in ["автомобил", "автосервис", "детейлинг", "машина", "автомойк", "автосалон", "тест-драйв"]) and "автоном" not in niche_text:
+            niche_key = "авто"
+        elif "недвижим" in niche_text or "квартир" in niche_text or "дом" in niche_text or "интерьер" in niche_text:
+            niche_key = "недвижимость"
+        elif "одежд" in niche_text or "стил" in niche_text or "мод" in niche_text:
+            niche_key = "одежда"
+        elif "медицин" in niche_text or "клиник" in niche_text or "стоматолог" in niche_text:
+            niche_key = "медицина"
+        elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "программ", "софт", "стартап", "автоном"]):
+            # Если в теме или демонстрации объясняется на примере кофе
+            if "капучино" in topic.lower() or "кофе" in topic.lower() or "фото" in topic.lower():
+                niche_key = "кофейня"
+            else:
+                niche_key = "it"
+        else:
+            niche_key = "услуги"
 
         preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["кофейня"])
         colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
         positive_prompt = (
-            f"Authentic candid lifestyle photograph for {niche}. Subject: {topic.strip() or preset['subject']}. "
+            f"Authentic candid lifestyle photograph for {niche}. Subject: {preset['subject']}. "
             f"Environment: {preset['environment']}. "
             f"{colors_str}"
             f"Lighting: {preset['lighting']}. "
@@ -148,6 +171,8 @@ class PhotoGeneratorSkill:
         )
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])
+
+        print(f"\n[PhotoGeneratorSkill] 📸 Сформирован промпт для ComfyUI (Ниша: {niche_key}):\n  👉 {positive_prompt}\n")
 
         return {
             "positive_prompt": positive_prompt,

@@ -149,6 +149,8 @@ async def simulate_backend_new_account_flow():
     print("✍️ [5. ОРКЕСТРАТОР] ГЕНЕРАЦИЯ КОНТР-ПОСТА & GATEKEEPER АУДИТ КРИТИКА")
     print("-" * 70)
 
+    is_no_gen = "--no-gen" in sys.argv or "--mock" in sys.argv or "--placeholder" in sys.argv
+
     post_task_payload = {
         "user_id": backend_incoming_request["user_id"],
         "company_name": backend_incoming_request["company_name"],
@@ -159,7 +161,7 @@ async def simulate_backend_new_account_flow():
         "tone": "Естественный, технологичный и твёрдый",
         "brand_profile": brand_profile,
         "competitor_dossier": competitor_dossier,
-        "generate_image": True,
+        "generate_image": not is_no_gen,
         "aspect_ratio": "1:1"
     }
 
@@ -168,6 +170,8 @@ async def simulate_backend_new_account_flow():
         user_data=post_task_payload,
         session_id=backend_incoming_request["session_id"]
     )
+
+    photo_label = "🖼️ (тут могла быть ваша реклама)" if is_no_gen else (generation_result.get("image_url") or "📸 Сгенерированное изображение")
 
     # 6. Structured Response for Backend
     t_total = round(time.time() - t_pipeline_start, 2)
@@ -187,10 +191,11 @@ async def simulate_backend_new_account_flow():
             "competitor_counter_angle": competitor_dossier.get("counter_angle")
         },
         "post_data": {
+            "photo": photo_label,
             "text": generation_result.get("post_text"),
             "promo_code": generation_result.get("promo_code"),
             "hashtags": generation_result.get("hashtags"),
-            "photo_prompt": generation_result.get("photo_prompt"),
+            "photo_prompt": generation_result.get("photo_prompt") if not is_no_gen else "Cinematic visual placeholder: (тут могла быть ваша реклама)",
             "critic_score": generation_result.get("critic_review", {}).get("score", 0.95),
             "quality_status": "APPROVED_BY_GATEKEEPER"
         },
@@ -212,6 +217,7 @@ async def simulate_backend_new_account_flow():
     
     print("\n📄 [ГОТОВЫЙ ТЕКСТ ДЛЯ СОЦСЕТЕЙ]:")
     print("-" * 50)
+    print(f"🖼️ [ПРИКРЕПЛЕННЫЙ ВИЗУАЛ]: {backend_response_payload['post_data']['photo']}\n")
     print(backend_response_payload['post_data']['text'])
     print("-" * 50)
     print(f"🏷️ Хэштеги: {backend_response_payload['post_data']['hashtags']}")

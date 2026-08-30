@@ -79,7 +79,10 @@ async def run_full_pipeline_test():
 
     vqa_start = time.time()
     moondream = MoondreamVQASkill()
-    moondream.load_model()
+    is_fast_mode = "--fast" in sys.argv
+    
+    if not is_fast_mode:
+        moondream.load_model()
 
     # Синтезируем баннер конкурента (или берем реальное изображение из спарсенного поста)
     comp_banner = Image.new("RGB", (800, 600), color=(220, 38, 38))
@@ -92,7 +95,7 @@ async def run_full_pipeline_test():
     multimodal_comp_analysis = moondream.analyze_competitor_post(
         competitor_name="SMMplanner / Типовой SMM-бот",
         post_text=comp_post_text,
-        image_input=comp_banner
+        image_input=comp_banner if not is_fast_mode else None
     )
     vqa_duration = time.time() - vqa_start
 
@@ -156,17 +159,23 @@ async def run_full_pipeline_test():
     # ЭТАП 5: ВИЗУАЛЬНЫЙ ДИРЕКТОР (ЭМОЦИОНАЛЬНЫЙ СТОРИТЕЛЛИНГ & COMFYUI)
     # -------------------------------------------------------------
     print("\n[ЭТАП 5/6] 🎬 ВИЗУАЛЬНЫЙ ДИРЕКТОР & СБОРКА ПРОМПТА ДЛЯ COMFYUI...")
-    pg = PhotoGeneratorSkill()
     
-    custom_visual_prompt = post_data.get("visual_prompt")
-    comfy_prompt = pg.create_smm_prompt(
-        topic=topic_prompt,
-        niche="it",
-        custom_prompt=custom_visual_prompt
-    )
-    
-    print("  ✅ Сформирован кинематографичный промпт для ComfyUI:")
-    print(f"     {comfy_prompt['positive_prompt']}")
+    is_mock_image = "--no-gen" in sys.argv or "--mock" in sys.argv or "--placeholder" in sys.argv
+    if is_mock_image:
+        photo_attachment_label = "🖼️ (тут могла быть ваша реклама)"
+        print(f"  ⚡ [Режим без генерации]: Вместо ComfyUI используется заглушка -> '{photo_attachment_label}'")
+        comfy_prompt = {"positive_prompt": "Cinematic visual placeholder: (тут могла быть ваша реклама)"}
+    else:
+        pg = PhotoGeneratorSkill()
+        custom_visual_prompt = post_data.get("visual_prompt")
+        comfy_prompt = pg.create_smm_prompt(
+            topic=topic_prompt,
+            niche="it",
+            custom_prompt=custom_visual_prompt
+        )
+        photo_attachment_label = "📸 Сгенерированное изображение (ComfyUI / Брендовый баннер)"
+        print("  ✅ Сформирован кинематографичный промпт для ComfyUI:")
+        print(f"     {comfy_prompt['positive_prompt']}")
 
     # -------------------------------------------------------------
     # ЭТАП 6: АДАПТАЦИЯ И ДИСТРИБУЦИЯ ПОД КАНАЛЫ (TG, VK, OK, MAX)
@@ -187,6 +196,7 @@ async def run_full_pipeline_test():
     print("📊 ИТОГОВЫЙ ПАКЕТ ДЛЯ TELEGRAM / VK / OK / MAX:")
     print("=" * 70)
     print("✉️ [СООБЩЕНИЕ 1 - ФОТО + ТЕКСТ ПОСТА]:")
+    print(f"{photo_attachment_label}\n")
     print(post_data.get("post_text")[:300] + "...\n[полный текст поста готов к отправке]")
     print("\n✉️ [СООБЩЕНИЕ 2 - ТАЙМИНГИ И ХЭШТЕГИ]:")
     print(metrics_msg)

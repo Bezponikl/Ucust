@@ -1,0 +1,4 @@
+rootProject.name = "business-service"
+
+include ':common'
+project(':common').projectDir = new File('../common')

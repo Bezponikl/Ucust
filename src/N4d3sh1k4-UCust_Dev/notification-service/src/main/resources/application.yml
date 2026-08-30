@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: notification-service
+  cloud:
+    config:
+      enabled: false
+  rabbitmq:
+    host: localhost
+    port: 5680
+    username: ${RABBITMQ_USER:service-user}
+    password: ${RABBITMQ_PASS:servicepassword}
+    virtual-host: universal-host
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+  mail:
+    host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:a9f3052b45461a}
+    password: ${MAIL_PASSWORD:ae4e25c063dcb8}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          localhost: localhost
+
+server:
+  port: 8103

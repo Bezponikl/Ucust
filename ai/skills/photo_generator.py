@@ -100,6 +100,42 @@ class PhotoGeneratorSkill:
             "lighting": "soft bright diffused medical clinic light, calm and trustworthy atmosphere",
             "camera": "Shot on iPhone 16 Pro, natural smartphone point-of-view, authentic candid clinic photo"
         },
+        "ремонт": {
+            "subject": "beautifully renovated modern apartment interior, clean hardwood flooring, fresh painted wall, designer lamp",
+            "environment": "spacious newly finished living room, warm daylight from window, contemporary home design",
+            "lighting": "bright warm natural window daylight, gentle realistic interior shadows",
+            "camera": "Shot on iPhone 16 Pro, wide angle lens, authentic interior design photo, crisp architectural details"
+        },
+        "образование": {
+            "subject": "open laptop with study materials on clean wooden desk, neat notebook with colorful notes, stylish pen, coffee cup",
+            "environment": "bright modern library or student coworking corner, organized learning space",
+            "lighting": "natural sunny window light, soft warm ambiance, inspiring study mood",
+            "camera": "Shot on iPhone 16 Pro, tabletop angle, authentic study lifestyle UGC photo"
+        },
+        "туризм": {
+            "subject": "cozy modern glamping dome deck with comfortable lounge chairs and warm blanket, travel backpack nearby",
+            "environment": "scenic mountain or lake view at golden hour, breathtaking tranquil nature background",
+            "lighting": "warm golden sunset glow, soft mountain atmosphere, peaceful travel mood",
+            "camera": "Shot on iPhone 16 Pro, wide scenic view, authentic travel photography, natural rich colors"
+        },
+        "юриспруденция": {
+            "subject": "clean modern conference desk, neat leather folder with documents, fountain pen, glasses, sleek tablet",
+            "environment": "bright contemporary law firm or consulting office, large window with city view",
+            "lighting": "crisp natural office daylight, trustworthy and professional atmosphere",
+            "camera": "Shot on iPhone 16 Pro, professional desk perspective, authentic corporate lifestyle photo"
+        },
+        "праздник": {
+            "subject": "elegant festive celebratory desk setup, laptop, coffee cup, subtle seasonal decorative element",
+            "environment": "warm sunlit modern office, cheerful inspiring atmosphere",
+            "lighting": "warm golden daylight, soft festive background bokeh",
+            "camera": "Shot on iPhone 16 Pro, authentic candid commercial photo, shallow depth of field"
+        },
+        "флаг": {
+            "subject": "open laptop, ceramic coffee mug, and a small elegant Russian tricolor flag on metallic stand",
+            "environment": "modern bright coworking space with large windows, blurred city skyline background",
+            "lighting": "warm morning sunlight streaming through window, soft natural room shadows",
+            "camera": "Shot on iPhone 16 Pro, candid desk angle, authentic patriotic lifestyle commercial photo"
+        },
         "услуги": {
             "subject": "clean business planner, stylish coffee cup, tablet with charts, neat pen on wooden desk",
             "environment": "sunlit contemporary cafe or bright meeting room, casual productive atmosphere",
@@ -133,31 +169,45 @@ class PhotoGeneratorSkill:
         niche_text = f"{niche} {topic}".lower()
 
         # Безопасный поиск ниши по смысловым маркерам (исключая ложные срабатывания типа "автономный" -> "авто")
-        niche_key = "it"
-        if "кофе" in niche_text or "капучино" in niche_text or "латте" in niche_text:
+        niche_key = "услуги"
+
+        # Праздники и государственные даты (приоритет)
+        if any(w in niche_text for w in ["флаг", "государственн", "триколор", "день россии"]):
+            niche_key = "флаг"
+        elif any(w in niche_text for w in ["новый год", "новогодн", "рождеств"]):
+            niche_key = "праздник"
+        elif any(w in niche_text for w in ["праздник", "поздравля", "8 марта", "23 февраля", "9 мая"]):
+            niche_key = "праздник"
+        # Ниши бизнеса
+        elif any(w in niche_text for w in ["кофе", "капучино", "латте", "десерт", "пекарн", "барист"]):
             niche_key = "кофейня"
-        elif "ресторан" in niche_text or "еда" in niche_text or "блюдо" in niche_text or "кухн" in niche_text:
+        elif any(w in niche_text for w in ["ресторан", "еда", "блюдо", "кухн", "шеф", "гастро"]):
             niche_key = "ресторан"
-        elif "красот" in niche_text or "космет" in niche_text or "уход" in niche_text or "спа" in niche_text:
+        elif any(w in niche_text for w in ["красот", "космет", "уход", "спа", "салон", "барбер", "маникюр"]):
             niche_key = "красота"
-        elif "фитнес" in niche_text or "спорт" in niche_text or "трениров" in niche_text:
+        elif any(w in niche_text for w in ["фитнес", "спорт", "трениров", "зал", "йог"]):
             niche_key = "фитнес"
-        elif any(w in niche_text for w in ["автомобил", "автосервис", "детейлинг", "машина", "автомойк", "автосалон", "тест-драйв"]) and "автоном" not in niche_text:
+        elif any(w in niche_text for w in ["автомобил", "автосервис", "детейлинг", "машина", "автомойк", "автосалон", "тест-драйв", "сто"]) and "автоном" not in niche_text:
             niche_key = "авто"
-        elif "недвижим" in niche_text or "квартир" in niche_text or "дом" in niche_text or "интерьер" in niche_text:
+        elif any(w in niche_text for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "жк"]):
             niche_key = "недвижимость"
-        elif "одежд" in niche_text or "стил" in niche_text or "мод" in niche_text:
+        elif any(w in niche_text for w in ["ремонт", "строительств", "отделк", "дизайн интерьер", "стройка"]):
+            niche_key = "ремонт"
+        elif any(w in niche_text for w in ["одежд", "стил", "мод", "магазин", "товар", "шопинг"]):
             niche_key = "одежда"
-        elif "медицин" in niche_text or "клиник" in niche_text or "стоматолог" in niche_text:
+        elif any(w in niche_text for w in ["медицин", "клиник", "стоматолог", "врач", "здоровь"]):
             niche_key = "медицина"
-        elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "программ", "софт", "стартап", "автоном"]):
-            # Если в теме или демонстрации объясняется на примере кофе
-            if "капучино" in topic.lower() or "кофе" in topic.lower() or "фото" in topic.lower():
+        elif any(w in niche_text for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор"]):
+            niche_key = "образование"
+        elif any(w in niche_text for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых"]):
+            niche_key = "туризм"
+        elif any(w in niche_text for w in ["юрист", "бухгалтер", "налог", "аудит", "адвокат", "финанс"]):
+            niche_key = "юриспруденция"
+        elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "софт", "стартап", "автоном"]):
+            if "капучино" in topic.lower() or "кофе" in topic.lower():
                 niche_key = "кофейня"
             else:
                 niche_key = "it"
-        else:
-            niche_key = "услуги"
 
         preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["кофейня"])
         colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""

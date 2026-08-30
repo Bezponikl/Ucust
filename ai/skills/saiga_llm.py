@@ -150,7 +150,169 @@ class SaigaLLMSkill:
             comments_phrase = f"\n\n💬 <b>Отвечаем на частые вопросы аудитории:</b>\n{formatted_q}"
 
         has_comments = bool(comments_enabled or (comments_context and len(comments_context) > 0))
+        full_text_search = f"{topic_lower} {niche_lower}"
 
+        # =========================================================================
+        # 1. РЕЕСТР ПРАЗДНИКОВ И ГОСУДАРСТВЕННЫХ / СЕЗОННЫХ ДАТ (ПРИОРИТЕТ №1)
+        # =========================================================================
+        holiday_match = None
+
+        if any(w in topic_lower for w in ["флаг", "государственн", "триколор"]):
+            holiday_match = {
+                "lead": f"С Днём Государственного флага Российской Федерации! 🇷🇺",
+                "body": (
+                    f"Команда «{company_name}» от всей души поздравляет вас с праздником национального триколора!\n\n"
+                    f"Белый, синий и красный — цвета чести, благородства, верности и силы. "
+                    f"Они напоминают нам о богатой истории, сплочённости и уверенности в будущем.\n\n"
+                    f"Пусть этот день вдохновляет на новые достижения, масштабные идеи и гордость за наше общее дело!{comments_phrase}"
+                ),
+                "cta": "Поздравляйте друзей и коллег в комментариях 👇 С праздником! 🇷🇺" if has_comments else "С праздником! Желаем процветания и уверенного движения вперёд! 🇷🇺",
+                "hashtags": "#ДеньФлага #Россия #триколор #праздник #UCust",
+                "visual_prompt": (
+                    "Cinematic wide-angle patriotic business photograph. "
+                    "A warm sunlit modern coworking space with large floor-to-ceiling windows. "
+                    "On the foreground wooden desk: an open laptop, a stylish coffee cup, and an elegant small Russian tricolor flag neatly standing on a metallic base. "
+                    "Warm golden morning sunlight streaming through the window, soft realistic room depth of field, city skyline softly blurred in background. "
+                    "Subtle white, blue, red accents harmonious with warm interior tones, professional commercial photography, photorealistic."
+                )
+            }
+        elif any(w in topic_lower for w in ["новый год", "новогодн", "рождеств", "ёлка", "елка"]):
+            holiday_match = {
+                "lead": f"С Новым годом и Рождеством от команды «{company_name}»! 🎄✨",
+                "body": (
+                    f"Пусть наступающий год откроет для вашего дела новые горизонты и принесёт яркие победы!\n\n"
+                    f"Благодарим каждого из вас за доверие и партнёрство. "
+                    f"В новом году мы приготовили ещё больше полезных решений, чтобы ваш бизнес рос быстрее и легче.\n\n"
+                    f"Тепла, уюта вашему дому и неиссякаемой энергии для всех смелых проектов!{comments_phrase}"
+                ),
+                "cta": "Делитесь вашими целями и пожеланиями на новый год в комментариях! 👇🎉" if has_comments else "Счастливого Нового года и ярких побед! 🎄🚀",
+                "hashtags": "#НовыйГод #Рождество #праздник #бизнес2026 #итогигода",
+                "visual_prompt": (
+                    "Cozy warm festive New Year office atmosphere. "
+                    "A stylish wooden desk with an open MacBook showing subtle holiday analytics, a warm ceramic mug of cocoa, a small decorative pine branch with gold and silver ornaments. "
+                    "Soft golden bokeh fairy lights glowing gently in the warm background, shallow depth of field, cinematic festive lighting, photorealistic lifestyle photo."
+                )
+            }
+        elif any(w in topic_lower for w in ["9 мая", "побед", "великая отечественная", "ветераны"]):
+            holiday_match = {
+                "lead": f"С Днём Великой Победы! 🕊️ С праздником 9 Мая!",
+                "body": (
+                    f"9 Мая — священная дата для каждого из нас. День памяти, бесконечной благодарности и гордости за подвиг наших предков.\n\n"
+                    f"Мы помним тех, кто подарил нам мирное небо и возможность созидать, строить будущее и растить детей.\n\n"
+                    f"Команда «{company_name}» желает вам и вашим близким крепкого здоровья, мира, добра и согласия.{comments_phrase}"
+                ),
+                "cta": "Почтим память героев и поздравим близких с праздником Великой Победы! 🕊️" if has_comments else "Мирного неба, благополучия и крепкого здоровья каждому дому! 🕊️",
+                "hashtags": "#9Мая #ДеньПобеды #ПомнимГордимся #Мир #Победа",
+                "visual_prompt": (
+                    "Respectful and dignified commemorative composition. "
+                    "Fresh red carnations with a St. George ribbon on a clean stone pedestal by a sunlit city park memorial, warm respectful sunlight, gentle morning depth of field, authentic photography style."
+                )
+            }
+        elif any(w in topic_lower for w in ["23 февраля", "защитник", "отечеств", "мужской день"]):
+            holiday_match = {
+                "lead": f"С Днём защитника Отечества! 🛡️ Поздравляем мужчин с 23 Февраля!",
+                "body": (
+                    f"Поздравляем всех, кто бережёт мир и спокойствие своих семей, кто берёт на себя ответственность и уверенно идёт к цели!\n\n"
+                    f"Надёжность, решительность и твёрдость характера — качества, которые двигают вперёд и жизнь, и бизнес.\n\n"
+                    f"Желаем несгибаемой воли, надёжного тыла и новых высот во всех начинаниях!{comments_phrase}"
+                ),
+                "cta": "Поздравляйте сильных духом мужчин в комментариях! 👇🛡️" if has_comments else "С праздником! Силы, уверенности и больших побед! 🚀",
+                "hashtags": "#23Февраля #ДеньЗащитникаОтечества #мужскойпраздник #поздравление",
+                "visual_prompt": (
+                    "Modern sleek masculine business aesthetic photograph. "
+                    "A confident focused man in a stylish casual jacket with an open laptop and premium notebook in a modern loft office, warm natural ambient daylight from large window, subtle deep contrast, authentic lifestyle commercial photo."
+                )
+            }
+        elif any(w in topic_lower for w in ["8 марта", "женский день", "весенний праздник", "девушек", "женщин"]):
+            holiday_match = {
+                "lead": f"С прекрасным весенним праздником — с 8 Марта! 🌸🌷",
+                "body": (
+                    f"Команда «{company_name}» поздравляет милых дам с Международным женским днём!\n\n"
+                    f"Вы наполняете мир красотой, гармонией и вдохновением. "
+                    f"Вы восхищаете умением сочетать нежность и силу, управлять проектами, создавать уют и делать этот мир лучше каждый день.\n\n"
+                    f"Пусть весна подарит море цветов, улыбок, лёгкости и исполнения самых заветных желаний!{comments_phrase}"
+                ),
+                "cta": "Оставляйте свои тёплые пожелания милым дамам в комментариях! 💐👇" if has_comments else "Цветов, весеннего настроения и бесконечного вдохновения! 🌸",
+                "hashtags": "#8Марта #МеждународныйЖенскийДень #весна #цветы #поздравление",
+                "visual_prompt": (
+                    "Bright aesthetic spring lifestyle photograph. "
+                    "A fresh vibrant bouquet of pink and white tulips in a glass vase on a wooden desk next to an open laptop and coffee cup, soft sunny morning light streaming through sheer curtains, gentle cheerful atmosphere, authentic commercial UGC photography."
+                )
+            }
+        elif any(w in topic_lower for w in ["12 июня", "день россии"]):
+            holiday_match = {
+                "lead": f"С Днём России! 🇷🇺 Величия, силы и процветания нашей стране!",
+                "body": (
+                    f"Сегодня мы отмечаем праздник нашей великой Родины — страны с богатейшей историей, грандиозным наследием и талантливыми людьми!\n\n"
+                    f"Каждый день мы своим трудом, идеями и проектами создаём настоящее и будущее России.\n\n"
+                    f"Желаем мира, благополучия, уверенности в завтрашнем дне и новых масштабных свершений!{comments_phrase}"
+                ),
+                "cta": "С праздником, друзья! Гордимся нашей страной! 🇷🇺👇" if has_comments else "С праздником! Процветания и побед нашей Родине! 🇷🇺",
+                "hashtags": "#ДеньРоссии #12Июня #Россия #НашаСтрана #праздник",
+                "visual_prompt": (
+                    "Cinematic wide scenic photograph of a modern Russian city at sunset with subtle national flag colors reflected in glass skyscrapers, warm golden hour sunlight, expansive sky, inspiring atmosphere, photorealistic."
+                )
+            }
+        elif any(w in topic_lower for w in ["1 сентября", "день знаний", "школ", "ученик", "студент"]):
+            holiday_match = {
+                "lead": f"С 1 Сентября — с Днём знаний! 🔔📚",
+                "body": (
+                    f"Старт нового учебного и делового сезона! Время свежих идей, полезных знаний и смелых целей.\n\n"
+                    f"Знания и непрерывное развитие — главный двигатель любого успеха: как в учёбе, так и в масштабировании бизнеса.\n\n"
+                    f"Желаем школьникам, студентам, преподавателям и предпринимателям продуктивного и яркого года!{comments_phrase}"
+                ),
+                "cta": "Какие цели поставили себе на эту осень? Делитесь в комментариях! 👇📝" if has_comments else "Продуктивной осени и новых открытий! 🚀📚",
+                "hashtags": "#1Сентября #ДеньЗнаний #сновавшколу #образование #развитие",
+                "visual_prompt": (
+                    "Warm inspiring academic lifestyle photograph. "
+                    "A clean aesthetic study desk with open laptop, colorful stationery, neat open notebook with handwritten plans, a cup of tea, warm autumn sunlight from window, cozy productive mood, shallow depth of field."
+                )
+            }
+        elif any(w in topic_lower for w in ["день матери", "мама", "матер"]):
+            holiday_match = {
+                "lead": f"С Днём матери! Самый тёплый и нежный праздник в году ❤️",
+                "body": (
+                    f"Мама — это первое слово, бесконечная забота, безусловная любовь и главная поддержка во всём.\n\n"
+                    f"Спасибо нашим дорогим мамам за терпение, мудрость, бессонные ночи и веру в нас на каждом этапе жизни!\n\n"
+                    f"Не забудьте сегодня позвонить, обнять и сказать самое важное своим мамам.{comments_phrase}"
+                ),
+                "cta": "Напишите самое тёплое признание вашей маме прямо в комментариях! ❤️👇" if has_comments else "Берегите мам и дарите им заботу каждый день! ❤️",
+                "hashtags": "#ДеньМатери #Мама #любовь #семья #праздник",
+                "visual_prompt": (
+                    "Heartwarming cozy lifestyle photograph. "
+                    "A delicate ceramic vase with tender pastel peonies, a handwritten card saying 'Любимой маме', a cozy warm knitted blanket and a cup of tea on a rustic wooden table, soft morning window light, warm emotional atmosphere."
+                )
+            }
+        elif any(w in topic_lower for w in ["праздник", "поздравля", "день города", "день народного", "юбиле", "торжеств"]):
+            holiday_match = {
+                "lead": f"С праздником от команды «{company_name}»! 🎉",
+                "body": (
+                    f"{topic_clean}.\n\n"
+                    f"Мы искренне поздравляем вас и ваших близких с этим знаменательным днём!\n\n"
+                    f"Пусть этот праздник наполнит вас гордостью, теплом и вдохновением. "
+                    f"Именно такие моменты напоминают о том, что за каждым большим делом стоят люди — преданные своему делу и семье.\n\n"
+                    f"Команда «{company_name}» продолжает работать для вас каждый день, чтобы ваш бизнес рос и развивался.{comments_phrase}"
+                ),
+                "cta": "Поздравляйте друг друга в комментариях 👇 С праздником! 🎊" if has_comments else "С праздником! Пишите нам — работаем для вас 24/7 🎊",
+                "hashtags": "#праздник #поздравление #UCust #событие",
+                "visual_prompt": (
+                    "Cinematic celebratory business photograph. "
+                    "Warm modern office workspace with sunlight, professional desk with laptop, coffee cup, and small festive decorative element, warm golden tones, shallow depth of field, photorealistic commercial photography."
+                )
+            }
+
+        if holiday_match:
+            full_post = f"{holiday_match['lead']}\n\n{holiday_match['body']}\n\n{holiday_match['cta']}"
+            return {
+                "post_text": full_post,
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": holiday_match["visual_prompt"],
+                "hashtags": holiday_match["hashtags"]
+            }
+
+        # =========================================================================
+        # 2. СПЕЦИАЛИЗИРОВАННЫЕ ДЕМО-ЗАПРОСЫ И МАНИФЕСТЫ UCUST
+        # =========================================================================
         if "как понимает" in topic_lower or "что умеет" in topic_lower or "простыми словами" in topic_lower or "для простых" in topic_lower or "не айтиш" in topic_lower or "понимает запрос" in topic_lower:
             lead = f"Как нейросеть понимает ваш запрос и создаёт живые фото для бизнеса?"
             body = (
@@ -163,21 +325,22 @@ class SaigaLLMSkill:
                 f"📸 Выдаёт кадр, который выглядит как живая съёмка — без глянца и пластика\n\n"
                 f"⚡ Готовый пост + фото — в 1 клик.{visual_phrase}{comments_phrase}"
             )
-            if has_comments:
-                cta = f"Напишите нишу вашего бизнеса в комментарии — покажем, как это работает для вас! 👇"
-            else:
-                cta = f"Напишите нам в личные сообщения — упакуем ваш продукт в продающий кадр! 🚀"
-            hashtags = "#ИИдляБизнеса #SMM #GenAI"
-            visual_prompt = (
-                "A cinematic, slightly futuristic wide-angle photograph. "
-                "A focused female entrepreneur with dark hair sits at a wooden desk in a warm modern cafe coworking space, visible in the left half of the frame. "
-                "An open MacBook laptop is on the desk in front of her, its screen showing a simple chat-style text input interface. "
-                "From the RIGHT EDGE of the laptop screen, vivid glowing streams of blue and golden digital particles and abstract light trails flow dynamically outward to the right into open air. "
-                "These particle streams coalesce and materialize into a FLOATING rectangular photograph that hovers in the AIR to the right of the laptop — NOT on the screen — "
-                "showing a vivid realistic image of a barista pouring latte art in a sunlit cozy cafe. "
-                "The floating photo has a soft luminous rounded frame and appears to emerge from the particle stream. "
-                "Warm cinematic ambient lighting, natural bokeh background, photorealistic commercial photography, wide composition."
-            )
+            cta = f"Напишите нишу вашего бизнеса в комментарии — покажем, как это работает для вас! 👇" if has_comments else f"Напишите нам в личные сообщения — упакуем ваш продукт в продающий кадр! 🚀"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": (
+                    "A cinematic, slightly futuristic wide-angle photograph. "
+                    "A focused female entrepreneur with dark hair sits at a wooden desk in a warm modern cafe coworking space, visible in the left half of the frame. "
+                    "An open MacBook laptop is on the desk in front of her, its screen showing a simple chat-style text input interface. "
+                    "From the RIGHT EDGE of the laptop screen, vivid glowing streams of blue and golden digital particles and abstract light trails flow dynamically outward to the right into open air. "
+                    "These particle streams coalesce and materialize into a FLOATING rectangular photograph that hovers in the AIR to the right of the laptop — NOT on the screen — "
+                    "showing a vivid realistic image of a barista pouring latte art in a sunlit cozy cafe. "
+                    "The floating photo has a soft luminous rounded frame and appears to emerge from the particle stream. "
+                    "Warm cinematic ambient lighting, natural bokeh background, photorealistic commercial photography, wide composition."
+                ),
+                "hashtags": "#ИИдляБизнеса #SMM #GenAI"
+            }
 
         elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:
             lead = f"Знакомьтесь: «{company_name}» — автономная экосистема ИИ-маркетинга"
@@ -186,58 +349,20 @@ class SaigaLLMSkill:
                 f"«{company_name}» — это слаженная команда специализированных ИИ-агентов, которая в едином цикле закрывает "
                 f"весь цикл продвижения бизнеса в режиме 24/7:\n\n"
                 f"⚡ <b>1. Глубокий анализ бизнеса и конкурентов</b> — парсинг сайтов, выявление УТП и болей клиентов.\n"
-                f"⚡ <b>2. Умная генерация контента</b> — создание продающих постов и сценариев с адаптацией под Telegram, VK, Одноклассники (OK.ru) и сайты.\n"
+                f"⚡ <b>2. Умная генерация контента</b> — создание продающих постов и сценариев с адаптацией под Telegram, VK, OK.ru и сайты.\n"
                 f"⚡ <b>3. Двухуровневый контроль качества</b> — встроенный ИИ-критик отсекает шаблоны, воду и клише до публикации.\n"
-                f"⚡ <b>4. Мультимедиа-продакшн</b> — генерация живых фото-креативов в стиле естественной мобильной съемки (iPhone / UGC).\n\n"
+                f"⚡ <b>4. Мультимедиа-продакшн</b> — генерация живых фото-креативов в стиле естественной мобильной съемки.\n\n"
                 f"Пока другие тратят недели на брифы — {company_name} выдает готовый результат в разы быстрее.{comments_phrase}"
             )
-            if has_comments:
-                cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, какую стратегию ИИ-агенты подготовят для вас прямо сейчас! 🚀"
-            else:
-                cta = f"Ставьте 🔥 и напишите нам в личные сообщения — покажем, какую стратегию ИИ-агенты подготовят для вашего бизнеса прямо сейчас! 🚀"
-            hashtags = "#ИИагенты #маркетинг2026 #автоматизация #стартап #AIстартап"
-            visual_prompt = "Authentic candid photograph: a sleek modern workspace desk with open laptop showing modern marketing analytics dashboards and AI agent workflows, a stylish coffee cup and smartphone on desk, bright natural daylight from large office window, clean contemporary aesthetic, authentic tech startup lifestyle photo."
+            cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, какую стратегию ИИ-агенты подготовят для вас прямо сейчас! 🚀" if has_comments else f"Ставьте 🔥 и напишите нам в личные сообщения — покажем, какую стратегию ИИ-агенты подготовят для вашего бизнеса прямо сейчас! 🚀"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Authentic candid photograph: a sleek modern workspace desk with open laptop showing modern marketing analytics dashboards and AI agent workflows, a stylish coffee cup and smartphone on desk, bright natural daylight from large office window, clean contemporary aesthetic, authentic tech startup lifestyle photo.",
+                "hashtags": "#ИИагенты #маркетинг2026 #автоматизация #стартап #AIстартап"
+            }
 
-        elif any(w in topic_lower for w in ["праздник", "поздравля", "флаг", "день города", "день победы", "новый год", "8 марта", "23 февраля", "день народного", "день государств", "юбиле", "торжеств"]):
-            # Извлекаем название праздника из темы
-            holiday_name = topic_clean
-            lead = f"С праздником от команды «{company_name}»! 🎉"
-            body = (
-                f"{holiday_name}.\n\n"
-                f"Мы искренне поздравляем вас и ваших близких с этим знаменательным днём.\n\n"
-                f"Пусть этот праздник наполнит вас гордостью, теплом и вдохновением. "
-                f"Именно такие моменты напоминают нам о том, что за каждым большим делом стоят люди — "
-                f"настоящие, преданные своему делу.\n\n"
-                f"Команда «{company_name}» продолжает работать для вас каждый день, "
-                f"чтобы ваш бизнес рос и развивался.{comments_phrase}"
-            )
-            if has_comments:
-                cta = f"Поздравляйте друг друга в комментариях 👇 С праздником! 🎊"
-            else:
-                cta = f"С праздником! Пишите нам — работаем для вас 24/7 🎊"
-            hashtags = "#праздник #поздравление #UCust"
-            # Определяем визуал по ключевым словам праздника
-            if "флаг" in topic_lower or "государственн" in topic_lower:
-                hashtags = "#ДеньФлага #Россия #триколор #UCust"
-                visual_prompt = (
-                    "Cinematic wide-angle patriotic photograph. "
-                    "A warm sunlit modern coworking space with large floor-to-ceiling windows. "
-                    "On the foreground desk: an open laptop, a stylish coffee cup, and a small elegant Russian tricolor flag standing next to it. "
-                    "The atmosphere is professional yet festive — warm golden morning sunlight, soft bokeh background with blurred city skyline. "
-                    "Colors: white, blue, red accents from the flag complementing the warm interior tones. "
-                    "Authentic lifestyle commercial photography, shallow depth of field, photorealistic."
-                )
-            elif "новый год" in topic_lower:
-                hashtags = "#НовыйГод #UCust #поздравление"
-                visual_prompt = "Cozy festive New Year office atmosphere: laptop on desk with subtle Christmas lights reflection on screen, small decorative pine branch with golden ornaments, warm glowing candle, bokeh lights in background, warm cinematic photography."
-            else:
-                visual_prompt = (
-                    f"Cinematic festive business photograph. "
-                    f"Warm modern coworking space with sunlight. Professional desk with laptop, coffee cup, and small celebratory decorative element. "
-                    f"Festive yet professional atmosphere, warm golden tones, shallow depth of field, photorealistic commercial photography."
-                )
-
-        elif "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower or "проект" in topic_lower:
+        elif "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower:
             lead = f"Команда «{company_name}» в полном сборе и начинает активную работу!"
             body = (
                 f"{topic_clean}.{visual_phrase}\n\n"
@@ -245,21 +370,22 @@ class SaigaLLMSkill:
                 f"Впереди — масштабные задачи, открытая разработка и регулярные релизы новых возможностей.\n\n"
                 f"Спасибо каждому, кто поддерживает наш проект с первых дней!{comments_phrase}"
             )
-            if has_comments:
-                cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях 👇. Погнали! 🚀"
-            else:
-                cta = f"Следите за нашими обновлениями и пишите нам в личные сообщения. Погнали! 🚀"
-            hashtags = "#запуск #стартап #команда #разработка #IT"
-            visual_prompt = (
-                "Authentic candid photo of a small tech startup team of 4 people. "
-                "IMPORTANT: each person has a completely unique and distinct face, different hairstyle, different age, different facial features — NO identical or similar faces. "
-                "Person 1: young woman with short dark hair, glasses, casual sweater. "
-                "Person 2: man in his 30s with beard and curly hair, blue shirt. "
-                "Person 3: older man with grey temples, formal jacket. "
-                "Person 4: young man with straight light hair, hoodie. "
-                "Setting: modern bright glass-walled office, whiteboard with colorful sticky notes, laptops on table, genuine collaborative discussion. "
-                "Natural daylight from large windows, authentic candid atmosphere, shallow depth of field, photorealistic."
-            )
+            cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях 👇. Погнали! 🚀" if has_comments else f"Следите за нашими обновлениями и пишите нам в личные сообщения. Погнали! 🚀"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": (
+                    "Authentic candid photo of a small tech startup team of 4 people. "
+                    "IMPORTANT: each person has a completely unique and distinct face, different hairstyle, different age, different facial features — NO identical or similar faces. "
+                    "Person 1: young woman with short dark hair, glasses, casual sweater. "
+                    "Person 2: man in his 30s with beard and curly hair, blue shirt. "
+                    "Person 3: older man with grey temples, formal jacket. "
+                    "Person 4: young man with straight light hair, hoodie. "
+                    "Setting: modern bright glass-walled office, whiteboard with colorful sticky notes, laptops on table, genuine collaborative discussion. "
+                    "Natural daylight from large windows, authentic candid atmosphere, shallow depth of field, photorealistic."
+                ),
+                "hashtags": "#запуск #стартап #команда #разработка #IT"
+            }
 
         elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
             lead = f"Специальное предложение от «{company_name}»"
@@ -269,36 +395,227 @@ class SaigaLLMSkill:
                 f"Успейте воспользоваться специальными условиями до конца этой недели.{comments_phrase}"
             )
             cta = f"Напишите промокод {company_name.upper().replace(' ', '')}2026 в личные сообщения для получения специальных условий!"
-            hashtags = "#акция #спецпредложение #маркетинг #скидки"
-            visual_prompt = f"Authentic candid commercial photograph for {niche}: stylish modern commercial product display on clean minimalist surface with subtle organic shadows, soft warm ambient lighting, elegant lifestyle commercial photography."
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": f"Authentic candid commercial photograph for {niche}: stylish modern commercial product display on clean minimalist surface with subtle organic shadows, soft warm ambient lighting, elegant lifestyle commercial photography.",
+                "hashtags": "#акция #спецпредложение #маркетинг #скидки"
+            }
 
-        elif "кофе" in niche_lower or "латте" in topic_lower or "десерт" in topic_lower:
-            lead = f"Новинки и атмосфера в «{company_name}»"
+        # =========================================================================
+        # 3. УНИВЕРСАЛЬНЫЙ РЕЕСТР НИШ И СФЕР БИЗНЕСА (12+ НАПРАВЛЕНИЙ)
+        # =========================================================================
+
+        # 3.1. Рестораны, кафе, доставка еды, гастробары
+        if any(w in full_text_search for w in ["ресторан", "кафе", "меню", "блюдо", "шеф", "кухн", "гастро", "доставка еды", "пицц", "суши", "бургер"]):
+            lead = f"Вкус, который запоминается: новинки в «{company_name}» 🍽️"
             body = (
                 f"{topic_clean}.{visual_phrase}\n\n"
-                f"Мы тщательно подобрали зерно свежей обжарки и сбалансировали рецептуру, "
-                f"чтобы каждый глоток дарил вам заряд энергии и вдохновения на весь день.{comments_phrase}"
+                f"Наш шеф-повар соединил свежайшие локальные ингредиенты и авторскую подачу, чтобы каждый визит превращался в гастрономическое событие.\n\n"
+                f"Уютная атмосфера, идеальный баланс вкусов и заботливый сервис — бронируйте стол для особенного вечера!{comments_phrase}"
             )
-            if has_comments:
-                cta = f"Заглядывайте к нам за чашкой любимого кофе! А какой ваш любимый напиток? Напишите в комментариях ☕"
-            else:
-                cta = f"Заглядывайте к нам за чашкой любимого кофе! Ждем вас в гости каждый день ☕"
-            hashtags = "#кофе #кофейня #латтеарт #доброеутро #кофеман"
-            visual_prompt = "Authentic candid lifestyle photograph for a cozy craft coffee shop: fresh ceramic cup of cappuccino with intricate latte art, warm morning window sunlight casting gentle shadows on a rustic wooden table, relaxed warm cafe ambiance, authentic iPhone 16 Pro photography."
+            cta = "Какое блюдо из нашего меню ваше самое любимое? Делитесь в комментариях! 🍷👇" if has_comments else "Ждём вас в гости каждый день! Бронь столов в личных сообщениях 🍷"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Authentic candid food photograph in a cozy modern restaurant: appetizing gourmet dish beautifully plated on a ceramic plate, fresh microgreens, artisan cutlery and wine glass nearby, warm ambient dining lighting, shallow depth of field, authentic foodie photography.",
+                "hashtags": "#ресторан #вкуснаяеда #гастрономия #шефповар #ужин"
+            }
 
-        else:
-            lead = f"Важные новости от «{company_name}»"
+        # 3.2. Кофейни, пекарни, бариста
+        elif any(w in full_text_search for w in ["кофе", "латте", "капучино", "десерт", "выпечк", "пекарн", "барист", "круассан"]):
+            lead = f"Идеальный утренний ритуал в «{company_name}» ☕"
             body = (
                 f"{topic_clean}.{visual_phrase}\n\n"
-                f"В «{company_name}» мы постоянно развиваемся и внедряем лучшие практики в сфере {niche}. "
-                f"Наша цель — делать надёжные, удобные и эффективные решения, экономящие ваше время.{comments_phrase}"
+                f"Мы тщательно подобрали зерно свежей обжарки и настроили экстракцию, чтобы каждый глоток дарил вам заряд вдохновения и сил на весь день.\n\n"
+                f"Добавьте к этому свежий хрустящий десерт — и день точно сложится удачно!{comments_phrase}"
             )
-            if has_comments:
-                cta = f"Поделитесь вашим мнением и вопросами в комментариях 👇 — мы читаем и отвечаем на каждый!"
-            else:
-                cta = f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи и рады ответить на любые вопросы!"
-            hashtags = f"#бизнес #маркетинг #новости"
-            visual_prompt = f"Authentic candid lifestyle photograph for {niche}: authentic business atmosphere, clean modern environment, natural daylight, genuine social media aesthetic, authentic depth of field, unedited raw photo."
+            cta = "Заглядывайте к нам за чашкой любимого напитка! А какой кофе вы пьёте по утрам? Напишите в комментариях ☕" if has_comments else "Ждём вас на чашку ароматного кофе каждый день! ☕✨",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Authentic candid lifestyle photograph for a cozy craft coffee shop: fresh ceramic cup of cappuccino with intricate latte art, warm morning window sunlight casting gentle shadows on a rustic wooden table, relaxed warm cafe ambiance, authentic iPhone photography.",
+                "hashtags": "#кофе #кофейня #латтеарт #доброеутро #кофеман"
+            }
+
+        # 3.3. Beauty / Салоны красоты / Барбершопы / Косметология
+        elif any(w in full_text_search for w in ["салон", "красот", "барбер", "маникюр", "стрижк", "уход", "косметол", "спа", "массаж", "брови", "ресниц"]):
+            lead = f"Время уделить внимание себе: преображение в «{company_name}» ✨"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Мы создали пространство, где забота о вашей красоте и внутреннем комфорте выходит на первый план.\n\n"
+                f"Сертифицированные мастера, премиальная косметика и индивидуальный подход к каждому образу — подчеркните вашу естественную привлекательность!{comments_phrase}"
+            )
+            cta = "Запишитесь на удобное время через личные сообщения или оставьте «+» в комментариях! 💅👇" if has_comments else "Ждём вас на процедуры! Онлайн-запись доступна в личных сообщениях ✨",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Aesthetic minimalist beauty salon photograph: stylish modern salon interior with marble counter, premium skincare bottles with droppers, soft fluffy towels, green eucalyptus in a glass vase, bright clean morning daylight, authentic UGC beauty aesthetic.",
+                "hashtags": "#красота #салонкрасоты #уходзасобой #стиль #маникюр"
+            }
+
+        # 3.4. Фитнес / Спорт / Йога / Тренировки
+        elif any(w in full_text_search for w in ["фитнес", "спорт", "трениров", "зал", "йог", "тренер", "растяжк", "кроссфит", "похуден", "мышц"]):
+            lead = f"Твоя лучшая форма начинается сегодня в «{company_name}» 💪"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Результат — это не случайность, а система правильных привычек и поддержки опытных наставников.\n\n"
+                f"Современное оборудование, персонализированные программы тренировок и заряженная атмосфера единомышленников — сделайте первый шаг к телу мечты!{comments_phrase}"
+            )
+            cta = "Напишите в комментариях, какую цель ставите на этот сезон — и мы поможем составить план! 🏋️👇" if has_comments else "Записывайтесь на пробную тренировку в личных сообщениях! Погнали! 🔥",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Dynamic candid fitness lifestyle photograph: modern spacious gym with minimalist interior, clean matte water bottle, wireless earbuds and workout gloves on a wooden bench, natural daylight streaming in, motivating authentic workout atmosphere.",
+                "hashtags": "#фитнес #спорт #тренировка #здоровье #мотивация"
+            }
+
+        # 3.5. Недвижимость / Дизайн интерьера / Аренда
+        elif any(w in full_text_search for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "застройщик", "ипотек", "аренд", "интерьер", "жк"]):
+            lead = f"Пространство для вашей комфортной жизни от «{company_name}» 🏡"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Мы помогаем находить не просто квадратные метры, а место, куда по-настоящему хочется возвращаться каждый вечер.\n\n"
+                f"Продуманные планировки, панорамные окна, развитая инфраструктура и полное юридическое сопровождение на каждом этапе сделки.{comments_phrase}"
+            )
+            cta = "Хотите получить каталог актуальных объектов? Напишите «КАТАЛОГ» в комментариях или в ЛС! 🔑" if has_comments else "Пишите в личные сообщения — подберём идеальный вариант под ваш бюджет! 🔑",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Bright aesthetic interior photograph of a modern living room: floor-to-ceiling windows with soft afternoon sunlight, comfortable stylish sofa with linen pillows, minimalist oak coffee table, potted Monstera plant, airy spacious atmosphere, authentic architectural photography.",
+                "hashtags": "#недвижимость #квартира #новостройки #интерьер #уют"
+            }
+
+        # 3.6. Автобизнес / СТО / Детейлинг / Автосалоны
+        elif any(w in full_text_search for w in ["авто", "машин", "сто", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "тюнинг", "техосмотр"]) and "автоном" not in full_text_search:
+            lead = f"Безупречный вид и надёжность вашего автомобиля с «{company_name}» 🚗"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Ваш автомобиль заслуживает профессионального ухода и внимания к каждой детали.\n\n"
+                f"Современное диагностическое оборудование, премиальная автохимия и мастера с многолетним стажем гарантируют идеальный результат и безопасность на дороге.{comments_phrase}"
+            )
+            cta = "Задавайте любые вопросы по обслуживанию в комментариях 👇 Ответим оперативно!" if has_comments else "Запишитесь на обслуживание или детейлинг прямо в личных сообщениях! 🔧",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Sleek automotive commercial photograph: a deep glossy polished car hood showing crisp reflections in a clean modern workshop with soft LED strip lighting, professional detailing tools neatly placed nearby, realistic automotive photography.",
+                "hashtags": "#авто #детейлинг #автосервис #автомобили #СТО"
+            }
+
+        # 3.7. Медицина / Стоматология / Здоровье
+        elif any(w in full_text_search for w in ["медицин", "стоматолог", "клиник", "врач", "здоровь", "зуб", "лечен", "диагностик", "анализ", "имплант"]):
+            lead = f"Забота о вашем здоровье и улыбке с «{company_name}» 🩺"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Здоровье — главная ценность. В нашей клинике мы объединили доказательную медицину, передовые технологии и бережное отношение к каждому пациенту.\n\n"
+                f"Безболезненное лечение, прозрачные планы терапии и врачи с безупречной репутацией помогут вам чувствовать себя уверенно каждый день.{comments_phrase}"
+            )
+            cta = "Оставьте вопросы врачу в комментариях или запишитесь на первичную консультацию в ЛС! 👩‍⚕️" if has_comments else "Запись на консультацию открыта в личных сообщениях. Берегите здоровье! 🩺",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Clean reassuring medical clinic photograph: bright modern reception or doctor consultation office, clean white and wood aesthetic, friendly reassuring environment, gentle diffused natural lighting, authentic commercial photography.",
+                "hashtags": "#медицина #здоровье #стоматология #клиника #красиваяулыбка"
+            }
+
+        # 3.8. Строительство / Ремонт квартир / Отделка
+        elif any(w in full_text_search for w in ["ремонт", "строительств", "отделк", "дизайн", "бригад", "кровл", "фундамент", "монтаж", "фасад"]):
+            lead = f"Качественный ремонт и строительство без стресса от «{company_name}» 🔨"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Мы превращаем чертежи в готовое, тёплое и надёжное пространство для жизни.\n\n"
+                f"Работа строго по договору, фиксированная смета, соблюдение ГОСТов и поэтапный фотоотчёт на каждом шаге. Ремонт может быть спокойным и в удовольствие!{comments_phrase}"
+            )
+            cta = "Хотите рассчитать предварительную стоимость вашего проекта? Напишите параметры в ЛС или в комментариях! 📐" if has_comments else "Пишите в личные сообщения для бесплатного расчёта сметы и выезда замерщика! 📐",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Authentic architectural renovation photograph: beautifully finished modern room interior showing neat hardwood floors, clean painted walls, designer lighting fixtures, warm natural daylight, professional interior design photo.",
+                "hashtags": "#ремонт #строительство #дизайнинтерьера #ремонтквартир #стройка"
+            }
+
+        # 3.9. Образование / Онлайн-школы / Курсы
+        elif any(w in full_text_search for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор", "язык", "навык", "диплом"]):
+            lead = f"Инвестируйте в своё развитие вместе с «{company_name}» 🎓"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Практические знания, которые дают измеримый результат сразу после обучения.\n\n"
+                f"Опытные преподаватели-практики, разбор реальных кейсов, поддержка кураторов и комьюнити мотивированных студентов — начните свой путь к новой профессии!{comments_phrase}"
+            )
+            cta = "Напишите кодовое слово «КУРС» в комментариях, чтобы получить бесплатный вводный урок! 👇📚" if has_comments else "Пишите в личные сообщения, чтобы забронировать место на новом потоке! 🚀📚",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Modern educational lifestyle photograph: an open laptop on a clean wooden desk showing interactive learning materials, stylish notebook with colorful notes, coffee cup, bright natural sunlight, inspiring study atmosphere.",
+                "hashtags": "#образование #онлайнкурсы #обучение #саморазвитие #навыки"
+            }
+
+        # 3.10. Юриспруденция / Бухгалтерия / Финансы / Налоги
+        elif any(w in full_text_search for w in ["юрист", "адвокат", "бухгалтер", "налог", "аудит", "финанс", "договор", "право", "банкротств"]):
+            lead = f"Надёжная правовая и финансовая защита вашего бизнеса от «{company_name}» ⚖️"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Защитите свои активы и оптимизируйте процессы с командой опытных экспертов.\n\n"
+                f"Глубокий анализ рисков, безупречное ведение отчётности и защита ваших интересов в любых инстанциях. Ваш бизнес под надёжным контролем 24/7.{comments_phrase}"
+            )
+            cta = "Задайте свой вопрос юристу или бухгалтеру в комментариях 👇 Ответим конфиденциально в ЛС!" if has_comments else "Запишитесь на экспресс-аудит ваших документов в личных сообщениях! 💼",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Professional corporate business photograph: a modern conference table with open legal documents, sleek laptop, high-end pen, stylish eyeglasses, natural office window light, trustworthy and authoritative atmosphere.",
+                "hashtags": "#юрист #бухгалтерия #налоги #бизнес #консалтинг"
+            }
+
+        # 3.11. Туризм / Отели / Путешествия / Глэмпинги
+        elif any(w in full_text_search for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых", "база отдыха", "курорт", "море", "горы", "экскурси"]):
+            lead = f"Откройте мир ярких впечатлений вместе с «{company_name}» ✈️🌄"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Идеальный отдых начинается с правильного выбора локации и заботы о каждой мелочи путешествия.\n\n"
+                f"Завораживающие виды, премиальный сервис, авторские маршруты и полное погружение в атмосферу — пора сменить обстановку и зарядиться энергией!{comments_phrase}"
+            )
+            cta = "Куда мечтаете отправиться в ближайшее время? Делитесь в комментариях! 🌍👇" if has_comments else "Бронируйте лучшие даты в личных сообщениях — подберём тур мечты! ✈️",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Breathtaking travel lifestyle photograph: cozy modern glamping dome or hotel balcony with panoramic mountain or lake view at golden sunset, comfortable wooden deck chairs, warm blankets, serene inspiring travel atmosphere.",
+                "hashtags": "#путешествия #туризм #отдых #отель #глэмпинг"
+            }
+
+        # 3.12. Ритейл / Одежда / E-commerce / Товары
+        elif any(w in full_text_search for w in ["магазин", "одежд", "стил", "мод", "товар", "доставк", "подарок", "аксессуар", "маркетплейс"]):
+            lead = f"Стиль и качество, которые подчеркнут вашу индивидуальность: «{company_name}» 🛍️"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Мы собрали коллекцию, в которой каждая деталь продумана до мелочей: от премиальных материалов до идеальной посадки.\n\n"
+                f"Быстрая доставка, удобная примерка и гарантированное качество — порадуйте себя новинками уже сегодня!{comments_phrase}"
+            )
+            cta = "Какой образ понравился больше всего? Напишите номер в комментариях! 👇👗" if has_comments else "Оформляйте заказ прямо сейчас в личных сообщениях с быстрой доставкой! 🛍️",
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Aesthetic commercial flatlay or product display photograph: stylish trendy fashion items neatly arranged on a neutral warm beige surface, subtle soft shadows, natural window lighting, clean lifestyle commercial photography.",
+                "hashtags": "#шопинг #стиль #мода #одежда #новинки"
+            }
+
+        # =========================================================================
+        # 4. ДИНАМИЧЕСКИЙ УНИВЕРСАЛЬНЫЙ ГЕНЕРАТОР (FALLBACK ДЛЯ ЛЮБОЙ НИШИ)
+        # =========================================================================
+        lead = f"Новости и актуальные решения от «{company_name}»"
+        body = (
+            f"{topic_clean}.{visual_phrase}\n\n"
+            f"В компании «{company_name}» мы постоянно совершенствуем наш подход в сфере «{niche}», "
+            f"чтобы каждый клиент получал надёжный, прогнозируемый и качественный результат.\n\n"
+            f"Опыт команды, индивидуальный подход к задачам и современные стандарты сервиса экономят ваше время и ресурсы.{comments_phrase}"
+        )
+        cta = f"Поделитесь вашим мнением в комментариях 👇 — мы открыты к диалогу и рады ответить на любые вопросы!" if has_comments else f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи!"
+        hashtags = f"#{niche.replace(' ', '_')} #бизнес #качество #новости"
+        visual_prompt = (
+            f"Authentic candid commercial lifestyle photograph for {niche}. "
+            f"Subject: professional modern environment and tools related to {topic_clean}, clean organized workspace. "
+            f"Lighting: natural ambient daylight from nearby window, soft warm highlights. "
+            f"Style: authentic commercial photography, genuine social media aesthetic, shallow depth of field, real life texture, photorealistic."
+        )
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
         return {

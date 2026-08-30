@@ -27,10 +27,22 @@ except ImportError:
 
 class AchievementBroadcaster:
     DEFAULT_CHANNEL = "@testaipublisher"
-    DEFAULT_BOT_TOKEN = "8840988455:AAFsUPjrOSvQdMpuK5c-MkQdPcVB092tPzw"
+    @staticmethod
+    def _normalize_channel(channel: str) -> str:
+        if not channel:
+            return "@testaipublisher"
+        ch = channel.strip()
+        if ch.startswith("https://t.me/"):
+            ch = "@" + ch.replace("https://t.me/", "").rstrip("/")
+        elif ch.startswith("t.me/"):
+            ch = "@" + ch.replace("t.me/", "").rstrip("/")
+        elif not ch.startswith("@") and not ch.startswith("-100") and not ch.startswith("-"):
+            ch = "@" + ch
+        return ch
 
     def __init__(self, target_channel: Optional[str] = None):
-        self.target_channel = target_channel or os.getenv("UCUST_ACHIEVEMENT_CHANNEL", self.DEFAULT_CHANNEL)
+        raw_ch = target_channel or os.getenv("UCUST_ACHIEVEMENT_CHANNEL") or self.DEFAULT_CHANNEL
+        self.target_channel = self._normalize_channel(raw_ch)
         self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("UCUST_TELEGRAM_BOT_TOKEN") or self.DEFAULT_BOT_TOKEN
         self.api_id = os.getenv("TELETHON_API_ID") or os.getenv("TELEGRAM_API_ID", "37805806")
         self.api_hash = os.getenv("TELETHON_API_HASH") or os.getenv("TELEGRAM_API_HASH", "3edb95f2db1a5bf4d67608d79db10bbf")

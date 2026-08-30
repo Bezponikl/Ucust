@@ -131,10 +131,10 @@ class PhotoGeneratorSkill:
             "camera": "Authentic candid commercial photo, shallow depth of field, genuine celebration and connection"
         },
         "флаг": {
-            "subject": "focused professional person in silhouette softly touching the panoramic window glass in thoughtful contemplation, grand magnificent Russian tricolor flag fluttering powerfully outside on a high flagpole",
-            "environment": "modern high-rise glass-walled office at sunset, floor-to-ceiling panoramic window overlooking city skyline",
-            "lighting": "dramatic golden hour sunset light, warm amber rim lighting on silhouette, soft reflections on glass",
-            "camera": "Cinematic 35mm film photography look, over-the-shoulder perspective, deep emotional resonance, shallow depth of field, authentic photography"
+            "subject": "focused professional in elegant silhouette standing at lower right looking up in awe, colossal majestic Russian tricolor flag fluttering grandly and powerfully on towering flagpole dominating upper sky",
+            "environment": "modern high-rise glass office by panoramic window, dramatic glowing golden sunset sky and clouds",
+            "lighting": "warm golden sunbeams through clouds, brilliant golden rim lighting on silhouette, soft window reflections",
+            "camera": "Heroic dramatic low-angle upward perspective (shot from below looking up), cinematic 35mm film masterpiece, monumental scale and grandeur"
         },
         "услуги": {
             "subject": "passionate dedicated professional deeply engaged in their craft at modern sunlit workstation, genuine focus, pride and mastery",

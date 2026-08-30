@@ -169,11 +169,11 @@ class SaigaLLMSkill:
                 "cta": "Поздравляйте друзей и коллег в комментариях 👇 С праздником! 🇷🇺" if has_comments else "С праздником! Желаем процветания и уверенного движения вперёд! 🇷🇺",
                 "hashtags": "#ДеньФлага #Россия #триколор #праздник #UCust",
                 "visual_prompt": (
-                    "Cinematic emotional storytelling photograph at golden hour sunset. "
-                    "Over-the-shoulder silhouette view of a focused professional standing by a large panoramic floor-to-ceiling glass window of a modern high-rise office, gently resting one hand against the glass in thoughtful contemplation. "
-                    "Outside in the warm evening air, a magnificent large Russian tricolor flag flutters dynamically and powerfully on a tall flagpole against a dramatic glowing golden sunset sky and distant city skyline. "
-                    "Warm amber sunlight streams through the glass, casting a golden rim light along the person's silhouette, with subtle translucent reflections of the fluttering flag in the window glass. "
-                    "Cinematic 35mm film photography look, deep emotional resonance, shallow depth of field, poetic, evocative, photorealistic masterpiece."
+                    "Heroic cinematic photograph with dramatic low-angle upward perspective (camera positioned low, shooting upward toward the sky). "
+                    "In the foreground at lower right, a focused professional in elegant silhouette stands by a massive panoramic floor-to-ceiling glass window, hand gently resting on the glass, looking up in awe and contemplation. "
+                    "Outside and high above in the upper frame, a colossal, majestic Russian tricolor flag on a towering flagpole flutters grandly and dynamically in the strong wind against a breathtaking golden-amber sunset sky and dramatic clouds, commanding the scene with monumental scale and national pride. "
+                    "Warm golden sunlight breaking through clouds, brilliant golden rim lighting outlining the silhouette, soft realistic reflections on glass. "
+                    "Cinematic 35mm film look, heroic low-angle composition, monumental scale, deep emotional resonance, photorealistic masterpiece."
                 )
             }
         elif any(w in topic_lower for w in ["новый год", "новогодн", "рождеств", "ёлка", "елка"]):

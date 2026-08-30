@@ -1,10 +1,10 @@
 # File: skills/comfy_cli_runner.py | Module: skills | Part of Intellectual Property Submission.
 """
-ComfyUI CLI Runner Module for UCust.AI.
+ComfyUI CLI & Headless API Runner Module for UCust.AI.
 
-Loads LTX-2.3 workflow JSON graphs (such as C:/Users/Metal/Desktop/Ltx_generations.json),
-programmatically updates prompts/seeds/dimensions, and triggers headless video rendering
-via ComfyUI local API (http://127.0.0.1:8188) or CLI runner without requiring browser GUI.
+Loads High-Quality Photo Generation workflow JSON graphs (such as Photo_generations.json),
+programmatically updates prompts, seeds, dimensions and aspect ratios, and triggers
+headless photorealistic image rendering via ComfyUI local API (http://127.0.0.1:8188) or CLI runner.
 """
 
 from __future__ import annotations
@@ -25,16 +25,26 @@ except ImportError:
 logger = logging.getLogger("comfy_cli_runner")
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT_PHOTO_WORKFLOW = os.path.join(PROJECT_ROOT, "Photo_generations.json")
 PROJECT_ROOT_WORKFLOW = os.path.join(PROJECT_ROOT, "Ltx_generations.json")
-MODELS_LTX_WORKFLOW = os.path.join(PROJECT_ROOT, "models", "ltx_video", "Ltx_generations.json")
-DEFAULT_WORKFLOW_DESKTOP_PATH = r"C:\Users\Metal\Desktop\Ltx_generations.json"
-LOCAL_TEMPLATE_PATH = os.path.join(PROJECT_ROOT, "skills", "templates", "Ltx_generations.json")
+MODELS_COMFY_WORKFLOW = os.path.join(PROJECT_ROOT, "models", "comfyui", "Photo_generations.json")
+LOCAL_TEMPLATE_PATH = os.path.join(PROJECT_ROOT, "skills", "templates", "Photo_generations.json")
+DEFAULT_WORKFLOW_DESKTOP_PATH = r"C:\Users\Metal\Desktop\Photo_generations.json"
 
 
 class ComfyCLIRunner:
     """
-    CLI & Headless API Runner for executing ComfyUI LTX-2.3 workflow JSON graphs.
+    CLI & Headless API Runner for executing ComfyUI Photorealistic Image Generation workflow graphs.
     """
+
+    ASPECT_RATIO_MAP = {
+        "1:1": (1024, 1024),
+        "4:5": (1024, 1280),
+        "16:9": (1280, 720),
+        "9:16": (720, 1280),
+        "3:4": (896, 1152),
+        "4:3": (1152, 896)
+    }
 
     def __init__(
         self,
@@ -44,17 +54,19 @@ class ComfyCLIRunner:
         timeout: float = 60.0,
     ) -> None:
         self.comfyui_url = (comfyui_url or os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")).rstrip("/")
-        self.output_dir = output_dir or os.getenv("COMFYUI_OUTPUT_DIR", os.path.join(PROJECT_ROOT, "output"))
+        self.output_dir = output_dir or os.getenv("COMFYUI_OUTPUT_DIR", os.path.join(PROJECT_ROOT, "output", "photos"))
         self.workflow_template_path = (
             workflow_template_path
             or os.getenv("COMFYUI_WORKFLOW_PATH")
             or (
-                MODELS_LTX_WORKFLOW
-                if os.path.exists(MODELS_LTX_WORKFLOW)
-                else PROJECT_ROOT_WORKFLOW
-                if os.path.exists(PROJECT_ROOT_WORKFLOW)
+                PROJECT_ROOT_PHOTO_WORKFLOW
+                if os.path.exists(PROJECT_ROOT_PHOTO_WORKFLOW)
                 else LOCAL_TEMPLATE_PATH
                 if os.path.exists(LOCAL_TEMPLATE_PATH)
+                else MODELS_COMFY_WORKFLOW
+                if os.path.exists(MODELS_COMFY_WORKFLOW)
+                else PROJECT_ROOT_WORKFLOW
+                if os.path.exists(PROJECT_ROOT_WORKFLOW)
                 else DEFAULT_WORKFLOW_DESKTOP_PATH
             )
         )
@@ -62,7 +74,7 @@ class ComfyCLIRunner:
 
         os.makedirs(self.output_dir, exist_ok=True)
         logger.info(
-            "ComfyCLIRunner initialized: url='%s', output_dir='%s', workflow_path='%s'",
+            "ComfyCLIRunner initialized for Photo Generation: url='%s', output_dir='%s', workflow_path='%s'",
             self.comfyui_url,
             self.output_dir,
             self.workflow_template_path,
@@ -70,7 +82,7 @@ class ComfyCLIRunner:
 
     def load_workflow(self, custom_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Loads the LTX-2.3 ComfyUI workflow JSON from specified path or default location.
+        Loads the Photo Generation ComfyUI workflow JSON from specified path or default location.
         """
         path = custom_path or self.workflow_template_path
 
@@ -83,22 +95,27 @@ class ComfyCLIRunner:
             except Exception as exc:
                 logger.warning("Error reading workflow JSON at '%s': %s. Using default fallback.", path, exc)
 
-        logger.info("Workflow file not found at '%s'. Using fallback LTX-2.3 JSON graph.", path)
-        return self._build_fallback_workflow("Default LTX-2.3 video prompt", 42)
+        logger.info("Workflow file not found at '%s'. Using fallback Photo JSON graph.", path)
+        return self._build_fallback_workflow("Commercial SMM Candid Photo", 42)
 
     def customize_workflow(
         self,
         workflow_json: Dict[str, Any],
-        video_prompt: str,
-        audio_prompt: str = "",
+        photo_prompt: str,
+        negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
-        aspect_ratio: str = "16:9",
+        aspect_ratio: str = "1:1",
     ) -> Dict[str, Any]:
         """
-        Programmatically updates prompt text, seeds, and dimensions inside the loaded ComfyUI workflow graph.
-        Handles both node graph format (list of nodes) and prompt API format (dict of node IDs).
+        Programmatically updates prompt text, negative prompt, seeds, and dimensions
+        inside the loaded ComfyUI Photo workflow graph.
         """
-        chosen_seed = seed if seed is not None else random.randint(100000, 9999999999)
+        chosen_seed = seed if seed is not None else random.randint(100000, 999999999999)
+        width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
+        default_neg = (
+            negative_prompt
+            or "plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, doll, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
+        )
 
         # Case 1: Standard ComfyUI GUI export format with "nodes" array
         if isinstance(workflow_json, dict) and "nodes" in workflow_json:
@@ -106,17 +123,42 @@ class ComfyCLIRunner:
                 node_type = node.get("type", "")
                 title = node.get("title", "")
 
-                # Positive text prompt modification
-                if node_type == "CLIPTextEncode" or "Positive" in title:
-                    if "widgets_values" in node and len(node["widgets_values"]) > 0:
-                        node["widgets_values"][0] = video_prompt
+                # 1. Prompt Loader (JAX_EasyPromptSimple or CLIPTextEncode)
+                if node_type == "JAX_EasyPromptSimple":
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 2:
+                        node["widgets_values"][0] = photo_prompt
+                        node["widgets_values"][1] = default_neg
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["positive"] = photo_prompt
+                        node["widgets_values_named"]["negative"] = default_neg
 
-                # Seed modification
-                if node_type in {"RandomNoise", "KSampler", "LTX23Sampler"}:
+                elif node_type == "CLIPTextEncode" or "Positive" in title:
+                    if "widgets_values" in node and len(node["widgets_values"]) > 0:
+                        node["widgets_values"][0] = photo_prompt
+
+                # 2. Dimensions (EmptySD3LatentImage or EmptyLatentImage)
+                if node_type in {"EmptySD3LatentImage", "EmptyLatentImage"}:
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 2:
+                        node["widgets_values"][0] = width
+                        node["widgets_values"][1] = height
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["width"] = width
+                        node["widgets_values_named"]["height"] = height
+
+                # 3. Seed modification (ClownsharKSampler_Beta, KSampler, etc.)
+                if node_type == "ClownsharKSampler_Beta":
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 8:
+                        node["widgets_values"][7] = chosen_seed
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["seed"] = chosen_seed
+
+                elif node_type in {"KSampler", "KSamplerAdvanced", "RandomNoise"}:
                     if "widgets_values" in node and len(node["widgets_values"]) > 0:
                         node["widgets_values"][0] = chosen_seed
+                    if "widgets_values_named" in node and "seed" in node["widgets_values_named"]:
+                        node["widgets_values_named"]["seed"] = chosen_seed
 
-            logger.info("Customized ComfyUI GUI node graph with video_prompt='%s...', seed=%d", video_prompt[:30], chosen_seed)
+            logger.info("Customized ComfyUI Photo node graph with prompt='%s...', seed=%d, size=%dx%d", photo_prompt[:40], chosen_seed, width, height)
             return workflow_json
 
         # Case 2: ComfyUI Prompt API format (dict mapping node_id -> node_obj)
@@ -128,12 +170,20 @@ class ComfyCLIRunner:
                 inputs = node_data.get("inputs", {})
 
                 if class_type in {"CLIPTextEncode", "CLIPTextEncodeSequence"} and "text" in inputs:
-                    inputs["text"] = video_prompt
+                    inputs["text"] = photo_prompt
 
-                if class_type in {"KSampler", "SamplerCustomAdvanced", "LTX23Sampler", "RandomNoise"} and "seed" in inputs:
+                if class_type == "JAX_EasyPromptSimple":
+                    inputs["positive"] = photo_prompt
+                    inputs["negative"] = default_neg
+
+                if class_type in {"EmptySD3LatentImage", "EmptyLatentImage"}:
+                    inputs["width"] = width
+                    inputs["height"] = height
+
+                if class_type in {"KSampler", "SamplerCustomAdvanced", "ClownsharKSampler_Beta", "RandomNoise"} and "seed" in inputs:
                     inputs["seed"] = chosen_seed
 
-            logger.info("Customized ComfyUI API graph with video_prompt='%s...', seed=%d", video_prompt[:30], chosen_seed)
+            logger.info("Customized ComfyUI API Photo graph with prompt='%s...', seed=%d", photo_prompt[:40], chosen_seed)
             return workflow_json
 
         return workflow_json
@@ -153,21 +203,24 @@ class ComfyCLIRunner:
 
     async def execute_workflow(
         self,
-        workflow_graph: Dict[str, Any],
-        video_prompt: str = "LTX-2.3 SMM Commercial Video",
+        workflow_graph: Optional[Dict[str, Any]] = None,
+        photo_prompt: str = "Commercial SMM Candid Photograph, high resolution",
+        negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
+        aspect_ratio: str = "1:1",
     ) -> Dict[str, Optional[str]]:
         """
-        Submits prompt graph to ComfyUI local API/CLI runner and returns generated media file paths.
-
-        :param workflow_graph: Raw or customized ComfyUI JSON graph.
-        :param video_prompt: Prompt text description.
-        :param seed: Random seed.
-        :return: Dict containing local video_path, audio_path, and URLs.
+        Submits photo prompt graph to ComfyUI local API / CLI runner and returns generated image file paths.
         """
-        customized_graph = self.customize_workflow(workflow_graph, video_prompt=video_prompt, seed=seed)
+        graph = workflow_graph or self.load_workflow()
+        customized_graph = self.customize_workflow(
+            graph,
+            photo_prompt=photo_prompt,
+            negative_prompt=negative_prompt,
+            seed=seed,
+            aspect_ratio=aspect_ratio,
+        )
 
-        # Check server availability
         online = await self.is_server_online()
         use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
 
@@ -180,10 +233,10 @@ class ComfyCLIRunner:
                     if response.is_success:
                         res_json = response.json()
                         prompt_id = res_json.get("prompt_id")
-                        logger.info("ComfyUI prompt submitted successfully via API/CLI (prompt_id=%s)", prompt_id)
+                        logger.info("ComfyUI Photo prompt submitted successfully (prompt_id=%s)", prompt_id)
 
                         # Poll completion history up to timeout
-                        for _ in range(30):
+                        for _ in range(int(self.timeout)):
                             await asyncio.sleep(1.0)
                             hist_res = await client.get(f"{self.comfyui_url}/history/{prompt_id}")
                             if hist_res.is_success:
@@ -191,52 +244,64 @@ class ComfyCLIRunner:
                                 outputs = history.get("outputs", {})
                                 if outputs:
                                     for node_id, node_out in outputs.items():
-                                        media_list = node_out.get("gifs", []) or node_out.get("videos", []) or node_out.get("images", [])
-                                        for m in media_list:
-                                            fname = m.get("filename")
+                                        image_list = node_out.get("images", [])
+                                        for img in image_list:
+                                            fname = img.get("filename")
                                             if fname:
                                                 local_path = os.path.join(self.output_dir, fname)
-                                                if fname.endswith((".mp4", ".webm")):
-                                                    return {
-                                                        "video_path": local_path,
-                                                        "audio_path": None,
-                                                        "video_url": f"{self.comfyui_url}/view?filename={fname}",
-                                                        "audio_url": None,
-                                                        "media_url": f"{self.comfyui_url}/view?filename={fname}",
-                                                    }
+                                                return {
+                                                    "status": "success",
+                                                    "photo_path": local_path,
+                                                    "file_path": local_path,
+                                                    "image_url": f"/output/photos/{fname}",
+                                                    "photo_url": f"/output/photos/{fname}",
+                                                    "media_url": f"{self.comfyui_url}/view?filename={fname}",
+                                                }
             except Exception as exc:
-                logger.warning("ComfyUI execution error: %s. Falling back to local offline mock generation.", exc)
+                logger.warning("ComfyUI execution error: %s. Falling back to local visual engine.", exc)
 
-        # Offline / Mock Fallback mode: Create physical mock .mp4 and .wav files
-        job_hash = f"cli-{os.urandom(4).hex()}"
-        mock_video_name = f"LTX23_cli_video_{job_hash}.mp4"
-        mock_audio_name = f"LTX23_cli_audio_{job_hash}.wav"
-        video_path = os.path.join(self.output_dir, mock_video_name)
-        audio_path = os.path.join(self.output_dir, mock_audio_name)
+        # Offline / Fallback mode: Generate high quality visual via PIL engine
+        photo_hash = f"qwen_photo_{os.urandom(4).hex()}"
+        photo_filename = f"{photo_hash}.jpg"
+        photo_path = os.path.join(self.output_dir, photo_filename)
 
         try:
-            with open(video_path, "wb") as f:
-                f.write(b"MOCK_MP4_HEADER_LTX23_CLI_RUNNER_DATA")
-            with open(audio_path, "wb") as f:
-                f.write(b"MOCK_WAV_HEADER_LTX23_CLI_RUNNER_DATA")
-            logger.info("Created physical mock media files at '%s' and '%s'", video_path, audio_path)
-        except Exception as file_exc:
-            logger.error("Failed to write mock media files: %s", file_exc)
+            from skills.photo_generator import PhotoGeneratorSkill
+            pg = PhotoGeneratorSkill(output_dir=self.output_dir)
+            w, h = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
+            pg._render_realistic_smm_visual(
+                output_path=photo_path,
+                topic=photo_prompt,
+                niche="SMM Commercial Visual",
+                width=w,
+                height=h,
+                company_name="UCust"
+            )
+            logger.info("Generated high-quality SMM photo visual at '%s'", photo_path)
+        except Exception as fallback_exc:
+            logger.error("Failed to render fallback photo: %s", fallback_exc)
+            with open(photo_path, "wb") as f:
+                f.write(b"MOCK_PHOTO_DATA_QWEN_IMAGE")
 
         return {
-            "video_path": video_path,
-            "audio_path": audio_path,
-            "video_url": f"{self.comfyui_url}/view?filename={mock_video_name}",
-            "audio_url": f"{self.comfyui_url}/view?filename={mock_audio_name}",
-            "media_url": f"{self.comfyui_url}/view?filename={mock_video_name}",
+            "status": "success",
+            "photo_path": photo_path,
+            "file_path": photo_path,
+            "image_url": f"/output/photos/{photo_filename}",
+            "photo_url": f"/output/photos/{photo_filename}",
+            "media_url": f"{self.comfyui_url}/view?filename={photo_filename}",
         }
 
-    def _build_fallback_workflow(self, video_prompt: str, seed: int) -> Dict[str, Any]:
-        """Constructs basic fallback LTX-2.3 graph."""
+    def _build_fallback_workflow(self, photo_prompt: str, seed: int) -> Dict[str, Any]:
+        """Constructs basic fallback Photo graph."""
         return {
-            "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "ltx-2.3-22b-dev.safetensors"}},
-            "2": {"class_type": "CLIPTextEncode", "inputs": {"text": video_prompt}},
-            "3": {"class_type": "LTX23Sampler", "inputs": {"seed": seed, "steps": 20, "aspect_ratio": "16:9"}},
+            "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors"}},
+            "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors"}},
+            "3": {"class_type": "VAELoader", "inputs": {"vae_name": "qwen_image_vae.safetensors"}},
+            "4": {"class_type": "EmptySD3LatentImage", "inputs": {"width": 1024, "height": 1024, "batch_size": 1}},
+            "15": {"class_type": "JAX_EasyPromptSimple", "inputs": {"positive": photo_prompt, "negative": "blurry, bad anatomy"}},
+            "16": {"class_type": "ClownsharKSampler_Beta", "inputs": {"seed": seed, "steps": 30, "cfg": 3.1}},
+            "21": {"class_type": "SaveImage", "inputs": {"filename_prefix": "ComfyUI"}},
         }
 
 

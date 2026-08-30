@@ -1,6 +1,6 @@
 """
 ComfyUILocalSkill - Local integration skill for ComfyUI Headless API (127.0.0.1:8188)
-and CLI Runner integration for LTX-2.3 multimodal video+audio generation.
+and CLI Runner integration for High-Quality Photorealistic Image Generation.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ logger = logging.getLogger("comfyui_local_skill")
 
 class ComfyUILocalSkill:
     """
-    Skill module for submitting LTX-2.3 workflow JSON graphs to local ComfyUI instance (http://127.0.0.1:8188)
-    or CLI runner and fetching generated video/audio files directly from local output directory.
+    Skill module for submitting Photo Generation workflow JSON graphs to local ComfyUI instance (http://127.0.0.1:8188)
+    or CLI runner and fetching generated image files directly from local output directory.
     """
 
     def __init__(
@@ -29,7 +29,7 @@ class ComfyUILocalSkill:
         timeout: float = 60.0,
     ) -> None:
         self.comfyui_url = (comfyui_url or os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")).rstrip("/")
-        self.output_dir = output_dir or os.getenv("COMFYUI_OUTPUT_DIR", os.path.abspath("./output"))
+        self.output_dir = output_dir or os.getenv("COMFYUI_OUTPUT_DIR", os.path.abspath("./output/photos"))
         self.cli_runner = ComfyCLIRunner(
             comfyui_url=self.comfyui_url,
             output_dir=self.output_dir,
@@ -38,7 +38,7 @@ class ComfyUILocalSkill:
         )
         os.makedirs(self.output_dir, exist_ok=True)
         logger.info(
-            "ComfyUILocalSkill initialized with CLI Runner: server='%s', output_dir='%s'",
+            "ComfyUILocalSkill initialized with Photo CLI Runner: server='%s', output_dir='%s'",
             self.comfyui_url,
             self.output_dir,
         )
@@ -48,35 +48,32 @@ class ComfyUILocalSkill:
         Submits a ComfyUI JSON prompt graph to http://127.0.0.1:8188/prompt using CLI runner.
         """
         res = await self.cli_runner.execute_workflow(workflow_graph)
-        return {"prompt_id": os.path.basename(res.get("video_path", "job-1")), "media_info": res}
+        return {"prompt_id": os.path.basename(res.get("photo_path", "job-1")), "media_info": res}
 
     async def fetch_generated_media(self, prompt_id: str) -> Dict[str, Optional[str]]:
         """
-        Retrieves generated media details from local output directory.
+        Retrieves generated photo details from local output directory.
         """
-        local_vpath = os.path.join(self.output_dir, f"LTX23_video_{prompt_id}.mp4")
-        local_apath = os.path.join(self.output_dir, f"LTX23_audio_{prompt_id}.wav")
+        local_ppath = os.path.join(self.output_dir, f"qwen_photo_{prompt_id}.jpg")
 
-        if not os.path.exists(local_vpath):
+        if not os.path.exists(local_ppath):
             try:
-                with open(local_vpath, "wb") as f:
-                    f.write(b"MOCK_MP4_HEADER_LTX23")
-                with open(local_apath, "wb") as f:
-                    f.write(b"MOCK_WAV_HEADER_LTX23")
+                with open(local_ppath, "wb") as f:
+                    f.write(b"MOCK_JPEG_HEADER_PHOTO")
             except Exception:
                 pass
 
         return {
-            "video_path": local_vpath,
-            "audio_path": local_apath,
-            "video_url": f"{self.comfyui_url}/view?filename={os.path.basename(local_vpath)}",
-            "audio_url": f"{self.comfyui_url}/view?filename={os.path.basename(local_apath)}",
-            "media_url": f"{self.comfyui_url}/view?filename={os.path.basename(local_vpath)}",
+            "photo_path": local_ppath,
+            "file_path": local_ppath,
+            "image_url": f"/output/photos/{os.path.basename(local_ppath)}",
+            "photo_url": f"/output/photos/{os.path.basename(local_ppath)}",
+            "media_url": f"{self.comfyui_url}/view?filename={os.path.basename(local_ppath)}",
         }
 
     async def _execute_full_flow(self, workflow_graph: Dict[str, Any]) -> Dict[str, Optional[str]]:
         """
-        Executes full CLI/API video rendering flow and returns local file paths.
+        Executes full CLI/API photo rendering flow and returns local file paths.
         """
         return await self.cli_runner.execute_workflow(workflow_graph)
 

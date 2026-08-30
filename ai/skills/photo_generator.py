@@ -212,26 +212,37 @@ class PhotoGeneratorSkill:
         filename = f"{photo_id}.jpg"
         file_path = os.path.join(self.output_dir, filename)
 
+        rendered_via_comfy = False
         # 1. Попытка рендера через ComfyUI API / CLI runner
         try:
             from skills.comfy_cli_runner import ComfyCLIRunner
             comfy_runner = ComfyCLIRunner(output_dir=self.output_dir)
             if await comfy_runner.is_server_online():
-                print("[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — отправка задачи в ComfyUI...")
+                print("[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — запуск фото-воркфлоу...")
+                res_comfy = await comfy_runner.execute_workflow(
+                    photo_prompt=prompt_data["positive_prompt"],
+                    negative_prompt=prompt_data["negative_prompt"],
+                    aspect_ratio=aspect_ratio
+                )
+                if res_comfy.get("photo_path") and os.path.exists(res_comfy["photo_path"]) and os.path.getsize(res_comfy["photo_path"]) > 100:
+                    file_path = res_comfy["photo_path"]
+                    filename = os.path.basename(file_path)
+                    rendered_via_comfy = True
         except Exception as ex:
             print(f"[PhotoGeneratorSkill] ℹ️ ComfyUI статус: {ex}")
 
-        # 2. Рендер высококачественного брендового SMM-визуала
-        self._render_realistic_smm_visual(
-            output_path=file_path,
-            topic=topic,
-            niche=niche,
-            width=prompt_data["width"],
-            height=prompt_data["height"],
-            brand_colors=brand_colors,
-            company_name=company_name,
-            attachments=attachments
-        )
+        # 2. Рендер высококачественного брендового SMM-визуала (если ComfyUI оффлайн)
+        if not rendered_via_comfy:
+            self._render_realistic_smm_visual(
+                output_path=file_path,
+                topic=topic,
+                niche=niche,
+                width=prompt_data["width"],
+                height=prompt_data["height"],
+                brand_colors=brand_colors,
+                company_name=company_name,
+                attachments=attachments
+            )
 
         # 3. Строгая валидация наличия и размера файла на диске
         if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:

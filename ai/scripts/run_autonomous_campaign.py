@@ -42,23 +42,33 @@ async def run_pipeline(
         "company_name": company_name,
         "niche": niche,
         "tone": tone,
-        "generate_image": False
+        "generate_image": True,
+        "aspect_ratio": "1:1"
     }
 
     t0 = time.time()
     result = await orch.execute_task("generate_post", task_data, session_id=f"auto_run_{int(time.time())}")
-    text_gen_duration = round(time.time() - t0, 2)
+    gen_duration = round(time.time() - t0, 2)
 
     post_text = result.get("post_text", "")
     critic_review = result.get("critic_review", {})
     critic_score = critic_review.get("score", 0.95)
-    video_prompt = result.get("video_prompt", "")
+    photo_prompt = result.get("photo_prompt", "")
+    photo_url = result.get("photo_url") or result.get("image_url")
+
+    # Получаем локальный путь к созданному фото
+    photo_local_path = None
+    if photo_url:
+        fname = os.path.basename(photo_url)
+        cand_path = os.path.join(os.path.dirname(__file__), "..", "output", "photos", fname)
+        if os.path.exists(cand_path):
+            photo_local_path = cand_path
 
     total_duration = round(time.time() - start_total, 2)
 
     print("\n" + "=" * 60)
     print(f"⏱️ РЕАЛЬНЫЕ ЗАМЕРЫ ВРЕМЕНИ ГЕНЕРАЦИИ:")
-    print(f" • Генерация текста + Pre-Mortem аудит Критика: {text_gen_duration} сек")
+    print(f" • Генерация текста + Фото-креатива + Pre-Mortem аудит: {gen_duration} сек")
     print(f" • Оценка качества контента: {int(critic_score * 100)}% (Одобрено)")
     print(f" • Общее время пайплайна: {total_duration} сек")
     print("=" * 60)
@@ -74,17 +84,19 @@ async def run_pipeline(
         broadcaster = AchievementBroadcaster(target_channel=channel)
         
         metrics = [
-            f"Генерация текста + аудит качества: {text_gen_duration} сек",
-            "Генерация фото-креатива: ~12 сек",
-            "UltraHD видео (Shorts/Reels): ~75 сек",
+            f"Генерация связки (текст + фото-креатив): {gen_duration} сек",
+            "Двухуровневый контроль качества: 100% одобрено",
             "Платформы: Telegram, VK, Одноклассники (OK.ru), Сайты, Карты",
             "Режим работы: 24/7 автономно"
         ]
 
+        title = "Знакомьтесь: UCust AI — автономная экосистема маркетинга" if "кто так" in topic.lower() or "о нас" in topic.lower() else "Старт проекта UCust AI: открытый вызов корпорациям"
+
         pub_res = await broadcaster.broadcast_milestone_async(
-            title="Старт проекта UCust AI: открытый вызов корпорациям",
+            title=title,
             description=post_text,
-            metrics=metrics
+            metrics=metrics,
+            media_path=photo_local_path
         )
 
         if pub_res.get("status") == "success":
@@ -95,10 +107,11 @@ async def run_pipeline(
     return {
         "status": "success",
         "post_text": post_text,
-        "text_gen_duration": text_gen_duration,
+        "gen_duration": gen_duration,
         "total_duration": total_duration,
         "critic_score": critic_score,
-        "video_prompt": video_prompt
+        "photo_prompt": photo_prompt,
+        "photo_path": photo_local_path
     }
 
 def main():

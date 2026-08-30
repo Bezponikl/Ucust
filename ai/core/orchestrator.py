@@ -25,7 +25,9 @@ class SecurityGuard:
     PROTECTED_IP_TERMS = [
         "ltx", "ltx-video", "ltxv", "saiga", "moondream", "comfyui", "safetensors",
         "lora", "clip", "latent", "cfg", "emptyllatent", "checkpoint", "vlm",
-        "gemma", "sdxl", "flux", "unipc", "karras", "sampler", "vae", "controlnet"
+        "gemma", "sdxl", "flux", "unipc", "karras", "sampler", "vae", "controlnet",
+        "qwen", "qwen_image", "qwen_2.5_vl", "famegrid", "realskinfix", "auraflow",
+        "clownshark", "emptysd3latent", "unetloader", "cliploader", "vaedecodetiled"
     ]
     
     @classmethod
@@ -373,15 +375,20 @@ class UnifiedOrchestrator:
             else:
                 self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", critic_res)
             
-            # 3. Формирование видео/визуального промпта по стандарту LTX-2
+            # 3. Формирование коммерческого фото-промпта по стандарту реалистичной фотографии
             director = AdvancedVisualDirector(brand_images=[])
             prompt_kw = moondream_analysis.get("prompt_keywords") if moondream_analysis else ""
-            visual_kw_str = f" Visual features: {prompt_kw}." if prompt_kw else ""
-            video_prompt = f"Cinematic SMM video for {company_name}. Topic: {prompt}.{visual_kw_str} High resolution, 4k, crisp details."
+            visual_kw_str = f" Visual details: {prompt_kw}." if prompt_kw else ""
+            visual_prompt_data = director.create_photorealistic_prompt(
+                topic=f"{prompt}.{visual_kw_str}",
+                niche=niche,
+                aspect_ratio=aspect_ratio,
+                brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
+            )
+            photo_prompt = visual_prompt_data.get("positive_prompt")
 
             # 4. Генерация SMM Фотографии
             image_url = None
-            photo_prompt = None
             if should_gen_image:
                 try:
                     photo_skill = PhotoGeneratorSkill()
@@ -394,7 +401,7 @@ class UnifiedOrchestrator:
                         attachments=user_data.get("attachments")
                     )
                     image_url = photo_res.get("image_url")
-                    photo_prompt = photo_res.get("positive_prompt")
+                    photo_prompt = photo_res.get("positive_prompt") or photo_prompt
                 except Exception as ex:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка генерации фото: {ex}")
             
@@ -403,7 +410,6 @@ class UnifiedOrchestrator:
                 "status": "success",
                 "post_text": post_text,
                 "promo_code": promo_code,
-                "video_prompt": video_prompt,
                 "photo_prompt": photo_prompt,
                 "image_url": image_url,
                 "photo_url": image_url,

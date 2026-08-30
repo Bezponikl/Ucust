@@ -67,21 +67,37 @@ def _get_proxy_config() -> Optional[dict]:
 
 
 def _mock_payload(channel: str, limit: int) -> dict:
-    """Возвращает фиктивные данные когда ключи не настроены."""
+    """Возвращает фиктивные данные с анализом комментариев аудитории."""
+    mock_comments = [
+        {"id": 101, "author": "Алексей", "text": "А сколько времени уходит на запуск системы в реальный бизнес?", "likes": 4},
+        {"id": 102, "author": "Елена", "text": "Работает ли это для сложных ниш и B2B услуг?", "likes": 7},
+        {"id": 103, "author": "Михаил", "text": "Главное чтобы тексты были без шаблонной воды и отсекались клише.", "likes": 12},
+    ]
     return {
         "channel": channel,
         "limit": limit,
         "fetched_at": datetime.utcnow().isoformat(),
         "mode": "mock",
         "messages": [
-            {"id": i, "text": f"[MOCK] Пост {i} из {channel}", "views": 100 + i}
+            {
+                "id": i,
+                "text": f"[MOCK] Пост {i} из {channel}. Опыт внедрения мульти-агентных систем для автоматизации контента.",
+                "views": 100 + i * 25,
+                "comments_count": len(mock_comments),
+                "comments": mock_comments,
+                "top_objections_from_comments": [
+                    "Сроки запуска и окупаемость",
+                    "Применимость для сложных ниш",
+                    "Защита от шаблонных текстов"
+                ]
+            }
             for i in range(1, limit + 1)
         ],
     }
 
 
 async def _fetch_channel_async(channel: str, limit: int) -> dict:
-    """Асинхронно забирает посты из Telegram-канала через Telethon."""
+    """Асинхронно забирает посты и комментарии из Telegram-канала через Telethon."""
     from telethon import TelegramClient
     from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 
@@ -114,12 +130,32 @@ async def _fetch_channel_async(channel: str, limit: int) -> dict:
                 elif isinstance(message.media, MessageMediaDocument):
                     media_type = "document"
 
+            # Сбор комментариев / ответов под постом
+            comments = []
+            comments_count = 0
+            if getattr(message, "replies", None):
+                comments_count = getattr(message.replies, "replies", 0) or 0
+                if comments_count > 0:
+                    try:
+                        async for reply in client.iter_messages(channel, reply_to=message.id, limit=5):
+                            if reply.text:
+                                comments.append({
+                                    "id": reply.id,
+                                    "text": reply.text,
+                                    "date": reply.date.isoformat() if reply.date else None,
+                                    "sender_id": reply.sender_id
+                                })
+                    except Exception:
+                        pass
+
             messages_data.append({
                 "id": message.id,
                 "text": message.text or "",
                 "date": message.date.isoformat() if message.date else None,
                 "views": getattr(message, "views", 0) or 0,
                 "forwards": getattr(message, "forwards", 0) or 0,
+                "comments_count": comments_count,
+                "comments": comments,
                 "media_type": media_type,
                 "media_path": media_path,
                 "is_forwarded": message.fwd_from is not None,

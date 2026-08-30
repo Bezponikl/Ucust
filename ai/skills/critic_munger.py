@@ -38,9 +38,15 @@ class CriticMungerSkill:
         if not re.search(r'\d+', text):
             score -= 0.1
             cautions.append('Нет конкретных цифр, сроков или цен.')
-        if not any(w in text_lower for w in ['напишите', 'переходите', 'ссылк', 'жмите', 'пишите', 'забирайте', 'промокод', 'оставляйте', 'звоните', 'заказывайте']):
+        if not any(w in text_lower for w in ['напишите', 'переходите', 'ссылк', 'жмите', 'пишите', 'забирайте', 'промокод', 'оставляйте', 'звоните', 'заказывайте', 'делитесь', 'комментари']):
             score -= 0.15
             fatal_flaws.append('Нет понятного Call to Action (призыва к действию).')
+        
+        # Проверка триггера вовлечения аудитории в обсуждение / комментарии
+        if not any(w in text_lower for w in ['комментари', 'напишите', 'делитесь', 'обсудим', 'ответьте', 'ваше мнение', 'пишите в коммент']):
+            score -= 0.1
+            cautions.append('Слабый триггер вовлечения аудитории (добавьте призыв писать в комментарии).')
+
         paragraphs = [p for p in text.split('\n') if p.strip()]
         if len(paragraphs) <= 1 and len(text) > 200:
             score -= 0.15
@@ -49,7 +55,7 @@ class CriticMungerSkill:
         passed = score >= self.strictness
         if passed:
             verdict = 'APPROVED'
-            criticism = 'Текст сфокусирован, без лишней воды и штампов. Сильный хук.'
+            criticism = 'Текст сфокусирован, без лишней воды и штампов. Сильный хук и вовлекающий призыв к комментариям.'
             actionable_feedback = 'Готово к публикации.'
         else:
             verdict = 'REVISE_NEEDED'
@@ -60,8 +66,9 @@ class CriticMungerSkill:
             if any('приветствие' in f for f in fatal_flaws): feedback_parts.append('Удали приветствие, начни сразу с инсайта.')
             if any('цифр' in c for c in cautions): feedback_parts.append('Добавь точные цифры или сроки.')
             if any('Action' in f for f in fatal_flaws): feedback_parts.append('Добавь четкий призыв к действию в конце.')
+            if any('вовлечения' in c for c in cautions): feedback_parts.append('Добавь призыв к обсуждению в комментариях.')
             if any('простыня' in f for f in fatal_flaws): feedback_parts.append('Разбей текст на короткие абзацы.')
-            actionable_feedback = ' '.join(feedback_parts) or 'Усильте ценность оффера.'
+            actionable_feedback = ' '.join(feedback_parts) or 'Усильте ценность оффера и диалог с аудиторией.'
         return {
             'passed': passed, 'score': score, 'verdict': verdict,
             'criticism': criticism, 'fatal_flaws': fatal_flaws, 'cautions': cautions,

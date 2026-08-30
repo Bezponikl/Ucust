@@ -86,26 +86,32 @@ class SaigaLLMSkill:
         city: str = "Москва",
         tone: str = "Естественный и живой",
         format_type: str = "post",
-        visual_context: Optional[str] = None
+        visual_context: Optional[str] = None,
+        comments_context: Optional[List[str]] = None,
+        audience_questions: Optional[List[str]] = None
     ) -> dict:
         """
         Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,
-        нишу и компанию, обогащая текст деталями визуального анализа от Moondream.
+        нишу и компанию, обогащая текст деталями визуального анализа от Moondream и
+        анализом комментариев/возражений целевой аудитории.
         """
         print(f"[SaigaSkill] ✍️ Генерация SMM-поста: Компания='{company_name}', Ниша='{niche}', Тема='{topic}', Тон='{tone}'...")
         if visual_context:
             print(f"[SaigaSkill] 👁️ Включен визуальный контекст от Moondream: {visual_context[:100]}...")
+        if comments_context:
+            print(f"[SaigaSkill] 💬 Учтены комментарии аудитории: {len(comments_context)} шт.")
         
         # Если загружена реальная модель llama-cpp
         if self._is_loaded and self._llm:
             try:
+                comments_info = f"\nЧастые вопросы и комментарии аудитории: {', '.join(comments_context)}" if comments_context else ""
                 system_instruction = (
                     f"Ты — опытный главный SMM-редактор и копирайтер компании «{company_name}» (Ниша: {niche}, Город: {city}). "
                     f"Напиши публикацию для социальных сетей на тему: «{topic}».\n"
                     f"Тон общения: {tone}.\n"
-                    f"{visual_context or ''}\n"
+                    f"{visual_context or ''}{comments_info}\n"
                     f"Требования: живой русский язык, структурированные абзацы, "
-                    f"без штампов и клише, органичный призыв к действию в конце."
+                    f"без штампов и клише, обязательный призыв к диалогу и комментариям в конце."
                 )
                 output = self._llm.create_chat_completion(
                     messages=[
@@ -124,7 +130,7 @@ class SaigaLLMSkill:
             except Exception as e:
                 print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}")
 
-        # Интеллектуальный генератор на основе темы, профиля бренда и тональности
+        # Интеллектуальный генератор на основе темы, профиля бренда, комментариев и тональности
         topic_clean = topic.strip().rstrip(".").capitalize()
         topic_lower = topic.lower()
         niche_lower = niche.lower()
@@ -132,6 +138,15 @@ class SaigaLLMSkill:
         visual_phrase = ""
         if visual_context and "Что изображено:" in visual_context:
             visual_phrase = "\n\nНа прикреплённом фото — именно те детали и атмосфера, которые мы воплощаем в каждом нашем продукте."
+
+        # Формируем блок ответов на вопросы из комментариев
+        comments_phrase = ""
+        if comments_context and len(comments_context) > 0:
+            formatted_comments = "\n".join([f"• {c}" for c in comments_context[:3]])
+            comments_phrase = f"\n\n💬 <b>Отвечаем на частые вопросы из комментариев:</b>\n{formatted_comments}"
+        elif audience_questions and len(audience_questions) > 0:
+            formatted_q = "\n".join([f"• {q}" for q in audience_questions[:3]])
+            comments_phrase = f"\n\n💬 <b>Отвечаем на частые вопросы аудитории:</b>\n{formatted_q}"
 
         if "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:
             lead = f"Знакомьтесь: «{company_name}» — автономная экосистема ИИ-маркетинга"
@@ -143,7 +158,7 @@ class SaigaLLMSkill:
                 f"⚡ <b>2. Умная генерация контента</b> — создание продающих постов и сценариев с адаптацией под Telegram, VK, Одноклассники (OK.ru) и сайты.\n"
                 f"⚡ <b>3. Двухуровневый контроль качества</b> — встроенный ИИ-критик отсекает шаблоны, воду и клише до публикации.\n"
                 f"⚡ <b>4. Мультимедиа-продакшн</b> — генерация живых фото-креативов в стиле естественной мобильной съемки (iPhone / UGC).\n\n"
-                f"Пока другие тратят недели на брифы — {company_name} выдает готовый результат за минуты."
+                f"Пока другие тратят недели на брифы — {company_name} выдает готовый результат за минуты.{comments_phrase}"
             )
             cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, какую стратегию ИИ-агенты подготовят для вас прямо сейчас! 🚀"
 
@@ -153,36 +168,36 @@ class SaigaLLMSkill:
                 f"{topic_clean}.{visual_phrase}\n\n"
                 f"Мы объединили сильную команду экспертов, передовые технологии и фокус на понятный результат для каждого клиента. "
                 f"Впереди — масштабные задачи, открытая разработка и регулярные релизы новых возможностей.\n\n"
-                f"Спасибо каждому, кто поддерживает наш проект с первых дней!"
+                f"Спасибо каждому, кто поддерживает наш проект с первых дней!{comments_phrase}"
             )
-            cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях. Погнали! 🚀"
+            cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях 👇. Погнали! 🚀"
 
         elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
             lead = f"Специальное предложение от «{company_name}»"
             body = (
                 f"{topic_clean}.{visual_phrase}\n\n"
                 f"Мы ценим ваше доверие и хотим сделать наши услуги ещё выгоднее и доступнее для вашего бизнеса. "
-                f"Успейте воспользоваться специальными условиями до конца этой недели."
+                f"Успейте воспользоваться специальными условиями до конца этой недели.{comments_phrase}"
             )
-            cta = f"Пишите нам в личные сообщения или оформляйте заявку по промокоду {company_name.upper().replace(' ', '')}2026!"
+            cta = f"Напишите промокод {company_name.upper().replace(' ', '')}2026 в комментариях или оформите заявку в личных сообщениях!"
 
         elif "кофе" in niche_lower or "латте" in topic_lower or "десерт" in topic_lower:
             lead = f"Новинки и атмосфера в «{company_name}»"
             body = (
                 f"{topic_clean}.{visual_phrase}\n\n"
                 f"Мы тщательно подобрали зерно свежей обжарки и сбалансировали рецептуру, "
-                f"чтобы каждый глоток дарил вам заряд энергии и вдохновения на весь день."
+                f"чтобы каждый глоток дарил вам заряд энергии и вдохновения на весь день.{comments_phrase}"
             )
-            cta = f"Заглядывайте к нам согреться и оценить вкус. Мы уже открыты и ждём вас! ☕"
+            cta = f"Заглядывайте к нам за чашкой любимого кофе! А какой ваш любимый напиток? Напишите в комментариях ☕"
 
         else:
             lead = f"Важные новости от «{company_name}»"
             body = (
                 f"{topic_clean}.{visual_phrase}\n\n"
                 f"В «{company_name}» мы постоянно развиваемся и внедряем лучшие практики в сфере {niche}. "
-                f"Наша цель — делать надёжные, удобные и эффективные решения, экономящие ваше время."
+                f"Наша цель — делать надёжные, удобные и эффективные решения, экономящие ваше время.{comments_phrase}"
             )
-            cta = f"Поделитесь вашим мнением в комментариях или напишите нам в личные сообщения!"
+            cta = f"Поделитесь вашим мнением и вопросами в комментариях 👇 — мы читаем и отвечаем на каждый!"
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
         return {

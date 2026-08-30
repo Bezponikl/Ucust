@@ -343,9 +343,12 @@ class UnifiedOrchestrator:
             
             print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', компания: '{company_name}', ниша: '{niche}', формат: {format_type}, тон: {tone}")
             
-            # 1. Генерация аутентичного SMM текста через Сайгу (с учетом визуального контекста от Moondream)
+            # 1. Генерация аутентичного SMM текста через Сайгу (с учетом визуального контекста от Moondream и комментариев)
             saiga = SaigaLLMSkill()
             visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
+            comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
+            audience_q = user_data.get("audience_questions") or user_data.get("top_audience_questions")
+            
             gen_result = saiga.generate_smm_post(
                 topic=prompt,
                 company_name=company_name,
@@ -353,7 +356,9 @@ class UnifiedOrchestrator:
                 city=city,
                 tone=tone,
                 format_type=format_type,
-                visual_context=visual_ctx
+                visual_context=visual_ctx,
+                comments_context=comments_ctx,
+                audience_questions=audience_q
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")

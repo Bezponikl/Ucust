@@ -64,11 +64,18 @@ async def run_pipeline(
         if os.path.exists(cand_path):
             photo_local_path = cand_path
 
+    timings = result.get("timings", {})
+    text_sec = timings.get("text_gen_seconds")
+    photo_sec = timings.get("photo_gen_seconds")
+
     total_duration = round(time.time() - start_total, 2)
 
     print("\n" + "=" * 60)
     print(f"⏱️ РЕАЛЬНЫЕ ЗАМЕРЫ ВРЕМЕНИ ГЕНЕРАЦИИ:")
-    print(f" • Генерация текста + Фото-креатива + Pre-Mortem аудит: {gen_duration} сек")
+    if text_sec is not None:
+        print(f" • Генерация текста + Pre-Mortem аудит: {text_sec} сек")
+    if photo_sec is not None:
+        print(f" • Генерация мобильного фото-креатива: {photo_sec} сек")
     print(f" • Оценка качества контента: {int(critic_score * 100)}% (Одобрено)")
     print(f" • Общее время пайплайна: {total_duration} сек")
     print("=" * 60)
@@ -83,12 +90,13 @@ async def run_pipeline(
         print(f"\n📡 Отправка результата в Telegram-канал {channel}...")
         broadcaster = AchievementBroadcaster(target_channel=channel)
         
-        metrics = [
-            f"Генерация связки (текст + фото-креатив): {gen_duration} сек",
-            "Двухуровневый контроль качества: 100% одобрено",
-            "Платформы: Telegram, VK, Одноклассники (OK.ru), Сайты, Карты",
-            "Режим работы: 24/7 автономно"
-        ]
+        # Формируем честные метрики без вводящих в заблуждение цифр
+        metrics = AchievementBroadcaster.build_honest_metrics(
+            text_gen_seconds=text_sec,
+            photo_gen_seconds=photo_sec,
+            total_seconds=total_duration,
+            critic_score=critic_score
+        )
 
         title = "Знакомьтесь: UCust AI — автономная экосистема маркетинга" if "кто так" in topic.lower() or "о нас" in topic.lower() else "Старт проекта UCust AI: открытый вызов корпорациям"
 

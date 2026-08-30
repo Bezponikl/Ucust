@@ -1,5 +1,6 @@
 import uuid
 import json
+import time
 import hashlib
 from typing import Any, Dict, List, Optional
 from storage.models import UserProfile, OrchestratorTrace
@@ -344,6 +345,7 @@ class UnifiedOrchestrator:
             print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', компания: '{company_name}', ниша: '{niche}', формат: {format_type}, тон: {tone}")
             
             # 1. Генерация аутентичного SMM текста через Сайгу (с учетом визуального контекста от Moondream и комментариев)
+            t_text_start = time.time()
             saiga = SaigaLLMSkill()
             visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
             comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
@@ -379,6 +381,7 @@ class UnifiedOrchestrator:
                 self._log_trace(session_id, "Agent_Critic_Munger", "PostReviewedAndHealed", critic_res)
             else:
                 self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", critic_res)
+            t_text_duration = round(time.time() - t_text_start, 2)
             
             # 3. Формирование коммерческого фото-промпта по стандарту реалистичной фотографии
             director = AdvancedVisualDirector(brand_images=[])
@@ -394,8 +397,10 @@ class UnifiedOrchestrator:
 
             # 4. Генерация SMM Фотографии
             image_url = None
+            t_photo_duration = None
             if should_gen_image:
                 try:
+                    t_photo_start = time.time()
                     photo_skill = PhotoGeneratorSkill()
                     photo_res = await photo_skill.generate_photo(
                         topic=prompt,
@@ -405,6 +410,7 @@ class UnifiedOrchestrator:
                         brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None),
                         attachments=user_data.get("attachments")
                     )
+                    t_photo_duration = round(time.time() - t_photo_start, 2)
                     image_url = photo_res.get("image_url")
                     photo_prompt = photo_res.get("positive_prompt") or photo_prompt
                 except Exception as ex:
@@ -422,7 +428,12 @@ class UnifiedOrchestrator:
                 "format": format_type,
                 "tone": tone,
                 "critic_review": critic_res,
-                "moondream_analysis": moondream_analysis
+                "moondream_analysis": moondream_analysis,
+                "timings": {
+                    "text_gen_seconds": t_text_duration,
+                    "photo_gen_seconds": t_photo_duration,
+                    "total_seconds": round(time.time() - t_text_start, 2)
+                }
             }
 
         if task_type in ["generate_image", "generate_photo"]:

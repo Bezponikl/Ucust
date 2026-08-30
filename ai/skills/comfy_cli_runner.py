@@ -152,11 +152,12 @@ class ComfyCLIRunner:
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
 
-                elif node_type in {"KSampler", "KSamplerAdvanced", "RandomNoise"}:
-                    if "widgets_values" in node and len(node["widgets_values"]) > 0:
-                        node["widgets_values"][0] = chosen_seed
-                    if "widgets_values_named" in node and "seed" in node["widgets_values_named"]:
-                        node["widgets_values_named"]["seed"] = chosen_seed
+                # 4. Device optimization (CLIPLoader on GPU)
+                if node_type == "CLIPLoader":
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 3 and node["widgets_values"][2] == "cpu":
+                        node["widgets_values"][2] = "default"
+                    if "widgets_values_named" in node and node["widgets_values_named"].get("device") == "cpu":
+                        node["widgets_values_named"]["device"] = "default"
 
             logger.info("Customized ComfyUI Photo node graph with prompt='%s...', seed=%d, size=%dx%d", photo_prompt[:40], chosen_seed, width, height)
             return workflow_json

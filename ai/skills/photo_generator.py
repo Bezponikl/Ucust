@@ -47,88 +47,88 @@ class PhotoGeneratorSkill:
 
     NICHE_PRESETS = {
         "кофейня": {
-            "subject": "artisan craft coffee cup with neat latte art, fresh croissant on small wooden saucer, casual table setting",
-            "environment": "cozy local coffee shop, soft morning window light, warm wooden tabletop, relaxed cafe background",
-            "lighting": "natural soft ambient morning daylight from window, warm gentle tones, realistic room shadows",
-            "camera": "Shot on iPhone 16 Pro, 24mm f/1.78 main lens, natural handheld eye-level angle, candid smartphone photo, unedited Apple ProRAW look"
+            "subject": "smiling friendly barista leaning over rustic wooden counter, gently handing a steaming artisanal ceramic cup of cappuccino with delicate latte art directly toward viewer",
+            "environment": "cozy local craft coffee shop, large sunlit window with soft floating dust motes, relaxed warm background",
+            "lighting": "natural soft ambient morning daylight from window, warm gentle golden tones, realistic room shadows",
+            "camera": "Cinematic 35mm film look, natural handheld eye-level angle, candid smartphone photo, unedited Apple ProRAW look, emotional warmth"
         },
         "ресторан": {
-            "subject": "delicious appetizing dish, fresh herbs, natural foodie presentation, ceramic plate",
-            "environment": "warm inviting bistro table, cutlery, cloth napkin, casual dining atmosphere",
-            "lighting": "warm ambient dining light, soft candle or window glow, natural food shadows",
-            "camera": "Shot on iPhone 16 Pro, 48mm 2x telephoto mode, natural tabletop angle, candid food photography, realistic foodie post"
+            "subject": "passionate focused chef in dark apron using precision tweezers to place delicate garnish onto gourmet signature dish in warm open kitchen",
+            "environment": "warm inviting bistro with ambient dining room in soft bokeh, polished glassware, fine dining atmosphere",
+            "lighting": "warm golden spotlight on culinary masterpiece, soft candle and ambient dining glow",
+            "camera": "Cinematic 35mm photography, natural tabletop angle, candid culinary passion, realistic foodie storytelling"
         },
         "красота": {
-            "subject": "minimalist aesthetic skincare bottle, natural morning skincare routine, clean cosmetic dropper",
-            "environment": "sunlit bathroom vanity marble shelf, soft fresh towel, green plant leaf in soft background",
-            "lighting": "bright clean natural morning daylight, soft diffused window glow, fresh organic mood",
-            "camera": "Shot on iPhone 16 Pro, 24mm camera, candid lifestyle beauty shot, authentic UGC texture, crisp realistic details"
+            "subject": "radiant client with a genuine glowing smile looking into sunlit salon mirror admiring fresh stylish hair and makeup, caring stylist smiling proudly behind her",
+            "environment": "sunlit modern beauty salon, marble vanity shelf, delicate green eucalyptus in soft background",
+            "lighting": "bright clean natural morning daylight, soft diffused window glow, fresh organic radiance",
+            "camera": "Cinematic lifestyle beauty shot, authentic UGC texture, genuine emotion of confidence and self-love"
         },
         "it": {
-            "subject": "clean modern workspace desk, open laptop with clean code editor, stylish coffee mug, mechanical keyboard",
-            "environment": "bright minimalist home office or coworking, indoor potted plant, cozy desk setup",
+            "subject": "focused passionate developer or founder leaning back with a relieved happy smile after successful project milestone, laptop on desk with clean editor",
+            "environment": "bright minimalist home office or loft coworking, indoor potted plant, cozy ambient desk setup",
             "lighting": "natural ambient daylight from nearby window, soft warm desk lamp accent",
-            "camera": "Shot on iPhone 16 Pro, natural casual desk point-of-view, authentic candid tech lifestyle photo, unedited RAW look"
+            "camera": "Cinematic desk point-of-view, authentic candid tech lifestyle photo, unedited RAW look, genuine human accomplishment"
         },
         "фитнес": {
-            "subject": "modern stylish gym water bottle, fitness tracker on wrist, wireless earbuds case on bench",
-            "environment": "modern clean gym corner, motivational athletic environment, wooden locker room bench",
-            "lighting": "realistic ambient gym lighting, natural clean highlights",
-            "camera": "Shot on iPhone 16 Pro, dynamic candid smartphone angle, authentic workout lifestyle photo"
+            "subject": "dedicated athlete taking a deep breath of triumph after an intense workout in modern loft gym, holding water bottle with sunlight highlighting determination",
+            "environment": "modern spacious gym, motivational athletic loft environment, wooden bench",
+            "lighting": "warm golden morning sunbeams piercing through high gym windows, dramatic authentic highlights",
+            "camera": "Dynamic candid smartphone angle, authentic workout lifestyle photo, raw emotion of self-overcoming"
         },
         "авто": {
-            "subject": "clean sleek car interior steering wheel and dashboard, or glossy car hood with clean reflections",
-            "environment": "urban street parking at golden hour or clean modern car wash bay",
-            "lighting": "natural golden hour sunset light, realistic sky reflections on paint, natural street ambient",
-            "camera": "Shot on iPhone 16 Pro, 24mm wide angle, candid automotive smartphone photo, authentic car enthusiast vibe"
+            "subject": "skilled detailing specialist in black gloves gently running fingertips across mirror-like glossy hood of sports car, admiring flawless reflection",
+            "environment": "clean modern workshop with soft LED strip lighting, reflections on glossy paint",
+            "lighting": "natural golden hour light, realistic reflections on paint, dramatic workshop contrasts",
+            "camera": "Cinematic automotive photography, candid automotive enthusiast passion, authentic craftsmanship"
         },
         "недвижимость": {
-            "subject": "bright welcoming apartment living room, comfortable sofa with throw pillows, sunbeam on floor",
-            "environment": "modern renovated apartment interior, minimalist decor, open window with city view",
-            "lighting": "bright natural afternoon sunbeams, airy room daylight, true-to-life colors",
-            "camera": "Shot on iPhone 16 Pro, ultra-wide 13mm lens / 24mm main, natural eye-level room view, authentic apartment tour photo"
+            "subject": "happy young homeowner sitting comfortably on warm hardwood floor of airy sunlit living room with coffee mug, gazing out panoramic window at city sunset",
+            "environment": "modern newly finished apartment interior, floor-to-ceiling panoramic windows, potted plant nearby",
+            "lighting": "bright warm afternoon sunbeams, airy room daylight, golden sunset glow",
+            "camera": "Cinematic wide architectural photography, authentic new home celebration, pure happiness and safety"
         },
         "одежда": {
-            "subject": "stylish casual daily outfit, minimal accessories, neat fabric texture, mirror selfie or flatlay",
-            "environment": "bright bedroom full-length mirror or minimalist aesthetic clothing rack",
+            "subject": "stylish woman in front of warm boutique mirror playfully adjusting collar of chic elegant coat with confident joyful smile",
+            "environment": "bright aesthetic boutique dressing area, minimalist aesthetic clothing rack in soft background",
             "lighting": "soft natural window light, subtle room shadows, true fabric colors",
-            "camera": "Shot on iPhone 16 Pro, casual candid mirror photo or flatlay, authentic fashion UGC aesthetic"
+            "camera": "Casual candid mirror photo, authentic fashion UGC aesthetic, delight in personal style"
         },
         "медицина": {
-            "subject": "clean modern dental or medical clinic reception desk, friendly reassuring environment",
-            "environment": "bright sterile yet comfortable clinic room, neat medical brochure, indoor plant",
-            "lighting": "soft bright diffused medical clinic light, calm and trustworthy atmosphere",
-            "camera": "Shot on iPhone 16 Pro, natural smartphone point-of-view, authentic candid clinic photo"
+            "subject": "caring friendly doctor in clean white coat having warm empathetic conversation with smiling relieved patient, genuine trust and safety",
+            "environment": "bright modern consultation room with wood and green plant accents, welcoming atmosphere",
+            "lighting": "soft bright diffused natural light, calm trustworthy and reassuring atmosphere",
+            "camera": "Natural smartphone point-of-view, authentic candid healthcare photo, relief and care"
         },
         "ремонт": {
-            "subject": "beautifully renovated modern apartment interior, clean hardwood flooring, fresh painted wall, designer lamp",
-            "environment": "spacious newly finished living room, warm daylight from window, contemporary home design",
+            "subject": "architect and proud homeowner standing together in finished open-plan room looking at blueprints with genuine satisfaction and pride",
+            "environment": "spacious newly renovated living room, warm hardwood flooring, designer lighting",
             "lighting": "bright warm natural window daylight, gentle realistic interior shadows",
-            "camera": "Shot on iPhone 16 Pro, wide angle lens, authentic interior design photo, crisp architectural details"
+            "camera": "Wide angle lens, authentic interior design storytelling photo, crisp architectural details"
         },
         "образование": {
-            "subject": "open laptop with study materials on clean wooden desk, neat notebook with colorful notes, stylish pen, coffee cup",
+            "subject": "focused inspired student in headphones experiencing breakthrough moment of excitement while taking notes next to laptop by sunny window",
             "environment": "bright modern library or student coworking corner, organized learning space",
             "lighting": "natural sunny window light, soft warm ambiance, inspiring study mood",
-            "camera": "Shot on iPhone 16 Pro, tabletop angle, authentic study lifestyle UGC photo"
+            "camera": "Tabletop angle, authentic study lifestyle UGC photo, intellectual growth and ambition"
         },
         "туризм": {
-            "subject": "cozy modern glamping dome deck with comfortable lounge chairs and warm blanket, travel backpack nearby",
+            "subject": "traveler wrapped in cozy blanket holding steaming mug of tea sitting on edge of wooden glamping deck watching golden sunrise over misty mountains",
             "environment": "scenic mountain or lake view at golden hour, breathtaking tranquil nature background",
-            "lighting": "warm golden sunset glow, soft mountain atmosphere, peaceful travel mood",
-            "camera": "Shot on iPhone 16 Pro, wide scenic view, authentic travel photography, natural rich colors"
+            "lighting": "warm golden sunrise glow, soft mountain atmosphere, peaceful awe and tranquility",
+            "camera": "Wide scenic view, authentic travel photography, natural rich colors, deep emotional peace"
         },
         "юриспруденция": {
-            "subject": "clean modern conference desk, neat leather folder with documents, fountain pen, glasses, sleek tablet",
-            "environment": "bright contemporary law firm or consulting office, large window with city view",
-            "lighting": "crisp natural office daylight, trustworthy and professional atmosphere",
-            "camera": "Shot on iPhone 16 Pro, professional desk perspective, authentic corporate lifestyle photo"
+            "subject": "two business partners firmly shaking hands across modern conference table at sunset after signing crucial contract, mutual respect and relief",
+            "environment": "bright contemporary law firm or consulting office, large panoramic window with city view",
+            "lighting": "crisp natural office daylight, warm golden hour accents, trustworthy and authoritative",
+            "camera": "Professional desk perspective, authentic corporate lifestyle storytelling photo, confidence and success"
         },
         "праздник": {
-            "subject": "elegant festive celebratory desk setup, laptop, coffee cup, subtle seasonal decorative element",
-            "environment": "warm sunlit modern office, cheerful inspiring atmosphere",
+            "subject": "cheerful professional team or person raising a warm toast or smiling genuinely in celebration by sunlit window with festive seasonal accent",
+            "environment": "warm sunlit modern office, cheerful inspiring celebratory atmosphere",
             "lighting": "warm golden daylight, soft festive background bokeh",
-            "camera": "Shot on iPhone 16 Pro, authentic candid commercial photo, shallow depth of field"
+            "camera": "Authentic candid commercial photo, shallow depth of field, genuine celebration and connection"
         },
         "флаг": {
             "subject": "focused professional person in silhouette softly touching the panoramic window glass in thoughtful contemplation, grand magnificent Russian tricolor flag fluttering powerfully outside on a high flagpole",
@@ -137,10 +137,10 @@ class PhotoGeneratorSkill:
             "camera": "Cinematic 35mm film photography look, over-the-shoulder perspective, deep emotional resonance, shallow depth of field, authentic photography"
         },
         "услуги": {
-            "subject": "clean business planner, stylish coffee cup, tablet with charts, neat pen on wooden desk",
-            "environment": "sunlit contemporary cafe or bright meeting room, casual productive atmosphere",
-            "lighting": "natural window daylight, soft warm room ambient",
-            "camera": "Shot on iPhone 16 Pro, casual tabletop angle, authentic business lifestyle UGC photo"
+            "subject": "passionate dedicated professional deeply engaged in their craft at modern sunlit workstation, genuine focus, pride and mastery",
+            "environment": "sunlit contemporary creative workspace or bright meeting room, productive human atmosphere",
+            "lighting": "natural window daylight, soft warm room ambient, golden highlights",
+            "camera": "Casual tabletop angle, authentic business lifestyle UGC storytelling photo"
         }
     }
 

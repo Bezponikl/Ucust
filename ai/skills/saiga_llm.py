@@ -424,7 +424,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Authentic candid food photograph in a cozy modern restaurant: appetizing gourmet dish beautifully plated on a ceramic plate, fresh microgreens, artisan cutlery and wine glass nearby, warm ambient dining lighting, shallow depth of field, authentic foodie photography.",
+                "visual_prompt": "Cinematic emotional culinary storytelling photograph. A passionate focused chef in a clean dark apron using precision tweezers to place a delicate final garnish onto a gourmet signature dish in a warm open kitchen. Warm golden spotlight illuminating the culinary masterpiece, soft ambient background bokeh of an inviting dining room with wine glasses, genuine passion and artistry, shallow depth of field, 35mm photography.",
                 "hashtags": "#ресторан #вкуснаяеда #гастрономия #шефповар #ужин"
             }
 
@@ -440,7 +440,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Authentic candid lifestyle photograph for a cozy craft coffee shop: fresh ceramic cup of cappuccino with intricate latte art, warm morning window sunlight casting gentle shadows on a rustic wooden table, relaxed warm cafe ambiance, authentic iPhone photography.",
+                "visual_prompt": "Cinematic atmospheric coffee storytelling photograph. A smiling friendly barista leaning over a rustic warm wooden counter, gently handing a steaming ceramic cup of cappuccino with delicate latte art directly toward the viewer at golden morning hour. Soft warm sunlight streaming through large cafe windows with floating dust motes, cozy welcoming cafe atmosphere, authentic heartfelt UGC lifestyle.",
                 "hashtags": "#кофе #кофейня #латтеарт #доброеутро #кофеман"
             }
 
@@ -456,7 +456,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Aesthetic minimalist beauty salon photograph: stylish modern salon interior with marble counter, premium skincare bottles with droppers, soft fluffy towels, green eucalyptus in a glass vase, bright clean morning daylight, authentic UGC beauty aesthetic.",
+                "visual_prompt": "Emotional and joyful beauty transformation photograph. A radiant client with a genuine glowing smile looking into a sunlit salon mirror, admiring her fresh stylish hair and natural makeup, while the skilled stylist behind her smiles with pride and care. Soft diffused morning window light, subtle marble and green plant accents, genuine emotion of confidence and self-love, shallow depth of field.",
                 "hashtags": "#красота #салонкрасоты #уходзасобой #стиль #маникюр"
             }
 
@@ -472,7 +472,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Dynamic candid fitness lifestyle photograph: modern spacious gym with minimalist interior, clean matte water bottle, wireless earbuds and workout gloves on a wooden bench, natural daylight streaming in, motivating authentic workout atmosphere.",
+                "visual_prompt": "Inspiring powerful fitness storytelling photograph. A dedicated athlete pausing after an intense workout in a bright modern loft gym, taking a deep breath of triumph and holding a water bottle, sunlight dramatically highlighting determination and athletic form. Warm golden morning rays piercing through high gym windows, authentic raw emotion of self-overcoming and strength.",
                 "hashtags": "#фитнес #спорт #тренировка #здоровье #мотивация"
             }
 
@@ -488,7 +488,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Bright aesthetic interior photograph of a modern living room: floor-to-ceiling windows with soft afternoon sunlight, comfortable stylish sofa with linen pillows, minimalist oak coffee table, potted Monstera plant, airy spacious atmosphere, authentic architectural photography.",
+                "visual_prompt": "Heartwarming lifestyle storytelling photograph of a new home. A happy young homeowner sitting comfortably on the warm hardwood floor of an airy sunlit living room with a coffee mug, gazing out large floor-to-ceiling windows at a golden sunset over the city. A couple of unpacked boxes and a leafy Monstera plant nearby, pure feeling of happiness, safety, achievement and home.",
                 "hashtags": "#недвижимость #квартира #новостройки #интерьер #уют"
             }
 
@@ -504,7 +504,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Sleek automotive commercial photograph: a deep glossy polished car hood showing crisp reflections in a clean modern workshop with soft LED strip lighting, professional detailing tools neatly placed nearby, realistic automotive photography.",
+                "visual_prompt": "Cinematic craft storytelling automotive photograph. A skilled detailing technician in black nitrile gloves gently running fingertips across the mirror-like polished hood of a sleek sports car, admiring the flawless deep reflection under soft halo LED workshop lights. Dramatic contrasts, crisp glossy reflections, pride in craftsmanship and perfectionism, photorealistic.",
                 "hashtags": "#авто #детейлинг #автосервис #автомобили #СТО"
             }
 
@@ -520,7 +520,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Clean reassuring medical clinic photograph: bright modern reception or doctor consultation office, clean white and wood aesthetic, friendly reassuring environment, gentle diffused natural lighting, authentic commercial photography.",
+                "visual_prompt": "Heartwarming reassuring medical storytelling photograph. A caring doctor in a modern white coat having a warm, empathetic conversation with a smiling, relieved patient in a bright, modern consultation room with wood and plant accents. Soft natural window daylight, genuine feeling of trust, safety, relief and professional care, shallow depth of field.",
                 "hashtags": "#медицина #здоровье #стоматология #клиника #красиваяулыбка"
             }
 
@@ -536,7 +536,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Authentic architectural renovation photograph: beautifully finished modern room interior showing neat hardwood floors, clean painted walls, designer lighting fixtures, warm natural daylight, professional interior design photo.",
+                "visual_prompt": "Inspiring architectural storytelling photograph. An architect and a proud homeowner standing together in a breathtaking newly finished open-plan living room with warm hardwood floors and designer lighting, looking at architectural blueprints with genuine smiles of satisfaction and pride. Warm afternoon sunlight, sense of accomplishment and creation.",
                 "hashtags": "#ремонт #строительство #дизайнинтерьера #ремонтквартир #стройка"
             }
 
@@ -552,7 +552,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Modern educational lifestyle photograph: an open laptop on a clean wooden desk showing interactive learning materials, stylish notebook with colorful notes, coffee cup, bright natural sunlight, inspiring study atmosphere.",
+                "visual_prompt": "Inspiring academic storytelling photograph. A focused student in headphones sitting by a bright window desk, experiencing a genuine breakthrough moment of excitement while taking handwritten notes next to an open laptop, eyes glowing with inspiration. Vibrant morning sunbeams, authentic atmosphere of intellectual growth and ambition.",
                 "hashtags": "#образование #онлайнкурсы #обучение #саморазвитие #навыки"
             }
 
@@ -568,7 +568,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Professional corporate business photograph: a modern conference table with open legal documents, sleek laptop, high-end pen, stylish eyeglasses, natural office window light, trustworthy and authoritative atmosphere.",
+                "visual_prompt": "Powerful reassuring corporate storytelling photograph. Two business partners firmly shaking hands across a sleek modern conference table at sunset after signing a crucial contract, genuine expressions of mutual respect and relief. Warm golden hour light reflecting off glass high-rise towers outside the panoramic window, feeling of security, success and trust.",
                 "hashtags": "#юрист #бухгалтерия #налоги #бизнес #консалтинг"
             }
 
@@ -584,7 +584,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Breathtaking travel lifestyle photograph: cozy modern glamping dome or hotel balcony with panoramic mountain or lake view at golden sunset, comfortable wooden deck chairs, warm blankets, serene inspiring travel atmosphere.",
+                "visual_prompt": "Breathtaking emotional travel storytelling photograph. A traveler wrapped in a cozy knitted blanket holding a steaming mug of tea, sitting on the edge of a rustic wooden glamping deck watching a majestic golden sunrise over misty mountain peaks and pine forests. Quiet awe, peace, deep connection with nature, cinematic atmospheric light, photorealistic.",
                 "hashtags": "#путешествия #туризм #отдых #отель #глэмпинг"
             }
 
@@ -600,7 +600,7 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Aesthetic commercial flatlay or product display photograph: stylish trendy fashion items neatly arranged on a neutral warm beige surface, subtle soft shadows, natural window lighting, clean lifestyle commercial photography.",
+                "visual_prompt": "Charming candid fashion storytelling photograph. A stylish woman standing in front of a warm boutique mirror, playfully adjusting the collar of a chic elegant coat with a confident, joyful smile, surrounded by soft neutral textures and ambient warm light. Authentic moment of self-expression and delight, natural depth of field, photorealistic.",
                 "hashtags": "#шопинг #стиль #мода #одежда #новинки"
             }
 
@@ -617,10 +617,10 @@ class SaigaLLMSkill:
         cta = f"Поделитесь вашим мнением в комментариях 👇 — мы открыты к диалогу и рады ответить на любые вопросы!" if has_comments else f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи!"
         hashtags = f"#{niche.replace(' ', '_')} #бизнес #качество #новости"
         visual_prompt = (
-            f"Authentic candid commercial lifestyle photograph for {niche}. "
-            f"Subject: professional modern environment and tools related to {topic_clean}, clean organized workspace. "
-            f"Lighting: natural ambient daylight from nearby window, soft warm highlights. "
-            f"Style: authentic commercial photography, genuine social media aesthetic, shallow depth of field, real life texture, photorealistic."
+            f"Cinematic emotional storytelling photograph for {niche}. "
+            f"Subject: a passionate dedicated professional in {niche} deeply engaged in their craft at a modern sunlit workstation, genuine focus, pride and mastery. "
+            f"Lighting: warm natural window daylight, soft golden highlights, realistic room depth. "
+            f"Style: authentic commercial storytelling photography, genuine human connection, shallow depth of field, real life texture, photorealistic."
         )
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"

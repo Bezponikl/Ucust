@@ -868,12 +868,12 @@
         }
       },
       "widgets_values": [
-        "Raw candid color photograph, shot on Sony A7R V with 85mm f/1.8 lens, authentic commercial setting. Visible authentic facial skin texture with natural pores, subtle stubble, fine wrinkles around eyes, individual hair strands, realistic subsurface skin scattering. Soft natural ambient lighting with gentle window fill, real optical depth of field, fine film grain, natural shadows, ISO 400, unedited RAW photo",
-        "plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, doll, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
+        "Authentic candid smartphone photograph, shot on iPhone 16 Pro, 24mm main camera, natural eye-level handheld perspective. Visible natural real-life textures, gentle ambient window daylight, realistic room shadows, organic depth of field, authentic UGC social media aesthetic, unedited camera roll RAW photo",
+        "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands, watermark"
       ],
       "widgets_values_named": {
-        "positive": "Raw candid color photograph, shot on Sony A7R V with 85mm f/1.8 lens, authentic commercial setting. Visible authentic facial skin texture with natural pores, subtle stubble, fine wrinkles around eyes, individual hair strands, realistic subsurface skin scattering. Soft natural ambient lighting with gentle window fill, real optical depth of field, fine film grain, natural shadows, ISO 400, unedited RAW photo",
-        "negative": "plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, doll, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
+        "positive": "Authentic candid smartphone photograph, shot on iPhone 16 Pro, 24mm main camera, natural eye-level handheld perspective. Visible natural real-life textures, gentle ambient window daylight, realistic room shadows, organic depth of field, authentic UGC social media aesthetic, unedited camera roll RAW photo",
+        "negative": "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands, watermark"
       }
     }
   ],

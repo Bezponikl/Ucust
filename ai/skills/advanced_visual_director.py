@@ -43,27 +43,26 @@ class AdvancedVisualDirector:
         niche: str = "Бизнес",
         aspect_ratio: str = "1:1",
         brand_colors: Optional[List[str]] = None,
-        style: str = "candid_commercial"
+        style: str = "candid_iphone"
     ) -> Dict[str, str]:
         """
-        Собирает профессиональный промпт по стандарту современной реалистичной фотографии
-        (Sony A7R V / Hasselblad, натуральная текстура кожи, оптика, естественное освещение).
+        Собирает живой, аутентичный промпт по стандарту мобильной фотографии на iPhone
+        (естественный дневной свет, без искусственного студийного блеска, живая текстура).
         """
         colors = brand_colors or self.brand_colors
-        colors_str = f"Brand palette accents: {', '.join(colors)}. " if colors else ""
+        colors_str = f"Subtle natural color accents: {', '.join(colors)}. " if colors else ""
 
         positive_prompt = (
-            f"Raw candid color photograph, shot on Sony A7R V with 85mm f/1.8 lens, authentic {niche} setting. "
+            f"Authentic candid smartphone photograph for {niche}, shot on iPhone 16 Pro, 24mm main camera, natural eye-level handheld perspective. "
             f"Subject: {topic.strip()}. {colors_str}"
-            f"Visible authentic textures, fine details, realistic subsurface scattering. "
-            f"Soft natural ambient lighting with gentle window fill, real optical depth of field, "
-            f"fine film grain, natural shadows, ISO 400, unedited RAW photo"
+            f"Visible natural real-life textures, gentle ambient window daylight, realistic room shadows, "
+            f"organic depth of field, authentic UGC social media aesthetic, unedited camera roll RAW photo."
         )
 
         negative_prompt = (
-            "plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, "
-            "anime, illustration, overly smooth, doll, fake lighting, high contrast, oversaturated, "
-            "perfect skin, bad anatomy, deformed hands, extra fingers, watermark, blurry, lowres"
+            "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
+            "smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, "
+            "overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands, watermark"
         )
 
         return {

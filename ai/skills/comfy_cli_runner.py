@@ -114,7 +114,7 @@ class ComfyCLIRunner:
         width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
         default_neg = (
             negative_prompt
-            or "plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, doll, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
+            or "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
         )
 
         # Case 1: Standard ComfyUI GUI export format with "nodes" array

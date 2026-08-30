@@ -46,70 +46,71 @@ class PhotoGeneratorSkill:
 
     NICHE_PRESETS = {
         "кофейня": {
-            "subject": "artisan coffee cup with delicate latte art, fresh roasted coffee beans, croissant on rustic table",
-            "environment": "cozy warm coffee shop interior, soft morning sunbeams, wooden texture, bokeh background",
-            "lighting": "warm natural ambient sunlight, golden hour lighting, gentle rim light",
-            "camera": "Sony A7R IV, 85mm f/1.4 lens, shallow depth of field, 8k commercial food photography"
+            "subject": "artisan craft coffee cup with neat latte art, fresh croissant on small wooden saucer, casual table setting",
+            "environment": "cozy local coffee shop, soft morning window light, warm wooden tabletop, relaxed cafe background",
+            "lighting": "natural soft ambient morning daylight from window, warm gentle tones, realistic room shadows",
+            "camera": "Shot on iPhone 16 Pro, 24mm f/1.78 main lens, natural handheld eye-level angle, candid smartphone photo, unedited Apple ProRAW look"
         },
         "ресторан": {
-            "subject": "exquisite gourmet dish, fresh organic ingredients, culinary master presentation, fine dining",
-            "environment": "elegant restaurant ambiance, minimalist dark marble table, crystal glassware",
-            "lighting": "moody soft studio lighting, delicate highlights, cinematic atmosphere",
-            "camera": "Hasselblad H6D-100c, 100mm macro lens, tack sharp details, Michelin guide aesthetic"
+            "subject": "delicious appetizing dish, fresh herbs, natural foodie presentation, ceramic plate",
+            "environment": "warm inviting bistro table, cutlery, cloth napkin, casual dining atmosphere",
+            "lighting": "warm ambient dining light, soft candle or window glow, natural food shadows",
+            "camera": "Shot on iPhone 16 Pro, 48mm 2x telephoto mode, natural tabletop angle, candid food photography, realistic foodie post"
         },
         "красота": {
-            "subject": "luxurious skincare cosmetics bottles, natural botanical ingredients, organic drops, aesthetic spa scene",
-            "environment": "minimalist aesthetic pastel surface, clean water ripples, fresh flower petals",
-            "lighting": "clean bright diffused studio light, soft shadows, airy refreshing mood",
-            "camera": "Canon EOS R5, 50mm f/1.2 lens, hyper-detailed skin and glass textures, Vogue editorial style"
+            "subject": "minimalist aesthetic skincare bottle, natural morning skincare routine, clean cosmetic dropper",
+            "environment": "sunlit bathroom vanity marble shelf, soft fresh towel, green plant leaf in soft background",
+            "lighting": "bright clean natural morning daylight, soft diffused window glow, fresh organic mood",
+            "camera": "Shot on iPhone 16 Pro, 24mm camera, candid lifestyle beauty shot, authentic UGC texture, crisp realistic details"
         },
         "it": {
-            "subject": "modern developer workspace, ultra-wide curved monitor displaying code, mechanical keyboard, stylish laptop",
-            "environment": "high-tech minimalist studio, neon cyber accents, ambient desk glow, indoor plants",
-            "lighting": "cool atmospheric neon blue and purple ambient lighting, cinematic rim lights",
-            "camera": "Sony FX3, 35mm f/1.8 lens, sharp focus, clean technology aesthetic"
+            "subject": "clean modern workspace desk, open laptop with clean code editor, stylish coffee mug, mechanical keyboard",
+            "environment": "bright minimalist home office or coworking, indoor potted plant, cozy desk setup",
+            "lighting": "natural ambient daylight from nearby window, soft warm desk lamp accent",
+            "camera": "Shot on iPhone 16 Pro, natural casual desk point-of-view, authentic candid tech lifestyle photo, unedited RAW look"
         },
         "фитнес": {
-            "subject": "athletic sports gear, premium water bottle, dumbbells, dynamic workout accessories",
-            "environment": "modern energetic gym interior, clean architectural lines, motivational atmosphere",
-            "lighting": "dramatic directional rim light, high contrast, energizing mood",
-            "camera": "Nikon Z9, 70-200mm f/2.8 lens, high shutter speed, sharp athletic focus"
+            "subject": "modern stylish gym water bottle, fitness tracker on wrist, wireless earbuds case on bench",
+            "environment": "modern clean gym corner, motivational athletic environment, wooden locker room bench",
+            "lighting": "realistic ambient gym lighting, natural clean highlights",
+            "camera": "Shot on iPhone 16 Pro, dynamic candid smartphone angle, authentic workout lifestyle photo"
         },
         "авто": {
-            "subject": "luxury sleek sports car, glossy ceramic coating reflections, polished alloy wheels",
-            "environment": "high-end modern detailing studio, clean architectural lighting, dark aesthetic floor",
-            "lighting": "dramatic linear studio light strips, high contrast reflections, premium automotive mood",
-            "camera": "Hasselblad H6D-100c, 50mm lens, tack sharp reflections, Top Gear editorial aesthetic"
+            "subject": "clean sleek car interior steering wheel and dashboard, or glossy car hood with clean reflections",
+            "environment": "urban street parking at golden hour or clean modern car wash bay",
+            "lighting": "natural golden hour sunset light, realistic sky reflections on paint, natural street ambient",
+            "camera": "Shot on iPhone 16 Pro, 24mm wide angle, candid automotive smartphone photo, authentic car enthusiast vibe"
         },
         "недвижимость": {
-            "subject": "spacious modern luxury apartment interior, contemporary design furniture, panoramic city view",
-            "environment": "sunlit penthouse living room, marble accents, minimalist decor, indoor olive tree",
-            "lighting": "bright warm natural daylight, soft interior ambient lighting, Architectural Digest look",
-            "camera": "Sony A7R V, 16-35mm f/2.8 wide lens, perfect straight verticals, magazine architecture quality"
+            "subject": "bright welcoming apartment living room, comfortable sofa with throw pillows, sunbeam on floor",
+            "environment": "modern renovated apartment interior, minimalist decor, open window with city view",
+            "lighting": "bright natural afternoon sunbeams, airy room daylight, true-to-life colors",
+            "camera": "Shot on iPhone 16 Pro, ultra-wide 13mm lens / 24mm main, natural eye-level room view, authentic apartment tour photo"
         },
         "одежда": {
-            "subject": "stylish premium clothing collection on minimalist hangers, luxury fabric textures, fashion accessories",
-            "environment": "contemporary boutique showroom, neutral warm tones, textured lime plaster walls",
-            "lighting": "soft diffused editorial lighting, gentle highlights on fabric grain, high-end lookbook mood",
-            "camera": "Canon EOS R5, 85mm f/1.2 lens, shallow depth of field, Vogue lookbook photography"
+            "subject": "stylish casual daily outfit, minimal accessories, neat fabric texture, mirror selfie or flatlay",
+            "environment": "bright bedroom full-length mirror or minimalist aesthetic clothing rack",
+            "lighting": "soft natural window light, subtle room shadows, true fabric colors",
+            "camera": "Shot on iPhone 16 Pro, casual candid mirror photo or flatlay, authentic fashion UGC aesthetic"
         },
         "медицина": {
-            "subject": "modern state-of-the-art dental clinic equipment, pristine medical tools, gentle reassuring atmosphere",
-            "environment": "ultra-clean premium clinic interior, soft ambient glowing lighting, comfortable patient chair",
-            "lighting": "clean bright soft diffused medical lighting, reassuring and calm atmosphere",
-            "camera": "Sony A7 IV, 50mm f/1.8 lens, crisp clinical sharpness, trustworthy healthcare aesthetic"
+            "subject": "clean modern dental or medical clinic reception desk, friendly reassuring environment",
+            "environment": "bright sterile yet comfortable clinic room, neat medical brochure, indoor plant",
+            "lighting": "soft bright diffused medical clinic light, calm and trustworthy atmosphere",
+            "camera": "Shot on iPhone 16 Pro, natural smartphone point-of-view, authentic candid clinic photo"
         },
         "услуги": {
-            "subject": "modern business planning desk, neat tablet with analytics dashboard, stylish leather notebook, pen",
-            "environment": "sleek contemporary executive office, minimalist glass partitions, soft ambient background",
-            "lighting": "balanced soft daylight, warm accent lamp, crisp professional commercial atmosphere",
-            "camera": "Sony A7R IV, 50mm f/1.4 lens, clean commercial corporate photography"
+            "subject": "clean business planner, stylish coffee cup, tablet with charts, neat pen on wooden desk",
+            "environment": "sunlit contemporary cafe or bright meeting room, casual productive atmosphere",
+            "lighting": "natural window daylight, soft warm room ambient",
+            "camera": "Shot on iPhone 16 Pro, casual tabletop angle, authentic business lifestyle UGC photo"
         }
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
-        "blurry, low quality, distorted, extra limbs, bad anatomy, cartoon, 3d render, illustration, "
-        "watermark, lowres, text artifacts, oversaturated, amateur photo, deformed fingers, unrealistic lighting"
+        "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
+        "wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, airbrushed, unnatural stiff pose, "
+        "fake commercial look, oversaturated, blurry, bad anatomy, deformed hands, extra fingers, watermark, lowres"
     )
 
     def __init__(self, output_dir: Optional[str] = None):
@@ -123,10 +124,10 @@ class PhotoGeneratorSkill:
         niche: str = "Общий бизнес",
         aspect_ratio: str = "1:1",
         brand_colors: Optional[List[str]] = None,
-        style: str = "photorealistic"
+        style: str = "candid_iphone"
     ) -> Dict[str, Any]:
         """
-        Составляет коммерческий промпт для нейросети на основе ниши и темы.
+        Составляет аутентичный, живой промпт для мобильной фотографии на iPhone (UGC / Lifestyle).
         """
         niche_key = "кофейня"
         for k in self.NICHE_PRESETS:
@@ -135,14 +136,14 @@ class PhotoGeneratorSkill:
                 break
 
         preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["кофейня"])
-        colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
+        colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
         positive_prompt = (
-            f"Commercial SMM photography for {niche}. Subject: {topic.strip() or preset['subject']}. "
+            f"Authentic candid lifestyle photograph for {niche}. Subject: {topic.strip() or preset['subject']}. "
             f"Environment: {preset['environment']}. "
             f"{colors_str}"
             f"Lighting: {preset['lighting']}. "
-            f"Shot details: {preset['camera']}, commercial quality, 8k resolution, photorealistic, raw texture."
+            f"Camera & Style: {preset['camera']}, genuine social media aesthetic, authentic depth of field, real life texture, natural grain, unedited raw photo."
         )
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])

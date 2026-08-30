@@ -131,10 +131,10 @@ class PhotoGeneratorSkill:
             "camera": "Shot on iPhone 16 Pro, authentic candid commercial photo, shallow depth of field"
         },
         "флаг": {
-            "subject": "open laptop, ceramic coffee mug, and a small elegant Russian tricolor flag on metallic stand",
-            "environment": "modern bright coworking space with large windows, blurred city skyline background",
-            "lighting": "warm morning sunlight streaming through window, soft natural room shadows",
-            "camera": "Shot on iPhone 16 Pro, candid desk angle, authentic patriotic lifestyle commercial photo"
+            "subject": "focused professional person in silhouette softly touching the panoramic window glass in thoughtful contemplation, grand magnificent Russian tricolor flag fluttering powerfully outside on a high flagpole",
+            "environment": "modern high-rise glass-walled office at sunset, floor-to-ceiling panoramic window overlooking city skyline",
+            "lighting": "dramatic golden hour sunset light, warm amber rim lighting on silhouette, soft reflections on glass",
+            "camera": "Cinematic 35mm film photography look, over-the-shoulder perspective, deep emotional resonance, shallow depth of field, authentic photography"
         },
         "услуги": {
             "subject": "clean business planner, stylish coffee cup, tablet with charts, neat pen on wooden desk",

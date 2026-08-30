@@ -169,11 +169,11 @@ class SaigaLLMSkill:
                 "cta": "Поздравляйте друзей и коллег в комментариях 👇 С праздником! 🇷🇺" if has_comments else "С праздником! Желаем процветания и уверенного движения вперёд! 🇷🇺",
                 "hashtags": "#ДеньФлага #Россия #триколор #праздник #UCust",
                 "visual_prompt": (
-                    "Cinematic wide-angle patriotic business photograph. "
-                    "A warm sunlit modern coworking space with large floor-to-ceiling windows. "
-                    "On the foreground wooden desk: an open laptop, a stylish coffee cup, and an elegant small Russian tricolor flag neatly standing on a metallic base. "
-                    "Warm golden morning sunlight streaming through the window, soft realistic room depth of field, city skyline softly blurred in background. "
-                    "Subtle white, blue, red accents harmonious with warm interior tones, professional commercial photography, photorealistic."
+                    "Cinematic emotional storytelling photograph at golden hour sunset. "
+                    "Over-the-shoulder silhouette view of a focused professional standing by a large panoramic floor-to-ceiling glass window of a modern high-rise office, gently resting one hand against the glass in thoughtful contemplation. "
+                    "Outside in the warm evening air, a magnificent large Russian tricolor flag flutters dynamically and powerfully on a tall flagpole against a dramatic glowing golden sunset sky and distant city skyline. "
+                    "Warm amber sunlight streams through the glass, casting a golden rim light along the person's silhouette, with subtle translucent reflections of the fluttering flag in the window glass. "
+                    "Cinematic 35mm film photography look, deep emotional resonance, shallow depth of field, poetic, evocative, photorealistic masterpiece."
                 )
             }
         elif any(w in topic_lower for w in ["новый год", "новогодн", "рождеств", "ёлка", "елка"]):
@@ -188,9 +188,9 @@ class SaigaLLMSkill:
                 "cta": "Делитесь вашими целями и пожеланиями на новый год в комментариях! 👇🎉" if has_comments else "Счастливого Нового года и ярких побед! 🎄🚀",
                 "hashtags": "#НовыйГод #Рождество #праздник #бизнес2026 #итогигода",
                 "visual_prompt": (
-                    "Cozy warm festive New Year office atmosphere. "
-                    "A stylish wooden desk with an open MacBook showing subtle holiday analytics, a warm ceramic mug of cocoa, a small decorative pine branch with gold and silver ornaments. "
-                    "Soft golden bokeh fairy lights glowing gently in the warm background, shallow depth of field, cinematic festive lighting, photorealistic lifestyle photo."
+                    "Heartwarming cinematic holiday storytelling photograph. "
+                    "A cozy warm room in the evening: a person holds a steaming ceramic mug between both hands, looking out a frosted window at softly falling snowflakes and sparkling city streetlights. "
+                    "Soft golden bokeh from a Christmas tree glowing warmly in the room reflection, cozy knitted sweater texture, deep feeling of hope, warmth, comfort and wonder, photorealistic."
                 )
             }
         elif any(w in topic_lower for w in ["9 мая", "побед", "великая отечественная", "ветераны"]):
@@ -204,8 +204,10 @@ class SaigaLLMSkill:
                 "cta": "Почтим память героев и поздравим близких с праздником Великой Победы! 🕊️" if has_comments else "Мирного неба, благополучия и крепкого здоровья каждому дому! 🕊️",
                 "hashtags": "#9Мая #ДеньПобеды #ПомнимГордимся #Мир #Победа",
                 "visual_prompt": (
-                    "Respectful and dignified commemorative composition. "
-                    "Fresh red carnations with a St. George ribbon on a clean stone pedestal by a sunlit city park memorial, warm respectful sunlight, gentle morning depth of field, authentic photography style."
+                    "Deeply emotional and respectful commemorative photograph in warm evening light. "
+                    "A hand gently places a fresh crimson carnation wrapped with a St. George ribbon onto a sunlit stone memorial pedestal. "
+                    "In the soft blurred background, a warm golden sunset glow among quiet park trees, evoking profound gratitude, honor and peaceful reflection. "
+                    "Cinematic warm lighting, shallow depth of field, authentic emotional storytelling photography, photorealistic."
                 )
             }
         elif any(w in topic_lower for w in ["23 февраля", "защитник", "отечеств", "мужской день"]):
@@ -219,8 +221,9 @@ class SaigaLLMSkill:
                 "cta": "Поздравляйте сильных духом мужчин в комментариях! 👇🛡️" if has_comments else "С праздником! Силы, уверенности и больших побед! 🚀",
                 "hashtags": "#23Февраля #ДеньЗащитникаОтечества #мужскойпраздник #поздравление",
                 "visual_prompt": (
-                    "Modern sleek masculine business aesthetic photograph. "
-                    "A confident focused man in a stylish casual jacket with an open laptop and premium notebook in a modern loft office, warm natural ambient daylight from large window, subtle deep contrast, authentic lifestyle commercial photo."
+                    "Cinematic, strong and inspiring portrait photograph. "
+                    "A determined, confident man standing by a large industrial loft window at sunset, gazing purposefully into the distance, wearing a crisp dark shirt with rolled-up sleeves, strong posture radiating reliability, calm confidence and inner strength. "
+                    "Dramatic warm side lighting, rich contrasts, cinematic 35mm photography aesthetic, authentic emotional depth."
                 )
             }
         elif any(w in topic_lower for w in ["8 марта", "женский день", "весенний праздник", "девушек", "женщин"]):
@@ -235,8 +238,9 @@ class SaigaLLMSkill:
                 "cta": "Оставляйте свои тёплые пожелания милым дамам в комментариях! 💐👇" if has_comments else "Цветов, весеннего настроения и бесконечного вдохновения! 🌸",
                 "hashtags": "#8Марта #МеждународныйЖенскийДень #весна #цветы #поздравление",
                 "visual_prompt": (
-                    "Bright aesthetic spring lifestyle photograph. "
-                    "A fresh vibrant bouquet of pink and white tulips in a glass vase on a wooden desk next to an open laptop and coffee cup, soft sunny morning light streaming through sheer curtains, gentle cheerful atmosphere, authentic commercial UGC photography."
+                    "Joyful, inspiring spring lifestyle photograph. "
+                    "A radiant smiling woman in a stylish pastel sweater happily holding a stunning fresh bouquet of soft pink tulips in a bright sunlit modern cafe. "
+                    "Natural glowing morning sunlight, genuine heartfelt happy expression, candid moment of joy, shallow depth of field, authentic warm emotional photography."
                 )
             }
         elif any(w in topic_lower for w in ["12 июня", "день россии"]):
@@ -250,7 +254,7 @@ class SaigaLLMSkill:
                 "cta": "С праздником, друзья! Гордимся нашей страной! 🇷🇺👇" if has_comments else "С праздником! Процветания и побед нашей Родине! 🇷🇺",
                 "hashtags": "#ДеньРоссии #12Июня #Россия #НашаСтрана #праздник",
                 "visual_prompt": (
-                    "Cinematic wide scenic photograph of a modern Russian city at sunset with subtle national flag colors reflected in glass skyscrapers, warm golden hour sunlight, expansive sky, inspiring atmosphere, photorealistic."
+                    "Cinematic inspiring photograph: a young professional looking out over a breathtaking panoramic Russian city skyline at sunrise from a modern high-rise glass observation deck, a grand tricolor flag fluttering proudly on a prominent central tower, golden morning mist, expansive sky, majestic inspiring atmosphere."
                 )
             }
         elif any(w in topic_lower for w in ["1 сентября", "день знаний", "школ", "ученик", "студент"]):
@@ -264,8 +268,9 @@ class SaigaLLMSkill:
                 "cta": "Какие цели поставили себе на эту осень? Делитесь в комментариях! 👇📝" if has_comments else "Продуктивной осени и новых открытий! 🚀📚",
                 "hashtags": "#1Сентября #ДеньЗнаний #сновавшколу #образование #развитие",
                 "visual_prompt": (
-                    "Warm inspiring academic lifestyle photograph. "
-                    "A clean aesthetic study desk with open laptop, colorful stationery, neat open notebook with handwritten plans, a cup of tea, warm autumn sunlight from window, cozy productive mood, shallow depth of field."
+                    "Inspiring, bright academic storytelling photograph. "
+                    "A determined young student sitting at a sunlit wooden desk by a window, opening a fresh clean notebook with a pen poised in hand, coffee cup nearby, eyes full of ambition and anticipation. "
+                    "Vibrant morning sunlight, crisp shadows, inspiring atmosphere of fresh beginnings, authentic UGC lifestyle."
                 )
             }
         elif any(w in topic_lower for w in ["день матери", "мама", "матер"]):
@@ -279,8 +284,9 @@ class SaigaLLMSkill:
                 "cta": "Напишите самое тёплое признание вашей маме прямо в комментариях! ❤️👇" if has_comments else "Берегите мам и дарите им заботу каждый день! ❤️",
                 "hashtags": "#ДеньМатери #Мама #любовь #семья #праздник",
                 "visual_prompt": (
-                    "Heartwarming cozy lifestyle photograph. "
-                    "A delicate ceramic vase with tender pastel peonies, a handwritten card saying 'Любимой маме', a cozy warm knitted blanket and a cup of tea on a rustic wooden table, soft morning window light, warm emotional atmosphere."
+                    "Deeply touching, tender lifestyle photograph. "
+                    "A warm close-up of two hands holding each other with deep affection across a cozy wooden tea table: the caring hand of a mother and her adult child, a delicate handwritten note and tea cup nearby. "
+                    "Soft morning sunlight, warm pastel tones, profound feeling of love, safety, gratitude and comfort, authentic emotional portrait."
                 )
             }
         elif any(w in topic_lower for w in ["праздник", "поздравля", "день города", "день народного", "юбиле", "торжеств"]):

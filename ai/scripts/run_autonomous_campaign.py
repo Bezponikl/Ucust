@@ -99,19 +99,13 @@ async def run_pipeline(
         )
 
         hashtag_block = "\n\n#UCust #ИИмаркетинг #Автономный_AI"
-        metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
 
-        # Telegram caption limit: 1024 chars for photo, 4096 for text message
-        # Strategy: photo gets clean post text + hashtags (fits in 1024)
-        # Metrics go as a separate follow-up text message
+        # Telegram caption limit: 1024 chars for photo
         caption = post_text.strip() + hashtag_block
         if len(caption) > 1024:
-            # trim to fit, keeping hashtags at end
             caption = caption[:1024 - len(hashtag_block)].rstrip() + hashtag_block
 
-        full_post_with_metrics = post_text.strip() + metrics_block + hashtag_block
-
-        # Send photo with clean caption
+        # Send photo with clean caption (no metrics — internal data stays in console)
         pub_res = await broadcaster._publish_via_bot_api(caption, photo_local_path)
         if pub_res is None:
             pub_res = await broadcaster.broadcast_milestone_async(
@@ -123,12 +117,6 @@ async def run_pipeline(
 
         if pub_res and pub_res.get("status") == "success":
             print(f"🎉 УСПЕШНО! Пост опубликован в {channel}")
-            # Send metrics as follow-up message (no photo) if we have real timing data
-            if text_sec is not None or photo_sec is not None:
-                import asyncio
-                await asyncio.sleep(1)
-                await broadcaster._publish_via_bot_api(metrics_block.strip() + "\n" + hashtag_block, None)
-                print(f"📊 Блок метрик отправлен отдельным сообщением")
         else:
             print(f"⚠️ Статус публикации: {pub_res}")
 

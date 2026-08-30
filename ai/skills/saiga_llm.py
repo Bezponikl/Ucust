@@ -170,16 +170,13 @@ class SaigaLLMSkill:
             else:
                 cta = f"Ставьте реакцию 🔥 и напишите нам в личные сообщения — покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 🚀"
             visual_prompt = (
-                "Cinematic slightly futuristic business photograph. "
-                "A focused professional female entrepreneur with dark hair sits at a wooden desk in a warm modern coworking space with plants and brick wall. "
-                "She types on an open laptop. "
-                "From the laptop screen, glowing streams of blue and golden digital particles and abstract light trails flow dynamically outward to the right. "
-                "These particles coalesce into a vivid high-resolution floating rectangular image on the right side of the frame — "
-                "a realistic photo of a barista pouring latte art in a sunlit cozy cafe with natural warm light coming through large windows. "
-                "On the laptop screen, a visible text input box shows a short Russian prompt in readable font. "
-                "The floating generated photo has a soft glowing rounded frame and appears to materialize from the particle stream. "
-                "Warm cinematic ambient light, shallow depth of field, photorealistic quality, "
-                "professional commercial photography style, 16:9 composition."
+                "A cinematic, slightly futuristic photograph visualizing the process of an AI interpreting a user prompt "
+                "into a high-quality live business photo. "
+                "Flowing dynamically from a laptop screen showing the input text "
+                "'A vibrant photo of a barista preparing a latte in a cozy, modern cafe with natural lighting, focusing on the pour' "
+                "are glowing streams of digital particles and abstract light trails that coalesce into a vivid, "
+                "high-resolution floating image of a barista pouring latte art in a sunlit cafe. "
+                "The setting is a warm, modern coworking space with a focused female entrepreneur."
             )
 
         elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:

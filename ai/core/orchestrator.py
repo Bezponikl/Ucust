@@ -385,7 +385,7 @@ class UnifiedOrchestrator:
             t_text_duration = round(time.time() - t_text_start, 2)
             
             # 3. Формирование коммерческого фото-промпта в связке с текстом поста
-            custom_visual_prompt = post_data.get("visual_prompt")
+            custom_visual_prompt = gen_result.get("visual_prompt")
             if not custom_visual_prompt:
                 director = AdvancedVisualDirector(brand_images=[])
                 prompt_kw = moondream_analysis.get("prompt_keywords") if moondream_analysis else ""

@@ -170,15 +170,16 @@ class SaigaLLMSkill:
             else:
                 cta = f"Ставьте реакцию 🔥 и напишите нам в личные сообщения — покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 🚀"
             visual_prompt = (
-                "Authentic candid lifestyle photo: a hand holds a modern smartphone slightly to the left foreground "
-                "over a rustic wooden cafe table by a bright morning window. "
-                "The phone screen shows a freshly AI-generated photo of a cappuccino with delicate latte art. "
-                "IMPORTANT: the real ceramic cappuccino cup on the table is only PARTIALLY hidden behind the phone — "
-                "at least half of the real cup is clearly visible peeking out from the right side of the phone, "
-                "so both the phone screen image and the real cup on the table are visible simultaneously. "
-                "The phone does NOT fully cover or block the cup. "
-                "Soft natural morning window light, warm wooden textures, shallow depth of field, "
-                "authentic UGC photo style, unedited raw photo."
+                "Cinematic slightly futuristic business photograph. "
+                "A focused professional female entrepreneur with dark hair sits at a wooden desk in a warm modern coworking space with plants and brick wall. "
+                "She types on an open laptop. "
+                "From the laptop screen, glowing streams of blue and golden digital particles and abstract light trails flow dynamically outward to the right. "
+                "These particles coalesce into a vivid high-resolution floating rectangular image on the right side of the frame — "
+                "a realistic photo of a barista pouring latte art in a sunlit cozy cafe with natural warm light coming through large windows. "
+                "On the laptop screen, a visible text input box shows a short Russian prompt in readable font. "
+                "The floating generated photo has a soft glowing rounded frame and appears to materialize from the particle stream. "
+                "Warm cinematic ambient light, shallow depth of field, photorealistic quality, "
+                "professional commercial photography style, 16:9 composition."
             )
 
         elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:

@@ -89,13 +89,25 @@ class SaigaLLMSkill:
         visual_context: Optional[str] = None,
         comments_context: Optional[List[str]] = None,
         audience_questions: Optional[List[str]] = None,
-        comments_enabled: bool = False
+        comments_enabled: bool = False,
+        brand_profile: Optional[dict] = None,
+        user_notes: Optional[str] = None,
+        tone_override: Optional[str] = None,
+        **kwargs
     ) -> dict:
         """
         Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,
         нишу и компанию, обогащая текст деталями визуального анализа от Moondream и
         анализом комментариев/возражений целевой аудитории.
         """
+        if tone_override:
+            tone = tone_override
+        if brand_profile and isinstance(brand_profile, dict):
+            if "company_name" in brand_profile:
+                company_name = brand_profile["company_name"]
+            if "tone_of_voice" in brand_profile and brand_profile["tone_of_voice"]:
+                tone = brand_profile["tone_of_voice"]
+
         print(f"[SaigaSkill] ✍️ Генерация SMM-поста: Компания='{company_name}', Ниша='{niche}', Тема='{topic}', Тон='{tone}'...")
         if visual_context:
             print(f"[SaigaSkill] 👁️ Включен визуальный контекст от Moondream: {visual_context[:100]}...")

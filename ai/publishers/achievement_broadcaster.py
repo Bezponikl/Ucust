@@ -96,46 +96,46 @@ class AchievementBroadcaster:
     def build_honest_metrics(
         text_gen_seconds: Optional[float] = None,
         photo_gen_seconds: Optional[float] = None,
+        video_gen_seconds: Optional[float] = None,
         total_seconds: Optional[float] = None,
         critic_score: Optional[float] = None,
         platforms: Optional[List[str]] = None
     ) -> List[str]:
         """
-        Формирует честный список показателей:
-        - Если время реально измерено, выводит точное значение (например "2.14 сек").
-        - Если замера нет в данном прогоне, указывает "~" или "—", чтобы не вводить аудиторию в заблуждение.
+        Формирует список ключевых показателей:
+        - Сохраняет все привычные пункты (текст, фото, видео).
+        - Если время реально замерено — выводит точное значение (например 2.11 сек).
+        - Если генерации в данном запуске не было — ставит '~' (пропуск по времени).
         """
         metrics = []
         
-        # 1. Текст + Аудит
+        # 1. Генерация текста + аудит качества
         if text_gen_seconds is not None and text_gen_seconds > 0.05:
             metrics.append(f"Генерация текста + аудит качества: {round(text_gen_seconds, 2)} сек")
         elif text_gen_seconds is not None and text_gen_seconds <= 0.05:
             metrics.append("Генерация текста + аудит качества: < 1 сек")
         else:
-            metrics.append("Генерация текста + аудит качества: ~1–2 сек")
+            metrics.append("Генерация текста + аудит качества: ~")
             
-        # 2. Фото-креатив
+        # 2. Генерация фото-креатива
         if photo_gen_seconds is not None and photo_gen_seconds > 0.05:
             metrics.append(f"Генерация фото-креатива: {round(photo_gen_seconds, 2)} сек")
         elif photo_gen_seconds is not None and photo_gen_seconds <= 0.05:
             metrics.append("Генерация фото-креатива: < 1 сек")
         else:
-            metrics.append("Генерация фото-креатива: — (по запросу)")
-            
-        # 3. Общее время
-        if total_seconds is not None:
-            metrics.append(f"Полный сквозной цикл: {round(total_seconds, 2)} сек")
+            metrics.append("Генерация фото-креатива: ~")
 
-        # 4. Контроль качества
-        if critic_score is not None:
-            metrics.append(f"Двухуровневый контроль качества: {int(critic_score * 100)}% (Одобрено)")
+        # 3. UltraHD видео (Shorts/Reels)
+        if video_gen_seconds is not None and video_gen_seconds > 0.05:
+            metrics.append(f"UltraHD видео (Shorts/Reels): {round(video_gen_seconds, 2)} сек")
         else:
-            metrics.append("Двухуровневый контроль качества: 100% (Одобрено)")
+            metrics.append("UltraHD видео (Shorts/Reels): ~")
             
-        # 5. Платформы
+        # 4. Платформы
         plat_str = ", ".join(platforms) if platforms else "Telegram, VK, Одноклассники (OK.ru), Сайты, Карты"
         metrics.append(f"Платформы: {plat_str}")
+        
+        # 5. Режим работы
         metrics.append("Режим работы: 24/7 автономно")
         
         return metrics

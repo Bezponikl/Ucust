@@ -430,6 +430,7 @@ class UnifiedOrchestrator:
                 "photo_prompt": photo_prompt,
                 "image_url": image_url,
                 "photo_url": image_url,
+                "hashtags": gen_result.get("hashtags", "#UCust #маркетинг"),
                 "confidence_score": 0.96,
                 "format": format_type,
                 "tone": tone,

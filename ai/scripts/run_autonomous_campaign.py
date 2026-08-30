@@ -55,6 +55,7 @@ async def run_pipeline(
     critic_score = critic_review.get("score", 0.95)
     photo_prompt = result.get("photo_prompt", "")
     photo_url = result.get("photo_url") or result.get("image_url")
+    post_hashtags = result.get("hashtags", "#UCust #ИИмаркетинг")
 
     # Получаем локальный путь к созданному фото
     photo_local_path = None
@@ -98,7 +99,7 @@ async def run_pipeline(
             critic_score=critic_score
         )
 
-        hashtag_block = "\n\n#UCust #ИИмаркетинг #Автономный_AI"
+        hashtag_block = f"\n\n{post_hashtags}"
         metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
 
         # Стратегия публикации:

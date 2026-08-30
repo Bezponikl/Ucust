@@ -167,6 +167,7 @@ class SaigaLLMSkill:
                 cta = f"Напишите нишу вашего бизнеса в комментарии — покажем, как это работает для вас! 👇"
             else:
                 cta = f"Напишите нам в личные сообщения — упакуем ваш продукт в продающий кадр! 🚀"
+            hashtags = "#ИИдляБизнеса #нейросеть #контентмаркетинг #SMM #GenAI"
             visual_prompt = (
                 "A cinematic, slightly futuristic wide-angle photograph. "
                 "A focused female entrepreneur with dark hair sits at a wooden desk in a warm modern cafe coworking space, visible in the left half of the frame. "
@@ -194,6 +195,7 @@ class SaigaLLMSkill:
                 cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, какую стратегию ИИ-агенты подготовят для вас прямо сейчас! 🚀"
             else:
                 cta = f"Ставьте 🔥 и напишите нам в личные сообщения — покажем, какую стратегию ИИ-агенты подготовят для вашего бизнеса прямо сейчас! 🚀"
+            hashtags = "#ИИагенты #маркетинг2026 #автоматизация #стартап #AIстартап"
             visual_prompt = "Authentic candid photograph: a sleek modern workspace desk with open laptop showing modern marketing analytics dashboards and AI agent workflows, a stylish coffee cup and smartphone on desk, bright natural daylight from large office window, clean contemporary aesthetic, authentic tech startup lifestyle photo."
 
         elif "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower or "проект" in topic_lower:
@@ -208,6 +210,7 @@ class SaigaLLMSkill:
                 cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях 👇. Погнали! 🚀"
             else:
                 cta = f"Следите за нашими обновлениями и пишите нам в личные сообщения. Погнали! 🚀"
+            hashtags = "#запуск #стартап #команда #разработка #IT"
             visual_prompt = "Authentic candid photo of a creative innovative tech startup team: modern bright glass-walled office workspace, diverse engineers and marketers discussing on a whiteboard with sticky notes and laptops, genuine collaborative atmosphere, natural daylight, candid photo on iPhone 16 Pro."
 
         elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
@@ -218,6 +221,7 @@ class SaigaLLMSkill:
                 f"Успейте воспользоваться специальными условиями до конца этой недели.{comments_phrase}"
             )
             cta = f"Напишите промокод {company_name.upper().replace(' ', '')}2026 в личные сообщения для получения специальных условий!"
+            hashtags = "#акция #спецпредложение #маркетинг #скидки"
             visual_prompt = f"Authentic candid commercial photograph for {niche}: stylish modern commercial product display on clean minimalist surface with subtle organic shadows, soft warm ambient lighting, elegant lifestyle commercial photography."
 
         elif "кофе" in niche_lower or "латте" in topic_lower or "десерт" in topic_lower:
@@ -231,6 +235,7 @@ class SaigaLLMSkill:
                 cta = f"Заглядывайте к нам за чашкой любимого кофе! А какой ваш любимый напиток? Напишите в комментариях ☕"
             else:
                 cta = f"Заглядывайте к нам за чашкой любимого кофе! Ждем вас в гости каждый день ☕"
+            hashtags = "#кофе #кофейня #латтеарт #доброеутро #кофеман"
             visual_prompt = "Authentic candid lifestyle photograph for a cozy craft coffee shop: fresh ceramic cup of cappuccino with intricate latte art, warm morning window sunlight casting gentle shadows on a rustic wooden table, relaxed warm cafe ambiance, authentic iPhone 16 Pro photography."
 
         else:
@@ -244,13 +249,15 @@ class SaigaLLMSkill:
                 cta = f"Поделитесь вашим мнением и вопросами в комментариях 👇 — мы читаем и отвечаем на каждый!"
             else:
                 cta = f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи и рады ответить на любые вопросы!"
+            hashtags = f"#бизнес #маркетинг #новости"
             visual_prompt = f"Authentic candid lifestyle photograph for {niche}: authentic business atmosphere, clean modern environment, natural daylight, genuine social media aesthetic, authentic depth of field, unedited raw photo."
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
         return {
             "post_text": full_post,
             "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-            "visual_prompt": visual_prompt
+            "visual_prompt": visual_prompt,
+            "hashtags": hashtags
         }
 
     def analyze_brand_profile(self, user_data: dict, clean_posts: Optional[list] = None, visuals: Optional[list] = None) -> dict:

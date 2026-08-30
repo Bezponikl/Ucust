@@ -280,14 +280,21 @@ class ComfyCLIRunner:
                     if response.is_success:
                         res_json = response.json()
                         prompt_id = res_json.get("prompt_id")
+                        print(f"[PhotoGeneratorSkill] ⚡ Задача принята ComfyUI (prompt_id={prompt_id}), идет диффузия...")
                         logger.info("ComfyUI Photo prompt submitted successfully (prompt_id=%s)", prompt_id)
 
                         # Poll completion history up to timeout
-                        for _ in range(int(self.timeout)):
+                        for poll_idx in range(int(self.timeout // 2)):
                             await asyncio.sleep(2.0)
+                            if (poll_idx + 1) % 5 == 0:
+                                print(f"[PhotoGeneratorSkill] ⏳ ComfyUI диффузия выполняется (прошло {(poll_idx + 1) * 2} сек)...")
                             hist_res = await client.get(f"{self.comfyui_url}/history/{prompt_id}")
                             if hist_res.is_success:
                                 history = hist_res.json().get(prompt_id, {})
+                                status_info = history.get("status", {})
+                                if status_info.get("status_str") == "error":
+                                    print(f"[PhotoGeneratorSkill] ⚠️ ComfyUI ошибка ноды: {status_info.get('messages', status_info)}")
+                                    break
                                 outputs = history.get("outputs", {})
                                 if outputs:
                                     for node_id, node_out in outputs.items():
@@ -306,6 +313,7 @@ class ComfyCLIRunner:
                                                 except Exception as dl_err:
                                                     logger.warning("Error downloading photo from ComfyUI: %s", dl_err)
                                                     
+                                                print(f"[PhotoGeneratorSkill] 🖼️ Фото успешно сгенерировано ComfyUI: {dest_path}")
                                                 return {
                                                     "status": "success",
                                                     "photo_path": dest_path,
@@ -314,7 +322,10 @@ class ComfyCLIRunner:
                                                     "photo_url": f"/output/photos/{fname}",
                                                     "media_url": f"{self.comfyui_url}/view?filename={fname}",
                                                 }
+                    else:
+                        print(f"[PhotoGeneratorSkill] ⚠️ ComfyUI вернул ошибку ({response.status_code}): {response.text}")
             except Exception as exc:
+                print(f"[PhotoGeneratorSkill] ⚠️ Ошибка ComfyUI: {exc}. Переключение на визуальный движок...")
                 logger.warning("ComfyUI execution error: %s. Falling back to local visual engine.", exc)
 
         # Offline / Fallback mode: Generate high quality visual via PIL engine

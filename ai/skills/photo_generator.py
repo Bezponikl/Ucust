@@ -14,6 +14,7 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 import os
+import re
 import uuid
 import logging
 import asyncio

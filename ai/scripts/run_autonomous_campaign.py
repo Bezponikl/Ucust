@@ -89,11 +89,12 @@ async def run_pipeline(
     if auto_publish:
         print(f"\n📡 Отправка результата в Telegram-канал {channel}...")
         broadcaster = AchievementBroadcaster(target_channel=channel)
-        
+        has_photo = photo_local_path is not None and os.path.exists(photo_local_path)
         # Формируем честные метрики без вводящих в заблуждение цифр
         metrics = AchievementBroadcaster.build_honest_metrics(
             text_gen_seconds=text_sec,
             photo_gen_seconds=photo_sec,
+            has_photo=has_photo,
             total_seconds=total_duration,
             critic_score=critic_score
         )

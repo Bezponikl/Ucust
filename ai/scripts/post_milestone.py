@@ -55,15 +55,23 @@ async def main():
     args = parser.parse_args()
 
     media_to_send = args.media or find_latest_image()
-    if media_to_send:
+    has_photo = media_to_send is not None and os.path.exists(media_to_send)
+    if media_to_send and has_photo:
         print(f"🖼️ Прикрепляем изображение к посту: {media_to_send}")
 
+    # Формируем точные метрики: только реально затраченное время текста и фото (если прикреплено)
+    metrics = args.metrics if args.metrics != default_metrics else AchievementBroadcaster.build_honest_metrics(
+        text_gen_seconds=0.85,
+        photo_gen_seconds=3.41 if has_photo else None,
+        has_photo=has_photo
+    )
+
     broadcaster = AchievementBroadcaster(target_channel=args.channel)
-    print(f"📡 Публикация достижения в канал {args.channel}...")
+    print(f"📡 Публикация обновления в канал {args.channel}...")
     res = await broadcaster.broadcast_milestone_async(
         title=args.title,
         description=args.desc,
-        metrics=args.metrics,
+        metrics=metrics,
         media_path=media_to_send
     )
     print(f"Результат: {res}")

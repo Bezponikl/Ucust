@@ -99,24 +99,36 @@ async def run_pipeline(
         )
 
         hashtag_block = "\n\n#UCust #ИИмаркетинг #Автономный_AI"
+        metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
 
-        # Telegram caption limit: 1024 chars for photo
-        caption = post_text.strip() + hashtag_block
-        if len(caption) > 1024:
-            caption = caption[:1024 - len(hashtag_block)].rstrip() + hashtag_block
+        # Стратегия публикации:
+        # 1. Фото с коротким цепляющим заголовком (≤ 1024 символа)
+        # 2. Полный текст поста + метрики отдельным текстовым сообщением (≤ 4096 символов)
+        lead_line = post_text.strip().split("\n")[0]  # первая строка = заголовок
+        photo_caption = f"{lead_line}{hashtag_block}"
 
-        # Send photo with clean caption (no metrics — internal data stays in console)
-        pub_res = await broadcaster._publish_via_bot_api(caption, photo_local_path)
+        full_text_message = post_text.strip() + metrics_block + hashtag_block
+
+        # Отправка фото с коротким заголовком
+        pub_res = await broadcaster._publish_via_bot_api(photo_caption, photo_local_path)
         if pub_res is None:
             pub_res = await broadcaster.broadcast_milestone_async(
                 title="",
-                description=caption,
+                description=photo_caption,
                 metrics=None,
                 media_path=photo_local_path
             )
 
         if pub_res and pub_res.get("status") == "success":
-            print(f"🎉 УСПЕШНО! Пост опубликован в {channel}")
+            print(f"🎉 УСПЕШНО! Фото опубликовано в {channel}")
+            # Отправка полного текста + метрик отдельным сообщением
+            import asyncio
+            await asyncio.sleep(1)
+            text_res = await broadcaster._publish_via_bot_api(full_text_message, None)
+            if text_res and text_res.get("status") == "success":
+                print(f"📝 Полный пост + метрики опубликованы в {channel}")
+            else:
+                print(f"⚠️ Не удалось отправить текстовое сообщение: {text_res}")
         else:
             print(f"⚠️ Статус публикации: {pub_res}")
 

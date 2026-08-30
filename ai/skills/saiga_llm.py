@@ -88,7 +88,8 @@ class SaigaLLMSkill:
         format_type: str = "post",
         visual_context: Optional[str] = None,
         comments_context: Optional[List[str]] = None,
-        audience_questions: Optional[List[str]] = None
+        audience_questions: Optional[List[str]] = None,
+        comments_enabled: bool = False
     ) -> dict:
         """
         Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,

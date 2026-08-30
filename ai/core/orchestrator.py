@@ -360,7 +360,8 @@ class UnifiedOrchestrator:
                 format_type=format_type,
                 visual_context=visual_ctx,
                 comments_context=comments_ctx,
-                audience_questions=audience_q
+                audience_questions=audience_q,
+                comments_enabled=bool(user_data.get("comments_enabled", False))
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")

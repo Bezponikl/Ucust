@@ -335,12 +335,15 @@ class PhotoGeneratorSkill:
             b = int(bg_top[2] * (1 - f) + bg_bottom[2] * f)
             ImageDraw.Draw(img).line([(0, y), (width, y)], fill=(r, g, b, 255))
 
-        # 3. Атмосферное фоновое свечение (Luminous Mesh Glow)
+        import random
+        # 3. Атмосферное фоновое свечение (Luminous Mesh Glow с динамическим разбросом)
         glow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         gdraw = ImageDraw.Draw(glow_layer)
-        gdraw.ellipse([int(width * 0.05), int(height * 0.1), int(width * 0.55), int(height * 0.55)], fill=glow_primary)
-        gdraw.ellipse([int(width * 0.48), int(height * 0.12), int(width * 0.95), int(height * 0.60)], fill=glow_secondary)
-        gdraw.ellipse([int(width * 0.25), int(height * 0.35), int(width * 0.75), int(height * 0.85)], fill=glow_accent)
+        shift_x = random.randint(-40, 40)
+        shift_y = random.randint(-30, 30)
+        gdraw.ellipse([int(width * 0.05) + shift_x, int(height * 0.1) + shift_y, int(width * 0.55) + shift_x, int(height * 0.55) + shift_y], fill=glow_primary)
+        gdraw.ellipse([int(width * 0.48) - shift_x, int(height * 0.12) - shift_y, int(width * 0.95) - shift_x, int(height * 0.60) - shift_y], fill=glow_secondary)
+        gdraw.ellipse([int(width * 0.25) + shift_y, int(height * 0.35) + shift_x, int(width * 0.75) + shift_y, int(height * 0.85) + shift_x], fill=glow_accent)
         glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(int(min(width, height) * 0.08)))
         img = Image.alpha_composite(img, glow_layer)
 
@@ -426,7 +429,15 @@ class PhotoGeneratorSkill:
         pill_y = logo_placed_y
         draw.rounded_rectangle([pill_x, pill_y, pill_x + pill_w, pill_y + pill_h], radius=22, fill=accent_pill, outline=(255, 255, 255, 180), width=1)
         
-        status_title = "СТАРТ РАЗРАБОТКИ 2026" if ("коллектив" in topic_lower or "проект" in topic_lower or "команд" in topic_lower) else f"{company_name.upper()} • ОФИЦИАЛЬНО"
+        if "нейросет" in topic_lower or "фото" in topic_lower or "понимает" in topic_lower or "визуал" in topic_lower:
+            status_title = "ИИ-ФОТОГРАФИЯ • UGC"
+        elif "коллектив" in topic_lower or "проект" in topic_lower or "команд" in topic_lower or "старт" in topic_lower:
+            status_title = "СТАРТ РАЗРАБОТКИ 2026"
+        elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower:
+            status_title = "СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ"
+        else:
+            status_title = f"{company_name.upper()} • ОФИЦИАЛЬНО"
+            
         draw.text((pill_x + 30, pill_y + 10), status_title, font=font_badge, fill=(255, 255, 255))
 
         # 8. Главный заголовок темы
@@ -449,15 +460,31 @@ class PhotoGeneratorSkill:
             draw.text((margin + 45, ty), line, font=font_title, fill=line_color)
             ty += 52
 
-        # 9. Описание / Подзаголовок
+        # 9. Описание / Подзаголовок (динамически под тему)
         sub_y = ty + 15
-        sub_line1 = f"Команда «{company_name}» объединила экспертов и AI-технологии."
-        sub_line2 = "Фокус на понятный и измеримый результат для каждого клиента."
+        if "нейросет" in topic_lower or "фото" in topic_lower or "понимает" in topic_lower or "визуал" in topic_lower:
+            sub_line1 = "Создание живых коммерческих фото по простым запросам."
+            sub_line2 = "Естественный свет, честные текстуры и стиль iPhone 16 Pro."
+        elif "кофе" in niche_lower or "ресторан" in niche_lower:
+            sub_line1 = "Свежая авторская обжарка и сбалансированная рецептура."
+            sub_line2 = "Идеальное начало дня в уютной атмосфере нашего заведения."
+        else:
+            sub_line1 = f"Команда «{company_name}» объединила экспертов и AI-технологии."
+            sub_line2 = "Фокус на понятный и измеримый результат для каждого клиента."
+            
         draw.text((margin + 45, sub_y), sub_line1, font=font_sub, fill=(215, 225, 245))
         draw.text((margin + 45, sub_y + 36), sub_line2, font=font_sub, fill=(170, 185, 215))
 
-        # 10. Нижние плашки преимуществ (Feature Badges) с акцентными светящимися точками
-        features = ["Сильная команда", "Открытая разработка", "AI-инновации"] if "it" in niche_lower or "ucust" in company_name.lower() else ["Премиум качество", "Забота о гостях", "Новый сезон"]
+        # 10. Нижние плашки преимуществ (Feature Badges)
+        if "нейросет" in topic_lower or "фото" in topic_lower or "понимает" in topic_lower or "визуал" in topic_lower:
+            features = ["Живой свет", "Честная текстура", "Стиль iPhone 16"]
+        elif "кофе" in niche_lower or "ресторан" in niche_lower:
+            features = ["Свежая обжарка", "Уютный зал", "Премиум меню"]
+        elif "it" in niche_lower or "ucust" in company_name.lower():
+            features = ["AI-агенты 24/7", "Контроль качества", "Автономия"]
+        else:
+            features = ["Премиум качество", "Забота о клиентах", "Новый сезон"]
+            
         fx = margin + 45
         fy = card_bottom - 80
         for f_text in features:

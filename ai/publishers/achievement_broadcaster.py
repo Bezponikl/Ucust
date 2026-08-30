@@ -211,28 +211,52 @@ class AchievementBroadcaster:
             import httpx
             async with httpx.AsyncClient(timeout=25.0, verify=ssl_ctx) as client:
                 if media_path and os.path.exists(media_path):
-                    # Telegram photo caption ограничен 1024 символами
-                    caption = post_text if len(post_text) <= 1024 else post_text[:1000] + "..."
-                    with open(media_path, "rb") as f:
-                        resp = await client.post(
-                            f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                            data={
-                                "chat_id": self.target_channel,
-                                "caption": caption,
-                                "parse_mode": "HTML"
-                            },
-                            files={"photo": f}
-                        )
-                    data = resp.json()
-                    
-                    # Если ошибка парсинга HTML — повторяем без parse_mode
-                    if not data.get("ok") and "parse entities" in str(data.get("description", "")):
+                    if len(post_text) <= 1024:
+                        # Текст помещается в подпись к фото целиком (до 1024 символов)
                         with open(media_path, "rb") as f:
-                            clean_cap = re.sub(r'<[^>]+>', '', caption)
                             resp = await client.post(
                                 f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                                data={"chat_id": self.target_channel, "caption": clean_cap},
+                                data={
+                                    "chat_id": self.target_channel,
+                                    "caption": post_text,
+                                    "parse_mode": "HTML"
+                                },
                                 files={"photo": f}
+                            )
+                        data = resp.json()
+                        
+                        # Если ошибка парсинга HTML — повторяем без parse_mode
+                        if not data.get("ok") and "parse entities" in str(data.get("description", "")):
+                            with open(media_path, "rb") as f:
+                                clean_cap = re.sub(r'<[^>]+>', '', post_text)
+                                resp = await client.post(
+                                    f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                    data={"chat_id": self.target_channel, "caption": clean_cap},
+                                    files={"photo": f}
+                                )
+                                data = resp.json()
+                    else:
+                        # Текст длинный (>1024 символов): отправляем фото и полный текст 100% без обрезания!
+                        with open(media_path, "rb") as f:
+                            await client.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                data={"chat_id": self.target_channel},
+                                files={"photo": f}
+                            )
+                        resp = await client.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={
+                                "chat_id": self.target_channel,
+                                "text": post_text,
+                                "parse_mode": "HTML"
+                            }
+                        )
+                        data = resp.json()
+                        if not data.get("ok") and "parse entities" in str(data.get("description", "")):
+                            clean_text = re.sub(r'<[^>]+>', '', post_text)
+                            resp = await client.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                json={"chat_id": self.target_channel, "text": clean_text}
                             )
                             data = resp.json()
                 else:

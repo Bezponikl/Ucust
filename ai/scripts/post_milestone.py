@@ -16,10 +16,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from publishers.achievement_broadcaster import AchievementBroadcaster
 
 async def main():
+    default_metrics = AchievementBroadcaster.build_honest_metrics(
+        text_gen_seconds=2.11,
+        photo_gen_seconds=None,
+        video_gen_seconds=None
+    )
+    
     parser = argparse.ArgumentParser(description="Broadcast milestones to @UcustAi")
-    parser.add_argument("--title", type=str, default="Новый рубеж автономии UCust AI", help="Заголовок достижения")
-    parser.add_argument("--desc", type=str, default="Команда ИИ-агентов UCust успешно развернула автономный пайплайн генерации контента и анализа конкурентов.", help="Описание достижения")
-    parser.add_argument("--metrics", nargs="*", default=["Платформы: Telegram, VK, Одноклассники (OK.ru), Сайты, Карты", "Точность анализа: 98.4%", "Генерация 4K UltraHD: Готова"], help="Список метрик")
+    parser.add_argument("--title", type=str, default="Старт проекта UCust AI: открытый вызов корпорациям", help="Заголовок достижения")
+    parser.add_argument("--desc", type=str, default="Пока неповоротливые агентства согласовывают брифы неделями — автономная связка ИИ-агентов UCust закрывает полный цикл маркетинга и генерации контента в разы быстрее раздутых отделов крупных компаний.", help="Описание достижения")
+    parser.add_argument("--metrics", nargs="*", default=default_metrics, help="Список метрик")
     parser.add_argument("--media", type=str, default=None, help="Путь к фото или видео файлу")
     parser.add_argument("--channel", type=str, default="@UcustAi", help="Целевой Telegram-канал")
 

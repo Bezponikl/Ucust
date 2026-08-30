@@ -73,7 +73,17 @@ class AchievementBroadcaster:
     ) -> str:
         """
         Форматирует красивый, презентабельный пост для канала @UcustAi.
+        Если title пустой — описание уже содержит готовый пост, враппер не добавляется.
         """
+        # Если заголовок пустой — пост уже полностью сформирован, просто вернуть его
+        if not title or not title.strip():
+            raw_post = description.strip()
+            try:
+                from core.orchestrator import SecurityGuard
+                return SecurityGuard.sanitize_public_text(raw_post)
+            except Exception:
+                return raw_post
+
         now_str = datetime.now().strftime("%d.%m.%Y")
         
         # Предотвращаем дублирование "UCust AI" в заголовке

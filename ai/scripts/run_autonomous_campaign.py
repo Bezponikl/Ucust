@@ -99,16 +99,23 @@ async def run_pipeline(
             critic_score=critic_score
         )
 
-        title = "Знакомьтесь: UCust AI — автономная экосистема маркетинга" if "кто так" in topic.lower() or "о нас" in topic.lower() else "Старт проекта UCust AI: открытый вызов корпорациям"
+        # Добавляем только блок метрик снизу — без чужеродного враппера «🚀 Старт проекта...»
+        # Пост от Saiga уже содержит заголовок и структуру, дублировать шапку не нужно
+        metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
+        hashtag_block = "\n\n#UCust #ИИмаркетинг #Автономный_AI"
+        full_post = post_text.strip() + metrics_block + hashtag_block
 
-        pub_res = await broadcaster.broadcast_milestone_async(
-            title=title,
-            description=post_text,
-            metrics=metrics,
-            media_path=photo_local_path
-        )
+        pub_res = await broadcaster._publish_via_bot_api(full_post, photo_local_path)
+        if pub_res is None:
+            # fallback через Telethon
+            pub_res = await broadcaster.broadcast_milestone_async(
+                title="",
+                description=full_post,
+                metrics=None,
+                media_path=photo_local_path
+            )
 
-        if pub_res.get("status") == "success":
+        if pub_res and pub_res.get("status") == "success":
             print(f"🎉 УСПЕШНО! Пост опубликован в {channel}")
         else:
             print(f"⚠️ Статус публикации: {pub_res}")

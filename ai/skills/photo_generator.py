@@ -161,64 +161,69 @@ class PhotoGeneratorSkill:
         niche: str = "Общий бизнес",
         aspect_ratio: str = "1:1",
         brand_colors: Optional[List[str]] = None,
-        style: str = "candid_iphone"
+        style: str = "candid_iphone",
+        custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Составляет аутентичный, живой промпт для мобильной фотографии на iPhone (UGC / Lifestyle).
         """
-        niche_text = f"{niche} {topic}".lower()
+        if custom_prompt:
+            positive_prompt = custom_prompt
+            niche_key = niche
+        else:
+            niche_text = f"{niche} {topic}".lower()
 
-        # Безопасный поиск ниши по смысловым маркерам (исключая ложные срабатывания типа "автономный" -> "авто")
-        niche_key = "услуги"
+            # Безопасный поиск ниши по смысловым маркерам (исключая ложные срабатывания типа "автономный" -> "авто")
+            niche_key = "услуги"
 
-        # Праздники и государственные даты (приоритет)
-        if any(w in niche_text for w in ["флаг", "государственн", "триколор", "день россии"]):
-            niche_key = "флаг"
-        elif any(w in niche_text for w in ["новый год", "новогодн", "рождеств"]):
-            niche_key = "праздник"
-        elif any(w in niche_text for w in ["праздник", "поздравля", "8 марта", "23 февраля", "9 мая"]):
-            niche_key = "праздник"
-        # Ниши бизнеса
-        elif any(w in niche_text for w in ["кофе", "капучино", "латте", "десерт", "пекарн", "барист"]):
-            niche_key = "кофейня"
-        elif any(w in niche_text for w in ["ресторан", "еда", "блюдо", "кухн", "шеф", "гастро"]):
-            niche_key = "ресторан"
-        elif any(w in niche_text for w in ["красот", "космет", "уход", "спа", "салон", "барбер", "маникюр"]):
-            niche_key = "красота"
-        elif any(w in niche_text for w in ["фитнес", "спорт", "трениров", "зал", "йог"]):
-            niche_key = "фитнес"
-        elif any(w in niche_text for w in ["автомобил", "автосервис", "детейлинг", "машина", "автомойк", "автосалон", "тест-драйв", "сто"]) and "автоном" not in niche_text:
-            niche_key = "авто"
-        elif any(w in niche_text for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "жк"]):
-            niche_key = "недвижимость"
-        elif any(w in niche_text for w in ["ремонт", "строительств", "отделк", "дизайн интерьер", "стройка"]):
-            niche_key = "ремонт"
-        elif any(w in niche_text for w in ["одежд", "стил", "мод", "магазин", "товар", "шопинг"]):
-            niche_key = "одежда"
-        elif any(w in niche_text for w in ["медицин", "клиник", "стоматолог", "врач", "здоровь"]):
-            niche_key = "медицина"
-        elif any(w in niche_text for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор"]):
-            niche_key = "образование"
-        elif any(w in niche_text for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых"]):
-            niche_key = "туризм"
-        elif any(w in niche_text for w in ["юрист", "бухгалтер", "налог", "аудит", "адвокат", "финанс"]):
-            niche_key = "юриспруденция"
-        elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "софт", "стартап", "автоном"]):
-            if "капучино" in topic.lower() or "кофе" in topic.lower():
+            # Праздники и государственные даты (приоритет)
+            if any(w in niche_text for w in ["флаг", "государственн", "триколор", "день россии"]):
+                niche_key = "флаг"
+            elif any(w in niche_text for w in ["новый год", "новогодн", "рождеств"]):
+                niche_key = "праздник"
+            elif any(w in niche_text for w in ["праздник", "поздравля", "8 марта", "23 февраля", "9 мая"]):
+                niche_key = "праздник"
+            # Ниши бизнеса
+            elif any(w in niche_text for w in ["кофе", "капучино", "латте", "десерт", "пекарн", "барист"]):
                 niche_key = "кофейня"
-            else:
-                niche_key = "it"
+            elif any(w in niche_text for w in ["ресторан", "еда", "блюдо", "кухн", "шеф", "гастро"]):
+                niche_key = "ресторан"
+            elif any(w in niche_text for w in ["красот", "космет", "уход", "спа", "салон", "барбер", "маникюр"]):
+                niche_key = "красота"
+            elif any(w in niche_text for w in ["фитнес", "спорт", "трениров", "зал", "йог"]):
+                niche_key = "фитнес"
+            elif any(w in niche_text for w in ["автомобил", "автосервис", "детейлинг", "машина", "автомойк", "автосалон", "тест-драйв", "сто"]) and "автоном" not in niche_text:
+                niche_key = "авто"
+            elif any(w in niche_text for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "жк"]):
+                niche_key = "недвижимость"
+            elif any(w in niche_text for w in ["ремонт", "строительств", "отделк", "дизайн интерьер", "стройка"]):
+                niche_key = "ремонт"
+            elif any(w in niche_text for w in ["одежд", "стил", "мод", "магазин", "товар", "шопинг"]):
+                niche_key = "одежда"
+            elif any(w in niche_text for w in ["медицин", "клиник", "стоматолог", "врач", "здоровь"]):
+                niche_key = "медицина"
+            elif any(w in niche_text for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор"]):
+                niche_key = "образование"
+            elif any(w in niche_text for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых"]):
+                niche_key = "туризм"
+            elif any(w in niche_text for w in ["юрист", "бухгалтер", "налог", "аудит", "адвокат", "финанс"]):
+                niche_key = "юриспруденция"
+            elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "софт", "стартап", "автоном"]):
+                if "капучино" in topic.lower() or "кофе" in topic.lower():
+                    niche_key = "кофейня"
+                else:
+                    niche_key = "it"
 
-        preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["кофейня"])
-        colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
+            preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["кофейня"])
+            colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
-        positive_prompt = (
-            f"Authentic candid lifestyle photograph for {niche}. Subject: {preset['subject']}. "
-            f"Environment: {preset['environment']}. "
-            f"{colors_str}"
-            f"Lighting: {preset['lighting']}. "
-            f"Camera & Style: {preset['camera']}, genuine social media aesthetic, authentic depth of field, real life texture, natural grain, unedited raw photo."
-        )
+            positive_prompt = (
+                f"Authentic candid lifestyle photograph for {niche}. Subject: {preset['subject']}. "
+                f"Environment: {preset['environment']}. "
+                f"{colors_str}"
+                f"Lighting: {preset['lighting']}. "
+                f"Camera & Style: {preset['camera']}, genuine social media aesthetic, authentic depth of field, real life texture, natural grain, unedited raw photo."
+            )
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])
 

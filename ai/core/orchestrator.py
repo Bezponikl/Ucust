@@ -384,17 +384,21 @@ class UnifiedOrchestrator:
                 self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", critic_res)
             t_text_duration = round(time.time() - t_text_start, 2)
             
-            # 3. Формирование коммерческого фото-промпта по стандарту реалистичной фотографии
-            director = AdvancedVisualDirector(brand_images=[])
-            prompt_kw = moondream_analysis.get("prompt_keywords") if moondream_analysis else ""
-            visual_kw_str = f" Visual details: {prompt_kw}." if prompt_kw else ""
-            visual_prompt_data = director.create_photorealistic_prompt(
-                topic=f"{prompt}.{visual_kw_str}",
-                niche=niche,
-                aspect_ratio=aspect_ratio,
-                brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
-            )
-            photo_prompt = visual_prompt_data.get("positive_prompt")
+            # 3. Формирование коммерческого фото-промпта в связке с текстом поста
+            custom_visual_prompt = post_data.get("visual_prompt")
+            if not custom_visual_prompt:
+                director = AdvancedVisualDirector(brand_images=[])
+                prompt_kw = moondream_analysis.get("prompt_keywords") if moondream_analysis else ""
+                visual_kw_str = f" Visual details: {prompt_kw}." if prompt_kw else ""
+                visual_prompt_data = director.create_photorealistic_prompt(
+                    topic=f"{prompt}.{visual_kw_str}",
+                    niche=niche,
+                    aspect_ratio=aspect_ratio,
+                    brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
+                )
+                photo_prompt = visual_prompt_data.get("positive_prompt")
+            else:
+                photo_prompt = custom_visual_prompt
 
             # 4. Генерация SMM Фотографии
             image_url = None
@@ -409,7 +413,8 @@ class UnifiedOrchestrator:
                         aspect_ratio=aspect_ratio,
                         company_name=company_name,
                         brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None),
-                        attachments=user_data.get("attachments")
+                        attachments=user_data.get("attachments"),
+                        custom_prompt=photo_prompt
                     )
                     t_photo_duration = round(time.time() - t_photo_start, 2)
                     image_url = photo_res.get("image_url")

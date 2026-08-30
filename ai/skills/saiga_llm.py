@@ -162,30 +162,32 @@ class SaigaLLMSkill:
                 f"• Мгновенно понимает контекст, настроение и специфику вашей ниши.\n"
                 f"• Сама подбирает естественный утренний свет из окна, глубину резкости и живые текстуры (без искусственного глянца и пластика).\n"
                 f"• Выстраивает композицию в стиле честной мобильной съемки на iPhone 16 Pro, которая вызывает доверие у реальных покупателей.\n\n"
-                f"⚡ <b>3. Готовый результат за секунды:</b>\n"
+                f"⚡ <b>3. Готовый результат в 1 клик:</b>\n"
                 f"Вы получаете вовлекающий пост с сильным заголовком и стильным живым фото-креативом, готовым к публикации.{visual_phrase}{comments_phrase}"
             )
             if has_comments:
                 cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 👇"
             else:
                 cta = f"Ставьте реакцию 🔥 и напишите нам в личные сообщения — покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 🚀"
+            visual_prompt = "Authentic candid lifestyle photo: a modern sleek smartphone held in hand above a rustic wooden cafe table by a bright morning window, the phone screen showing a freshly generated, realistic photo of a ceramic cappuccino cup with delicate latte art, soft natural morning ambient window light, real-life depth of field, authentic UGC photography, Shot on iPhone 16 Pro, unedited raw photo."
 
         elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:
             lead = f"Знакомьтесь: «{company_name}» — автономная экосистема ИИ-маркетинга"
             body = (
                 f"Забудьте о долгих согласованиях, сорванных дедлайнах и бесконечной рутине в соцсетях.\n\n"
-                f"«{company_name}» — это слаженная команда специализированных ИИ-агентов, которая за секунды закрывает "
+                f"«{company_name}» — это слаженная команда специализированных ИИ-агентов, которая в едином цикле закрывает "
                 f"весь цикл продвижения бизнеса в режиме 24/7:\n\n"
-                f"⚡ <b>1. Глубокий анализ бизнеса и конкурентов</b> — парсинг сайтов, выявление УТП и болей клиентов за 3 секунды.\n"
+                f"⚡ <b>1. Глубокий анализ бизнеса и конкурентов</b> — парсинг сайтов, выявление УТП и болей клиентов.\n"
                 f"⚡ <b>2. Умная генерация контента</b> — создание продающих постов и сценариев с адаптацией под Telegram, VK, Одноклассники (OK.ru) и сайты.\n"
                 f"⚡ <b>3. Двухуровневый контроль качества</b> — встроенный ИИ-критик отсекает шаблоны, воду и клише до публикации.\n"
                 f"⚡ <b>4. Мультимедиа-продакшн</b> — генерация живых фото-креативов в стиле естественной мобильной съемки (iPhone / UGC).\n\n"
-                f"Пока другие тратят недели на брифы — {company_name} выдает готовый результат за минуты.{comments_phrase}"
+                f"Пока другие тратят недели на брифы — {company_name} выдает готовый результат в разы быстрее.{comments_phrase}"
             )
             if has_comments:
                 cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, какую стратегию ИИ-агенты подготовят для вас прямо сейчас! 🚀"
             else:
                 cta = f"Ставьте 🔥 и напишите нам в личные сообщения — покажем, какую стратегию ИИ-агенты подготовят для вашего бизнеса прямо сейчас! 🚀"
+            visual_prompt = "Authentic candid photograph: a sleek modern workspace desk with open laptop showing modern marketing analytics dashboards and AI agent workflows, a stylish coffee cup and smartphone on desk, bright natural daylight from large office window, clean contemporary aesthetic, authentic tech startup lifestyle photo."
 
         elif "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower or "проект" in topic_lower:
             lead = f"Команда «{company_name}» в полном сборе и начинает активную работу!"
@@ -199,6 +201,7 @@ class SaigaLLMSkill:
                 cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях 👇. Погнали! 🚀"
             else:
                 cta = f"Следите за нашими обновлениями и пишите нам в личные сообщения. Погнали! 🚀"
+            visual_prompt = "Authentic candid photo of a creative innovative tech startup team: modern bright glass-walled office workspace, diverse engineers and marketers discussing on a whiteboard with sticky notes and laptops, genuine collaborative atmosphere, natural daylight, candid photo on iPhone 16 Pro."
 
         elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
             lead = f"Специальное предложение от «{company_name}»"
@@ -208,6 +211,7 @@ class SaigaLLMSkill:
                 f"Успейте воспользоваться специальными условиями до конца этой недели.{comments_phrase}"
             )
             cta = f"Напишите промокод {company_name.upper().replace(' ', '')}2026 в личные сообщения для получения специальных условий!"
+            visual_prompt = f"Authentic candid commercial photograph for {niche}: stylish modern commercial product display on clean minimalist surface with subtle organic shadows, soft warm ambient lighting, elegant lifestyle commercial photography."
 
         elif "кофе" in niche_lower or "латте" in topic_lower or "десерт" in topic_lower:
             lead = f"Новинки и атмосфера в «{company_name}»"
@@ -220,6 +224,7 @@ class SaigaLLMSkill:
                 cta = f"Заглядывайте к нам за чашкой любимого кофе! А какой ваш любимый напиток? Напишите в комментариях ☕"
             else:
                 cta = f"Заглядывайте к нам за чашкой любимого кофе! Ждем вас в гости каждый день ☕"
+            visual_prompt = "Authentic candid lifestyle photograph for a cozy craft coffee shop: fresh ceramic cup of cappuccino with intricate latte art, warm morning window sunlight casting gentle shadows on a rustic wooden table, relaxed warm cafe ambiance, authentic iPhone 16 Pro photography."
 
         else:
             lead = f"Важные новости от «{company_name}»"
@@ -232,11 +237,13 @@ class SaigaLLMSkill:
                 cta = f"Поделитесь вашим мнением и вопросами в комментариях 👇 — мы читаем и отвечаем на каждый!"
             else:
                 cta = f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи и рады ответить на любые вопросы!"
+            visual_prompt = f"Authentic candid lifestyle photograph for {niche}: authentic business atmosphere, clean modern environment, natural daylight, genuine social media aesthetic, authentic depth of field, unedited raw photo."
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
         return {
             "post_text": full_post,
-            "promo_code": f"{company_name.upper().replace(' ', '')}2026"
+            "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+            "visual_prompt": visual_prompt
         }
 
     def analyze_brand_profile(self, user_data: dict, clean_posts: Optional[list] = None, visuals: Optional[list] = None) -> dict:

@@ -222,7 +222,8 @@ class PhotoGeneratorSkill:
         brand_colors: Optional[List[str]] = None,
         style: str = "photorealistic",
         company_name: str = "UCust",
-        attachments: Optional[List[Any]] = None
+        attachments: Optional[List[Any]] = None,
+        custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Полный цикл генерации профессиональной SMM фотографии и коммерческого визуала.
@@ -234,6 +235,9 @@ class PhotoGeneratorSkill:
             brand_colors=brand_colors,
             style=style
         )
+        if custom_prompt:
+            prompt_data["positive_prompt"] = custom_prompt
+            print(f"[PhotoGeneratorSkill] 🎯 Использован контекстный промпт от Копирайтера:\n  👉 {custom_prompt}\n")
 
         photo_id = f"photo_{uuid.uuid4().hex[:10]}"
         filename = f"{photo_id}.jpg"

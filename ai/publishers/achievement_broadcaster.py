@@ -103,9 +103,6 @@ class AchievementBroadcaster:
     ) -> List[str]:
         """
         Формирует список ключевых показателей:
-        - Сохраняет все привычные пункты (текст, фото, видео).
-        - Если время реально замерено — выводит точное значение (например 2.11 сек).
-        - Если генерации в данном запуске не было — ставит '~' (пропуск по времени).
         """
         metrics = []
         
@@ -113,7 +110,7 @@ class AchievementBroadcaster:
         if text_gen_seconds is not None and text_gen_seconds > 0.05:
             metrics.append(f"Генерация текста + аудит качества: {round(text_gen_seconds, 2)} сек")
         elif text_gen_seconds is not None and text_gen_seconds <= 0.05:
-            metrics.append("Генерация текста + аудит качества: < 1 сек")
+            metrics.append("Генерация текста + аудит качества: до 1 сек")
         else:
             metrics.append("Генерация текста + аудит качества: ~")
             
@@ -121,7 +118,7 @@ class AchievementBroadcaster:
         if photo_gen_seconds is not None and photo_gen_seconds > 0.05:
             metrics.append(f"Генерация фото-креатива: {round(photo_gen_seconds, 2)} сек")
         elif photo_gen_seconds is not None and photo_gen_seconds <= 0.05:
-            metrics.append("Генерация фото-креатива: < 1 сек")
+            metrics.append("Генерация фото-креатива: до 1 сек")
         else:
             metrics.append("Генерация фото-креатива: ~")
 
@@ -146,7 +143,7 @@ class AchievementBroadcaster:
         proxy_host = os.getenv("TELETHON_PROXY_HOST", "").strip()
         proxy_port = os.getenv("TELETHON_PROXY_PORT", "").strip()
         proxy_user = os.getenv("TELETHON_PROXY_USER", "").strip() or None
-        proxy_pass = os.getenv("TELETHON_PROXY_PASSWORD", "").strip() or None
+        proxy_pass = os.getenv("TELETHON_PROXY_PASS", "").strip() or None
 
         if proxy_url:
             import urllib.parse
@@ -181,6 +178,7 @@ class AchievementBroadcaster:
         import ssl
         import json
         import urllib.request
+        import re
 
         ssl_ctx = ssl.create_default_context()
         ssl_ctx.check_hostname = False
@@ -189,18 +187,32 @@ class AchievementBroadcaster:
         # 1. Сначала пробуем httpx с отключенной верификацией SSL
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=20.0, verify=ssl_ctx) as client:
+            async with httpx.AsyncClient(timeout=25.0, verify=ssl_ctx) as client:
                 if media_path and os.path.exists(media_path):
+                    # Telegram photo caption ограничен 1024 символами
+                    caption = post_text if len(post_text) <= 1024 else post_text[:1000] + "..."
                     with open(media_path, "rb") as f:
                         resp = await client.post(
                             f"https://api.telegram.org/bot{bot_token}/sendPhoto",
                             data={
                                 "chat_id": self.target_channel,
-                                "caption": post_text,
+                                "caption": caption,
                                 "parse_mode": "HTML"
                             },
                             files={"photo": f}
                         )
+                    data = resp.json()
+                    
+                    # Если ошибка парсинга HTML — повторяем без parse_mode
+                    if not data.get("ok") and "parse entities" in str(data.get("description", "")):
+                        with open(media_path, "rb") as f:
+                            clean_cap = re.sub(r'<[^>]+>', '', caption)
+                            resp = await client.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                data={"chat_id": self.target_channel, "caption": clean_cap},
+                                files={"photo": f}
+                            )
+                            data = resp.json()
                 else:
                     resp = await client.post(
                         f"https://api.telegram.org/bot{bot_token}/sendMessage",
@@ -210,10 +222,17 @@ class AchievementBroadcaster:
                             "parse_mode": "HTML"
                         }
                     )
+                    data = resp.json()
+                    if not data.get("ok") and "parse entities" in str(data.get("description", "")):
+                        clean_text = re.sub(r'<[^>]+>', '', post_text)
+                        resp = await client.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={"chat_id": self.target_channel, "text": clean_text}
+                        )
+                        data = resp.json()
                 
-                data = resp.json()
                 if data.get("ok"):
-                    print(f"[AchievementBroadcaster] 🎉 Post published via Telegram Bot API to {self.target_channel}!")
+                    print(f"[AchievementBroadcaster] 🎉 Пост успешно опубликован в {self.target_channel} через Telegram Bot API!")
                     return {
                         "status": "success",
                         "method": "telegram_bot_api",
@@ -237,7 +256,7 @@ class AchievementBroadcaster:
             with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as response:
                 res_data = json.loads(response.read().decode())
                 if res_data.get("ok"):
-                    print(f"[AchievementBroadcaster] 🎉 Post published via urllib fallback to {self.target_channel}!")
+                    print(f"[AchievementBroadcaster] 🎉 Пост успешно опубликован в {self.target_channel} через urllib fallback!")
                     return {
                         "status": "success",
                         "method": "urllib_bot_api",

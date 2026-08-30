@@ -83,7 +83,8 @@ async def run_full_pipeline_test():
         "differentiator": "Сквозная связка 5 специализированных агентов без рутины и пластиковых стоков"
     }
     
-    brand_profile = saiga.analyze_brand_profile(brand_input, clean_posts=mock_competitor_content)
+    competitor_dossiers = [c.get("structured_dossier", c.get("title", "")) for c in competitors]
+    brand_profile = saiga.analyze_brand_profile(brand_input, clean_posts=competitor_dossiers)
     print(f"  ✅ Сформирован профиль бренда:")
     print(f"     • Позиционирование: {brand_profile.get('positioning', 'Премиальный автономный маркетинг')}")
     print(f"     • Tone of Voice: {brand_profile.get('tone_of_voice', 'Уверенный, экспертный, живой')}")

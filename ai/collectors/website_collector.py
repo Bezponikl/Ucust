@@ -198,7 +198,7 @@ class WebsiteCollector:
         if tavily_key:
             try:
                 import httpx
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                async with httpx.AsyncClient(timeout=min(self.timeout, 4.0)) as client:
                     resp = await client.post(
                         "https://api.tavily.com/search",
                         json={"api_key": tavily_key, "query": clean_query, "max_results": limit},
@@ -224,17 +224,13 @@ class WebsiteCollector:
             import httpx
             from urllib.parse import quote_plus, unquote
             ddg_url = f"https://html.duckduckgo.com/html/?q={quote_plus(clean_query)}"
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=self.HEADERS) as client:
+            async with httpx.AsyncClient(timeout=min(self.timeout, 3.5), follow_redirects=True, headers=self.HEADERS) as client:
                 resp = await client.get(ddg_url)
                 if resp.status_code == 200:
                     html_text = resp.text
-                    # Извлечение результатов
-                    raw_snippets = re.findall(r'<a class="result__snippet[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html_text, re.DOTALL)
-                    raw_titles = re.findall(r'<a class="result__url"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html_text, re.DOTALL)
                     raw_links = re.findall(r'<a class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html_text, re.DOTALL)
 
                     for raw_link, raw_title in raw_links:
-                        # DuckDuckGo оборачивает URL в /l/?uddg=...
                         real_url = raw_link
                         if "uddg=" in raw_link:
                             match_uddg = re.search(r'uddg=([^&]+)', raw_link)
@@ -260,7 +256,7 @@ class WebsiteCollector:
 
         # 3. Интеллектуальный fallback для ниши
         query_lower = clean_query.lower()
-        if "it" in query_lower or "маркетинг" in query_lower or "ai" in query_lower:
+        if "it" in query_lower or "маркетинг" in query_lower or "ai" in query_lower or "smm" in query_lower:
             fallback_sites = [
                 {"title": "SMMplanner — Сервис автопостинга и управления соцсетями", "url": "https://smmplanner.com", "snippet": "Автопостинг, расписание и аналитика для SMM-специалистов и агентств."},
                 {"title": "LiveDune — Комплексная аналитика и мониторинг соцсетей", "url": "https://livedune.com", "snippet": "Аналитика аккаунтов, проверка блогеров и отслеживание KPI в соцсетях."},
@@ -290,41 +286,33 @@ class WebsiteCollector:
 
     async def search_and_collect_competitors(self, query: str, limit: int = 2, deep_parse: bool = True) -> List[Dict[str, Any]]:
         """
-        Ищет сайты в интернете и сразу парсит их страницы для формирования глубокого анализа конкурентов.
+        Ищет сайты в интернете и параллельно парсит их страницы для формирования глубокого анализа конкурентов.
         """
         found = await self.search_websites_async(query, limit=limit)
         if not deep_parse:
             return found
 
         import asyncio
-        parsed_competitors: List[Dict[str, Any]] = []
 
-        for item in found:
-            url = item.get("url")
+        async def _fetch_single(item: Dict[str, Any]) -> Dict[str, Any]:
+            url = item.get("url", "")
             if url and url.startswith("http"):
                 try:
-                    site_data = await self.collect_website_async(url)
+                    site_data = await asyncio.wait_for(self.collect_website_async(url), timeout=min(self.timeout, 4.0))
                     if site_data.get("status") == "success":
                         site_data["search_snippet"] = item.get("snippet", "")
-                        parsed_competitors.append(site_data)
-                    else:
-                        # Если сайт недоступен, оставляем данные из поисковика
-                        parsed_competitors.append({
-                            "status": "partial",
-                            "source": "website_search",
-                            "url": url,
-                            "title": item.get("title", url),
-                            "description": item.get("snippet", ""),
-                            "structured_dossier": f"Сайт: {url}\nНазвание: {item.get('title')}\nОписание: {item.get('snippet')}\n"
-                        })
-                except Exception as e:
-                    parsed_competitors.append({
-                        "status": "partial",
-                        "source": "website_search",
-                        "url": url,
-                        "title": item.get("title", url),
-                        "description": item.get("snippet", ""),
-                        "structured_dossier": f"Сайт: {url}\nНазвание: {item.get('title')}\nОписание: {item.get('snippet')}\n"
-                    })
+                        return site_data
+                except Exception:
+                    pass
+            return {
+                "status": "partial",
+                "source": "website_search",
+                "url": url,
+                "title": item.get("title", url),
+                "description": item.get("snippet", ""),
+                "structured_dossier": f"Сайт: {url}\nНазвание: {item.get('title')}\nОписание: {item.get('snippet')}\n"
+            }
 
-        return parsed_competitors
+        tasks = [_fetch_single(item) for item in found]
+        parsed_competitors = await asyncio.gather(*tasks)
+        return list(parsed_competitors)

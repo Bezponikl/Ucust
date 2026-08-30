@@ -250,6 +250,7 @@ class ComfyCLIRunner:
         self,
         workflow_graph: Optional[Dict[str, Any]] = None,
         photo_prompt: str = "Commercial SMM Candid Photograph, high resolution",
+        raw_topic: Optional[str] = None,
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         aspect_ratio: str = "1:1",
@@ -325,9 +326,10 @@ class ComfyCLIRunner:
             from skills.photo_generator import PhotoGeneratorSkill
             pg = PhotoGeneratorSkill(output_dir=self.output_dir)
             w, h = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
+            display_title = raw_topic or photo_prompt
             pg._render_realistic_smm_visual(
                 output_path=photo_path,
-                topic=photo_prompt,
+                topic=display_title,
                 niche="SMM Commercial Visual",
                 width=w,
                 height=h,

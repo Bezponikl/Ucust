@@ -222,6 +222,7 @@ class PhotoGeneratorSkill:
                 print("[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — запуск фото-воркфлоу...")
                 res_comfy = await comfy_runner.execute_workflow(
                     photo_prompt=prompt_data["positive_prompt"],
+                    raw_topic=topic,
                     negative_prompt=prompt_data["negative_prompt"],
                     aspect_ratio=aspect_ratio
                 )
@@ -440,14 +441,25 @@ class PhotoGeneratorSkill:
             
         draw.text((pill_x + 30, pill_y + 10), status_title, font=font_badge, fill=(255, 255, 255))
 
-        # 8. Главный заголовок темы
+        # 8. Главный заголовок темы (строгая очистка от технического промпт-инжиниринга)
         clean_topic = topic.strip() if topic.strip() else "Специальное предложение"
+        if "subject:" in clean_topic.lower():
+            clean_topic = re.split(r'subject:\s*', clean_topic, flags=re.IGNORECASE)[1].split(".")[0].strip()
+        elif "photograph for" in clean_topic.lower():
+            clean_topic = re.sub(r'Authentic candid.*?photograph for\s*[^.]*\.\s*', '', clean_topic, flags=re.IGNORECASE)
+            clean_topic = clean_topic.split(".")[0].strip()
+
+        clean_topic = re.sub(r'shot on iphone.*', '', clean_topic, flags=re.IGNORECASE).strip().rstrip(".")
+        clean_topic = re.sub(r'authentic candid.*', '', clean_topic, flags=re.IGNORECASE).strip().rstrip(".")
+        if not clean_topic or len(clean_topic) < 4:
+            clean_topic = "Как нейросеть понимает запрос и создает фото"
+
         title_lines = []
         words = clean_topic.split()
         curr_line = []
         for w in words:
             curr_line.append(w)
-            if len(" ".join(curr_line)) > 28:
+            if len(" ".join(curr_line)) > 26:
                 title_lines.append(" ".join(curr_line[:-1]))
                 curr_line = [w]
         if curr_line:

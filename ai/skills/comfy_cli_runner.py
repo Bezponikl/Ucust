@@ -201,6 +201,51 @@ class ComfyCLIRunner:
         except Exception:
             return False
 
+    def to_api_prompt(self, workflow_json: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Converts ComfyUI GUI export workflow JSON format (with 'nodes' & 'links')
+        into the ComfyUI API Prompt format expected by POST /prompt endpoint.
+        """
+        if not isinstance(workflow_json, dict) or "nodes" not in workflow_json:
+            return workflow_json
+
+        # 1. Build link map: link_id -> [from_node_id_str, from_slot_idx]
+        links_map = {}
+        for link in workflow_json.get("links", []):
+            if isinstance(link, (list, tuple)) and len(link) >= 3:
+                link_id = link[0]
+                from_node = str(link[1])
+                from_slot = link[2]
+                links_map[link_id] = [from_node, from_slot]
+
+        # 2. Build API Prompt nodes
+        api_prompt = {}
+        for node in workflow_json.get("nodes", []):
+            node_id = str(node.get("id"))
+            class_type = node.get("type")
+            if not class_type:
+                continue
+
+            inputs = {}
+
+            # Add named widget values
+            if "widgets_values_named" in node and isinstance(node["widgets_values_named"], dict):
+                inputs.update(node["widgets_values_named"])
+
+            # Add linked inputs
+            for inp in node.get("inputs", []):
+                inp_name = inp.get("name")
+                link_id = inp.get("link")
+                if link_id is not None and link_id in links_map:
+                    inputs[inp_name] = links_map[link_id]
+
+            api_prompt[node_id] = {
+                "class_type": class_type,
+                "inputs": inputs
+            }
+
+        return api_prompt
+
     async def execute_workflow(
         self,
         workflow_graph: Optional[Dict[str, Any]] = None,
@@ -227,7 +272,8 @@ class ComfyCLIRunner:
         if online and not use_mocks and httpx is not None:
             try:
                 url = f"{self.comfyui_url}/prompt"
-                payload = {"prompt": customized_graph}
+                api_payload_graph = self.to_api_prompt(customized_graph)
+                payload = {"prompt": api_payload_graph}
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     response = await client.post(url, json=payload)
                     if response.is_success:

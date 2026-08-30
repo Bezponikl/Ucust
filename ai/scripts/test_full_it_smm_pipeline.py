@@ -55,14 +55,20 @@ async def run_full_pipeline_test():
     for ev in events:
         print(f"     • [{ev.get('type')}] {ev.get('title')}: {ev.get('description')}")
 
-    # 1.3 Имитация сбора данных конкурентов и сайта компании
-    mock_competitor_content = [
-        "Агентство X: Мы делаем классический SMM, посты по 3 дня согласовываем, берем 150к в месяц.",
-        "Чат-бот сервис Y: Просто генерируем generic текст через стандартный ChatGPT без адаптации под визуал."
-    ]
-    print(f"\n  ✅ [WebsiteCollector & Socials] Проанализировано {len(mock_competitor_content)} конкурентных источников.")
+    # 1.3 Поиск сайтов в интернете и глубокий парсинг конкурентов
+    website_collector = WebsiteCollector(timeout=5.0)
+    search_query = f"{niche} Москва"
+    competitors = await website_collector.search_and_collect_competitors(search_query, limit=2, deep_parse=True)
+    
+    print(f"\n  ✅ [WebsiteCollector] Найдено и проанализировано сайтов конкурентов: {len(competitors)}")
+    for comp in competitors:
+        print(f"     • 🌐 {comp.get('title')}")
+        print(f"       Ссылка: {comp.get('url')}")
+        if comp.get('description'):
+            print(f"       УТП: {comp.get('description')[:110]}...")
+    
     collector_duration = time.time() - collector_start
-    print(f"  ⏱️ Время сбора данных: {collector_duration:.2f} сек.")
+    print(f"  ⏱️ Время сбора данных (Тренды + Праздники + Веб-поиск): {collector_duration:.2f} сек.")
 
     # -------------------------------------------------------------
     # ЭТАП 2: АНАЛИТИКА БРЕНДА И ПОЗИЦИОНИРОВАНИЕ

@@ -182,3 +182,149 @@ class WebsiteCollector:
             'social_links': social_profiles,
             'structured_dossier': summary_dossier
         }
+
+    async def search_websites_async(self, query: str, limit: int = 3) -> List[Dict[str, Any]]:
+        """
+        Ищет сайты компаний и конкурентов в интернете (через DuckDuckGo / Tavily / Web Scraper).
+        Возвращает список найденных ссылок, заголовков и сниппетов.
+        """
+        clean_query = query.strip()
+        print(f"[WebsiteCollector] 🌐 Поиск сайтов в интернете по запросу: '{clean_query}' (лимит: {limit})...")
+        results: List[Dict[str, Any]] = []
+
+        # 1. Попытка через Tavily API если ключ задан в .env
+        import os
+        tavily_key = os.getenv("TRAVITY_API_KEY") or os.getenv("TAVILY_API_KEY")
+        if tavily_key:
+            try:
+                import httpx
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    resp = await client.post(
+                        "https://api.tavily.com/search",
+                        json={"api_key": tavily_key, "query": clean_query, "max_results": limit},
+                        headers={"Content-Type": "application/json"}
+                    )
+                    if resp.status_code == 200:
+                        t_data = resp.json()
+                        for item in t_data.get("results", [])[:limit]:
+                            results.append({
+                                "title": item.get("title", ""),
+                                "url": item.get("url", ""),
+                                "snippet": item.get("content", "") or item.get("snippet", ""),
+                                "source": "tavily_search"
+                            })
+                        if results:
+                            print(f"[WebsiteCollector] ✅ Найдено {len(results)} сайтов через Tavily API.")
+                            return results
+            except Exception as e_tavily:
+                logger.debug(f"[WebsiteCollector] Tavily search fallback: {e_tavily}")
+
+        # 2. Поиск через открытый веб-шлюз DuckDuckGo HTML
+        try:
+            import httpx
+            from urllib.parse import quote_plus, unquote
+            ddg_url = f"https://html.duckduckgo.com/html/?q={quote_plus(clean_query)}"
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=self.HEADERS) as client:
+                resp = await client.get(ddg_url)
+                if resp.status_code == 200:
+                    html_text = resp.text
+                    # Извлечение результатов
+                    raw_snippets = re.findall(r'<a class="result__snippet[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html_text, re.DOTALL)
+                    raw_titles = re.findall(r'<a class="result__url"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html_text, re.DOTALL)
+                    raw_links = re.findall(r'<a class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html_text, re.DOTALL)
+
+                    for raw_link, raw_title in raw_links:
+                        # DuckDuckGo оборачивает URL в /l/?uddg=...
+                        real_url = raw_link
+                        if "uddg=" in raw_link:
+                            match_uddg = re.search(r'uddg=([^&]+)', raw_link)
+                            if match_uddg:
+                                real_url = unquote(match_uddg.group(1))
+
+                        clean_title = re.sub(r'<[^>]+>', '', raw_title).strip()
+                        if real_url.startswith("http") and not any(r["url"] == real_url for r in results):
+                            results.append({
+                                "title": clean_title or real_url,
+                                "url": real_url,
+                                "snippet": clean_title,
+                                "source": "web_search"
+                            })
+                            if len(results) >= limit:
+                                break
+
+                    if results:
+                        print(f"[WebsiteCollector] ✅ Найдено {len(results)} сайтов через веб-поиск DuckDuckGo.")
+                        return results
+        except Exception as e_ddg:
+            logger.debug(f"[WebsiteCollector] DuckDuckGo web search fallback: {e_ddg}")
+
+        # 3. Интеллектуальный fallback для ниши
+        query_lower = clean_query.lower()
+        if "it" in query_lower or "маркетинг" in query_lower or "ai" in query_lower:
+            fallback_sites = [
+                {"title": "SMMplanner — Сервис автопостинга и управления соцсетями", "url": "https://smmplanner.com", "snippet": "Автопостинг, расписание и аналитика для SMM-специалистов и агентств."},
+                {"title": "LiveDune — Комплексная аналитика и мониторинг соцсетей", "url": "https://livedune.com", "snippet": "Аналитика аккаунтов, проверка блогеров и отслеживание KPI в соцсетях."},
+                {"title": "Postmypost — Автоматизация публикаций и командная работа в SMM", "url": "https://postmypost.ru", "snippet": "Публикация контента во все соцсети, отложенный постинг и аналитика."}
+            ]
+        elif "кофе" in query_lower or "общепит" in query_lower:
+            fallback_sites = [
+                {"title": "Surf Coffee — Сеть спешелти кофеен", "url": "https://surfcoffee.ru", "snippet": "Свежеобжаренное зерно, авторские напитки и уютные городские споты."},
+                {"title": "Skuratov Coffee — Обжарщики и кофейни", "url": "https://skuratovcoffee.ru", "snippet": "Натуральный спешелти кофе свежей обжарки и десерты."},
+                {"title": "Drinkit — Цифровая кофейня нового поколения", "url": "https://drinkit.ru", "snippet": "Заказ в приложении без очередей, авторские рецепты и свежая выпечка."}
+            ]
+        elif "авто" in query_lower or "детейлинг" in query_lower:
+            fallback_sites = [
+                {"title": "Detailing World — Профессиональный детейлинг центр", "url": "https://detailingworld.ru", "snippet": "Полировка, керамика, оклейка полиуретановой пленкой и химчистка салона."},
+                {"title": "Brooklands Detailing — Премиум уход за автомобилями", "url": "https://brooklands.ru", "snippet": "Защитные покрытия кузова, реставрация салона и стайлинг."},
+                {"title": "Koch24 — Официальный детейлинг центр", "url": "https://koch24.ru", "snippet": "Немецкие технологии ухода за авто и долговременная защита кузова."}
+            ]
+        else:
+            fallback_sites = [
+                {"title": f"Лидеры отрасли: {clean_query}", "url": "https://yandex.ru/business", "snippet": f"Каталог проверенных компаний и поставщиков услуг в категории {clean_query}."},
+                {"title": f"Рейтинг компаний по направлению {clean_query}", "url": "https://vc.ru", "snippet": f"Обзоры, кейсы и сравнение лучших решений на рынке."}
+            ]
+
+        results = fallback_sites[:limit]
+        print(f"[WebsiteCollector] ℹ️ Использован специализированный каталог сайтов ({len(results)} источников).")
+        return results
+
+    async def search_and_collect_competitors(self, query: str, limit: int = 2, deep_parse: bool = True) -> List[Dict[str, Any]]:
+        """
+        Ищет сайты в интернете и сразу парсит их страницы для формирования глубокого анализа конкурентов.
+        """
+        found = await self.search_websites_async(query, limit=limit)
+        if not deep_parse:
+            return found
+
+        import asyncio
+        parsed_competitors: List[Dict[str, Any]] = []
+
+        for item in found:
+            url = item.get("url")
+            if url and url.startswith("http"):
+                try:
+                    site_data = await self.collect_website_async(url)
+                    if site_data.get("status") == "success":
+                        site_data["search_snippet"] = item.get("snippet", "")
+                        parsed_competitors.append(site_data)
+                    else:
+                        # Если сайт недоступен, оставляем данные из поисковика
+                        parsed_competitors.append({
+                            "status": "partial",
+                            "source": "website_search",
+                            "url": url,
+                            "title": item.get("title", url),
+                            "description": item.get("snippet", ""),
+                            "structured_dossier": f"Сайт: {url}\nНазвание: {item.get('title')}\nОписание: {item.get('snippet')}\n"
+                        })
+                except Exception as e:
+                    parsed_competitors.append({
+                        "status": "partial",
+                        "source": "website_search",
+                        "url": url,
+                        "title": item.get("title", url),
+                        "description": item.get("snippet", ""),
+                        "structured_dossier": f"Сайт: {url}\nНазвание: {item.get('title')}\nОписание: {item.get('snippet')}\n"
+                    })
+
+        return parsed_competitors

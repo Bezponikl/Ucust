@@ -170,13 +170,14 @@ class SaigaLLMSkill:
             else:
                 cta = f"Ставьте реакцию 🔥 и напишите нам в личные сообщения — покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 🚀"
             visual_prompt = (
-                "A cinematic, slightly futuristic photograph visualizing the process of an AI interpreting a user prompt "
-                "into a high-quality live business photo. "
-                "Flowing dynamically from a laptop screen showing the input text "
-                "'A vibrant photo of a barista preparing a latte in a cozy, modern cafe with natural lighting, focusing on the pour' "
-                "are glowing streams of digital particles and abstract light trails that coalesce into a vivid, "
-                "high-resolution floating image of a barista pouring latte art in a sunlit cafe. "
-                "The setting is a warm, modern coworking space with a focused female entrepreneur."
+                "A cinematic, slightly futuristic wide-angle photograph. "
+                "A focused female entrepreneur with dark hair sits at a wooden desk in a warm modern cafe coworking space, visible in the left half of the frame. "
+                "An open MacBook laptop is on the desk in front of her, its screen showing a simple chat-style text input interface. "
+                "From the RIGHT EDGE of the laptop screen, vivid glowing streams of blue and golden digital particles and abstract light trails flow dynamically outward to the right into open air. "
+                "These particle streams coalesce and materialize into a FLOATING rectangular photograph that hovers in the AIR to the right of the laptop — NOT on the screen — "
+                "showing a vivid realistic image of a barista pouring latte art in a sunlit cozy cafe. "
+                "The floating photo has a soft luminous rounded frame and appears to emerge from the particle stream. "
+                "Warm cinematic ambient lighting, natural bokeh background, photorealistic commercial photography, wide composition."
             )
 
         elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:

@@ -90,7 +90,6 @@ async def run_pipeline(
         print(f"\n📡 Отправка результата в Telegram-канал {channel}...")
         broadcaster = AchievementBroadcaster(target_channel=channel)
         has_photo = photo_local_path is not None and os.path.exists(photo_local_path)
-        # Формируем честные метрики без вводящих в заблуждение цифр
         metrics = AchievementBroadcaster.build_honest_metrics(
             text_gen_seconds=text_sec,
             photo_gen_seconds=photo_sec,
@@ -99,24 +98,37 @@ async def run_pipeline(
             critic_score=critic_score
         )
 
-        # Добавляем только блок метрик снизу — без чужеродного враппера «🚀 Старт проекта...»
-        # Пост от Saiga уже содержит заголовок и структуру, дублировать шапку не нужно
-        metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
         hashtag_block = "\n\n#UCust #ИИмаркетинг #Автономный_AI"
-        full_post = post_text.strip() + metrics_block + hashtag_block
+        metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
 
-        pub_res = await broadcaster._publish_via_bot_api(full_post, photo_local_path)
+        # Telegram caption limit: 1024 chars for photo, 4096 for text message
+        # Strategy: photo gets clean post text + hashtags (fits in 1024)
+        # Metrics go as a separate follow-up text message
+        caption = post_text.strip() + hashtag_block
+        if len(caption) > 1024:
+            # trim to fit, keeping hashtags at end
+            caption = caption[:1024 - len(hashtag_block)].rstrip() + hashtag_block
+
+        full_post_with_metrics = post_text.strip() + metrics_block + hashtag_block
+
+        # Send photo with clean caption
+        pub_res = await broadcaster._publish_via_bot_api(caption, photo_local_path)
         if pub_res is None:
-            # fallback через Telethon
             pub_res = await broadcaster.broadcast_milestone_async(
                 title="",
-                description=full_post,
+                description=caption,
                 metrics=None,
                 media_path=photo_local_path
             )
 
         if pub_res and pub_res.get("status") == "success":
             print(f"🎉 УСПЕШНО! Пост опубликован в {channel}")
+            # Send metrics as follow-up message (no photo) if we have real timing data
+            if text_sec is not None or photo_sec is not None:
+                import asyncio
+                await asyncio.sleep(1)
+                await broadcaster._publish_via_bot_api(metrics_block.strip() + "\n" + hashtag_block, None)
+                print(f"📊 Блок метрик отправлен отдельным сообщением")
         else:
             print(f"⚠️ Статус публикации: {pub_res}")
 

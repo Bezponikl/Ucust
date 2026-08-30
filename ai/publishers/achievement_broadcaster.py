@@ -132,8 +132,16 @@ class AchievementBroadcaster:
             sec = round(video_gen_seconds, 2) if video_gen_seconds and video_gen_seconds > 0.05 else 75.0
             metrics.append(f"UltraHD видео (Shorts/Reels): {sec} сек")
             
-        # 4. Платформы
-        plat_str = ", ".join(platforms) if platforms else "Telegram, VK, Одноклассники (OK.ru), Сайты, Карты"
+        # 4. Платформы (сокращены до кликабельных аббревиатур со ссылками)
+        if platforms:
+            plat_str = ", ".join(platforms)
+        else:
+            tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/UcustAi")
+            vk_url = os.getenv("UCUST_VK_LINK", "https://vk.com")
+            ok_url = os.getenv("UCUST_OK_LINK", "https://ok.ru")
+            web_url = os.getenv("UCUST_WEB_LINK", "https://ucust.com")
+            maps_url = os.getenv("UCUST_MAPS_LINK", "https://yandex.ru/maps")
+            plat_str = f'<a href="{tg_url}">TG</a>, <a href="{vk_url}">VK</a>, <a href="{ok_url}">OK</a>, <a href="{web_url}">WEB</a>, <a href="{maps_url}">GEO</a>'
         metrics.append(f"Платформы: {plat_str}")
         
         # 5. Режим работы

@@ -250,7 +250,16 @@ class SaigaLLMSkill:
             else:
                 cta = f"Следите за нашими обновлениями и пишите нам в личные сообщения. Погнали! 🚀"
             hashtags = "#запуск #стартап #команда #разработка #IT"
-            visual_prompt = "Authentic candid photo of a creative innovative tech startup team: modern bright glass-walled office workspace, diverse engineers and marketers discussing on a whiteboard with sticky notes and laptops, genuine collaborative atmosphere, natural daylight, candid photo on iPhone 16 Pro."
+            visual_prompt = (
+                "Authentic candid photo of a small tech startup team of 4 people. "
+                "IMPORTANT: each person has a completely unique and distinct face, different hairstyle, different age, different facial features — NO identical or similar faces. "
+                "Person 1: young woman with short dark hair, glasses, casual sweater. "
+                "Person 2: man in his 30s with beard and curly hair, blue shirt. "
+                "Person 3: older man with grey temples, formal jacket. "
+                "Person 4: young man with straight light hair, hoodie. "
+                "Setting: modern bright glass-walled office, whiteboard with colorful sticky notes, laptops on table, genuine collaborative discussion. "
+                "Natural daylight from large windows, authentic candid atmosphere, shallow depth of field, photorealistic."
+            )
 
         elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
             lead = f"Специальное предложение от «{company_name}»"

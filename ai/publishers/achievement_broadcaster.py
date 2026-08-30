@@ -132,16 +132,26 @@ class AchievementBroadcaster:
             sec = round(video_gen_seconds, 2) if video_gen_seconds and video_gen_seconds > 0.05 else 75.0
             metrics.append(f"UltraHD видео (Shorts/Reels): {sec} сек")
             
-        # 4. Платформы (сокращены до кликабельных аббревиатур со ссылками)
+        # 4. Платформы (сокращены до кликабельных названий со ссылками)
         if platforms:
             plat_str = ", ".join(platforms)
         else:
             tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/UcustAi")
+            max_url = os.getenv("UCUST_MAX_LINK", "https://max.im")
             vk_url = os.getenv("UCUST_VK_LINK", "https://vk.com")
             ok_url = os.getenv("UCUST_OK_LINK", "https://ok.ru")
             web_url = os.getenv("UCUST_WEB_LINK", "https://ucust.com")
-            maps_url = os.getenv("UCUST_MAPS_LINK", "https://yandex.ru/maps")
-            plat_str = f'<a href="{tg_url}">TG</a>, <a href="{vk_url}">VK</a>, <a href="{ok_url}">OK</a>, <a href="{web_url}">WEB</a>, <a href="{maps_url}">GEO</a>'
+            ymaps_url = os.getenv("UCUST_YANDEX_MAPS_LINK", "https://yandex.ru/maps")
+            twogis_url = os.getenv("UCUST_2GIS_LINK", "https://2gis.ru")
+            plat_str = (
+                f'<a href="{tg_url}">TG</a>, '
+                f'<a href="{max_url}">MAX</a>, '
+                f'<a href="{vk_url}">VK</a>, '
+                f'<a href="{ok_url}">OK</a>, '
+                f'<a href="{web_url}">WEB</a>, '
+                f'<a href="{ymaps_url}">Я-Карты</a>, '
+                f'<a href="{twogis_url}">2GIS</a>'
+            )
         metrics.append(f"Платформы: {plat_str}")
         
         # 5. Режим работы

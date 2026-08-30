@@ -51,7 +51,7 @@ class ComfyCLIRunner:
         comfyui_url: Optional[str] = None,
         output_dir: Optional[str] = None,
         workflow_template_path: Optional[str] = None,
-        timeout: float = 60.0,
+        timeout: float = 300.0,
     ) -> None:
         self.comfyui_url = (comfyui_url or os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")).rstrip("/")
         self.output_dir = output_dir or os.getenv("COMFYUI_OUTPUT_DIR", os.path.join(PROJECT_ROOT, "output", "photos"))
@@ -283,7 +283,7 @@ class ComfyCLIRunner:
 
                         # Poll completion history up to timeout
                         for _ in range(int(self.timeout)):
-                            await asyncio.sleep(1.0)
+                            await asyncio.sleep(2.0)
                             hist_res = await client.get(f"{self.comfyui_url}/history/{prompt_id}")
                             if hist_res.is_success:
                                 history = hist_res.json().get(prompt_id, {})
@@ -294,11 +294,21 @@ class ComfyCLIRunner:
                                         for img in image_list:
                                             fname = img.get("filename")
                                             if fname:
-                                                local_path = os.path.join(self.output_dir, fname)
+                                                dest_path = os.path.join(self.output_dir, fname)
+                                                
+                                                # Download / fetch full image data
+                                                try:
+                                                    img_resp = await client.get(f"{self.comfyui_url}/view?filename={fname}")
+                                                    if img_resp.is_success:
+                                                        with open(dest_path, "wb") as f:
+                                                            f.write(img_resp.content)
+                                                except Exception as dl_err:
+                                                    logger.warning("Error downloading photo from ComfyUI: %s", dl_err)
+                                                    
                                                 return {
                                                     "status": "success",
-                                                    "photo_path": local_path,
-                                                    "file_path": local_path,
+                                                    "photo_path": dest_path,
+                                                    "file_path": dest_path,
                                                     "image_url": f"/output/photos/{fname}",
                                                     "photo_url": f"/output/photos/{fname}",
                                                     "media_url": f"{self.comfyui_url}/view?filename={fname}",

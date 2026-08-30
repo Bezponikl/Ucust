@@ -350,6 +350,8 @@ class UnifiedOrchestrator:
             visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
             comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
             audience_q = user_data.get("audience_questions") or user_data.get("top_audience_questions")
+            brand_profile = user_data.get("brand_profile")
+            competitor_dossier = user_data.get("competitor_dossier")
             
             gen_result = saiga.generate_smm_post(
                 topic=prompt,
@@ -361,7 +363,8 @@ class UnifiedOrchestrator:
                 visual_context=visual_ctx,
                 comments_context=comments_ctx,
                 audience_questions=audience_q,
-                comments_enabled=bool(user_data.get("comments_enabled", False))
+                comments_enabled=bool(user_data.get("comments_enabled", False)),
+                brand_profile=brand_profile
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")

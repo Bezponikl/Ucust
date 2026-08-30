@@ -106,31 +106,59 @@ async def run_full_pipeline_test():
     print(f"🏷️ Хэштеги: {post_data.get('hashtags')}")
 
     # -------------------------------------------------------------
-    # ЭТАП 4: ВИЗУАЛЬНЫЙ ДИРЕКТОР (ЭМОЦИОНАЛЬНЫЙ СТОРИТЕЛЛИНГ & COMFYUI)
+    # ЭТАП 4: MOONDREAM VQA (VISION ANALYST & АНАЛИЗ ВИЗУАЛА)
     # -------------------------------------------------------------
-    print("\n[ЭТАП 4/5] 🎬 ВИЗУАЛЬНЫЙ ДИРЕКТОР & СБОРКА ПРОМПТА ДЛЯ COMFYUI...")
+    print("\n[ЭТАП 4/6] 👁️ MOONDREAM VQA: АНАЛИЗ ВИЗУАЛА, ПАЛИТРЫ И ОСВЕЩЕНИЯ...")
+    from skills.moondream_vqa import MoondreamVQASkill
+    from PIL import Image, ImageDraw
+
+    # Создаём синтетическое тестовое изображение бренда (или анализируем существующий файл)
+    test_img = Image.new("RGB", (1024, 1024), color=(15, 23, 42))
+    draw = ImageDraw.Draw(test_img)
+    draw.rectangle([(200, 300), (824, 724)], fill=(59, 130, 246))
+    draw.text((250, 480), "UCUST AI PIPELINE", fill=(255, 255, 255))
+    
+    vqa_start = time.time()
+    moondream = MoondreamVQASkill()
+    moondream.load_model()
+    visual_dossier = moondream.extract_visual_dossier(test_img, topic=topic_prompt, company_name="UCust")
+    vqa_duration = time.time() - vqa_start
+
+    print(f"  ✅ [Moondream VQA] Сформировано визуальное досье за {vqa_duration:.2f} сек:")
+    print(f"     • Описание кадра: {visual_dossier.get('description')}")
+    print(f"     • Доминирующая палитра: {visual_dossier.get('dominant_colors')}")
+    print(f"     • Стиль освещения: {visual_dossier.get('lighting')}")
+    print(f"     • Соотношение сторон: {visual_dossier.get('aspect_ratio')}")
+    print(f"     • Оптимизация промпта: {visual_dossier.get('prompt_enhancement')[:90]}...")
+
+    # -------------------------------------------------------------
+    # ЭТАП 5: ВИЗУАЛЬНЫЙ ДИРЕКТОР (ЭМОЦИОНАЛЬНЫЙ СТОРИТЕЛЛИНГ & COMFYUI)
+    # -------------------------------------------------------------
+    print("\n[ЭТАП 5/6] 🎬 ВИЗУАЛЬНЫЙ ДИРЕКТОР & СБОРКА ПРОМПТА ДЛЯ COMFYUI...")
     pg = PhotoGeneratorSkill()
     
     custom_visual_prompt = post_data.get("visual_prompt")
     comfy_prompt = pg.create_smm_prompt(
         topic=topic_prompt,
         niche="it",
+        brand_colors=visual_dossier.get("dominant_colors"),
         custom_prompt=custom_visual_prompt
     )
     
     print("  ✅ Сформирован кинематографичный промпт для ComfyUI:")
-    print(f"     {comfy_prompt}")
+    print(f"     {comfy_prompt['positive_prompt']}")
 
     # -------------------------------------------------------------
-    # ЭТАП 5: АДАПТАЦИЯ И ДИСТРИБУЦИЯ ПОД КАНАЛЫ (TG, VK, OK, MAX)
+    # ЭТАП 6: АДАПТАЦИЯ И ДИСТРИБУЦИЯ ПОД КАНАЛЫ (TG, VK, OK, MAX)
     # -------------------------------------------------------------
-    print("\n[ЭТАП 5/5] 📡 АДАПТАЦИЯ ПОД ПЛАТФОРМЫ И СБОРКА МЕТРИК...")
+    print("\n[ЭТАП 6/6] 📡 АДАПТАЦИЯ ПОД ПЛАТФОРМЫ И СБОРКА МЕТРИК...")
     
     total_time = time.time() - start_total_time
     metrics_msg = (
         f"⏱️ Время генерации этого поста: {total_time:.2f} сек\n"
         f"• Аналитика и парсеры: {collector_duration:.2f}s\n"
         f"• Копирайтинг и критик: {gen_duration:.2f}s\n"
+        f"• Moondream VQA (Зрение): {vqa_duration:.2f}s\n"
         f"• Режиссура визуала: 0.05s\n\n"
         f"{post_data.get('hashtags', '#UCust #ИИмаркетинг')}"
     )

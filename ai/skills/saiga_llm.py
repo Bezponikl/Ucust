@@ -131,8 +131,8 @@ class SaigaLLMSkill:
             except Exception as e:
                 print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}")
 
-        # Интеллектуальный генератор на основе темы, профиля бренда, комментариев и тональности
-        topic_clean = topic.strip().rstrip(".").capitalize()
+        # Сохраняем оригинальный регистр — только убираем пробелы и точку в конце
+        topic_clean = topic.strip().rstrip(".")
         topic_lower = topic.lower()
         niche_lower = niche.lower()
 
@@ -197,6 +197,45 @@ class SaigaLLMSkill:
                 cta = f"Ставьте 🔥 и напишите нам в личные сообщения — покажем, какую стратегию ИИ-агенты подготовят для вашего бизнеса прямо сейчас! 🚀"
             hashtags = "#ИИагенты #маркетинг2026 #автоматизация #стартап #AIстартап"
             visual_prompt = "Authentic candid photograph: a sleek modern workspace desk with open laptop showing modern marketing analytics dashboards and AI agent workflows, a stylish coffee cup and smartphone on desk, bright natural daylight from large office window, clean contemporary aesthetic, authentic tech startup lifestyle photo."
+
+        elif any(w in topic_lower for w in ["праздник", "поздравля", "флаг", "день города", "день победы", "новый год", "8 марта", "23 февраля", "день народного", "день государств", "юбиле", "торжеств"]):
+            # Извлекаем название праздника из темы
+            holiday_name = topic_clean
+            lead = f"С праздником от команды «{company_name}»! 🎉"
+            body = (
+                f"{holiday_name}.\n\n"
+                f"Мы искренне поздравляем вас и ваших близких с этим знаменательным днём.\n\n"
+                f"Пусть этот праздник наполнит вас гордостью, теплом и вдохновением. "
+                f"Именно такие моменты напоминают нам о том, что за каждым большим делом стоят люди — "
+                f"настоящие, преданные своему делу.\n\n"
+                f"Команда «{company_name}» продолжает работать для вас каждый день, "
+                f"чтобы ваш бизнес рос и развивался.{comments_phrase}"
+            )
+            if has_comments:
+                cta = f"Поздравляйте друг друга в комментариях 👇 С праздником! 🎊"
+            else:
+                cta = f"С праздником! Пишите нам — работаем для вас 24/7 🎊"
+            hashtags = "#праздник #поздравление #UCust"
+            # Определяем визуал по ключевым словам праздника
+            if "флаг" in topic_lower or "государственн" in topic_lower:
+                hashtags = "#ДеньФлага #Россия #триколор #UCust"
+                visual_prompt = (
+                    "Cinematic wide-angle patriotic photograph. "
+                    "A warm sunlit modern coworking space with large floor-to-ceiling windows. "
+                    "On the foreground desk: an open laptop, a stylish coffee cup, and a small elegant Russian tricolor flag standing next to it. "
+                    "The atmosphere is professional yet festive — warm golden morning sunlight, soft bokeh background with blurred city skyline. "
+                    "Colors: white, blue, red accents from the flag complementing the warm interior tones. "
+                    "Authentic lifestyle commercial photography, shallow depth of field, photorealistic."
+                )
+            elif "новый год" in topic_lower:
+                hashtags = "#НовыйГод #UCust #поздравление"
+                visual_prompt = "Cozy festive New Year office atmosphere: laptop on desk with subtle Christmas lights reflection on screen, small decorative pine branch with golden ornaments, warm glowing candle, bokeh lights in background, warm cinematic photography."
+            else:
+                visual_prompt = (
+                    f"Cinematic festive business photograph. "
+                    f"Warm modern coworking space with sunlight. Professional desk with laptop, coffee cup, and small celebratory decorative element. "
+                    f"Festive yet professional atmosphere, warm golden tones, shallow depth of field, photorealistic commercial photography."
+                )
 
         elif "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower or "проект" in topic_lower:
             lead = f"Команда «{company_name}» в полном сборе и начинает активную работу!"

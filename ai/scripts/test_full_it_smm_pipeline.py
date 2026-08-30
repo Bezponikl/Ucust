@@ -71,72 +71,86 @@ async def run_full_pipeline_test():
     print(f"  ⏱️ Время сбора данных (Тренды + Праздники + Веб-поиск): {collector_duration:.2f} сек.")
 
     # -------------------------------------------------------------
-    # ЭТАП 2: АНАЛИТИКА БРЕНДА И ПОЗИЦИОНИРОВАНИЕ
+    # ЭТАП 2: MOONDREAM VQA (МУЛЬТИМОДАЛЬНЫЙ АНАЛИЗ ПОСТОВ И КРЕАТИВОВ КОНКУРЕНТОВ)
     # -------------------------------------------------------------
-    print("\n[ЭТАП 2/5] 🧠 АНАЛИЗ БРЕНДА, СЛАГАЕМЫХ УТП И АУДИТОРИИ...")
+    print("\n[ЭТАП 2/6] 👁️ MOONDREAM VQA: МУЛЬТИМОДАЛЬНЫЙ АНАЛИЗ ПОСТОВ КОНКУРЕНТОВ (ТЕКСТ + ВИЗУАЛ)...")
+    from skills.moondream_vqa import MoondreamVQASkill
+    from PIL import Image, ImageDraw
+
+    vqa_start = time.time()
+    moondream = MoondreamVQASkill()
+    moondream.load_model()
+
+    # Синтезируем баннер конкурента (или берем реальное изображение из спарсенного поста)
+    comp_banner = Image.new("RGB", (800, 600), color=(220, 38, 38))
+    draw = ImageDraw.Draw(comp_banner)
+    draw.rectangle([(50, 50), (750, 550)], fill=(239, 68, 68))
+    draw.text((100, 260), "SALE -50% GENERIC SMM BOT", fill=(255, 255, 255))
+
+    comp_post_text = "Сервис автопостинга: скидка 50% на все тарифы при оплате на год! Стандартный функционал и чат-бот."
+    
+    multimodal_comp_analysis = moondream.analyze_competitor_post(
+        competitor_name="SMMplanner / Типовой SMM-бот",
+        post_text=comp_post_text,
+        image_input=comp_banner
+    )
+    vqa_duration = time.time() - vqa_start
+
+    print(f"  ✅ [Moondream VQA] Завершён мультимодальный разбор поста конкурента ({vqa_duration:.2f} сек):")
+    print(f"     • Текст конкурента: «{multimodal_comp_analysis.get('post_text')[:75]}...»")
+    print(f"     • Визуал креатива: {multimodal_comp_analysis.get('visual_description')}")
+    print(f"     • Маркетинговый хук: {multimodal_comp_analysis.get('visual_hook')}")
+    print(f"     • Слабое место креатива: {multimodal_comp_analysis.get('weakness')}")
+    print(f"     🎯 Задача отстройки для Сайги: {multimodal_comp_analysis.get('counter_angle')}")
+
+    # -------------------------------------------------------------
+    # ЭТАП 3: АНАЛИТИКА БРЕНДА И ОТСТРОЙКА В SAIGA LLM
+    # -------------------------------------------------------------
+    print("\n[ЭТАП 3/6] 🧠 АНАЛИЗ БРЕНДА В САЙГЕ НА ОСНОВЕ МУЛЬТИМОДАЛЬНОГО ДОСЬЕ...")
     saiga = SaigaLLMSkill()
     brand_input = {
         "company_name": "UCust",
         "activity": "Автономный мульти-агентный маркетинг и AI-продакшн",
         "city": "Москва",
         "target_audience": "Владельцы малого и среднего бизнеса, маркетологи, эксперты",
-        "differentiator": "Сквозная связка 5 специализированных агентов без рутины и пластиковых стоков"
+        "differentiator": "Сквозная связка специализированных AI-навыков без рутины и шаблонных стоковых баннеров"
     }
     
-    competitor_dossiers = [c.get("structured_dossier", c.get("title", "")) for c in competitors]
-    brand_profile = saiga.analyze_brand_profile(brand_input, clean_posts=competitor_dossiers)
-    print(f"  ✅ Сформирован профиль бренда:")
-    print(f"     • Позиционирование: {brand_profile.get('positioning', 'Премиальный автономный маркетинг')}")
-    print(f"     • Tone of Voice: {brand_profile.get('tone_of_voice', 'Уверенный, экспертный, живой')}")
-    print(f"     • Цели: {brand_profile.get('business_goals', 'Автоматизация контент-маркетинга')}")
+    # Передаем спарсенные сайты + мультимодальное досье от Moondream
+    combined_intel = [
+        c.get("structured_dossier", c.get("title", "")) for c in competitors
+    ] + [multimodal_comp_analysis.get("multimodal_dossier", "")]
+
+    brand_profile = saiga.analyze_brand_profile(brand_input, clean_posts=combined_intel)
+    print(f"  ✅ Сформирован профиль бренда и стратегия контр-позиционирования:")
+    print(f"     • Позиционирование: {brand_profile.get('positioning')}")
+    print(f"     • Tone of Voice: {brand_profile.get('tone_of_voice')}")
+    print(f"     • Цели: {brand_profile.get('business_goals')}")
 
     # -------------------------------------------------------------
-    # ЭТАП 3: ГЕНЕРАЦИЯ КОНТЕНТА (КОПИРАЙТИНГ & GATEKEEPER)
+    # ЭТАП 4: ГЕНЕРАЦИЯ КОНТЕНТА (КОПИРАЙТИНГ & GATEKEEPER)
     # -------------------------------------------------------------
-    print("\n[ЭТАП 3/5] ✍️ ГЕНЕРАЦИЯ ПОСТА С УЧЁТОМ МАРКЕТИНГОВЫХ ХАРД-СКИЛЛОВ...")
+    print("\n[ЭТАП 4/6] ✍️ ГЕНЕРАЦИЯ ПОСТА С УЧЁТОМ МАРКЕТИНГОВЫХ ХАРД-СКИЛЛОВ...")
     gen_start = time.time()
-    
     topic_prompt = "Кто такие UCust и почему будущее маркетинга за мульти-агентными системами"
+    
     post_data = saiga.generate_smm_post(
         topic=topic_prompt,
-        niche=niche,
-        company_name="UCust"
+        niche="IT и автономный AI-маркетинг",
+        company_name="UCust",
+        brand_profile=brand_profile,
+        user_notes="Упор на твёрдые маркетинговые навыки системы и отстройку от шаблонных стоковых решений",
+        tone_override="Естественный и живой"
     )
-    
     gen_duration = time.time() - gen_start
     print(f"  ⏱️ Время генерации копирайтинга: {gen_duration:.2f} сек.")
+
     print("\n" + "—" * 60)
     print("📄 ТЕКСТ СГЕНЕРИРОВАННОГО ПОСТА:")
     print("—" * 60)
     print(post_data.get("post_text"))
     print("—" * 60)
     print(f"🏷️ Хэштеги: {post_data.get('hashtags')}")
-
-    # -------------------------------------------------------------
-    # ЭТАП 4: MOONDREAM VQA (VISION ANALYST & АНАЛИЗ ВИЗУАЛА)
-    # -------------------------------------------------------------
-    print("\n[ЭТАП 4/6] 👁️ MOONDREAM VQA: АНАЛИЗ ВИЗУАЛА, ПАЛИТРЫ И ОСВЕЩЕНИЯ...")
-    from skills.moondream_vqa import MoondreamVQASkill
-    from PIL import Image, ImageDraw
-
-    # Создаём синтетическое тестовое изображение бренда (или анализируем существующий файл)
-    test_img = Image.new("RGB", (1024, 1024), color=(15, 23, 42))
-    draw = ImageDraw.Draw(test_img)
-    draw.rectangle([(200, 300), (824, 724)], fill=(59, 130, 246))
-    draw.text((250, 480), "UCUST AI PIPELINE", fill=(255, 255, 255))
-    
-    vqa_start = time.time()
-    moondream = MoondreamVQASkill()
-    moondream.load_model()
-    visual_dossier = moondream.extract_visual_dossier(test_img, topic=topic_prompt, company_name="UCust")
-    vqa_duration = time.time() - vqa_start
-
-    print(f"  ✅ [Moondream VQA] Сформировано визуальное досье за {vqa_duration:.2f} сек:")
-    print(f"     • Описание кадра: {visual_dossier.get('description')}")
-    print(f"     • Доминирующая палитра: {visual_dossier.get('dominant_colors')}")
-    print(f"     • Стиль освещения: {visual_dossier.get('lighting')}")
-    print(f"     • Соотношение сторон: {visual_dossier.get('aspect_ratio')}")
-    print(f"     • Оптимизация промпта: {visual_dossier.get('prompt_enhancement')[:90]}...")
 
     # -------------------------------------------------------------
     # ЭТАП 5: ВИЗУАЛЬНЫЙ ДИРЕКТОР (ЭМОЦИОНАЛЬНЫЙ СТОРИТЕЛЛИНГ & COMFYUI)
@@ -148,7 +162,6 @@ async def run_full_pipeline_test():
     comfy_prompt = pg.create_smm_prompt(
         topic=topic_prompt,
         niche="it",
-        brand_colors=visual_dossier.get("dominant_colors"),
         custom_prompt=custom_visual_prompt
     )
     

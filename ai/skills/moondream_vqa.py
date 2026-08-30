@@ -301,6 +301,93 @@ class MoondreamVQASkill:
             "prompt_keywords": combined_keywords
         }
 
+    def analyze_competitor_post(self, competitor_name: str, post_text: str, image_input: Any = None) -> Dict[str, Any]:
+        """
+        Мультимодальный анализ поста конкурента:
+        Разбирает фото из поста через Moondream VLM, объединяет с текстом публикации
+        и формирует глубокую маркетинговую выжимку (смысл, хук, слабые места) для передачи в Сайгу (LLM).
+        """
+        print(f"[Moondream] 🕵️ Мультимодальный анализ поста конкурента «{competitor_name}» (Текст + Визуал)...")
+        
+        pil_img = self._to_pil_image(image_input)
+        visual_desc = "Фотоматериал не прикреплен или представляет собой стандартную плашку."
+        visual_hook = "Упор исключительно на текстовое сообщение."
+        weakness = "Отсутствие сильного визуального якоря, пробивающего баннерную слепоту."
+
+        if pil_img is not None:
+            # 1. Если загружена нейросеть Moondream2 VLM — глубокий анализ смысла кадра
+            if self._is_loaded and self._llm:
+                try:
+                    buffered = io.BytesIO()
+                    pil_img.save(buffered, format="JPEG", quality=85)
+                    b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    data_uri = f"data:image/jpeg;base64,{b64}"
+                    
+                    vlm_prompt = (
+                        "Analyze this competitor advertising creative / social media photo. "
+                        "What is shown (subject, product, any text/numbers on image)? "
+                        "What is the marketing hook and what are its visual flaws? "
+                        "Answer in 2-3 concise sentences for a marketing director."
+                    )
+                    response = self._llm.create_chat_completion(
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "image_url", "image_url": {"url": data_uri}},
+                                    {"type": "text", "text": vlm_prompt}
+                                ]
+                            }
+                        ],
+                        max_tokens=150,
+                        temperature=0.2
+                    )
+                    visual_desc = response["choices"][0]["message"]["content"].strip()
+                except Exception as e:
+                    logger.warning(f"[Moondream] Competitor VLM error: {e}")
+
+            # 2. Если VLM не вернул текст или используется CV-движок
+            if not visual_desc or visual_desc.startswith("Фотоматериал не"):
+                stat = ImageStat.Stat(pil_img)
+                brightness = sum(stat.mean[:3]) / 3.0
+                contrast = sum(stat.stddev[:3]) / 3.0
+                colors = self._extract_color_palette(pil_img, num_colors=3)
+                
+                if contrast > 50:
+                    visual_desc = f"Графический рекламный креатив с яркими контрастными элементами (цвета: {', '.join(colors)})."
+                    visual_hook = "Попытка привлечь внимание агрессивным баннером / плашкой."
+                    weakness = "Слишком рекламный и шаблонный вид (баннерная слепота у клиентов)."
+                else:
+                    visual_desc = f"Мягкое фото/визуал в спокойных тонах (цвета: {', '.join(colors)})."
+                    visual_hook = "Имитация естественного пользовательского контента (UGC)."
+                    weakness = "Слабая эмоциональная динамика и нехватка четкого позиционирования."
+
+        # Формируем контр-стратегию для Сайги
+        counter_angle = (
+            f"Отстроиться от поверхностного подхода «{competitor_name}»: показать реальную глубину "
+            f"автономной системы, твёрдые навыки без шаблонных обещаний и живой кинематографичный визуал."
+        )
+
+        full_dossier = (
+            f"\n[МУЛЬТИМОДАЛЬНЫЙ АНАЛИЗ ПОСТА КОНКУРЕНТА: «{competitor_name}»]\n"
+            f"• Текст публикации: «{post_text.strip()}»\n"
+            f"• Разбор визуала (Moondream VQA): {visual_desc}\n"
+            f"• Маркетинговый хук креатива: {visual_hook}\n"
+            f"• Уязвимость / Слабое место: {weakness}\n"
+            f"🎯 ЗАДАЧА ДЛЯ САЙГИ (ОТСТРОЙКА): {counter_angle}\n"
+        )
+
+        print(f"[Moondream] ✅ Анализ поста конкурента завершен! Сформировано мультимодальное досье.")
+        return {
+            "competitor_name": competitor_name,
+            "post_text": post_text,
+            "visual_description": visual_desc,
+            "visual_hook": visual_hook,
+            "weakness": weakness,
+            "counter_angle": counter_angle,
+            "multimodal_dossier": full_dossier
+        }
+
     def analyze_image(self, image_path: str, prompt: str = "Describe this image in detail.") -> str:
         """Совместимость с предыдущим API."""
         dossier = self.extract_visual_dossier(image_path)

@@ -169,7 +169,17 @@ class SaigaLLMSkill:
                 cta = f"Напишите в комментариях нишу вашего бизнеса — и мы покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 👇"
             else:
                 cta = f"Ставьте реакцию 🔥 и напишите нам в личные сообщения — покажем, как нейросеть упакует ваш продукт в продающий кадр прямо сейчас! 🚀"
-            visual_prompt = "Authentic candid lifestyle photo: a modern sleek smartphone held in hand above a rustic wooden cafe table by a bright morning window, the phone screen showing a freshly generated, realistic photo of a ceramic cappuccino cup with delicate latte art, soft natural morning ambient window light, real-life depth of field, authentic UGC photography, Shot on iPhone 16 Pro, unedited raw photo."
+            visual_prompt = (
+                "Authentic candid lifestyle photo: a hand holds a modern smartphone slightly to the left foreground "
+                "over a rustic wooden cafe table by a bright morning window. "
+                "The phone screen shows a freshly AI-generated photo of a cappuccino with delicate latte art. "
+                "IMPORTANT: the real ceramic cappuccino cup on the table is only PARTIALLY hidden behind the phone — "
+                "at least half of the real cup is clearly visible peeking out from the right side of the phone, "
+                "so both the phone screen image and the real cup on the table are visible simultaneously. "
+                "The phone does NOT fully cover or block the cup. "
+                "Soft natural morning window light, warm wooden textures, shallow depth of field, "
+                "authentic UGC photo style, unedited raw photo."
+            )
 
         elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:
             lead = f"Знакомьтесь: «{company_name}» — автономная экосистема ИИ-маркетинга"

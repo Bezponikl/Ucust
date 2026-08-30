@@ -231,6 +231,8 @@ class PhotoGeneratorSkill:
                     file_path = res_comfy["photo_path"]
                     filename = os.path.basename(file_path)
                     rendered_via_comfy = True
+            else:
+                print("[PhotoGeneratorSkill] ⚠️ Сервер ComfyUI оффлайн (127.0.0.1:8188 недоступен). Используется встроенный брендовый баннер...")
         except Exception as ex:
             print(f"[PhotoGeneratorSkill] ℹ️ ComfyUI статус: {ex}")
 

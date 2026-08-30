@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import re
 import json
 import time
 from typing import Any, Dict, List, Optional, Union
@@ -452,11 +453,11 @@ class SaigaLLMSkill:
                 f"Мы тщательно подобрали зерно свежей обжарки и настроили экстракцию, чтобы каждый глоток дарил вам заряд вдохновения и сил на весь день.\n\n"
                 f"Добавьте к этому свежий хрустящий десерт — и день точно сложится удачно!{comments_phrase}"
             )
-            cta = "Заглядывайте к нам за чашкой любимого напитка! А какой кофе вы пьёте по утрам? Напишите в комментариях ☕" if has_comments else "Ждём вас на чашку ароматного кофе каждый день! ☕✨",
+            cta = "Заглядывайте к нам за чашкой любимого напитка! А какой кофе вы пьёте по утрам? Напишите в комментариях ☕" if has_comments else "Ждём вас на чашку ароматного кофе каждый день! ☕✨"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Cinematic atmospheric coffee storytelling photograph. A smiling friendly barista leaning over a rustic warm wooden counter, gently handing a steaming ceramic cup of cappuccino with delicate latte art directly toward the viewer at golden morning hour. Soft warm sunlight streaming through large cafe windows with floating dust motes, cozy welcoming cafe atmosphere, authentic heartfelt UGC lifestyle.",
+                "visual_prompt": "Cinematic atmospheric coffee storytelling photograph. A smiling friendly barista leaning over a rustic wooden counter, gently handing a steaming ceramic cup of cappuccino with delicate latte art directly toward the viewer at golden morning hour. Soft warm sunlight streaming through large cafe windows with floating dust motes, cozy welcoming cafe atmosphere, authentic heartfelt UGC lifestyle.",
                 "hashtags": "#кофе #кофейня #латтеарт #доброеутро #кофеман"
             }
 
@@ -468,7 +469,7 @@ class SaigaLLMSkill:
                 f"Мы создали пространство, где забота о вашей красоте и внутреннем комфорте выходит на первый план.\n\n"
                 f"Сертифицированные мастера, премиальная косметика и индивидуальный подход к каждому образу — подчеркните вашу естественную привлекательность!{comments_phrase}"
             )
-            cta = "Запишитесь на удобное время через личные сообщения или оставьте «+» в комментариях! 💅👇" if has_comments else "Ждём вас на процедуры! Онлайн-запись доступна в личных сообщениях ✨",
+            cta = "Запишитесь на удобное время через личные сообщения или оставьте «+» в комментариях! 💅👇" if has_comments else "Ждём вас на процедуры! Онлайн-запись доступна в личных сообщениях ✨"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -484,7 +485,7 @@ class SaigaLLMSkill:
                 f"Результат — это не случайность, а система правильных привычек и поддержки опытных наставников.\n\n"
                 f"Современное оборудование, персонализированные программы тренировок и заряженная атмосфера единомышленников — сделайте первый шаг к телу мечты!{comments_phrase}"
             )
-            cta = "Напишите в комментариях, какую цель ставите на этот сезон — и мы поможем составить план! 🏋️👇" if has_comments else "Записывайтесь на пробную тренировку в личных сообщениях! Погнали! 🔥",
+            cta = "Напишите в комментариях, какую цель ставите на этот сезон — и мы поможем составить план! 🏋️👇" if has_comments else "Записывайтесь на пробную тренировку в личных сообщениях! Погнали! 🔥"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -500,7 +501,7 @@ class SaigaLLMSkill:
                 f"Мы помогаем находить не просто квадратные метры, а место, куда по-настоящему хочется возвращаться каждый вечер.\n\n"
                 f"Продуманные планировки, панорамные окна, развитая инфраструктура и полное юридическое сопровождение на каждом этапе сделки.{comments_phrase}"
             )
-            cta = "Хотите получить каталог актуальных объектов? Напишите «КАТАЛОГ» в комментариях или в ЛС! 🔑" if has_comments else "Пишите в личные сообщения — подберём идеальный вариант под ваш бюджет! 🔑",
+            cta = "Хотите получить каталог актуальных объектов? Напишите «КАТАЛОГ» в комментариях или в ЛС! 🔑" if has_comments else "Пишите в личные сообщения — подберём идеальный вариант под ваш бюджет! 🔑"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -920,10 +921,21 @@ class SaigaLLMSkill:
             except Exception as e:
                 print(f"[SaigaSkill] ⚠️ Ошибка LLaMA self-heal: {e}")
 
-        # Интеллектуальный генератор полировки
-        paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
-        
+        # Интеллектуальный генератор полировки исходного текста
+        healed = text
+        # Убираем штампы
+        for cliché, replacement in [
+            ("индивидуальный подход", "персонализированный подбор программы"),
+            ("высокое качество", "сертифицированные материалы и стандарты 2026 года"),
+            ("широкий спектр услуг", "комплексный сервис в одном месте"),
+            ("команда профессионалов", "опытные сертифицированные мастера с подтвержденной квалификацией"),
+            ("приятные цены", "прозрачная стоимость без скрытых доплат")
+        ]:
+            pattern = re.compile(re.escape(cliché), re.IGNORECASE)
+            healed = pattern.sub(replacement, healed)
+
         # Удаляем банальные приветствия
+        paragraphs = [p.strip() for p in healed.split("\n") if p.strip()]
         clean_paras = []
         for p in paragraphs:
             p_clean = p
@@ -932,19 +944,11 @@ class SaigaLLMSkill:
             if p_clean:
                 clean_paras.append(p_clean)
 
-        body_core = " ".join(clean_paras)
-        
-        # Улучшенный вариант с четкими цифрами, хуком и CTA
-        healed_post = (
-            "Пока неповоротливые агентства согласовывают брифы неделями — мы запускаем результат за 60 секунд.\n\n"
-            "Команда «UCust» объявляет о старте проекта. Наша цель — доказать, что автономная связка "
-            "ИИ-агентов способна закрывать задачи маркетинга и генерации контента в 5 раз быстрее и точнее, "
-            "чем раздутые отделы крупных корпораций.\n\n"
-            "Что уже работает в режиме 24/7:\n"
-            "• Мгновенный глубокий анализ любого бизнеса и сайтов конкурентов\n"
-            "• Генерация продающего контента с двухуровневой проверкой качества\n"
-            "• Создание живых фото-креативов в стиле реальной мобильной съемки без рутины и задержек\n\n"
-            "Мы только начинаем. Напишите «ТЕСТ» в комментариях — и мы бесплатно покажем, "
-            "как система разложит вашу нишу и подготовит стратегию продвижения за 3 минуты! 🚀"
-        )
-        return healed_post
+        if not clean_paras:
+            clean_paras = [text]
+
+        # Если в тексте не было конкретных цифр или сильного CTA, усиливаем его
+        if not any(char.isdigit() for char in healed):
+            clean_paras.insert(1, "✨ Более 1500 довольных клиентов, средняя оценка 4.9 из 5.0 и гарантия безупречного результата на каждую процедуру.")
+
+        return "\n\n".join(clean_paras)

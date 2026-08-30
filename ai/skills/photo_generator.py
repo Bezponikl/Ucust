@@ -141,6 +141,18 @@ class PhotoGeneratorSkill:
             "environment": "sunlit contemporary creative workspace or bright meeting room, productive human atmosphere",
             "lighting": "natural window daylight, soft warm room ambient, golden highlights",
             "camera": "Casual tabletop angle, authentic business lifestyle UGC storytelling photo"
+        },
+        "рынок": {
+            "subject": "rustic weathered wooden market crate overflowing with vibrant ripe red tomatoes and crisp fresh herbs, dewdrops glistening in morning sun",
+            "environment": "authentic bustling organic farmers market with natural canvas awnings, warm rustic atmosphere",
+            "lighting": "golden morning sunshine streaming through market stalls, rich natural warmth",
+            "camera": "Top-down / angled tabletop commercial food photography, crisp appetizing textures, shallow depth of field"
+        },
+        "приват": {
+            "subject": "captivating charismatic creator in subtle ambient neon and candlelight, striking aesthetic silhouette, confident playful gaze",
+            "environment": "stylish moody modern penthouse lounge or aesthetic cozy studio room with velvet textures",
+            "lighting": "moody cinematic rim lighting, warm candle glow, subtle deep shadows and atmospheric highlights",
+            "camera": "Cinematic 35mm portrait, candid smartphone selfie aesthetic, intimate artistic depth of field"
         }
     }
 
@@ -208,6 +220,10 @@ class PhotoGeneratorSkill:
                 niche_key = "туризм"
             elif any(w in niche_text for w in ["юрист", "бухгалтер", "налог", "аудит", "адвокат", "финанс"]):
                 niche_key = "юриспруденция"
+            elif any(w in niche_text for w in ["овощ", "фрукт", "рынок", "фермер", "продукты", "базар", "грядк"]):
+                niche_key = "рынок"
+            elif any(w in niche_text for w in ["приват", "онлифанс", "onlyfans", "boosty", "закрытый канал", "эксклюзив", "vip", "18+"]):
+                niche_key = "приват"
             elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "софт", "стартап", "автоном"]):
                 if "капучино" in topic.lower() or "кофе" in topic.lower():
                     niche_key = "кофейня"

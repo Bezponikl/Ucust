@@ -597,7 +597,7 @@ class SaigaLLMSkill:
                 f"Идеальный отдых начинается с правильного выбора локации и заботы о каждой мелочи путешествия.\n\n"
                 f"Завораживающие виды, премиальный сервис, авторские маршруты и полное погружение в атмосферу — пора сменить обстановку и зарядиться энергией!{comments_phrase}"
             )
-            cta = "Куда мечтаете отправиться в ближайшее время? Делитесь в комментариях! 🌍👇" if has_comments else "Бронируйте лучшие даты в личных сообщениях — подберём тур мечты! ✈️",
+            cta = "Куда мечтаете отправиться в ближайшее время? Делитесь в комментариях! 🌍👇" if has_comments else "Бронируйте лучшие даты в личных сообщениях — подберём тур мечты! ✈️"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -613,12 +613,44 @@ class SaigaLLMSkill:
                 f"Мы собрали коллекцию, в которой каждая деталь продумана до мелочей: от премиальных материалов до идеальной посадки.\n\n"
                 f"Быстрая доставка, удобная примерка и гарантированное качество — порадуйте себя новинками уже сегодня!{comments_phrase}"
             )
-            cta = "Какой образ понравился больше всего? Напишите номер в комментариях! 👇👗" if has_comments else "Оформляйте заказ прямо сейчас в личных сообщениях с быстрой доставкой! 🛍️",
+            cta = "Какой образ понравился больше всего? Напишите номер в комментариях! 👇👗" if has_comments else "Оформляйте заказ прямо сейчас в личных сообщениях с быстрой доставкой! 🛍️"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
                 "visual_prompt": "Charming candid fashion storytelling photograph. A stylish woman standing in front of a warm boutique mirror, playfully adjusting the collar of a chic elegant coat with a confident, joyful smile, surrounded by soft neutral textures and ambient warm light. Authentic moment of self-expression and delight, natural depth of field, photorealistic.",
                 "hashtags": "#шопинг #стиль #мода #одежда #новинки"
+            }
+
+        # 3.13. Фермерские продукты / Овощи и фрукты / Рынок / Продуктовые лавки
+        elif any(w in full_text_search for w in ["овощ", "фрукт", "рынок", "фермер", "продукты", "базар", "ягод", "зелень", "урожай", "лавка", "грядк"]):
+            lead = f"Свежесть только с грядки: отборный урожай в «{company_name}» 🍅🌿"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Никакой химии и долгого хранения — только настоящий вкус, сочность и аромат, как из бабушкиного сада.\n\n"
+                f"Спелые грунтовые томаты, хрустящая зелень, сладкие сезонные фрукты и честный вес. Приходите пробовать и выбирайте лучшее для домашнего стола!{comments_phrase}"
+            )
+            cta = "Заглядывайте к нам в павильон или заказывайте ящик свежих овощей с доставкой в личных сообщениях! 🛒👇" if has_comments else "Ждём вас за свежими витаминами каждый день! Доставка в ЛС 🍏✨"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Mouthwatering authentic market food photography. A rustic weathered wooden market stall brimming with vibrant, ripe red heirloom tomatoes, crisp green herbs, and sun-kissed fruits with glistening morning dew drops. Warm natural sunlight streaming through market canvas awning, authentic candid bazaar atmosphere, rich organic textures, 35mm shallow depth of field.",
+                "hashtags": "#овощи #фрукты #фермерскиепродукты #рынок #свежесть #зож"
+            }
+
+        # 3.14. Creator Economy / Приватные Telegram-каналы / Закрытые клубы / Подписки / OnlyFans / Boosty
+        elif any(w in full_text_search for w in ["приват", "онлифанс", "onlyfans", "boosty", "закрытый канал", "эксклюзив", "клуб", "подписк", "vip", "интим", "модель", "18+"]):
+            lead = f"То, что никогда не попадет в открытый доступ: эксклюзив в закрытом клубе «{company_name}» 🤫🔥"
+            body = (
+                f"{topic_clean}.{visual_phrase}\n\n"
+                f"Здесь нет цензуры, рамок и банального контента — только самый личный, откровенный и эстетичный бэкстейдж, прямые эфиры и общение один на один.\n\n"
+                f"Каждый день — свежий эксклюзивный материал, который доступен только избранному кругу подписчиков.{comments_phrase}"
+            )
+            cta = "Входная ссылка-инвайт сгорает через 24 часа! Забирай доступ в приват прямо сейчас по ссылке в описании профиля или пиши в ЛС 🔒👇" if has_comments else "Забирай закрытый доступ в личных сообщениях прямо сейчас! 🤫✨"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}VIP",
+                "visual_prompt": "Seductive atmospheric aesthetic storytelling portrait. A mesmerizing charismatic creator in subtle ambient neon and warm candlelight, playful confident gaze, striking silhouette in soft focus, intimate cinematic room atmosphere, authentic raw smartphone candid grain, tasteful artistic mood, 35mm shallow depth of field.",
+                "hashtags": "#exclusive #vip #private #lifestyle #backstage #эстетика"
             }
 
         # =========================================================================

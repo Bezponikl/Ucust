@@ -167,7 +167,7 @@ class SaigaLLMSkill:
                 cta = f"Напишите нишу вашего бизнеса в комментарии — покажем, как это работает для вас! 👇"
             else:
                 cta = f"Напишите нам в личные сообщения — упакуем ваш продукт в продающий кадр! 🚀"
-            hashtags = "#ИИдляБизнеса #нейросеть #контентмаркетинг #SMM #GenAI"
+            hashtags = "#ИИдляБизнеса #SMM #GenAI"
             visual_prompt = (
                 "A cinematic, slightly futuristic wide-angle photograph. "
                 "A focused female entrepreneur with dark hair sits at a wooden desk in a warm modern cafe coworking space, visible in the left half of the frame. "

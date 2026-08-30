@@ -99,18 +99,33 @@ async def run_pipeline(
             critic_score=critic_score
         )
 
-        hashtag_block = f"\n\n{post_hashtags}"
-        metrics_block = "\n\n📊 <b>Реальные замеры пайплайна:</b>\n" + "\n".join(f" • {m}" for m in metrics)
+        # ── Сообщение 1: фото + полный текст поста (без хэштегов) ──────────────
+        photo_caption = post_text.strip()
+        # Telegram caption hard limit — 1024 символа
+        if len(photo_caption) > 1024:
+            photo_caption = photo_caption[:1021].rstrip() + "..."
 
-        # Стратегия публикации:
-        # 1. Фото с коротким цепляющим заголовком (≤ 1024 символа)
-        # 2. Полный текст поста + метрики отдельным текстовым сообщением (≤ 4096 символов)
-        lead_line = post_text.strip().split("\n")[0]  # первая строка = заголовок
-        photo_caption = f"{lead_line}{hashtag_block}"
+        # ── Сообщение 2: время генерации + хэштеги ───────────────────────────
+        time_lines = []
+        if text_sec is not None:
+            time_lines.append(f"• Текст + аудит качества: {round(text_sec, 2)} сек")
+        if photo_sec is not None:
+            time_lines.append(f"• Фото-креатив: {round(photo_sec, 2)} сек")
+        time_lines.append(f"• Итого: {total_duration} сек")
 
-        full_text_message = post_text.strip() + metrics_block + hashtag_block
+        # Платформы из метрик (HTML-ссылки уже готовы в build_honest_metrics)
+        platforms_line = next((m for m in metrics if m.startswith("Платформы")), None)
+        if platforms_line:
+            time_lines.append(f"• {platforms_line}")
+        time_lines.append("• Режим работы: 24/7 автономно")
 
-        # Отправка фото с коротким заголовком
+        metrics_message = (
+            f"⏱️ <b>Время генерации этого поста:</b>\n"
+            + "\n".join(time_lines)
+            + f"\n\n{post_hashtags}"
+        )
+
+        # Отправка фото с текстом поста
         pub_res = await broadcaster._publish_via_bot_api(photo_caption, photo_local_path)
         if pub_res is None:
             pub_res = await broadcaster.broadcast_milestone_async(
@@ -121,15 +136,15 @@ async def run_pipeline(
             )
 
         if pub_res and pub_res.get("status") == "success":
-            print(f"🎉 УСПЕШНО! Фото опубликовано в {channel}")
-            # Отправка полного текста + метрик отдельным сообщением
+            print(f"🎉 УСПЕШНО! Фото + пост опубликованы в {channel}")
+            # Небольшая пауза, затем метрики + хэштеги
             import asyncio
-            await asyncio.sleep(1)
-            text_res = await broadcaster._publish_via_bot_api(full_text_message, None)
+            await asyncio.sleep(2)
+            text_res = await broadcaster._publish_via_bot_api(metrics_message, None)
             if text_res and text_res.get("status") == "success":
-                print(f"📝 Полный пост + метрики опубликованы в {channel}")
+                print(f"⏱️ Метрики + хэштеги опубликованы в {channel}")
             else:
-                print(f"⚠️ Не удалось отправить текстовое сообщение: {text_res}")
+                print(f"⚠️ Не удалось отправить метрики: {text_res}")
         else:
             print(f"⚠️ Статус публикации: {pub_res}")
 

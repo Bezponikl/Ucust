@@ -26,7 +26,7 @@ except ImportError:
     TelegramClient = None
 
 class AchievementBroadcaster:
-    DEFAULT_CHANNEL = "@UcustAi"
+    DEFAULT_CHANNEL = "@testaipublisher"
     DEFAULT_BOT_TOKEN = "8840988455:AAFsUPjrOSvQdMpuK5c-MkQdPcVB092tPzw"
 
     def __init__(self, target_channel: Optional[str] = None):

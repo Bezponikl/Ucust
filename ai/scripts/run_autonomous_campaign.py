@@ -23,7 +23,7 @@ async def run_pipeline(
     company_name: str = "UCust",
     niche: str = "Автономный AI-маркетинг и мульти-агентные системы",
     tone: str = "Дерзкий, уверенный, вдохновляющий",
-    channel: str = "@UcustAi",
+    channel: str = "@testaipublisher",
     auto_publish: bool = True
 ):
     print("=" * 60)
@@ -134,7 +134,7 @@ def main():
     parser.add_argument("--company", type=str, default="UCust", help="Название компании")
     parser.add_argument("--niche", type=str, default="Автономный AI-маркетинг и мульти-агентные системы", help="Ниша")
     parser.add_argument("--tone", type=str, default="Дерзкий, уверенный, вдохновляющий", help="Тон общения")
-    parser.add_argument("--channel", type=str, default="@UcustAi", help="Целевой Telegram-канал")
+    parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
     parser.add_argument("--no-publish", action="store_true", help="Не отправлять в Telegram, только вывести в консоль")
 
     args = parser.parse_args()

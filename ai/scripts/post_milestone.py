@@ -50,7 +50,7 @@ async def main():
     parser.add_argument("--desc", type=str, default="Пока неповоротливые агентства согласовывают брифы неделями — автономная связка ИИ-агентов UCust закрывает полный цикл маркетинга и генерации контента в разы быстрее раздутых отделов крупных компаний.", help="Описание достижения")
     parser.add_argument("--metrics", nargs="*", default=default_metrics, help="Список метрик")
     parser.add_argument("--media", type=str, default=None, help="Путь к фото или видео файлу (если не указан, берется последнее сгенерированное фото)")
-    parser.add_argument("--channel", type=str, default="@UcustAi", help="Целевой Telegram-канал")
+    parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
 
     args = parser.parse_args()
 

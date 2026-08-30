@@ -136,8 +136,8 @@ class AchievementBroadcaster:
         if platforms:
             plat_str = ", ".join(platforms)
         else:
-            tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/UcustAi")
-            max_url = os.getenv("UCUST_MAX_LINK", "https://max.im")
+            tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/")
+            max_url = os.getenv("UCUST_MAX_LINK", "https://max.ru/")
             vk_url = os.getenv("UCUST_VK_LINK", "https://vk.com")
             ok_url = os.getenv("UCUST_OK_LINK", "https://ok.ru")
             web_url = os.getenv("UCUST_WEB_LINK", "https://ucust.com")

@@ -247,10 +247,10 @@ class AchievementBroadcaster:
         # 2. Fallback через стандартный urllib с unverified SSL context
         try:
             url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            clean_text = re.sub(r'<[^>]+>', '', post_text)
             payload = json.dumps({
                 "chat_id": self.target_channel,
-                "text": post_text,
-                "parse_mode": "HTML"
+                "text": clean_text
             }).encode('utf-8')
             req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as response:

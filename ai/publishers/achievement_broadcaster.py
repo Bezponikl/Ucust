@@ -56,7 +56,7 @@ class AchievementBroadcaster:
         title: str,
         description: str,
         metrics: Optional[List[str]] = None,
-        category: str = "Релиз / Достижение",
+        category: str = "Обновление",
         author_agent: str = "Команда ИИ-агентов UCust"
     ) -> str:
         """
@@ -64,8 +64,11 @@ class AchievementBroadcaster:
         """
         now_str = datetime.now().strftime("%d.%m.%Y")
         
+        # Предотвращаем дублирование "UCust AI" в заголовке
+        header_title = title if "ucust" in title.lower() else f"UCust AI: {title}"
+        
         lines = [
-            f"🚀 <b>UCust AI: {title}</b>",
+            f"🚀 <b>{header_title}</b>",
             f"📅 <i>{now_str}</i> | 🏷️ <code>#{category.replace(' ', '_')}</code>",
             "",
             f"🔥 <b>Ключевые изменения:</b>",
@@ -81,7 +84,7 @@ class AchievementBroadcaster:
 
         lines.append(f"⚡ <i>Автономно подтверждено: {author_agent}</i>")
         lines.append("")
-        lines.append("#UCust #Достижения")
+        lines.append("#UCust #Обновления")
 
         raw_post = "\n".join(lines)
         
@@ -274,11 +277,11 @@ class AchievementBroadcaster:
         description: str,
         metrics: Optional[List[str]] = None,
         media_path: Optional[str] = None,
-        category: str = "Достижение",
+        category: str = "Обновление",
         author_agent: str = "Команда ИИ-агентов UCust"
     ) -> Dict[str, Any]:
         """
-        Асинхронная публикация достижения в Telegram-канал @UcustAi.
+        Асинхронная публикация обновления в Telegram-канал @UcustAi.
         """
         post_text = self.format_milestone_post(
             title=title,

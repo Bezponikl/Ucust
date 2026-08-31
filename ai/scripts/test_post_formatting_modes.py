@@ -73,7 +73,7 @@ async def test_formatting_modes():
     assert "С Днём Государственного флага" in msg1
 
     # Проверки сообщения 2
-    assert "⏱️ <b>Время генерации этого поста:</b>" in msg2
+    assert "⏱️ Время генерации этого поста:" in msg2
     assert "• Текст + аудит качества: 0.0 сек" in msg2
     assert "• Фото-креатив: 196.93 сек" in msg2
     assert "https://t.me/UcustAi" in msg2

@@ -543,5 +543,7 @@ async def websocket_onboarding_stream(websocket: WebSocket, session_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    print("[API Gateway] 🚀 Запуск AI Service Gateway на http://127.0.0.1:8000 ...")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    host = os.getenv("AI_SERVICE_HOST", "0.0.0.0")
+    port = int(os.getenv("AI_SERVICE_PORT", "8000"))
+    print(f"[API Gateway] 🚀 Запуск AI Service Gateway на http://{host}:{port} ...")
+    uvicorn.run(app, host=host, port=port)

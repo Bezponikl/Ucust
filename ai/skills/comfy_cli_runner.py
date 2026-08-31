@@ -25,16 +25,22 @@ except ImportError:
 logger = logging.getLogger("comfy_cli_runner")
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT_REALISM_WORKFLOW = os.path.join(PROJECT_ROOT, "realism2.0.json")
 PROJECT_ROOT_PHOTO_WORKFLOW = os.path.join(PROJECT_ROOT, "Photo_generations.json")
 PROJECT_ROOT_WORKFLOW = os.path.join(PROJECT_ROOT, "Ltx_generations.json")
-MODELS_COMFY_WORKFLOW = os.path.join(PROJECT_ROOT, "models", "comfyui", "Photo_generations.json")
-LOCAL_TEMPLATE_PATH = os.path.join(PROJECT_ROOT, "skills", "templates", "Photo_generations.json")
-DEFAULT_WORKFLOW_DESKTOP_PATH = r"C:\Users\Metal\Desktop\Photo_generations.json"
+MODELS_COMFY_WORKFLOW = os.path.join(PROJECT_ROOT, "models", "comfyui", "realism2.0.json")
+LOCAL_TEMPLATE_PATH = os.path.join(PROJECT_ROOT, "skills", "templates", "realism2.0.json")
+DEFAULT_WORKFLOW_DESKTOP_PATH = r"C:\Users\Metal\Desktop\realism2.0.json"
 
 
 class ComfyCLIRunner:
     """
-    CLI & Headless API Runner for executing ComfyUI Photorealistic Image Generation workflow graphs.
+    CLI & Headless API Runner for executing ComfyUI Photorealistic Image Generation & Editing workflow graphs.
+    Поддерживает:
+    - Realism 2.0 (Qwen-Image / Qwen-VL-Edit / FluxKontext)
+    - Переключение Mode: Edit (Node 72) True/False (генерация с нуля по шуму vs редактирование 3 референсов)
+    - Раскладку изображений 1, 2, 3 по нодам LoadImage (55, 64, 65) в точном порядке
+    - Промпт-инжиниринг от Сайги и управление KSampler сидами/разрешением (до 1024x1024)
     """
 
     ASPECT_RATIO_MAP = {
@@ -59,7 +65,9 @@ class ComfyCLIRunner:
             workflow_template_path
             or os.getenv("COMFYUI_WORKFLOW_PATH")
             or (
-                PROJECT_ROOT_PHOTO_WORKFLOW
+                PROJECT_ROOT_REALISM_WORKFLOW
+                if os.path.exists(PROJECT_ROOT_REALISM_WORKFLOW)
+                else PROJECT_ROOT_PHOTO_WORKFLOW
                 if os.path.exists(PROJECT_ROOT_PHOTO_WORKFLOW)
                 else LOCAL_TEMPLATE_PATH
                 if os.path.exists(LOCAL_TEMPLATE_PATH)
@@ -105,10 +113,12 @@ class ComfyCLIRunner:
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         aspect_ratio: str = "1:1",
+        images: Optional[List[str]] = None,
+        edit_mode: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
-        Programmatically updates prompt text, negative prompt, seeds, and dimensions
-        inside the loaded ComfyUI Photo workflow graph.
+        Programmatically updates prompt text, negative prompt, seeds, dimensions,
+        edit mode boolean (Node 72), and multi-image inputs (Nodes 55, 64, 65).
         """
         chosen_seed = seed if seed is not None else random.randint(100000, 999999999999)
         width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
@@ -117,14 +127,62 @@ class ComfyCLIRunner:
             or "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
         )
 
+        # Определение режима: True = Edit (есть референсы/исходники), False = Generate (с нуля из шума)
+        is_edit = edit_mode if edit_mode is not None else bool(images and len(images) > 0)
+        
+        # Подготовка списка файлов изображений (до 3 штук)
+        img_names = []
+        if images and len(images) > 0:
+            for im in images:
+                img_names.append(os.path.basename(str(im)))
+        
+        img1 = img_names[0] if len(img_names) > 0 else "1.png"
+        img2 = img_names[1] if len(img_names) > 1 else img1
+        img3 = img_names[2] if len(img_names) > 2 else (img_names[1] if len(img_names) > 1 else img1)
+
         # Case 1: Standard ComfyUI GUI export format with "nodes" array
         if isinstance(workflow_json, dict) and "nodes" in workflow_json:
             for node in workflow_json.get("nodes", []):
+                nid = node.get("id")
                 node_type = node.get("type", "")
-                title = node.get("title", "")
+                title = str(node.get("title", ""))
 
-                # 1. Prompt Loader (JAX_EasyPromptSimple or CLIPTextEncode)
-                if node_type == "JAX_EasyPromptSimple":
+                # 1. Mode: Edit Switch (Node 72 / PrimitiveBoolean)
+                if nid == 72 or node_type == "PrimitiveBoolean" or "Mode: Edit" in title or "Edit" in title:
+                    if "widgets_values" in node:
+                        node["widgets_values"] = [is_edit]
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["value"] = is_edit
+
+                # 2. LoadImage nodes (Node 55 -> Image 1, Node 64 -> Image 2, Node 65 -> Image 3)
+                if node_type == "LoadImage":
+                    target_img = img1
+                    if nid == 55 or "Image 1" in title or "image 1" in title.lower():
+                        target_img = img1
+                    elif nid == 64 or "Image 2" in title or "image 2" in title.lower():
+                        target_img = img2
+                    elif nid == 65 or "Image 3" in title or "image 3" in title.lower():
+                        target_img = img3
+
+                    if "widgets_values" in node and len(node["widgets_values"]) > 0:
+                        node["widgets_values"][0] = target_img
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["image"] = target_img
+
+                # 3. Prompts (TextEncodeQwenImageEditPlus / CLIPTextEncode / JAX_EasyPromptSimple)
+                if node_type == "TextEncodeQwenImageEditPlus":
+                    if nid == 60 or "Positive" in title or not title:
+                        if "widgets_values" in node and len(node["widgets_values"]) > 0:
+                            node["widgets_values"][0] = photo_prompt
+                        if "widgets_values_named" in node:
+                            node["widgets_values_named"]["prompt"] = photo_prompt
+                    elif nid == 61 or "Negative" in title:
+                        if "widgets_values" in node and len(node["widgets_values"]) > 0:
+                            node["widgets_values"][0] = default_neg
+                        if "widgets_values_named" in node:
+                            node["widgets_values_named"]["prompt"] = default_neg
+
+                elif node_type == "JAX_EasyPromptSimple":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 2:
                         node["widgets_values"][0] = photo_prompt
                         node["widgets_values"][1] = default_neg
@@ -136,7 +194,7 @@ class ComfyCLIRunner:
                     if "widgets_values" in node and len(node["widgets_values"]) > 0:
                         node["widgets_values"][0] = photo_prompt
 
-                # 2. Dimensions (EmptySD3LatentImage or EmptyLatentImage)
+                # 4. Dimensions & Scaling (EmptySD3LatentImage / ImageScale / ImageScaleToTotalPixels)
                 if node_type in {"EmptySD3LatentImage", "EmptyLatentImage"}:
                     if "widgets_values" in node and len(node["widgets_values"]) >= 2:
                         node["widgets_values"][0] = width
@@ -145,21 +203,42 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["width"] = width
                         node["widgets_values_named"]["height"] = height
 
-                # 3. Seed modification (ClownsharKSampler_Beta, KSampler, etc.)
-                if node_type == "ClownsharKSampler_Beta":
+                if node_type == "ImageScale":
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 3:
+                        node["widgets_values"][1] = width
+                        node["widgets_values"][2] = height
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["width"] = width
+                        node["widgets_values_named"]["height"] = height
+
+                # 5. Sampler & Seed (KSampler, ClownsharKSampler_Beta)
+                if node_type == "KSampler":
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 1:
+                        node["widgets_values"][0] = chosen_seed
+                        if len(node["widgets_values"]) >= 7 and not is_edit:
+                            node["widgets_values"][6] = 1.0 # 100% генерация из шума
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["seed"] = chosen_seed
+                        if not is_edit:
+                            node["widgets_values_named"]["denoise"] = 1.0
+
+                elif node_type == "ClownsharKSampler_Beta":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
                         node["widgets_values"][7] = chosen_seed
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
 
-                # 4. Device optimization (CLIPLoader on GPU)
+                # 6. Device optimization
                 if node_type == "CLIPLoader":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 3 and node["widgets_values"][2] == "cpu":
                         node["widgets_values"][2] = "default"
                     if "widgets_values_named" in node and node["widgets_values_named"].get("device") == "cpu":
                         node["widgets_values_named"]["device"] = "default"
 
-            logger.info("Customized ComfyUI Photo node graph with prompt='%s...', seed=%d, size=%dx%d", photo_prompt[:40], chosen_seed, width, height)
+            logger.info(
+                "Customized ComfyUI Realism 2.0 graph: edit_mode=%s, images=[%s, %s, %s], prompt='%s...', seed=%d, size=%dx%d",
+                is_edit, img1, img2, img3, photo_prompt[:40], chosen_seed, width, height
+            )
             return workflow_json
 
         # Case 2: ComfyUI Prompt API format (dict mapping node_id -> node_obj)
@@ -247,6 +326,52 @@ class ComfyCLIRunner:
 
         return api_prompt
 
+    async def upload_attachment(self, att: Any, client: Optional[Any] = None) -> str:
+        """
+        Сохраняет и загружает изображение в ComfyUI (через /upload/image API или локальную директорию).
+        Возвращает имя файла в ComfyUI.
+        """
+        import base64
+        import io
+        import uuid
+
+        filename = f"upload_{uuid.uuid4().hex[:12]}.png"
+        raw_bytes = None
+
+        if isinstance(att, dict):
+            att = att.get("dataUrl") or att.get("url") or att.get("file_path") or att
+
+        if isinstance(att, str):
+            if att.startswith("data:image"):
+                try:
+                    _, b64data = att.split(",", 1)
+                    raw_bytes = base64.b64decode(b64data)
+                except Exception as e:
+                    logger.warning("Error decoding base64 attachment: %s", e)
+            elif os.path.exists(att):
+                filename = os.path.basename(att)
+                try:
+                    with open(att, "rb") as f:
+                        raw_bytes = f.read()
+                except Exception as e:
+                    logger.warning("Error reading attachment file: %s", e)
+            else:
+                return os.path.basename(att)
+
+        if raw_bytes and client and httpx:
+            try:
+                files = {"image": (filename, raw_bytes, "image/png")}
+                data = {"overwrite": "true", "type": "input"}
+                upload_res = await client.post(f"{self.comfyui_url}/upload/image", files=files, data=data)
+                if upload_res.is_success:
+                    up_json = upload_res.json()
+                    filename = up_json.get("name", filename)
+                    logger.info("Uploaded image to ComfyUI input: %s", filename)
+            except Exception as up_err:
+                logger.warning("Failed to upload image via ComfyUI API: %s", up_err)
+
+        return filename
+
     async def execute_workflow(
         self,
         workflow_graph: Optional[Dict[str, Any]] = None,
@@ -255,10 +380,35 @@ class ComfyCLIRunner:
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         aspect_ratio: str = "1:1",
+        attachments: Optional[List[Any]] = None,
+        edit_mode: Optional[bool] = None,
     ) -> Dict[str, Optional[str]]:
         """
         Submits photo prompt graph to ComfyUI local API / CLI runner and returns generated image file paths.
+        Поддерживает:
+        - Realism 2.0 (Qwen-Image / FluxKontext)
+        - Переключение Mode: Edit (72) True/False
+        - Раскладку вложений 1, 2, 3 в ноды LoadImage 55, 64, 65
         """
+        online = await self.is_server_online()
+        use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
+
+        uploaded_images = []
+        if online and not use_mocks and httpx is not None and attachments:
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as up_client:
+                    for att in attachments[:3]:
+                        fname = await self.upload_attachment(att, client=up_client)
+                        if fname:
+                            uploaded_images.append(fname)
+            except Exception as e:
+                logger.warning("Error preparing image uploads for ComfyUI: %s", e)
+        elif attachments:
+            for att in attachments[:3]:
+                fname = await self.upload_attachment(att, client=None)
+                if fname:
+                    uploaded_images.append(fname)
+
         graph = workflow_graph or self.load_workflow()
         customized_graph = self.customize_workflow(
             graph,
@@ -266,10 +416,9 @@ class ComfyCLIRunner:
             negative_prompt=negative_prompt,
             seed=seed,
             aspect_ratio=aspect_ratio,
+            images=uploaded_images if uploaded_images else None,
+            edit_mode=edit_mode,
         )
-
-        online = await self.is_server_online()
-        use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
 
         if online and not use_mocks and httpx is not None:
             try:

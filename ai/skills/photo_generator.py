@@ -315,17 +315,21 @@ class PhotoGeneratorSkill:
         file_path = os.path.join(self.output_dir, filename)
 
         rendered_via_comfy = False
-        # 1. Попытка рендера через ComfyUI API / CLI runner
+        # 1. Попытка рендера через ComfyUI API / CLI runner (Realism 2.0)
         try:
             from skills.comfy_cli_runner import ComfyCLIRunner
             comfy_runner = ComfyCLIRunner(output_dir=self.output_dir)
             if await comfy_runner.is_server_online():
-                print("[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — запуск фото-воркфлоу...")
+                has_images = bool(attachments and len(attachments) > 0)
+                mode_str = "Edit Mode (True) с апскейлом референсов" if has_images else "Generation Mode (False) с нуля из шума"
+                print(f"[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — запуск Realism 2.0 воркфлоу ({mode_str})...")
                 res_comfy = await comfy_runner.execute_workflow(
                     photo_prompt=prompt_data["positive_prompt"],
                     raw_topic=topic,
                     negative_prompt=prompt_data["negative_prompt"],
-                    aspect_ratio=aspect_ratio
+                    aspect_ratio=aspect_ratio,
+                    attachments=attachments,
+                    edit_mode=has_images
                 )
                 if res_comfy.get("photo_path") and os.path.exists(res_comfy["photo_path"]) and os.path.getsize(res_comfy["photo_path"]) > 100:
                     file_path = res_comfy["photo_path"]

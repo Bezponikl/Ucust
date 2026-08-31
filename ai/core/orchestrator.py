@@ -446,7 +446,7 @@ class UnifiedOrchestrator:
                 }
             }
 
-        if task_type in ["generate_image", "generate_photo"]:
+        if task_type in ["generate_image", "generate_photo", "edit_photo"]:
             from skills.photo_generator import PhotoGeneratorSkill
             
             prompt = user_data.get("prompt") or user_data.get("topic") or "Специальное предложение"
@@ -455,9 +455,12 @@ class UnifiedOrchestrator:
             style = user_data.get("style", "photorealistic")
             brand_colors = user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
             company_name = user_data.get("company_name", "UCust")
-            attachments = user_data.get("attachments")
+            attachments = user_data.get("attachments") or user_data.get("images")
             
+            # Обогащение промпта от Сайги, если запрос от пользователя короткий
             photo_skill = PhotoGeneratorSkill()
+            custom_prompt = user_data.get("custom_prompt") or user_data.get("positive_prompt")
+            
             photo_res = await photo_skill.generate_photo(
                 topic=prompt,
                 niche=niche,
@@ -465,11 +468,17 @@ class UnifiedOrchestrator:
                 brand_colors=brand_colors,
                 style=style,
                 company_name=company_name,
-                attachments=attachments
+                attachments=attachments,
+                custom_prompt=custom_prompt
             )
             photo_res["moondream_analysis"] = moondream_analysis
             
-            self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {"topic": prompt, "aspect_ratio": aspect_ratio})
+            self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {
+                "topic": prompt,
+                "aspect_ratio": aspect_ratio,
+                "edit_mode": bool(attachments and len(attachments) > 0),
+                "attachments_count": len(attachments) if attachments else 0
+            })
             return photo_res
 
         if task_type in ["analyze_competitor", "competitive_intel"]:

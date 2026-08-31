@@ -180,7 +180,7 @@ class SaigaLLMSkill:
                     f"Пусть этот день вдохновляет на новые достижения, масштабные идеи и гордость за наше общее дело!{comments_phrase}"
                 ),
                 "cta": "Поздравляйте друзей и коллег в комментариях 👇 С праздником! 🇷🇺" if has_comments else "С праздником! Желаем процветания и уверенного движения вперёд! 🇷🇺",
-                "hashtags": "#ДеньФлага #Россия #триколор #праздник #UCust",
+                "hashtags": f"#ДеньФлага #Россия #триколор #праздник #{company_name.replace(' ', '')}" if company_name.lower() in ["ucust", "ucust ai", "ucast"] else "#ДеньФлага #Россия #триколор #праздник",
                 "visual_prompt": (
                     "Heroic cinematic photograph with dramatic low-angle upward perspective (camera positioned low, shooting upward toward the sky). "
                     "In the foreground at lower right, a focused professional in elegant silhouette stands by a massive panoramic floor-to-ceiling glass window, hand gently resting on the glass, looking up in awe and contemplation. "
@@ -313,7 +313,7 @@ class SaigaLLMSkill:
                     f"Команда «{company_name}» продолжает работать для вас каждый день, чтобы ваш бизнес рос и развивался.{comments_phrase}"
                 ),
                 "cta": "Поздравляйте друг друга в комментариях 👇 С праздником! 🎊" if has_comments else "С праздником! Пишите нам — работаем для вас 24/7 🎊",
-                "hashtags": "#праздник #поздравление #UCust #событие",
+                "hashtags": f"#праздник #поздравление #{company_name.replace(' ', '')} #событие",
                 "visual_prompt": (
                     "Cinematic celebratory business photograph. "
                     "Warm modern office workspace with sunlight, professional desk with laptop, coffee cup, and small festive decorative element, warm golden tones, shallow depth of field, photorealistic commercial photography."
@@ -322,11 +322,17 @@ class SaigaLLMSkill:
 
         if holiday_match:
             full_post = f"{holiday_match['lead']}\n\n{holiday_match['body']}\n\n{holiday_match['cta']}"
+            ht = holiday_match["hashtags"]
+            if company_name.lower() not in ["ucust", "ucust ai", "ucust.ai", "ucast"]:
+                ht = re.sub(r'#ucust\w*|#ucast\w*', '', ht, flags=re.IGNORECASE).strip()
+                ht = " ".join(ht.split())
+                full_post = re.sub(r'#ucust\w*|#ucast\w*', '', full_post, flags=re.IGNORECASE).strip()
+
             return {
                 "post_text": full_post,
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
                 "visual_prompt": holiday_match["visual_prompt"],
-                "hashtags": holiday_match["hashtags"]
+                "hashtags": ht
             }
 
         # =========================================================================
@@ -673,11 +679,17 @@ class SaigaLLMSkill:
         )
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
+        ht = hashtags
+        if company_name.lower() not in ["ucust", "ucust ai", "ucust.ai", "ucast"]:
+            ht = re.sub(r'#ucust\w*|#ucast\w*', '', ht, flags=re.IGNORECASE).strip()
+            ht = " ".join(ht.split())
+            full_post = re.sub(r'#ucust\w*|#ucast\w*', '', full_post, flags=re.IGNORECASE).strip()
+
         return {
             "post_text": full_post,
             "promo_code": f"{company_name.upper().replace(' ', '')}2026",
             "visual_prompt": visual_prompt,
-            "hashtags": hashtags
+            "hashtags": ht
         }
 
     def analyze_brand_profile(self, user_data: dict, clean_posts: Optional[list] = None, visuals: Optional[list] = None) -> dict:

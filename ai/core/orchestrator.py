@@ -424,21 +424,49 @@ class UnifiedOrchestrator:
                     photo_prompt = photo_res.get("positive_prompt") or photo_prompt
                 except Exception as ex:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка генерации фото: {ex}")
-            
+
+            # 5. Очистка текста для пользователя (строго без хэштегов в теле поста)
+            clean_user_post_text = "\n".join([
+                line for line in post_text.strip().splitlines()
+                if not line.strip().startswith("#") and not line.strip().startswith("🏷️ Хэштеги")
+            ]).strip()
+
+            hashtags_str = gen_result.get("hashtags", f"#{niche.replace(' ', '_')} #бизнес #качество")
+
+            # 6. Опциональная авто-публикация
+            publish_res = None
+            if user_data.get("publish") or user_data.get("target_channel"):
+                from publishers.achievement_broadcaster import AchievementBroadcaster
+                target_ch = user_data.get("target_channel") or user_data.get("channel") or "@testaipublisher"
+                broadcaster = AchievementBroadcaster(target_channel=target_ch)
+                publish_res = await broadcaster.publish_post_async(
+                    post_text=clean_user_post_text,
+                    media_path=image_url,
+                    timings={
+                        "text_gen_seconds": t_text_duration,
+                        "photo_gen_seconds": t_photo_duration,
+                        "total_seconds": round(time.time() - t_text_start, 2)
+                    },
+                    hashtags=hashtags_str,
+                    category=user_data.get("category", "Обновление"),
+                    target_channel=target_ch
+                )
+
             self._log_trace(session_id, "SaigaCopywriter", "PostGenerated", {"topic": prompt, "format": format_type})
             return {
                 "status": "success",
-                "post_text": post_text,
+                "post_text": clean_user_post_text,
                 "promo_code": promo_code,
                 "photo_prompt": photo_prompt,
                 "image_url": image_url,
                 "photo_url": image_url,
-                "hashtags": gen_result.get("hashtags", "#UCust #маркетинг"),
+                "hashtags": hashtags_str,
                 "confidence_score": 0.96,
                 "format": format_type,
                 "tone": tone,
                 "critic_review": critic_res,
                 "moondream_analysis": moondream_analysis,
+                "publish_result": publish_res,
                 "timings": {
                     "text_gen_seconds": t_text_duration,
                     "photo_gen_seconds": t_photo_duration,
@@ -520,6 +548,27 @@ class UnifiedOrchestrator:
                 "status": "success",
                 "review": review
             }
+
+        if task_type in ["publish_post", "publish_content", "publish_showcase"]:
+            from publishers.achievement_broadcaster import AchievementBroadcaster
+            post_text = user_data.get("post_text") or user_data.get("text") or ""
+            media_path = user_data.get("media_path") or user_data.get("image_url") or user_data.get("photo_url")
+            timings = user_data.get("timings")
+            hashtags = user_data.get("hashtags")
+            category = user_data.get("category", "Обновление")
+            target_ch = user_data.get("target_channel") or user_data.get("channel") or "@testaipublisher"
+            
+            broadcaster = AchievementBroadcaster(target_channel=target_ch)
+            res = await broadcaster.publish_post_async(
+                post_text=post_text,
+                media_path=media_path,
+                timings=timings,
+                hashtags=hashtags,
+                category=category,
+                target_channel=target_ch
+            )
+            self._log_trace(session_id, "AchievementBroadcaster", "PostPublished", res)
+            return res
 
         if task_type in ["broadcast_achievement", "post_milestone"]:
             from publishers.achievement_broadcaster import AchievementBroadcaster

@@ -32,7 +32,7 @@ class MaxPublisher(BasePublisher):
         api_url: Optional[str] = None,
     ) -> None:
         self.api_token = api_token or os.getenv("MAX_API_TOKEN", os.getenv("UCUST_MAX_API_TOKEN", "mock_max_token"))
-        self.chat_id = chat_id or os.getenv("MAX_CHAT_ID", os.getenv("UCUST_MAX_CHAT_ID", "default_max_chat_1001"))
+        self.chat_id = chat_id or os.getenv("MAX_CHAT_ID", os.getenv("UCUST_MAX_CHAT_ID", "channel_UCust"))
         self.api_url = api_url or os.getenv("MAX_API_URL", "https://platform-api2.max.ru/messages")
 
     async def publish(self, text: str, media_path: Optional[str] = None) -> bool:

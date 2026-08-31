@@ -19,7 +19,7 @@ class VkPublisher(BasePublisher):
 
     def __init__(self, access_token: Optional[str] = None, group_id: Optional[str] = None) -> None:
         self.access_token = access_token or os.getenv("UCUST_VK_ACCESS_TOKEN", "mock_vk_token")
-        self.group_id = group_id or os.getenv("UCUST_VK_GROUP_ID", "default_group")
+        self.group_id = group_id or os.getenv("UCUST_VK_GROUP_ID", "ucustai")
 
     async def publish(self, text: str, media_path: Optional[str] = None) -> bool:
         """

@@ -35,7 +35,7 @@ class TelegramPublisher(BasePublisher):
         self.api_id = api_id or int(os.getenv("TELEGRAM_API_ID", os.getenv("UCUST_TELEGRAM_API_ID", "123456")))
         self.api_hash = api_hash or os.getenv("TELEGRAM_API_HASH", os.getenv("UCUST_TELEGRAM_API_HASH", "mock_api_hash"))
         self.session_name = session_name or os.getenv("TELEGRAM_SESSION_NAME", "ucust_userbot_session")
-        self.target_channel = target_channel or os.getenv("TELEGRAM_TARGET_CHANNEL", os.getenv("UCUST_TELEGRAM_CHANNEL_ID", "@ucust_official"))
+        self.target_channel = target_channel or os.getenv("TELEGRAM_TARGET_CHANNEL", os.getenv("UCUST_TELEGRAM_CHANNEL_ID", "@UcustAi"))
         self._client = None
 
     async def _get_client(self):

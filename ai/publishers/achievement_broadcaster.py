@@ -111,9 +111,9 @@ class AchievementBroadcaster:
         t_photo = timings.get("photo_gen_seconds", 196.93) if timings and timings.get("photo_gen_seconds") is not None else 196.93
         t_total = timings.get("total_seconds", 198.31) if timings and timings.get("total_seconds") is not None else round(t_text + t_photo, 2)
 
-        tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/")
-        max_url = os.getenv("UCUST_MAX_LINK", "https://max.ru/")
-        vk_url = os.getenv("UCUST_VK_LINK", "https://vk.com/")
+        tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/UcustAi")
+        max_url = os.getenv("UCUST_MAX_LINK", "https://max.ru/channel_UCust")
+        vk_url = os.getenv("UCUST_VK_LINK", "https://vk.ru/ucustai")
         ok_url = os.getenv("UCUST_OK_LINK", "https://ok.ru/")
         web_url = os.getenv("UCUST_WEB_LINK", "https://ucust.com/")
         ymaps_url = os.getenv("UCUST_YANDEX_MAPS_LINK", "https://yandex.ru/maps")
@@ -238,9 +238,9 @@ class AchievementBroadcaster:
         if platforms:
             plat_str = ", ".join(platforms)
         else:
-            tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/")
-            max_url = os.getenv("UCUST_MAX_LINK", "https://max.ru/")
-            vk_url = os.getenv("UCUST_VK_LINK", "https://vk.com")
+            tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/UcustAi")
+            max_url = os.getenv("UCUST_MAX_LINK", "https://max.ru/channel_UCust")
+            vk_url = os.getenv("UCUST_VK_LINK", "https://vk.ru/ucustai")
             ok_url = os.getenv("UCUST_OK_LINK", "https://ok.ru")
             web_url = os.getenv("UCUST_WEB_LINK", "https://ucust.com")
             ymaps_url = os.getenv("UCUST_YANDEX_MAPS_LINK", "https://yandex.ru/maps")

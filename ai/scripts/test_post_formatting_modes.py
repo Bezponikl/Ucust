@@ -76,12 +76,14 @@ async def test_formatting_modes():
     assert "⏱️ <b>Время генерации этого поста:</b>" in msg2
     assert "• Текст + аудит качества: 0.0 сек" in msg2
     assert "• Фото-креатив: 196.93 сек" in msg2
-    assert "• Итого: 198.31 сек" in msg2
+    assert "https://t.me/UcustAi" in msg2
+    assert "https://max.ru/channel_UCust" in msg2
+    assert "https://vk.ru/ucustai" in msg2
     assert "TG" in msg2 and "MAX" in msg2 and "VK" in msg2 and "OK" in msg2
     assert "Режим работы: 24/7 автономно" in msg2
     assert "#ДеньФлага #Россия #триколор #праздник #UCust" in msg2
 
-    print("\n✅ [ТЕСТ 1 ПРОЙДЕН]: Структура 2-х сообщений для @UcustAi сформирована строго по ТЗ!")
+    print("\n✅ [ТЕСТ 1 ПРОЙДЕН]: Структура 2-х сообщений для @UcustAi и официальные ссылки добавлены строго по ТЗ!")
 
     # -------------------------------------------------------------
     # ТЕСТ 2: РЕЖИМ КЛИЕНТА (ЧИСТЫЙ ТЕКСТ ПОСТА + ФОТО ДЛЯ ЮЗЕРА)

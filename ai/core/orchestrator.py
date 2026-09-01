@@ -109,6 +109,16 @@ class UnifiedOrchestrator:
         self.redis_cache = redis_cache or RedisCacheManager()
         self.rag = CleanRAGPipeline(min_confidence_threshold=0.55)
 
+        # 1. Автоматический контроль хранения файлов (TTL 30 дней)
+        try:
+            from storage.media_retention import MediaRetentionManager
+            cleaner = MediaRetentionManager()
+            retention_days = int(os.getenv("MEDIA_RETENTION_DAYS", "30"))
+            auto_archive = os.getenv("MEDIA_AUTO_ARCHIVE", "true").lower() == "true"
+            cleaner.cleanup_expired_files(retention_days=retention_days, archive_generations=auto_archive)
+        except Exception:
+            pass
+
     def _hash_payload(self, payload: Any) -> str:
         payload_str = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(payload_str.encode('utf-8')).hexdigest()
@@ -610,6 +620,36 @@ class UnifiedOrchestrator:
                     t_photo_duration = round(time.time() - t_photo_start, 2)
                     image_url = photo_res.get("image_url")
                     photo_prompt = photo_res.get("positive_prompt") or photo_prompt
+
+                    # Сохранение финального промпта фото в RAG (категория photo_generation_history)
+                    if photo_prompt:
+                        try:
+                            import os
+                            import uuid
+                            from rag.models import Document
+                            photo_id = os.path.splitext(os.path.basename(photo_res.get("file_path", "")))[0] if photo_res.get("file_path") else str(uuid.uuid4())[:8]
+                            prompt_doc = Document(
+                                doc_id=f"visual_prompt_{photo_id}",
+                                text=(
+                                    f"Финальный промпт генерации фото для компании {company_name} (Ниша: {niche}):\n"
+                                    f"Тема: {prompt}\n"
+                                    f"Положительный промпт ComfyUI: {photo_prompt}\n"
+                                    f"Отрицательный промпт ComfyUI: {photo_res.get('negative_prompt', '')}\n"
+                                    f"Цвета бренда: {user_data.get('brand_colors', [])}\n"
+                                    f"Соотношение сторон: {aspect_ratio}\n"
+                                    f"Путь к файлу: {photo_res.get('file_path', '')}"
+                                ),
+                                metadata={
+                                    "category": "photo_generation_history",
+                                    "company_name": company_name,
+                                    "user_id": user_data.get("user_id"),
+                                    "file_path": photo_res.get("file_path", "")
+                                }
+                            )
+                            await self.rag.ingest_documents_async([prompt_doc])
+                            print(f"[UnifiedOrchestrator] 📚 Финальный фото-промпт успешно сохранен в RAG-память бренда.")
+                        except Exception as rag_p_err:
+                            print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения промпта фото в RAG: {rag_p_err}")
                 except Exception as ex:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка генерации фото: {ex}")
 

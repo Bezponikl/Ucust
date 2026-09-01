@@ -58,8 +58,8 @@ class CleanHTMLParser(HTMLParser):
             if href:
                 self.links.append(href)
         elif self._current_tag == 'img':
-            src = attr_dict.get('src', '').strip()
-            if src:
+            src = attr_dict.get('src', '').strip() or attr_dict.get('data-src', '').strip() or attr_dict.get('data-original', '').strip()
+            if src and not src.startswith('data:image/svg') and not src.endswith('.svg') and not src.endswith('.ico'):
                 self.images.append(src)
 
     def handle_endtag(self, tag):
@@ -166,7 +166,21 @@ class WebsiteCollector:
         if phones or emails:
             summary_dossier += f'Контакты: Телефоны={phones[:2]}, Email={emails[:2]}\n'
 
-        print(f"[WebsiteCollector] Website parsed successfully: {title}")
+        # Фильтрация и формирование абсолютных ссылок на топ 6-9 картинок
+        extracted_images = []
+        if parser.og_image:
+            extracted_images.append(urljoin(final_url, parser.og_image))
+        for img_src in parser.images:
+            abs_img = urljoin(final_url, img_src)
+            if abs_img not in extracted_images and not any(x in abs_img.lower() for x in ['.svg', '.ico', 'pixel', 'tracker', 'badge', '1x1']):
+                extracted_images.append(abs_img)
+            if len(extracted_images) >= 9:
+                break
+
+        # Скачивание превью картинок для локального анализа Визуальным Директором
+        cached_images = await self.download_and_cache_images_async(extracted_images)
+
+        print(f"[WebsiteCollector] Website parsed successfully: {title} (Images extracted: {len(extracted_images)})")
         return {
             'status': 'success',
             'source': 'website',
@@ -176,12 +190,56 @@ class WebsiteCollector:
             'meta_keywords': parser.meta_keywords,
             'og_image': urljoin(final_url, parser.og_image) if parser.og_image else None,
             'theme_color': parser.theme_color,
+            'images': extracted_images,
+            'cached_images': cached_images,
             'headings': headings_top,
             'key_texts': key_paragraphs,
             'contacts': {'phones': phones[:3], 'emails': emails[:3]},
             'social_links': social_profiles,
             'structured_dossier': summary_dossier
         }
+
+    async def download_and_cache_images_async(self, image_urls: List[str], max_images: int = 9) -> List[str]:
+        """
+        Асинхронно скачивает превью картинок во временную локальную папку для анализа Визуальным Директором и Moondream.
+        """
+        if not image_urls:
+            return []
+
+        import os
+        import hashlib
+        import httpx
+
+        cache_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "output", "temp_cache"))
+        os.makedirs(cache_dir, exist_ok=True)
+
+        cached_files = []
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+            for url in image_urls[:max_images]:
+                try:
+                    url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()[:10]
+                    ext = ".jpg"
+                    if ".png" in url.lower():
+                        ext = ".png"
+                    elif ".webp" in url.lower():
+                        ext = ".webp"
+                    
+                    file_path = os.path.join(cache_dir, f"site_img_{url_hash}{ext}")
+                    if os.path.exists(file_path) and os.path.getsize(file_path) > 1024:
+                        cached_files.append(file_path)
+                        continue
+
+                    resp = await client.get(url, headers=self.HEADERS)
+                    if resp.status_code == 200 and len(resp.content) > 1024:
+                        with open(file_path, "wb") as f:
+                            f.write(resp.content)
+                        cached_files.append(file_path)
+                except Exception as ex:
+                    logger.debug(f"[WebsiteCollector] Skip image download {url}: {ex}")
+
+        if cached_files:
+            print(f"[WebsiteCollector] 📸 Успешно скачано и сохранено {len(cached_files)} фото для Визуального Директора.")
+        return cached_files
 
     async def search_websites_async(self, query: str, limit: int = 3) -> List[Dict[str, Any]]:
         """

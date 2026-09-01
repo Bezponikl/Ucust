@@ -215,12 +215,38 @@ class UnifiedOrchestrator:
                 "has_website_data": bool(website_data)
             })
             
-            # Сайга и Аналитик формируют бренд-профиль с учетом веб-аналитики и Moondream
+            # 1. Сайга и Аналитик формируют бренд-профиль с учетом веб-аналитики и Moondream
             saiga = SaigaLLMSkill()
             clean_posts_input = [website_data["structured_dossier"]] if website_data and website_data.get("structured_dossier") else None
             brand_profile = saiga.analyze_brand_profile(user_data, clean_posts=clean_posts_input)
-            
-            # Генерация глубокой контент-стратегии и портрета покупателя (Persona & Strategy Engine)
+
+            # 2. Подключение Визуального Директора для анализа сетки ленты (Grid DNA & Brandbook)
+            from skills.advanced_visual_director import AdvancedVisualDirector
+            all_collected_images = []
+            if website_data and website_data.get("cached_images"):
+                all_collected_images.extend(website_data["cached_images"])
+            elif website_data and website_data.get("images"):
+                all_collected_images.extend(website_data["images"])
+            if attachments:
+                all_collected_images.extend(attachments)
+
+            vis_director = AdvancedVisualDirector()
+            visual_grid_dna = vis_director.analyze_visual_grid(
+                images=all_collected_images,
+                niche=user_data.get("niche") or activity
+            )
+            brand_profile["visual_grid_dna"] = visual_grid_dna
+            brand_profile["brand_colors"] = visual_grid_dna.get("brand_hex_palette", [])
+            brand_profile["dominant_color"] = visual_grid_dna.get("dominant_color")
+            brand_profile["next_visual_recommendation"] = visual_grid_dna.get("next_post_recommendation")
+
+            self._log_trace(session_id, "VisualDirector", "GridDNAAnalyzed", {
+                "palette": visual_grid_dna.get("brand_hex_palette"),
+                "images_analyzed": visual_grid_dna.get("analyzed_images_count"),
+                "recommended_slot": visual_grid_dna.get("next_post_recommendation", {}).get("target_slot")
+            })
+
+            # 3. Генерация глубокой контент-стратегии и портрета покупателя (Persona & Strategy Engine)
             from skills.content_strategy_engine import ContentStrategyEngine
             strat_engine = ContentStrategyEngine()
             strategy_data = strat_engine.generate_strategy(
@@ -238,11 +264,12 @@ class UnifiedOrchestrator:
                     "title": website_data.get("title"),
                     "description": website_data.get("description"),
                     "headings": website_data.get("headings", []),
+                    "images": website_data.get("images", []),
                     "contacts": website_data.get("contacts", {}),
                     "social_links": website_data.get("social_links", {})
                 }
             if moondream_analysis and moondream_analysis.get("colors"):
-                brand_profile["brand_colors"] = moondream_analysis.get("colors")
+                brand_profile["moondream_colors"] = moondream_analysis.get("colors")
                 brand_profile["visual_summary"] = moondream_analysis.get("summary")
             self._log_trace(session_id, "Agent_Saiga", "Synthesized_Profile", brand_profile)
             self._log_trace(session_id, "Agent_ContentStrategist", "StrategySynthesized", strategy_data)

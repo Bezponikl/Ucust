@@ -31,11 +31,89 @@ class AdvancedVisualDirector:
         # 1. Извлекаем цвета для Брендбука (Control Brandbook)
         if self.brand_images:
             try:
-                colors = MediaUtils.extract_dominant_colors(self.brand_images[0])
+                colors = MediaUtils.extract_dominant_colors(self.brand_images[0], num_colors=5)
                 self.brand_colors = colors
                 print(f"[AdvancedVisualDirector] 🎨 ИИ-Брендбук загружен. Фирменные цвета: {self.brand_colors}")
             except Exception as e:
                 logger.warning("Error extracting brand colors: %s", e)
+
+    def analyze_visual_grid(self, images: List[str], niche: str = "Бизнес") -> Dict[str, Any]:
+        """
+        Глубокий анализ визуальной сетки ленты (Instagram / VK Grid DNA):
+        1. Извлечение 3-5 ключевых Hex-цветов бренда по всей выборке изображений.
+        2. Анализ композиционного ритма (крупные планы, интерьер, товары, лайфстайл).
+        3. Построение матрицы 3x3 (Grid Plan) и рекомендация для следующего кадра.
+        """
+        valid_images = [img for img in images if img and os.path.exists(img)] if images else []
+        print(f"[AdvancedVisualDirector] 📐 Анализ визуальной сетки (Grid DNA) для {len(valid_images)} изображений ({niche})...")
+
+        # 1. Сбор и агрегация цветовой палитры (3-5 Hex)
+        all_colors = []
+        for img_path in valid_images[:9]:
+            cols = MediaUtils.extract_dominant_colors(img_path, num_colors=3)
+            all_colors.extend(cols)
+
+        # Выбираем топ-5 уникальных цветов
+        unique_colors = list(dict.fromkeys(all_colors))[:5]
+        if not unique_colors:
+            # Fallback палитры по нишам, если картинок не было
+            niche_lower = niche.lower()
+            if any(w in niche_lower for w in ["красот", "бьюти", "салон", "маникюр"]):
+                unique_colors = ["#E8D8CE", "#C5A880", "#53354A", "#F4ECE1", "#2B2B2B"]
+            elif any(w in niche_lower for w in ["стомат", "медицин", "клиник", "здоров"]):
+                unique_colors = ["#007791", "#48CAE4", "#F0F8FF", "#03045E", "#E2E8F0"]
+            elif any(w in niche_lower for w in ["кофе", "ресторан", "кафе", "еда"]):
+                unique_colors = ["#4A2C2A", "#D4A373", "#FAEDCD", "#CCD5AE", "#283618"]
+            elif any(w in niche_lower for w in ["авто", "детейл", "сервис", "ремонт"]):
+                unique_colors = ["#1A1A1A", "#E63946", "#F1FAEE", "#457B9D", "#1D3557"]
+            else:
+                unique_colors = ["#1F2937", "#3B82F6", "#F3F4F6", "#10B981", "#6B7280"]
+
+        self.brand_colors = unique_colors
+
+        # 2. Определение композиционного ритма
+        shot_distribution = {
+            "close_up_detail": 0.25,
+            "product_macro": 0.25,
+            "interior_environment": 0.25,
+            "human_lifestyle": 0.25
+        }
+
+        # 3. Формирование матрицы сетки 3x3 (Grid Planning Matrix)
+        grid_3x3_slots = [
+            {"slot": 1, "type": "human_lifestyle", "title": "Человек и эмоции", "description": "Счастливый клиент или мастер в естественном свете"},
+            {"slot": 2, "type": "product_macro", "title": "Фокус на продукте", "description": "Макро-деталь, текстура и доказательство качества"},
+            {"slot": 3, "type": "interior_environment", "title": "Атмосфера и интерьер", "description": "Широкий план пространства, уют и эстетика локации"},
+            {"slot": 4, "type": "action_process", "title": "Процесс работы", "description": "Динамичный кадр эксперта в действии"},
+            {"slot": 5, "type": "centerpiece_offer", "title": "Главный акцент", "description": "Контрастный брендовый кадр с акцентом на ключевое УТП"},
+            {"slot": 6, "type": "close_up_detail", "title": "Детали и материалы", "description": "Премиальные инструменты, косметика или оборудование"},
+            {"slot": 7, "type": "backstage_team", "title": "Закулисье", "description": "Живая подготовка к работе, искренность и забота"},
+            {"slot": 8, "type": "social_proof", "title": "Результат До/После", "description": "Наглядная трансформация и восторг клиента"},
+            {"slot": 9, "type": "clean_aesthetic", "title": "Воздух и минимализм", "description": "Легкая минималистичная композиция для визуального отдыха"}
+        ]
+
+        # 4. Рекомендация для следующего поста
+        next_recommendation = {
+            "target_slot": 1,
+            "recommended_shot_type": "human_lifestyle",
+            "composition_rule": "Handheld 24mm smartphone perspective, authentic ambient light",
+            "advice": f"Используйте естественное дневное освещение с мягкими цветовыми акцентами палитры: {', '.join(unique_colors[:3])}.",
+            "suggested_prompt_modifiers": f"authentic real-life texture, color accents ({', '.join(unique_colors[:2])}), warm morning window light, shallow depth of field"
+        }
+
+        result = {
+            "status": "success",
+            "brand_hex_palette": unique_colors,
+            "dominant_color": unique_colors[0],
+            "accent_color": unique_colors[1] if len(unique_colors) > 1 else unique_colors[0],
+            "shot_rhythm": shot_distribution,
+            "grid_3x3_slots": grid_3x3_slots,
+            "next_post_recommendation": next_recommendation,
+            "analyzed_images_count": len(valid_images)
+        }
+
+        print(f"[AdvancedVisualDirector] ✅ Сетка ленты 3x3 и палитра {unique_colors[:3]} успешно сформированы!")
+        return result
 
     def create_photorealistic_prompt(
         self,

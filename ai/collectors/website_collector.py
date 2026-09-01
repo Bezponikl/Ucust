@@ -25,9 +25,10 @@ class CleanHTMLParser(HTMLParser):
         self.paragraphs = []
         self.links = []
         self.images = []
+        self.image_items = []
         self._current_tag = ''
         self._current_text = []
-        self._skip_tags = {'script', 'style', 'svg', 'noscript', 'header', 'footer', 'nav'}
+        self._skip_tags = {'script', 'style', 'svg', 'noscript', 'header', 'footer', 'nav', 'aside'}
         self._in_skip = False
 
     def handle_starttag(self, tag, attrs):
@@ -58,9 +59,19 @@ class CleanHTMLParser(HTMLParser):
             if href:
                 self.links.append(href)
         elif self._current_tag == 'img':
-            src = attr_dict.get('src', '').strip() or attr_dict.get('data-src', '').strip() or attr_dict.get('data-original', '').strip()
+            src = attr_dict.get('src', '').strip() or attr_dict.get('data-src', '').strip() or attr_dict.get('data-original', '').strip() or attr_dict.get('data-lazy', '').strip()
             if src and not src.startswith('data:image/svg') and not src.endswith('.svg') and not src.endswith('.ico'):
+                alt = attr_dict.get('alt', '').strip()
+                cls = attr_dict.get('class', '').strip()
+                img_id = attr_dict.get('id', '').strip()
                 self.images.append(src)
+                self.image_items.append({
+                    'src': src,
+                    'alt': alt,
+                    'class': cls,
+                    'id': img_id,
+                    'in_skip_container': self._in_skip
+                })
 
     def handle_endtag(self, tag):
         tag_lower = tag.lower()
@@ -166,21 +177,54 @@ class WebsiteCollector:
         if phones or emails:
             summary_dossier += f'Контакты: Телефоны={phones[:2]}, Email={emails[:2]}\n'
 
-        # Фильтрация и формирование абсолютных ссылок на топ 6-9 картинок
-        extracted_images = []
-        if parser.og_image:
-            extracted_images.append(urljoin(final_url, parser.og_image))
-        for img_src in parser.images:
+        # Фильтрация и формирование качественных ссылок только на контент и товары (без лого и титульных баннеров)
+        LOGO_BANNER_EXCLUSIONS = {
+            'logo', 'logotype', 'brand', 'header', 'hero', 'banner', 'top-banner', 'site-banner',
+            'title-bg', 'favicon', 'icon', 'avatar', 'footer', 'badge', 'button', 'btn', 'arrow',
+            'separator', 'divider', 'placeholder', 'blank', 'transparent', '1x1', 'pixel', 'advert',
+            'tracker', 'vk-share', 'tg-share', 'social', 'widget', 'author', 'partner', 'sponsor'
+        }
+        PRODUCT_CONTENT_KEYWORDS = {
+            'product', 'item', 'catalog', 'service', 'goods', 'portfolio', 'gallery', 'work',
+            'project', 'case', 'photo', 'content', 'card', 'article', 'post', 'feed', 'real',
+            'preview', 'detail', 'sample', 'master', 'car', 'dish', 'room', 'interior', 'doctor'
+        }
+
+        priority_images = []
+        regular_images = []
+        seen_img_urls = set()
+
+        for item in getattr(parser, 'image_items', []):
+            if item.get('in_skip_container'):
+                continue
+            
+            img_src = item.get('src', '')
             abs_img = urljoin(final_url, img_src)
-            if abs_img not in extracted_images and not any(x in abs_img.lower() for x in ['.svg', '.ico', 'pixel', 'tracker', 'badge', '1x1']):
-                extracted_images.append(abs_img)
-            if len(extracted_images) >= 9:
-                break
+            if abs_img in seen_img_urls:
+                continue
 
-        # Скачивание превью картинок для локального анализа Визуальным Директором
-        cached_images = await self.download_and_cache_images_async(extracted_images)
+            combined_str = f"{abs_img} {item.get('alt', '')} {item.get('class', '')} {item.get('id', '')}".lower()
 
-        print(f"[WebsiteCollector] Website parsed successfully: {title} (Images extracted: {len(extracted_images)})")
+            # Строгий отсев логотипов, шапок, кнопок и иконок
+            if any(exc in combined_str for exc in LOGO_BANNER_EXCLUSIONS):
+                continue
+            if any(ext in abs_img.lower() for ext in ['.svg', '.ico', '.gif', 'pixel', 'tracker', '1x1']):
+                continue
+
+            seen_img_urls.add(abs_img)
+            # Приоритет товарам, каталогу и портфолио
+            if any(kw in combined_str for kw in PRODUCT_CONTENT_KEYWORDS):
+                priority_images.append(abs_img)
+            else:
+                regular_images.append(abs_img)
+
+        # Объединяем: сначала явные товары/контент, затем остальные контентные фото
+        extracted_images = (priority_images + regular_images)[:15]
+
+        # Скачивание и валидация превью картинок (проверка разрешения и пропорций кадра)
+        cached_images = await self.download_and_cache_images_async(extracted_images, max_images=9)
+
+        print(f"[WebsiteCollector] Website parsed successfully: {title} (Content/Product images extracted: {len(cached_images)})")
         return {
             'status': 'success',
             'source': 'website',
@@ -188,9 +232,9 @@ class WebsiteCollector:
             'title': title,
             'description': description,
             'meta_keywords': parser.meta_keywords,
-            'og_image': urljoin(final_url, parser.og_image) if parser.og_image else None,
+            'og_image': None,
             'theme_color': parser.theme_color,
-            'images': extracted_images,
+            'images': extracted_images[:9],
             'cached_images': cached_images,
             'headings': headings_top,
             'key_texts': key_paragraphs,
@@ -201,7 +245,7 @@ class WebsiteCollector:
 
     async def download_and_cache_images_async(self, image_urls: List[str], max_images: int = 9) -> List[str]:
         """
-        Асинхронно скачивает превью картинок во временную локальную папку для анализа Визуальным Директором и Moondream.
+        Асинхронно скачивает и валидирует превью картинок (отсекает мелкие иконки и вытянутые баннеры).
         """
         if not image_urls:
             return []
@@ -209,13 +253,16 @@ class WebsiteCollector:
         import os
         import hashlib
         import httpx
+        from PIL import Image
 
         cache_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "output", "temp_cache"))
         os.makedirs(cache_dir, exist_ok=True)
 
         cached_files = []
         async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
-            for url in image_urls[:max_images]:
+            for url in image_urls:
+                if len(cached_files) >= max_images:
+                    break
                 try:
                     url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()[:10]
                     ext = ".jpg"
@@ -225,15 +272,33 @@ class WebsiteCollector:
                         ext = ".webp"
                     
                     file_path = os.path.join(cache_dir, f"site_img_{url_hash}{ext}")
-                    if os.path.exists(file_path) and os.path.getsize(file_path) > 1024:
-                        cached_files.append(file_path)
+                    
+                    if not (os.path.exists(file_path) and os.path.getsize(file_path) > 2048):
+                        resp = await client.get(url, headers=self.HEADERS)
+                        if resp.status_code == 200 and len(resp.content) > 2048:
+                            with open(file_path, "wb") as f:
+                                f.write(resp.content)
+                        else:
+                            continue
+
+                    # Проверка размеров и пропорций (исключение иконок < 180px и растянутых титульных полос)
+                    try:
+                        with Image.open(file_path) as pil_img:
+                            w, h = pil_img.size
+                            if w < 180 or h < 180:
+                                os.remove(file_path)
+                                continue
+                            ratio = w / float(h)
+                            if ratio > 2.9 or ratio < 0.34:
+                                # Тонкий горизонтальный баннер или полоса-разделитель
+                                os.remove(file_path)
+                                continue
+                    except Exception:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
                         continue
 
-                    resp = await client.get(url, headers=self.HEADERS)
-                    if resp.status_code == 200 and len(resp.content) > 1024:
-                        with open(file_path, "wb") as f:
-                            f.write(resp.content)
-                        cached_files.append(file_path)
+                    cached_files.append(file_path)
                 except Exception as ex:
                     logger.debug(f"[WebsiteCollector] Skip image download {url}: {ex}")
 

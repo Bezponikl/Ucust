@@ -4,6 +4,13 @@ Clean RAG Pipeline Facade
 Объединяет: Sanitization -> Semantic Chunking -> Hybrid Search -> Reranking -> Anti-Hallucination Guard.
 """
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 import asyncio
 from typing import List, Dict, Any, Optional
 from rag.models import Document, Chunk, RAGContext

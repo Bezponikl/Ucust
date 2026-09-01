@@ -92,14 +92,15 @@ class SaigaLLMSkill:
         audience_questions: Optional[List[str]] = None,
         comments_enabled: bool = False,
         brand_profile: Optional[dict] = None,
+        rag_context: Optional[str] = None,
         user_notes: Optional[str] = None,
         tone_override: Optional[str] = None,
         **kwargs
     ) -> dict:
         """
         Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,
-        нишу и компанию, обогащая текст деталями визуального анализа от Moondream и
-        анализом комментариев/возражений целевой аудитории.
+        нишу и компанию, обогащая текст деталями визуального анализа от Moondream,
+        анализом комментариев/возражений и точными фактами из RAG базы знаний.
         """
         if tone_override:
             tone = tone_override
@@ -110,6 +111,8 @@ class SaigaLLMSkill:
                 tone = brand_profile["tone_of_voice"]
 
         print(f"[SaigaSkill] ✍️ Генерация SMM-поста: Компания='{company_name}', Ниша='{niche}', Тема='{topic}', Тон='{tone}'...")
+        if rag_context:
+            print(f"[SaigaSkill] 📚 Включен контекст базы знаний RAG (факты, боли, УТП): {len(rag_context)} симв.")
         if visual_context:
             print(f"[SaigaSkill] 👁️ Включен визуальный контекст от Moondream: {visual_context[:100]}...")
         if comments_context:
@@ -119,10 +122,12 @@ class SaigaLLMSkill:
         if self._is_loaded and self._llm:
             try:
                 comments_info = f"\nЧастые вопросы и комментарии аудитории: {', '.join(comments_context)}" if comments_context else ""
+                rag_info = f"\nФАКТЫ ИЗ БАЗЫ ЗНАНИЙ БРЕНДА (RAG):\n{rag_context}\n(Строго опирайся на эти факты, цены, боли и УТП)" if rag_context else ""
                 system_instruction = (
                     f"Ты — опытный главный SMM-редактор и копирайтер компании «{company_name}» (Ниша: {niche}, Город: {city}). "
                     f"Напиши публикацию для социальных сетей на тему: «{topic}».\n"
                     f"Тон общения: {tone}.\n"
+                    f"{rag_info}\n"
                     f"{visual_context or ''}{comments_info}\n"
                     f"Требования: живой русский язык, структурированные абзацы, "
                     f"без штампов и клише, обязательный призыв к диалогу и комментариям в конце."

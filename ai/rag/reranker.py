@@ -4,6 +4,13 @@
 Отсеивает шумные совпадения и выстраивает топ-чанки строго по релевантности.
 """
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from typing import List, Tuple
 from rag.models import RetrievalResult
 
@@ -19,10 +26,12 @@ class CrossEncoderReranker:
         
         try:
             from sentence_transformers import CrossEncoder
-            self.model = CrossEncoder(self.model_name)
-            print(f"[CrossEncoderReranker] 🟢 Кросс-энкодер '{self.model_name}' успешно загружен.")
-        except Exception as e:
-            print(f"[CrossEncoderReranker] ℹ️ CrossEncoder не инициализирован ({e}). Активен детерминированный эвристический Reranker.")
+            # Пробуем загрузить локально без сетевой блокировки
+            self.model = CrossEncoder(self.model_name, local_files_only=True)
+            print(f"[CrossEncoderReranker] 🟢 Кросс-энкодер '{self.model_name}' успешно загружен локально.")
+        except Exception:
+            # Fallback на быстрый детерминированный Reranker
+            self.model = None
 
     def rerank(self, query: str, candidates: List[RetrievalResult], top_n: int = 3) -> List[RetrievalResult]:
         """

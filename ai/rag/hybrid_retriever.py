@@ -4,6 +4,13 @@ Dense Search (Векторный поиск по эмбеддингам) + Spars
 Объединение выдачи через Reciprocal Rank Fusion (RRF).
 """
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 import math
 import re
 from typing import List, Dict, Any, Optional, Tuple
@@ -21,14 +28,14 @@ class LocalDenseStore:
         self.embeddings: List[List[float]] = []
         self.model = None
         
-        # Попытка инициализации локальной sentence-transformers модели
+        # Попытка инициализации локальной sentence-transformers модели без блокировки сети
         try:
             from sentence_transformers import SentenceTransformer
-            # Используем легкую мультиязычную модель или bge
-            self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-            print("[LocalDenseStore] 🟢 SentenceTransformer успешно загружен.")
-        except Exception as e:
-            print(f"[LocalDenseStore] ℹ️ SentenceTransformer не загружен ({e}). Используется локальный TF-IDF / Hashing Vectorizer.")
+            self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2", local_files_only=True)
+            print("[LocalDenseStore] 🟢 SentenceTransformer успешно загружен локально.")
+        except Exception:
+            # Fallback на быстрый L2-нормализованный Hashing Vectorizer
+            self.model = None
 
     def _encode_text(self, text: str) -> List[float]:
         """Генерирует вектор для текста."""

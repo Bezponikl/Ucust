@@ -102,10 +102,12 @@ class UnifiedOrchestrator:
     def __init__(self, db_session=None, vector_store=None, redis_cache=None):
         from storage.pgvector_store import PGVectorStore
         from core.redis_cache import RedisCacheManager
+        from rag.pipeline import CleanRAGPipeline
         
         self.db = db_session
         self.vector_store = vector_store or (PGVectorStore(self.db) if self.db else None)
         self.redis_cache = redis_cache or RedisCacheManager()
+        self.rag = CleanRAGPipeline(min_confidence_threshold=0.55)
 
     def _hash_payload(self, payload: Any) -> str:
         payload_str = json.dumps(payload, sort_keys=True, ensure_ascii=False)
@@ -274,21 +276,88 @@ class UnifiedOrchestrator:
             self._log_trace(session_id, "Agent_Saiga", "Synthesized_Profile", brand_profile)
             self._log_trace(session_id, "Agent_ContentStrategist", "StrategySynthesized", strategy_data)
             
-            # Сохранение в БД
+            # 4. Векторизация и индексация в RAG (6 семантических категорий фактов)
+            from rag.models import Document
+            rag_docs = []
+            pains_list = strategy_data.get("buyer_persona", {}).get("primary_pains", [])
+            triggers_list = strategy_data.get("buyer_persona", {}).get("buying_triggers", [])
+            swot_data = brand_profile.get("swot", {})
+            services_list = brand_profile.get("services", [])
+
+            # Doc 1: Brand DNA & Positioning
+            rag_docs.append(Document(
+                doc_id=f"brand_dna_{company_name}",
+                text=f"Компания: {company_name}\nНиша: {brand_profile.get('field', activity)}\nГород: {city}\nПозиционирование (УТП): {brand_profile.get('positioning', '')}\nTone of Voice: {brand_profile.get('tone', [])}\nЦелевая аудитория: {brand_profile.get('market', {}).get('segment', '')}",
+                metadata={"category": "brand_dna", "company_name": company_name, "user_id": user_data.get("user_id")}
+            ))
+
+            # Doc 2: Pain Points & Buying Triggers
+            rag_docs.append(Document(
+                doc_id=f"pains_{company_name}",
+                text=f"Боли, страхи и возражения клиентов компании {company_name}:\n- " + "\n- ".join(pains_list) + "\nТриггеры покупки и доверия:\n- " + "\n- ".join(triggers_list),
+                metadata={"category": "pain_points", "company_name": company_name}
+            ))
+
+            # Doc 3: Competitor Dossier & Advantages
+            rag_docs.append(Document(
+                doc_id=f"competitors_{company_name}",
+                text=f"Конкурентный анализ и отстройка компании {company_name}:\nСильные стороны: {swot_data.get('strengths', [])}\nВозможности рынка: {swot_data.get('opportunities', [])}\nГлавное отличие: {brand_profile.get('positioning', '')}",
+                metadata={"category": "competitors", "company_name": company_name}
+            ))
+
+            # Doc 4: Visual Grid DNA & Palette
+            if visual_grid_dna:
+                rag_docs.append(Document(
+                    doc_id=f"visual_grid_{company_name}",
+                    text=f"Визуальный брендбук и сетка ленты 3x3 для {company_name}:\nФирменная палитра (Hex): {visual_grid_dna.get('brand_hex_palette', [])}\nДоминирующий цвет: {visual_grid_dna.get('dominant_color')}\nРекомендация по кадру: {visual_grid_dna.get('next_post_recommendation', {}).get('advice')}",
+                    metadata={"category": "visual_grid_dna", "company_name": company_name}
+                ))
+
+            # Doc 5: Services & Pricing Offers
+            if services_list:
+                rag_docs.append(Document(
+                    doc_id=f"services_{company_name}",
+                    text=f"Услуги и ключевые предложения компании {company_name}:\n- " + "\n- ".join([str(s) for s in services_list]),
+                    metadata={"category": "services", "company_name": company_name}
+                ))
+
+            # Doc 6: Website Knowledge Base
+            if website_data and website_data.get("structured_dossier"):
+                rag_docs.append(Document(
+                    doc_id=f"website_{company_name}",
+                    text=f"Фактическая информация с официального сайта {company_name}:\n{website_data['structured_dossier']}",
+                    metadata={"category": "website_knowledge", "company_name": company_name}
+                ))
+
+            try:
+                indexed_count = await self.rag.ingest_documents_async(rag_docs)
+                print(f"[UnifiedOrchestrator] 📚 Векторная база знаний RAG успешно обогащена: {indexed_count} чанков для '{company_name}'.")
+                self._log_trace(session_id, "CleanRAGPipeline", "KnowledgeIndexed", {"indexed_chunks": indexed_count, "company": company_name})
+            except Exception as rag_err:
+                print(f"[UnifiedOrchestrator] ⚠️ Ошибка индексации RAG: {rag_err}")
+
+            # 5. Сохранение в реляционную БД (SQL)
             profile_id = None
             if self.db:
                 try:
                     profile = UserProfile(
                         external_user_id=user_data.get("user_id", "default_user"),
                         user_id=user_data.get("user_id", "default_user"),
+                        company_name=company_name,
                         niche=brand_profile.get("field", activity),
                         city=brand_profile.get("market", {}).get("geography", city),
                         target_audience=brand_profile.get("market", {}).get("segment", ""),
-                        step1={"voice_and_tone": brand_profile.get("tone", []), "positioning": brand_profile.get("positioning", "")},
+                        step1={"voice_and_tone": brand_profile.get("tone", []), "positioning": brand_profile.get("positioning", ""), "brand_colors": brand_profile.get("brand_colors", [])},
                         step2=brand_profile.get("market", {}),
                         step3=brand_profile.get("swot", {}),
                         step4={"services": brand_profile.get("services", [])},
                         step5={"goals": brand_profile.get("goals", [])},
+                        visual_grid_dna=visual_grid_dna,
+                        brand_dossier={
+                            "website_dossier": website_data.get("structured_dossier") if website_data else None,
+                            "strategy": strategy_data,
+                            "pains": pains_list
+                        },
                         social_links={"link": raw_social_input, "socials": user_data.get("socials", [])}
                     )
                     self.db.add(profile)
@@ -296,9 +365,9 @@ class UnifiedOrchestrator:
                     self.db.refresh(profile)
                     profile_id = profile.id
                     self._log_trace(session_id, "ChiefOrchestrator", "ProfileSaved", {"profile_id": profile_id})
-                    print(f"[UnifiedOrchestrator] ✅ Профиль #{profile_id} ('{company_name}') успешно сохранен в БД!")
+                    print(f"[UnifiedOrchestrator] ✅ Профиль #{profile_id} ('{company_name}') успешно сохранен в SQL БД!")
                 except Exception as e:
-                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения профиля в БД: {e}")
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения профиля в SQL БД: {e}")
             
             return {
                 "status": "success",
@@ -355,6 +424,61 @@ class UnifiedOrchestrator:
             self._log_trace(session_id, "HolidaySkill", "GreetingGenerated", {"city": city, "holiday": greeting.get("holiday_title")})
             return {"status": "success", "events": events, "prepared_greeting": greeting}
             
+        if task_type in {"plan_content", "generate_content_plan", "create_content_plan"}:
+            from skills.content_strategy_engine import ContentStrategyEngine
+            strat_engine = ContentStrategyEngine()
+            
+            # 1. Загрузка точного профиля из SQL
+            company_name = user_data.get("company_name", "UCust")
+            niche = user_data.get("niche", "IT Automation")
+            visual_grid_dna = user_data.get("visual_grid_dna")
+
+            if self.db and (user_data.get("user_id") or user_data.get("profile_id")):
+                try:
+                    profile_record = None
+                    if user_data.get("profile_id"):
+                        profile_record = self.db.query(UserProfile).filter(UserProfile.id == user_data["profile_id"]).first()
+                    elif user_data.get("user_id"):
+                        profile_record = self.db.query(UserProfile).filter(UserProfile.user_id == user_data["user_id"]).first()
+                    
+                    if profile_record:
+                        company_name = profile_record.company_name or company_name
+                        niche = profile_record.niche or niche
+                        visual_grid_dna = profile_record.visual_grid_dna or visual_grid_dna
+                        print(f"[UnifiedOrchestrator] 🗄️ Профиль #{profile_record.id} ('{company_name}') успешно загружен из SQL БД для контент-плана.")
+                except Exception as db_e:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {db_e}")
+
+            # 2. Семантический запрос в RAG по болям и триггерам аудитории
+            rag_query_res = await self.rag.query_async(f"боли страхи возражения {company_name} {niche}")
+            rag_insights = {
+                "pain_points": [c.text[:80] for c in rag_query_res.chunks] if rag_query_res.chunks else [
+                    "Страх некачественного результата",
+                    "Высокие цены и скрытые переплаты",
+                    "Нехватка времени и сложный процесс"
+                ],
+                "context": rag_query_res.formatted_context
+            }
+
+            # 3. Синтез контент-плана с привязкой к 3x3 визуальной сетке
+            days_count = user_data.get("days_count", 7)
+            content_plan = strat_engine.generate_content_plan(
+                company_name=company_name,
+                niche=niche,
+                visual_grid_dna=visual_grid_dna,
+                rag_insights=rag_insights,
+                days_count=days_count
+            )
+
+            self._log_trace(session_id, "Agent_ContentStrategist", "ContentPlanGenerated", content_plan)
+            print(f"[UnifiedOrchestrator] 📅 Контент-план на {days_count} дней успешно сгенерирован и синхронизирован с RAG и 3x3 сеткой!")
+            return {
+                "status": "success",
+                "content_plan": content_plan,
+                "company_name": company_name,
+                "niche": niche
+            }
+
         if task_type == "generate_post":
             from skills.saiga_llm import SaigaLLMSkill
             from skills.advanced_visual_director import AdvancedVisualDirector
@@ -368,10 +492,46 @@ class UnifiedOrchestrator:
             company_name = user_data.get("company_name", "UCust")
             should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
             aspect_ratio = user_data.get("aspect_ratio", "1:1")
+
+            # 1. Загрузка точного профиля из SQL (если передан user_id / profile_id)
+            if self.db and (user_data.get("user_id") or user_data.get("profile_id")):
+                try:
+                    profile_record = None
+                    if user_data.get("profile_id"):
+                        profile_record = self.db.query(UserProfile).filter(UserProfile.id == user_data["profile_id"]).first()
+                    elif user_data.get("user_id"):
+                        profile_record = self.db.query(UserProfile).filter(UserProfile.user_id == user_data["user_id"]).first()
+                    
+                    if profile_record:
+                        company_name = profile_record.company_name or company_name
+                        niche = profile_record.niche or niche
+                        city = profile_record.city or city
+                        if profile_record.step1 and isinstance(profile_record.step1, dict):
+                            tone = profile_record.step1.get("voice_and_tone", tone) if not user_data.get("tone") else tone
+                            if not user_data.get("brand_colors") and profile_record.step1.get("brand_colors"):
+                                user_data["brand_colors"] = profile_record.step1.get("brand_colors")
+                        if profile_record.visual_grid_dna:
+                            user_data["visual_grid_dna"] = profile_record.visual_grid_dna
+                            if not user_data.get("brand_colors"):
+                                user_data["brand_colors"] = profile_record.visual_grid_dna.get("brand_hex_palette", [])
+                        print(f"[UnifiedOrchestrator] 🗄️ Профиль #{profile_record.id} ('{company_name}') успешно загружен из SQL БД для генерации.")
+                except Exception as sql_e:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {sql_e}")
+
+            # 2. Семантический RAG-поиск проверенных фактов, болей и УТП
+            rag_fact_context = None
+            try:
+                rag_query_text = f"{prompt} {niche} {company_name}"
+                rag_ctx = await self.rag.query_async(rag_query_text)
+                if rag_ctx and (rag_ctx.has_sufficient_context or rag_ctx.formatted_context):
+                    rag_fact_context = rag_ctx.formatted_context
+                    print(f"[UnifiedOrchestrator] 📚 RAG предоставил проверенный контекст ({len(rag_fact_context)} симв.) для темы: '{prompt}'")
+            except Exception as rag_err:
+                print(f"[UnifiedOrchestrator] ⚠️ RAG query error: {rag_err}")
             
             print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', компания: '{company_name}', ниша: '{niche}', формат: {format_type}, тон: {tone}")
             
-            # 1. Генерация аутентичного SMM текста через Сайгу (с учетом визуального контекста от Moondream и комментариев)
+            # 3. Генерация аутентичного SMM текста через Сайгу (с учетом RAG, Moondream и комментариев)
             t_text_start = time.time()
             saiga = SaigaLLMSkill()
             visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
@@ -391,7 +551,8 @@ class UnifiedOrchestrator:
                 comments_context=comments_ctx,
                 audience_questions=audience_q,
                 comments_enabled=bool(user_data.get("comments_enabled", False)),
-                brand_profile=brand_profile
+                brand_profile=brand_profile,
+                rag_context=rag_fact_context
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")

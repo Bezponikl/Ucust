@@ -24,6 +24,7 @@ class UserProfile(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     external_user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    company_name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     niche: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     country: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, default="Россия")
@@ -35,6 +36,10 @@ class UserProfile(Base):
     step3: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     step4: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     step5: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    # Визуальная сетка ленты (Grid DNA) и досье бренда
+    visual_grid_dna: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
+    brand_dossier: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
 
     # Ссылки на соцсети, собранные Интервьюером (Telegram, VK и т.д.)
     social_links: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)

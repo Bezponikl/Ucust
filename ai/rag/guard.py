@@ -4,6 +4,13 @@
 Защита генеративной модели от галлюцинаций при недостатке релевантных данных.
 """
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from typing import List, Optional
 from rag.models import RetrievalResult, RAGContext
 

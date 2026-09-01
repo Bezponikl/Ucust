@@ -1,8 +1,8 @@
 """
 generate_audit_pdf.py
 ======================================================================
-Генерация официального PDF-отчета:
-"UCust.AI — Аудит готовности архитектуры и Дорожная карта (Roadmap)"
+Генерация расширенного официального PDF-отчета:
+"UCust.AI — Аудит готовности архитектуры, Сверх-функционал и Дорожная карта"
 ======================================================================
 """
 
@@ -47,7 +47,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setFillColor(colors.HexColor("#6B7280"))
         
         # Верхний колонтитул
-        self.drawString(1.5 * cm, A4[1] - 1.2 * cm, "UCust.AI — Архитектурный аудит и статус готовности системы")
+        self.drawString(1.5 * cm, A4[1] - 1.2 * cm, "UCust.AI — Архитектурный аудит, Сверх-функционал и Roadmap")
         self.setStrokeColor(colors.HexColor("#E5E7EB"))
         self.setLineWidth(0.5)
         self.line(1.5 * cm, A4[1] - 1.3 * cm, A4[0] - 1.5 * cm, A4[1] - 1.3 * cm)
@@ -82,51 +82,61 @@ def build_pdf():
 
     styles = getSampleStyleSheet()
     
-    # Кастомные стили
+    # Кастомные типографические стили
     style_title = ParagraphStyle(
         "DocTitle",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=20,
-        leading=24,
+        fontSize=18,
+        leading=22,
         textColor=colors.HexColor("#1E3A8A"),
-        spaceAfter=6
+        spaceAfter=4
     )
     style_subtitle = ParagraphStyle(
         "DocSubtitle",
         parent=styles["Normal"],
         fontName="Arial",
-        fontSize=11,
-        leading=15,
+        fontSize=10,
+        leading=14,
         textColor=colors.HexColor("#4B5563"),
-        spaceAfter=14
+        spaceAfter=10
     )
     style_h1 = ParagraphStyle(
         "H1",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=13,
-        leading=17,
+        fontSize=12,
+        leading=16,
         textColor=colors.HexColor("#1F2937"),
-        spaceBefore=12,
-        spaceAfter=8
+        spaceBefore=10,
+        spaceAfter=6
     )
-    style_h2 = ParagraphStyle(
-        "H2",
+    style_h2_plus = ParagraphStyle(
+        "H2Plus",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=10,
-        leading=14,
-        textColor=colors.HexColor("#2563EB"),
-        spaceBefore=8,
-        spaceAfter=4
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.HexColor("#047857"), # Зеленый для преимуществ
+        spaceBefore=6,
+        spaceAfter=2
+    )
+    style_h2_missing = ParagraphStyle(
+        "H2Missing",
+        parent=styles["Normal"],
+        fontName="Arial-Bold",
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.HexColor("#B45309"), # Янтарный для недостающих
+        spaceBefore=6,
+        spaceAfter=2
     )
     style_body = ParagraphStyle(
         "Body",
         parent=styles["Normal"],
         fontName="Arial",
-        fontSize=8.5,
-        leading=12,
+        fontSize=8,
+        leading=11.5,
         textColor=colors.HexColor("#374151"),
         spaceAfter=4
     )
@@ -134,23 +144,23 @@ def build_pdf():
         "Cell",
         parent=styles["Normal"],
         fontName="Arial",
-        fontSize=8,
-        leading=10.5,
+        fontSize=7.5,
+        leading=10,
         textColor=colors.HexColor("#1F2937")
     )
     style_cell_bold = ParagraphStyle(
         "CellBold",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=8,
-        leading=10.5,
+        fontSize=7.5,
+        leading=10,
         textColor=colors.HexColor("#1F2937")
     )
     style_badge_ready = ParagraphStyle(
         "BadgeReady",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=7.5,
+        fontSize=7,
         leading=9,
         textColor=colors.HexColor("#065F46"),
         alignment=1
@@ -159,7 +169,7 @@ def build_pdf():
         "BadgePartial",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=7.5,
+        fontSize=7,
         leading=9,
         textColor=colors.HexColor("#92400E"),
         alignment=1
@@ -167,20 +177,20 @@ def build_pdf():
 
     story = []
 
-    # Заголовок
-    story.append(Paragraph("UCust.AI — Аудит готовности архитектуры", style_title))
-    story.append(Paragraph("Комплексный отчет соответствия спецификации и дорожная карта (Roadmap)", style_subtitle))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#3B82F6"), spaceAfter=12))
+    # 1. Титульный блок
+    story.append(Paragraph("UCust.AI — Архитектурный аудит и Дорожная карта", style_title))
+    story.append(Paragraph("Сравнение с ТЗ, внедренные сверх-возможности (Super-Features) и план боевого автопостинга", style_subtitle))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#2563EB"), spaceAfter=10))
 
-    # Раздел 1: Сводная таблица
+    # 2. Раздел 1: Сводная таблица готовности
     story.append(Paragraph("1. Сводная таблица готовности по 11 разделам спецификации", style_h1))
     
     table_data = [
         [
             Paragraph("№", style_cell_bold),
-            Paragraph("Раздел спецификации", style_cell_bold),
+            Paragraph("Раздел ТЗ", style_cell_bold),
             Paragraph("Статус", style_cell_bold),
-            Paragraph("Ключевые модули и реализация в коде", style_cell_bold)
+            Paragraph("Реализация в кодовой базе UCust.AI", style_cell_bold)
         ],
         [
             Paragraph("1", style_cell_bold),
@@ -198,7 +208,7 @@ def build_pdf():
             Paragraph("3", style_cell_bold),
             Paragraph("Сбор данных с сайта (Website Crawling)", style_cell),
             Paragraph("🟨 90%", style_badge_partial),
-            Paragraph("Рекурсивный обход подстраниц, фильтрация лого/шапок, отбор товаров, H1-H3, цены, контакты.", style_cell)
+            Paragraph("Рекурсивный обход подстраниц, отсев лого/шапок, отбор товаров, H1-H3, цены, контакты.", style_cell)
         ],
         [
             Paragraph("4", style_cell_bold),
@@ -238,9 +248,9 @@ def build_pdf():
         ],
         [
             Paragraph("10", style_cell_bold),
-            Paragraph("Публикация (Execution)", style_cell),
-            Paragraph("✅ 100%", style_badge_ready),
-            Paragraph("Broadcaster, api_gateway — отложенная публикация в Telegram, VK, MAX; трекинг в SQL.", style_cell)
+            Paragraph("Публикация (Execution & Auto-Posting)", style_cell),
+            Paragraph("🟨 70%", style_badge_partial),
+            Paragraph("Broadcaster отправляет в TG/VK/MAX. Требуется боевая настройка очередей (RabbitMQ/Celery).", style_cell)
         ],
         [
             Paragraph("11", style_cell_bold),
@@ -250,7 +260,7 @@ def build_pdf():
         ]
     ]
 
-    col_widths = [0.8 * cm, 4.8 * cm, 2.0 * cm, 10.4 * cm]
+    col_widths = [0.7 * cm, 4.7 * cm, 1.8 * cm, 10.8 * cm]
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
@@ -259,69 +269,77 @@ def build_pdf():
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#D1D5DB")),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
 
     story.append(table)
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 8))
 
-    # Раздел 2: Детальный разбор готовых компонентов
-    story.append(Paragraph("2. Реализованный функционал (Готово на 100%)", style_h1))
+    # 3. Раздел 2: Реализовано ЛУЧШЕ, чем в базовом ТЗ (Super-Features)
+    story.append(Paragraph("2. Реализовано лучше и глубже, чем в исходном ТЗ (Enterprise Super-Features)", style_h1))
     
-    ready_points = [
-        ("Автономная цифровая модель бизнеса (SQL + Clean RAG):",
-         "Система принимает URL сайта и автоматически формирует 7 категорий знаний: Бренд и УТП, Боли и триггеры, Конкуренты, Визуальный брендбук 3x3, Досье сайта, История фото-промптов, Календарь праздников и событий."),
-        
-        ("Умный сбор сайта и фильтрация изображений (WebsiteCollector):",
-         "Автоматический обход страниц (О нас, Услуги, Блог, Контакты), извлечение цен и УТП. Внедрен алгоритм отсева мусора: блокируются логотипы, шапки, иконки соцсетей, берутся только качественные фото товаров и портфолио (>180x180 px)."),
-        
-        ("Визуальный брендбук и сетка 3x3 (AdvancedVisualDirector):",
-         "Определение доминирующего цвета, расчет палитры Hex, разметка 9 слотов сетки ленты (детали, портрет, процесс, продукт) для гармоничного визуала."),
-        
-        ("Модуль праздников и инфоповодов (EventHolidayCollector):",
-         "Календарь государственных праздников (Россия, Беларусь, Казахстан, Узбекистан, СНГ), 50+ дней городов и профессиональных дат (IT, медицина, автосервис, бьюти, рестораны, стройка). Автоматическое внедрение праздничных постов в 30-дневный план."),
-        
-        ("Замкнутый цикл аналитики и самообучение (FeedbackLoopEngine):",
-         "Сбор комментариев и расчет вовлеченности (ER). Семантическое извлечение частых вопросов клиентов (FAQ) и ключевых возражений («дорого», «гарантия»). Автоматическая генерация постов-ответов в новом контент-плане."),
-        
-        ("Мульти-генерация и безопасность (SaigaLLM + ComfyUI + Critic):",
-         "Генерация текстов в строгом White-Label режиме (без утечки внутренних параметров), многоступенчатая проверка критиком (CriticMunger) с автоматическим самоисправлением (Self-Healing Loop), создание фото через FLUX/SDXL и видео через LTX-Video."),
-        
-        ("Управление медиа-файлами (MediaRetentionManager):",
-         "Очистка временного кэша парсинга каждые 5 часов, долгосрочная архивация сгенерированных фото/видео через 30 дней.")
+    super_features = [
+        ("1. Гибридный Clean RAG с BAAI Reranker и 7 категориями памяти",
+         "В базовом ТЗ предполагался простой текстовый анализ. Реализован полноценный Enterprise RAG (Dense векторы + BM25 + PostgreSQL pgvector + Кросс-энкодер BGE-Reranker). База разделена на 7 изолированных семантических категорий (Brand DNA, боли ЦА, конкуренты, 3x3 сетка, досье сайта, история фото-промптов, календарь инфоповодов)."),
+
+        ("2. Визуальный арт-дирекшн сетки ленты 3x3 (AdvancedVisualDirector)",
+         "Контент-план генерируется не просто плоским списком тем, а с жесткой раскладкой под визуальную сетку 3x3 (чередование макро-деталей, портретов, процессов и товаров) с расчетом брендовой палитры Hex и проверкой цветовой гармонии."),
+
+        ("3. Двухконтурный контроль качества с авто-исправлением (Self-Healing Loop)",
+         "Внедрен Агент-Критик (CriticMunger), который оценивает пост по шкале качества. Если текст содержит стоп-слова, панибратство или слабый CTA — он автоматически возвращается автору (SaigaLLM.self_heal_text) на исправление без прерывания пайплайна."),
+
+        ("4. White-Label изоляция и защита коммерческой тайны (SecurityGuard)",
+         "Посты для клиентов генерируются в строгом White-Label режиме: специальный гейткипер на лету вырезает и маскирует любые упоминания внутренних моделей (Saiga, FLUX, ComfyUI, Lora, LTX) и исключает корпоративные хэштеги в клиентских каналах."),
+
+        ("5. Умный контентный фильтр медиа сайтов (Anti-Logo & Anti-Banner Filter)",
+         "Алгоритм парсера автоматически отсеивает логотипы, шапки сайтов, баннеры и мелкие иконки соцсетей, анализируя размеры (>180x180 px) и пропорции через PIL, отбирая только реальные фотографии товаров и портфолио."),
+
+        ("6. Региональный и отраслевой календарь инфоповодов (EventHolidayCollector)",
+         "Встроенный календарь государственных праздников СНГ (РФ, РК, РБ, УЗ), 50+ дней городов и профессиональных праздников по нишам (IT, медицина, автосервис, бьюти, рестораны, стройка). Праздничные дни автоматически встраиваются в 30-дневный контент-план с офферами."),
+
+        ("7. Управление жизненным циклом медиа (MediaRetentionManager)",
+         "Временный кэш парсинга автоматически удаляется каждые 5 часов (защита от переполнения диска при 100+ пользователях), а сгенерированные фото/видео архивируются через 30 дней с сохранением финальных промптов в RAG-памяти."),
+
+        ("8. Замкнутый цикл обратной связи и самообучение (FeedbackLoopEngine)",
+         "Система собирает комментарии, рассчитывает ER, извлекает частые вопросы покупателей (FAQ) и ключевые возражения («дорого», «гарантия»), а затем автоматически создает посты-ответы в следующем контент-плане.")
     ]
 
-    for title, desc in ready_points:
-        story.append(Paragraph(f"• <b>{title}</b> {desc}", style_body))
-
-    story.append(Spacer(1, 10))
-
-    # Раздел 3: Недостающие элементы и Дорожная карта
-    story.append(Paragraph("3. Недостающие элементы и Дорожная карта (Roadmap до 100%)", style_h1))
-    
-    missing_points = [
-        ("1. Модуль разбора клиентских документов (DocumentCollector)",
-         "<b>Что требуется:</b> Поддержка загрузки и извлечения текста/таблиц из файлов PDF (презентации, коммерческие предложения), DOCX (описания услуг) и PPTX (маркетинг-киты).<br/>"
-         "<b>Решение:</b> Внедрение парсеров на базе <code>pypdf</code>, <code>python-docx</code> и <code>python-pptx</code> с автоматической отправкой извлеченного текста в RAG-документ <code>client_files_{company_name}</code>."),
-
-        ("2. Живой скрапер геосервисов и отзывов (MapsLiveReviewsCollector)",
-         "<b>Что требуется:</b> Автоматический сбор свежих отзывов, рейтинга, филиалов и ответов компании с Яндекс.Карт и 2GIS по названию или ссылке.<br/>"
-         "<b>Решение:</b> Реализация headless-парсреа на базе <code>Playwright</code> / <code>httpx</code> для извлечения оценок (1-5 звезд) и текста отзывов с последующим анализом болей аудитории в FeedbackLoopEngine."),
-
-        ("3. Расширение сбора внешних соцсетей (Instagram, TikTok, YouTube)",
-         "<b>Что требуется:</b> Сбор последних 20–50 постов, шортсов и комментариев из аккаунтов Instagram, TikTok и YouTube.<br/>"
-         "<b>Решение:</b> Подключение API/скраперов через ротационные прокси для периодической выгрузки контента и метрик.")
-    ]
-
-    for title, desc in missing_points:
-        story.append(Paragraph(title, style_h2))
+    for title, desc in super_features:
+        story.append(Paragraph(f"✨ <b>{title}</b>", style_h2_plus))
         story.append(Paragraph(desc, style_body))
-        story.append(Spacer(1, 4))
+
+    story.append(Spacer(1, 6))
+
+    # 4. Раздел 3: Недостающие элементы и Дорожная карта (Roadmap)
+    story.append(Paragraph("3. Недостающие элементы и Дорожная карта реализации (Roadmap до 100%)", style_h1))
+    
+    missing_items = [
+        ("1. Настройка боевого Бэкенд-Автопостинга (Backend Auto-Posting & Scheduler)",
+         "<b>Текущее состояние:</b> Каркас отправки (Broadcaster) реализован, но автопостинг требует боевой настройки очереди и управления токенами.<br/>"
+         "<b>Что требуется реализовать:</b><br/>"
+         "• Интеграция планировщика задач (RabbitMQ + Celery / APScheduler) для публикации ровно по часовому поясу клиента.<br/>"
+         "• Шифрованное хранилище токенов доступа клиентов (OAuth 2.0 для VK, Bot Token / MTProto для Telegram).<br/>"
+         "• Реализация 2 режимов: <b>«Полный автопилот»</b> (публикация по таймеру) vs <b>«Подтверждение в Telegram»</b> (кнопки Одобрить / Перегенерировать за 30 мин до выхода).<br/>"
+         "• Механизм Auto-Retry с экспоненциальной задержкой при лимитах (Rate Limits 429/502)."),
+
+        ("2. Модуль разбора клиентских документов (DocumentCollector)",
+         "<b>Что требуется:</b> Извлечение текста и таблиц из загружаемых файлов клиентов (PDF-презентации, DOCX-прайсы, PPTX-маркетинг-киты) через <code>pypdf</code> / <code>python-docx</code> / <code>python-pptx</code> с автоматической индексацией в RAG-документ <code>client_files_{company}</code>."),
+
+        ("3. Живой скрапер карт и отзывов (MapsLiveReviewsCollector)",
+         "<b>Что требуется:</b> Headless-парсер Playwright для автоматического сбора живых отзывов, рейтинга и филиалов с Яндекс.Карт и 2GIS для обогащения болей аудитории в FeedbackLoopEngine."),
+
+        ("4. Подключение внешних соцсетей (Instagram, TikTok, YouTube)",
+         "<b>Что требуется:</b> Сбор постов, шортсов и комментариев из профилей Instagram, TikTok и YouTube через прокси-скраперы.")
+    ]
+
+    for title, desc in missing_items:
+        story.append(Paragraph(f"⚠️ <b>{title}</b>", style_h2_missing))
+        story.append(Paragraph(desc, style_body))
 
     # Сборка документа
     doc.build(story, canvasmaker=NumberedCanvas)
-    print(f"✅ PDF успешно сгенерирован: {pdf_filename}")
+    print(f"✅ Расширенный PDF успешно сгенерирован: {pdf_filename}")
     return pdf_filename
 
 

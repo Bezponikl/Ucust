@@ -190,7 +190,7 @@ class UnifiedOrchestrator:
             except Exception as e:
                 print(f"[UnifiedOrchestrator] ⚠️ Ошибка Moondream анализа: {e}")
 
-        if task_type in {"onboarding", "analyze_brand", "interviewer"}:
+        if task_type in {"onboarding", "onboard_user", "analyze_brand", "interviewer"}:
             from skills.saiga_llm import SaigaLLMSkill
             from collectors.website_collector import WebsiteCollector
             import re
@@ -344,6 +344,26 @@ class UnifiedOrchestrator:
                     metadata={"category": "website_knowledge", "company_name": company_name}
                 ))
 
+            # 7. Календарь государственных, профессиональных и городских праздников для локации
+            country = user_data.get("country") or brand_profile.get("market", {}).get("country") or "Россия"
+            try:
+                from collectors.event_holiday_collector import EventHolidayCollector
+                holiday_events = EventHolidayCollector().get_calendar_events(
+                    country=country,
+                    city=city,
+                    niche=brand_profile.get("field", activity),
+                    days_count=60
+                )
+                if holiday_events:
+                    holidays_str = "\n".join([f"- {e['date']}: {e['title']} ({e['vibe']})" for e in holiday_events[:10]])
+                    rag_docs.append(Document(
+                        doc_id=f"geo_and_holidays_{company_name}",
+                        text=f"География, локальные события и праздники компании {company_name}:\nСтрана: {country}\nГород: {city}\nНиша: {brand_profile.get('field', activity)}\nБлижайшие инфоповоды и праздники:\n{holidays_str}",
+                        metadata={"category": "holidays_and_events", "company_name": company_name, "country": country, "city": city}
+                    ))
+            except Exception as h_err:
+                print(f"[UnifiedOrchestrator] ⚠️ Ошибка сбора календаря праздников: {h_err}")
+
             try:
                 indexed_count = await self.rag.ingest_documents_async(rag_docs)
                 print(f"[UnifiedOrchestrator] 📚 Векторная база знаний RAG успешно обогащена: {indexed_count} чанков для '{company_name}'.")
@@ -361,6 +381,8 @@ class UnifiedOrchestrator:
                         company_name=company_name,
                         niche=brand_profile.get("field", activity),
                         city=brand_profile.get("market", {}).get("geography", city),
+                        country=country,
+                        location_details={"country": country, "city": city, "holidays_count": len(holiday_events) if 'holiday_events' in locals() else 0},
                         target_audience=brand_profile.get("market", {}).get("segment", ""),
                         step1={"voice_and_tone": brand_profile.get("tone", []), "positioning": brand_profile.get("positioning", ""), "brand_colors": brand_profile.get("brand_colors", [])},
                         step2=brand_profile.get("market", {}),
@@ -380,7 +402,7 @@ class UnifiedOrchestrator:
                     self.db.refresh(profile)
                     profile_id = profile.id
                     self._log_trace(session_id, "ChiefOrchestrator", "ProfileSaved", {"profile_id": profile_id})
-                    print(f"[UnifiedOrchestrator] ✅ Профиль #{profile_id} ('{company_name}') успешно сохранен в SQL БД!")
+                    print(f"[UnifiedOrchestrator] ✅ Профиль #{profile_id} ('{company_name}', {country}, г. {city}) успешно сохранен в SQL БД!")
                 except Exception as e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения профиля в SQL БД: {e}")
             
@@ -446,6 +468,8 @@ class UnifiedOrchestrator:
             # 1. Загрузка точного профиля из SQL
             company_name = user_data.get("company_name", "UCust")
             niche = user_data.get("niche", "IT Automation")
+            city = user_data.get("city", "Москва")
+            country = user_data.get("country", "Россия")
             visual_grid_dna = user_data.get("visual_grid_dna")
 
             if self.db and (user_data.get("user_id") or user_data.get("profile_id")):
@@ -459,13 +483,15 @@ class UnifiedOrchestrator:
                     if profile_record:
                         company_name = profile_record.company_name or company_name
                         niche = profile_record.niche or niche
+                        city = profile_record.city or city
+                        country = profile_record.country or country
                         visual_grid_dna = profile_record.visual_grid_dna or visual_grid_dna
-                        print(f"[UnifiedOrchestrator] 🗄️ Профиль #{profile_record.id} ('{company_name}') успешно загружен из SQL БД для контент-плана.")
+                        print(f"[UnifiedOrchestrator] 🗄️ Профиль #{profile_record.id} ('{company_name}', {country}, г. {city}) успешно загружен из SQL БД для контент-плана.")
                 except Exception as db_e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {db_e}")
 
             # 2. Семантический запрос в RAG по болям и триггерам аудитории
-            rag_query_res = await self.rag.query_async(f"боли страхи возражения {company_name} {niche}")
+            rag_query_res = await self.rag.query_async(f"боли страхи возражения {company_name} {niche} {city}")
             rag_insights = {
                 "pain_points": [c.text[:80] for c in rag_query_res.chunks] if rag_query_res.chunks else [
                     "Страх некачественного результата",
@@ -475,18 +501,22 @@ class UnifiedOrchestrator:
                 "context": rag_query_res.formatted_context
             }
 
-            # 3. Синтез контент-плана с привязкой к 3x3 визуальной сетке
+            # 3. Синтез контент-плана с привязкой к 3x3 визуальной сетке и праздникам
             days_count = user_data.get("days_count", 7)
+            start_date = user_data.get("start_date")
             content_plan = strat_engine.generate_content_plan(
                 company_name=company_name,
                 niche=niche,
                 visual_grid_dna=visual_grid_dna,
                 rag_insights=rag_insights,
-                days_count=days_count
+                days_count=days_count,
+                country=country,
+                city=city,
+                start_date=start_date
             )
 
             self._log_trace(session_id, "Agent_ContentStrategist", "ContentPlanGenerated", content_plan)
-            print(f"[UnifiedOrchestrator] 📅 Контент-план на {days_count} дней успешно сгенерирован и синхронизирован с RAG и 3x3 сеткой!")
+            print(f"[UnifiedOrchestrator] 📅 Контент-план на {days_count} дней успешно сгенерирован (Праздников внедрено: {content_plan.get('holidays_included_count', 0)})!")
             return {
                 "status": "success",
                 "content_plan": content_plan,

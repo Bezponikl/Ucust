@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from storage.db import Base
@@ -70,7 +70,7 @@ class ProjectMetadata(Base):
 
 class PublicationHistory(Base):
     """
-    ORM model for publication history.
+    ORM model for publication history and performance feedback tracking.
     """
 
     __tablename__ = "publication_history"
@@ -81,6 +81,18 @@ class PublicationHistory(Base):
     post_text: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     extra_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    # Метрики вовлеченности (Engagement & Feedback)
+    views_count: Mapped[int] = mapped_column(Integer, default=0)
+    likes_count: Mapped[int] = mapped_column(Integer, default=0)
+    comments_count: Mapped[int] = mapped_column(Integer, default=0)
+    shares_count: Mapped[int] = mapped_column(Integer, default=0)
+    engagement_rate: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # Семантический анализ комментариев и реакций
+    comments_analysis: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
+    last_monitored_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     published_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     project: Mapped["ProjectMetadata"] = relationship("ProjectMetadata", back_populates="publications")

@@ -3,7 +3,7 @@ import json
 import time
 import hashlib
 from typing import Any, Dict, List, Optional
-from storage.models import UserProfile, OrchestratorTrace
+from storage.models import UserProfile, OrchestratorTrace, PublicationHistory, ProjectMetadata, ContentTask
 
 class SecurityGuard:
     """
@@ -460,6 +460,74 @@ class UnifiedOrchestrator:
                 
             self._log_trace(session_id, "HolidaySkill", "GreetingGenerated", {"city": city, "holiday": greeting.get("holiday_title")})
             return {"status": "success", "events": events, "prepared_greeting": greeting}
+
+        if task_type in {"track_post_performance", "process_audience_feedback", "feedback_loop"}:
+            from analytics.feedback_loop import FeedbackLoopEngine
+            engine = FeedbackLoopEngine()
+            
+            publication_id = user_data.get("publication_id")
+            comments = user_data.get("comments", [])
+            views = user_data.get("views", 0)
+            likes = user_data.get("likes", 0)
+            shares = user_data.get("shares", 0)
+            comments_count = len(comments) if comments else user_data.get("comments_count", 0)
+            
+            er = engine.calculate_engagement_rate(views, likes, comments_count, shares)
+            analysis = engine.analyze_comments(comments)
+            
+            # Сохранение в SQL (PublicationHistory & UserProfile)
+            if self.db and publication_id:
+                try:
+                    pub = self.db.query(PublicationHistory).filter(PublicationHistory.id == publication_id).first()
+                    if pub:
+                        pub.views_count = views
+                        pub.likes_count = likes
+                        pub.comments_count = comments_count
+                        pub.shares_count = shares
+                        pub.engagement_rate = er
+                        pub.comments_analysis = analysis
+                        pub.last_monitored_at = datetime.utcnow()
+                        self.db.commit()
+                        print(f"[UnifiedOrchestrator] 📊 Метрики публикации #{publication_id} сохранены (ER: {er}%, Комментариев: {comments_count}).")
+                except Exception as sql_e:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения метрик в SQL: {sql_e}")
+            
+            company_name = user_data.get("company_name", "UCust")
+            niche = user_data.get("niche", "IT Automation")
+            top_topics = user_data.get("top_topics", [])
+            
+            # Синхронизация инсайтов в RAG
+            indexed_count = await engine.sync_feedback_to_rag(company_name, niche, analysis, top_topics, self.rag)
+            adaptations = engine.generate_strategy_adaptations(top_topics, analysis)
+            
+            # Обновление стратегии в профиле SQL
+            if self.db and (user_data.get("profile_id") or user_data.get("user_id")):
+                try:
+                    prof = None
+                    if user_data.get("profile_id"):
+                        prof = self.db.query(UserProfile).filter(UserProfile.id == user_data["profile_id"]).first()
+                    elif user_data.get("user_id"):
+                        prof = self.db.query(UserProfile).filter(UserProfile.user_id == user_data["user_id"]).first()
+                    if prof:
+                        dossier = dict(prof.brand_dossier or {})
+                        dossier["feedback_insights"] = adaptations
+                        prof.brand_dossier = dossier
+                        self.db.commit()
+                except Exception as prof_e:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка обновления feedback_insights в SQL: {prof_e}")
+
+            self._log_trace(session_id, "FeedbackLoopEngine", "FeedbackProcessed", {
+                "er": er,
+                "objections": analysis.get("top_objections"),
+                "questions": analysis.get("top_questions")
+            })
+            return {
+                "status": "success",
+                "engagement_rate": er,
+                "comments_analysis": analysis,
+                "rag_indexed_count": indexed_count,
+                "strategy_adaptations": adaptations
+            }
             
         if task_type in {"plan_content", "generate_content_plan", "create_content_plan"}:
             from skills.content_strategy_engine import ContentStrategyEngine
@@ -471,6 +539,7 @@ class UnifiedOrchestrator:
             city = user_data.get("city", "Москва")
             country = user_data.get("country", "Россия")
             visual_grid_dna = user_data.get("visual_grid_dna")
+            feedback_insights = user_data.get("feedback_insights")
 
             if self.db and (user_data.get("user_id") or user_data.get("profile_id")):
                 try:
@@ -486,6 +555,8 @@ class UnifiedOrchestrator:
                         city = profile_record.city or city
                         country = profile_record.country or country
                         visual_grid_dna = profile_record.visual_grid_dna or visual_grid_dna
+                        if not feedback_insights and profile_record.brand_dossier and isinstance(profile_record.brand_dossier, dict):
+                            feedback_insights = profile_record.brand_dossier.get("feedback_insights")
                         print(f"[UnifiedOrchestrator] 🗄️ Профиль #{profile_record.id} ('{company_name}', {country}, г. {city}) успешно загружен из SQL БД для контент-плана.")
                 except Exception as db_e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {db_e}")
@@ -501,7 +572,7 @@ class UnifiedOrchestrator:
                 "context": rag_query_res.formatted_context
             }
 
-            # 3. Синтез контент-плана с привязкой к 3x3 визуальной сетке и праздникам
+            # 3. Синтез контент-плана с привязкой к 3x3 визуальной сетке, праздникам и обратной связи
             days_count = user_data.get("days_count", 7)
             start_date = user_data.get("start_date")
             content_plan = strat_engine.generate_content_plan(
@@ -512,7 +583,8 @@ class UnifiedOrchestrator:
                 days_count=days_count,
                 country=country,
                 city=city,
-                start_date=start_date
+                start_date=start_date,
+                feedback_insights=feedback_insights
             )
 
             self._log_trace(session_id, "Agent_ContentStrategist", "ContentPlanGenerated", content_plan)

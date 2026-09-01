@@ -84,12 +84,13 @@ class ContentStrategyEngine:
         days_count: int = 7,
         country: str = "Россия",
         city: str = "Москва",
-        start_date: Optional[datetime] = None
+        start_date: Optional[datetime] = None,
+        feedback_insights: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Генерирует контент-план на N дней, привязанный к болям аудитории из RAG,
-        сопоставленный со слотами 3x3 визуальной сетки ленты и обогащенный
-        государственными, профессиональными и городскими праздниками.
+        сопоставленный со слотами 3x3 визуальной сетки ленты, обогащенный
+        праздниками и динамически адаптированный под обратную связь аудитории.
         """
         from collectors.event_holiday_collector import EventHolidayCollector
 
@@ -100,7 +101,13 @@ class ContentStrategyEngine:
             "Высокие цены и скрытые переплаты",
             "Нехватка времени и сложный процесс"
         ])
-        competitor_adv = (rag_insights or {}).get("competitor_advantages", "Гарантия результата, прозрачный прайс и быстрое обслуживание")
+
+        # Интеграция реальных возражений и вопросов из Feedback Loop
+        feedback_objections = (feedback_insights or {}).get("identified_objections", [])
+        feedback_questions = (feedback_insights or {}).get("identified_questions", [])
+
+        if feedback_objections:
+            pains = feedback_objections + pains
 
         # 1. Поиск праздников и инфоповодов на заданный период
         holiday_collector = EventHolidayCollector()
@@ -138,16 +145,24 @@ class ContentStrategyEngine:
                 target_pain = f"Праздничное настроение и забота о клиентах: {h_title} ({holiday_event['vibe']})"
             else:
                 stage = stages[(day - 1) % len(stages)]
-                if stage == "TOFU":
+                # Если есть реальный вопрос аудитории и день четный — делаем пост-ответ
+                if feedback_questions and day % 2 == 0 and (day // 2 - 1) < len(feedback_questions):
+                    actual_q = feedback_questions[day // 2 - 1]
+                    topic = f"Отвечаем на частый вопрос клиентов: «{actual_q}» — честный разбор от {company_name}"
+                    format_type = "Пост-ответ на вопрос аудитории + Экспертный разбор"
+                    target_pain = f"Вопрос от реальных подписчиков: {actual_q}"
+                elif stage == "TOFU":
                     topic = f"Как избежать главной ошибки в {niche}: секреты профессионалов"
                     format_type = "Пост-разбор + Вопрос в комментариях"
+                    target_pain = pain
                 elif stage == "MOFU":
                     topic = f"Честно о том, как мы закрываем проблему «{pain}» в {company_name}"
                     format_type = "Кейс До/После + Демонстрация процесса"
+                    target_pain = pain
                 else: # BOFU
                     topic = f"Специальное предложение от «{company_name}»: гарантия качества и выгода"
                     format_type = "Продающий оффер + Промокод + CTA"
-                target_pain = pain
+                    target_pain = pain
 
             plan_items.append({
                 "day": day,

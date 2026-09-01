@@ -35,47 +35,54 @@ def setup_dummy_old_and_new_files():
     os.makedirs(photos_dir, exist_ok=True)
 
     now = time.time()
-    old_time = now - (35 * 86400) # 35 дней назад
+    old_temp_time = now - (6 * 3600)   # 6 часов назад (старше 5 часов -> удалить)
+    fresh_temp_time = now - (1 * 3600) # 1 час назад (свежий -> оставить)
+    old_photo_time = now - (35 * 86400) # 35 дней назад (старше 30 дней -> архивировать)
 
-    # 1. Устаревший файл в temp_cache (должен быть удален)
-    old_temp_file = os.path.join(temp_dir, "old_test_temp_35d.jpg")
+    # 1. Устаревший файл в temp_cache (6 часов -> должен быть удален)
+    old_temp_file = os.path.join(temp_dir, "old_test_temp_6h.jpg")
     img = Image.new("RGB", (50, 50), color=(100, 100, 100))
     img.save(old_temp_file)
-    os.utime(old_temp_file, (old_time, old_time))
+    os.utime(old_temp_file, (old_temp_time, old_temp_time))
 
-    # 2. Свежий файл в temp_cache (должен остаться)
-    new_temp_file = os.path.join(temp_dir, "new_test_temp_fresh.jpg")
+    # 2. Свежий файл в temp_cache (1 час -> должен остаться)
+    new_temp_file = os.path.join(temp_dir, "new_test_temp_1h.jpg")
     img.save(new_temp_file)
+    os.utime(new_temp_file, (fresh_temp_time, fresh_temp_time))
 
-    # 3. Устаревшее фото в photos (должно быть заархивировано)
+    # 3. Устаревшее фото в photos (35 дней -> должно быть заархивировано)
     old_photo_file = os.path.join(photos_dir, "old_test_photo_35d.jpg")
     img_photo = Image.new("RGB", (60, 60), color=(200, 50, 50))
     img_photo.save(old_photo_file)
-    os.utime(old_photo_file, (old_time, old_time))
+    os.utime(old_photo_file, (old_photo_time, old_photo_time))
 
     return old_temp_file, new_temp_file, old_photo_file
 
 
 async def run_retention_and_prompt_rag_test():
     print("=" * 80)
-    print("📦 ТЕСТ УПРАВЛЕНИЯ ХРАНЕНИЕМ МЕДИА (30 ДНЕЙ TTL) И RAG-ПАМЯТИ ПРОМПТОВ")
+    print("📦 ТЕСТ УПРАВЛЕНИЯ ХРАНЕНИЕМ МЕДИА (КЭШ 5 ЧАСОВ, ФОТО 30 ДНЕЙ)")
     print("=" * 80)
 
     # -------------------------------------------------------------
-    # ТЕСТ 1: РОТАЦИЯ И ОЧИСТКА ФАЙЛОВ (> 30 ДНЕЙ)
+    # ТЕСТ 1: РОТАЦИЯ И ОЧИСТКА ФАЙЛОВ
     # -------------------------------------------------------------
-    print("\n--- [ТЕСТ 1] Очистка и архивация файлов старше 30 дней ---")
+    print("\n--- [ТЕСТ 1] Очистка кэша (> 5 часов) и архивация генераций (> 30 дней) ---")
     old_temp, new_temp, old_photo = setup_dummy_old_and_new_files()
     
     cleaner = MediaRetentionManager()
-    cleanup_res = cleaner.cleanup_expired_files(retention_days=30, archive_generations=True)
+    cleanup_res = cleaner.cleanup_expired_files(
+        retention_days=30,
+        temp_cache_retention_hours=5.0,
+        archive_generations=True
+    )
     
     print(f"📊 Результат очистки: {cleanup_res}")
     
     # Проверки
-    assert not os.path.exists(old_temp), "Ошибка: старый файл из temp_cache не удален!"
-    assert os.path.exists(new_temp), "Ошибка: свежий файл из temp_cache был ошибочно удален!"
-    assert not os.path.exists(old_photo), "Ошибка: старое фото не удалено после архивации!"
+    assert not os.path.exists(old_temp), "Ошибка: файл из temp_cache старше 5 часов не удален!"
+    assert os.path.exists(new_temp), "Ошибка: свежий файл из temp_cache (1 час) был ошибочно удален!"
+    assert not os.path.exists(old_photo), "Ошибка: старое фото (> 30 дней) не удалено после архивации!"
     
     # Проверяем наличие zip архива
     archive_dir = os.path.join(AI_ROOT, "output", "archive")

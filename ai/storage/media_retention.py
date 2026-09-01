@@ -42,28 +42,30 @@ class MediaRetentionManager:
     def cleanup_expired_files(
         self,
         retention_days: int = 30,
+        temp_cache_retention_hours: float = 5.0,
         archive_generations: bool = True
     ) -> Dict[str, Any]:
         """
-        Сканирует директории и удаляет/архивирует файлы старше retention_days.
-        - temp_cache: удаляется без архивации
-        - photos/videos: архивируются в zip-архив месяца и удаляются
+        Сканирует директории и удаляет/архивирует файлы:
+        - temp_cache: удаляется, если старше temp_cache_retention_hours (по умолчанию 5 часов)
+        - photos/videos: архивируются в zip-архив месяца, если старше retention_days (по умолчанию 30 дней)
         """
         now = time.time()
-        cutoff_seconds = retention_days * 86400
+        generations_cutoff = retention_days * 86400
+        temp_cutoff = temp_cache_retention_hours * 3600
 
         deleted_temp_count = 0
         archived_files_count = 0
         freed_bytes = 0
         files_to_archive: List[str] = []
 
-        # 1. Очистка временного кэша парсинга (temp_cache)
+        # 1. Быстрая очистка временного кэша парсинга (TTL 5 часов)
         if os.path.exists(self.temp_cache_dir):
             for filename in os.listdir(self.temp_cache_dir):
                 file_path = os.path.join(self.temp_cache_dir, filename)
                 if os.path.isfile(file_path):
                     file_age = now - os.path.getmtime(file_path)
-                    if file_age > cutoff_seconds:
+                    if file_age > temp_cutoff:
                         size = os.path.getsize(file_path)
                         try:
                             os.remove(file_path)
@@ -72,14 +74,14 @@ class MediaRetentionManager:
                         except Exception as e:
                             logger.warning(f"Error removing temp file {file_path}: {e}")
 
-        # 2. Поиск устаревших генераций (photos & videos)
+        # 2. Поиск устаревших генераций (photos & videos, TTL 30 дней)
         for target_dir in [self.photos_dir, self.videos_dir]:
             if os.path.exists(target_dir):
                 for filename in os.listdir(target_dir):
                     file_path = os.path.join(target_dir, filename)
                     if os.path.isfile(file_path):
                         file_age = now - os.path.getmtime(file_path)
-                        if file_age > cutoff_seconds:
+                        if file_age > generations_cutoff:
                             files_to_archive.append(file_path)
 
         # 3. Архивация в zip-архив

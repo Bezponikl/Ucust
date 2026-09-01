@@ -109,13 +109,18 @@ class UnifiedOrchestrator:
         self.redis_cache = redis_cache or RedisCacheManager()
         self.rag = CleanRAGPipeline(min_confidence_threshold=0.55)
 
-        # 1. Автоматический контроль хранения файлов (TTL 30 дней)
+        # 1. Автоматический контроль хранения файлов (Кэш: 5 часов, Генерации: 30 дней)
         try:
             from storage.media_retention import MediaRetentionManager
             cleaner = MediaRetentionManager()
             retention_days = int(os.getenv("MEDIA_RETENTION_DAYS", "30"))
+            temp_hours = float(os.getenv("TEMP_CACHE_RETENTION_HOURS", "5.0"))
             auto_archive = os.getenv("MEDIA_AUTO_ARCHIVE", "true").lower() == "true"
-            cleaner.cleanup_expired_files(retention_days=retention_days, archive_generations=auto_archive)
+            cleaner.cleanup_expired_files(
+                retention_days=retention_days,
+                temp_cache_retention_hours=temp_hours,
+                archive_generations=auto_archive
+            )
         except Exception:
             pass
 

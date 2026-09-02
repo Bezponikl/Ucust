@@ -75,6 +75,11 @@ public class RabbitMailConfig {
     }
 
     @Bean
+    public Binding loginNotificationBinding(Queue mailQueue, TopicExchange exchange) {
+        return BindingBuilder.bind(mailQueue).to(exchange).with("user.login.email");
+    }
+
+    @Bean
     public Queue emailChangeInitQueue() {
         return durableQueue(EMAIL_CHANGE_INIT_QUEUE);
     }

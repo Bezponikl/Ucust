@@ -29,13 +29,13 @@ public class CookieUtils {
         this.refreshTokenService = refreshTokenService;
     }
 
-    public ResponseCookie generateRefreshTokenCookie(User user, boolean rememberMe) {
+    public ResponseCookie generateRefreshTokenCookie(User user, boolean rememberMe, String userAgent, String ip) {
         long maxAge = rememberMe ? refreshTTLisRemember.getSeconds() : refreshTTLnoRemember.getSeconds();
 
-        return ResponseCookie.from(cookieName, refreshTokenService.createRefreshToken(user, rememberMe).getToken())
+        return ResponseCookie.from(cookieName, refreshTokenService.createRefreshToken(user, rememberMe, userAgent, ip).getToken())
                 .httpOnly(true)
                 .secure(cookieSecureState)
-                .sameSite("None")
+                .sameSite(cookieSecureState ? "None" : "Lax")
                 .path("/")
                 .maxAge(maxAge)
                 .build();
@@ -44,7 +44,8 @@ public class CookieUtils {
     public ResponseCookie getCleanRefreshTokenCookie() {
         return ResponseCookie.from(cookieName, "")
                 .path("/")
-                .maxAge(0) // Удаляет куку у клиента
+                .sameSite(cookieSecureState ? "None" : "Lax")
+                .maxAge(0)
                 .build();
     }
 }

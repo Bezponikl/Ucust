@@ -10,6 +10,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.nio.file.AccessDeniedException;
 
@@ -52,6 +53,13 @@ public class GlobalExceptionHandler {
                 "Your account is not activated. Please confirm your email."
         );
         return new ResponseEntity<>(new ApiResponse<>(false, null, error, null), HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestPart(MissingServletRequestPartException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("MISSING_FILE", "Required file part is missing: " + ex.getRequestPartName()));
     }
 
     @ExceptionHandler(Exception.class)

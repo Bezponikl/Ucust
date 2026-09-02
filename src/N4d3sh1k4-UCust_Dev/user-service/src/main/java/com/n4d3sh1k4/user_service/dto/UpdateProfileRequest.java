@@ -12,6 +12,12 @@ public record UpdateProfileRequest(
              message = "The name must be in Cyrillic and may contain a hyphen.")
     String firstName,
 
+    @Schema(description = "Отчество (только кириллица, допускается дефис)", example = "Сергеевич")
+    @Size(min = 2, max = 50)
+    @Pattern(regexp = "^[а-яА-ЯёЁ]+(-[а-яА-ЯёЁ]+)?$",
+             message = "The middle name must be in Cyrillic and may contain a hyphen.")
+    String middleName,
+
     @Schema(description = "Фамилия (только кириллица, допускается дефис)", example = "Иванов")
     @Size(min = 2, max = 50)
     @Pattern(regexp = "^[а-яА-ЯёЁ]+(-[а-яА-ЯёЁ]+)?$",

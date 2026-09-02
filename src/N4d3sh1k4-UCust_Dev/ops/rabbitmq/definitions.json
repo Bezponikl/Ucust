@@ -1,0 +1,22 @@
+{
+  "rabbit_version": "4.2",
+  "users": [
+    { "name": "rmuser", "password": "rmpassword", "tags": "administrator" },
+    { "name": "service-user", "password": "servicepassword", "tags": "" }
+  ],
+  "vhosts": [
+    { "name": "universal-host" }
+  ],
+  "permissions": [
+    {
+      "user": "service-user",
+      "vhost": "universal-host",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [],
+  "exchanges": [],
+  "bindings": []
+}

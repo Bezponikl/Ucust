@@ -9,8 +9,17 @@ spring:
     username: service-user
     password: servicepassword
     virtual-host: universal-host
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2.0
+          max-interval: 10s
 
 minio:
   endpoint: http://minio:9000
   base:
-    path: http://${SERVER_TAILSCALE_IP}:9000/user-service/
+    path: https://api.ucust.n4d3sh1k4.site/s3/user-service/

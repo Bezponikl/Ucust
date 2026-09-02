@@ -1,6 +1,7 @@
 package com.n4d3sh1k4.generative_orchestration_service.service;
 
 import com.n4d3sh1k4.common.exception.ContentNotFoundException;
+import com.n4d3sh1k4.common.exception.UniversalExeption;
 import com.n4d3sh1k4.generative_orchestration_service.domain.model.content.*;
 import com.n4d3sh1k4.generative_orchestration_service.domain.repository.GenerationTaskRepository;
 import com.n4d3sh1k4.generative_orchestration_service.domain.repository.PostRepository;
@@ -11,10 +12,12 @@ import com.n4d3sh1k4.generative_orchestration_service.service.AIServiceClient.Su
 import com.n4d3sh1k4.generative_orchestration_service.service.AIServiceClient.TaskResultResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -28,6 +31,8 @@ public class AsyncGenerationService {
 
     @Transactional
     public AsyncGenerateResponse submitAsync(GenerateRequest request, UUID userId) {
+        validateRequest(request);
+
         GenerationTask task = GenerationTask.builder()
                 .projectId(request.getProjectId())
                 .userId(userId)
@@ -104,5 +109,30 @@ public class AsyncGenerationService {
                 task.getCreatedAt(),
                 task.getUpdatedAt()
         );
+    }
+
+    private void validateRequest(GenerateRequest request) {
+        switch (request.getMode()) {
+            case MANUAL -> {
+                if (request.getPrompt() == null || request.getPrompt().isBlank()) {
+                    throw new UniversalExeption(
+                            "prompt is required in MANUAL mode",
+                            "VALIDATION_ERROR",
+                            HttpStatus.BAD_REQUEST);
+                }
+            }
+            case AUTO -> {
+                var missing = new java.util.ArrayList<String>();
+                if (request.getIndustry() == null || request.getIndustry().isBlank()) missing.add("industry");
+                if (request.getDescription() == null || request.getDescription().isBlank()) missing.add("description");
+                if (request.getToneOfVoice() == null || request.getToneOfVoice().isBlank()) missing.add("toneOfVoice");
+                if (!missing.isEmpty()) {
+                    throw new UniversalExeption(
+                            "Missing required fields for AUTO mode: " + String.join(", ", missing),
+                            "VALIDATION_ERROR",
+                            HttpStatus.BAD_REQUEST);
+                }
+            }
+        }
     }
 }

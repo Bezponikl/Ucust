@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.n4d3sh1k4'
-version = '1.0-SNAPSHOT'
+version = '2.0'
 
 java {
     toolchain {
@@ -22,6 +22,7 @@ dependencies {
     api 'org.springframework:spring-webmvc'
     api 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.security:spring-security-core'
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
 }
 
 dependencyManagement {

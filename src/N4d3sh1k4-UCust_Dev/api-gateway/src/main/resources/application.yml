@@ -1,0 +1,73 @@
+server:
+  port: 8100
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    config:
+      enabled: false
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+  codec:
+    max-in-memory-size: 10MB
+
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health,info
+
+cors:
+  allowed-origins: '*'
+
+jwt:
+  secret:
+    access: ${JWT_SECRET_ACCESS:dGhpcy1pcy1hLWxvY2FsLWRldi1zZWNsLyZXQtYmFzZsLTY0LWtleQ==}
+
+admin-cookie:
+  same-site: Lax
+  secure: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.gateway.route.RouteDefinitionLocator: TRACE
+    org.springframework.security: TRACE
+    org.springframework.web.server: TRACE
+    reactor.netty.http.client: TRACE
+    reactor.netty.http.server: TRACE
+
+services:
+  security-service:
+    uri: http://localhost:8101
+  user-service:
+    uri: http://localhost:8102
+  business-service:
+    uri: http://localhost:8104
+  billing-service:
+    uri: http://localhost:8106
+  generative-orchestration-service:
+    uri: http://localhost:8107
+  dozzle:
+    uri: http://localhost:8080
+  pgadmin:
+    uri: http://localhost:9022
+
+rabbitmq:
+  admin:
+    uri: http://localhost:15673
+
+minio:
+  admin:
+    uri: http://localhost:9021
+  s3:
+    uri: http://localhost:9020

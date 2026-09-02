@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "UCust Databases",
+      "Group": "UCust",
+      "Host": "postgres-db",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "ETA_DBUser",
+      "SSLMode": "prefer"
+    }
+  }
+}

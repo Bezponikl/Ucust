@@ -22,6 +22,7 @@ spring:
 app:
   oauth2:
     redirect-uri: "https://api.ucust.n4d3sh1k4.site/api/v0/login/oauth2/code/{registrationId}"
+  frontend-url: "https://ucust.online"
   default-admin:
     email: ${DEFAULT_ADMIN_EMAIL}
     password: ${DEFAULT_ADMIN_PASSWORD}
@@ -36,7 +37,7 @@ jwt:
 
 cookie:
   secure:
-    state: false
+    state: true
 
 logging:
   level:

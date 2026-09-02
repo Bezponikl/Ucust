@@ -24,7 +24,7 @@ public class YandexAuthService {
     private final JwtProvider jwtProvider;
     private final CookieUtils cookieUtils;
 
-    public AuthServiceResult authenticateMobile(String yandexAccessToken) {
+    public AuthServiceResult authenticateMobile(String yandexAccessToken, String userAgent, String ip) {
         Map<String, Object> attributes = fetchYandexUserInfo(yandexAccessToken);
 
         String id = (String) attributes.get("id");
@@ -36,7 +36,7 @@ public class YandexAuthService {
         User user = userService.processOAuthPostLogin(AuthProvider.YANDEX, id, email.toLowerCase(), firstName, lastName, phone);
 
         String accessToken = jwtProvider.generateAccessToken(user);
-        ResponseCookie refreshTokenCookie = cookieUtils.generateRefreshTokenCookie(user, true);
+        ResponseCookie refreshTokenCookie = cookieUtils.generateRefreshTokenCookie(user, true, userAgent, ip);
 
         return new AuthServiceResult(accessToken, refreshTokenCookie.toString());
     }

@@ -73,14 +73,14 @@ public class AuthService {
 
     @Transactional
     public void registerUser(RegisterRequest req) {
-        if (userRepository.findByEmail(req.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(req.getEmail().toLowerCase()).isPresent()) {
             throw new UserAlreadyExistsException("A user with this email already exists");
         }
 
         String encodedPassword = passwordEncoder.encode(req.getPassword());
 
         User user = new User();
-        user.setEmail(req.getEmail());
+        user.setEmail(req.getEmail().toLowerCase());
         user.setPasswordHash(encodedPassword);
         user.setRoles(roleRepository.findByName("USER"));
         userRepository.save(user);
@@ -196,7 +196,7 @@ public class AuthService {
 
         return new AuthServiceResult(
                 jwtProvider.generateAccessToken(user),
-                cookieUtils.generateRefreshTokenCookie(user, req.isRememberMe()).toString()
+                cookieUtils.generateRefreshTokenCookie(user, req.isRememberMe(), userAgent, ipAddress).toString()
         );
     }
 
@@ -221,7 +221,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthServiceResult refreshToken(String refreshToken) {
+    public AuthServiceResult refreshToken(String refreshToken, String userAgent, String ip) {
         RefreshToken oldToken = refreshTokenService.findByToken(refreshToken)
             .orElseThrow(() -> new TokenNotFoundException("Refresh token not found or provided.","REFRESH_TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
 
@@ -233,9 +233,11 @@ public class AuthService {
         User user = oldToken.getUser();
         boolean rememberMe = oldToken.isRememberMe();
 
+        refreshTokenService.deleteByToken(refreshToken);
+
         return new AuthServiceResult(
                 jwtProvider.generateAccessToken(user),
-                cookieUtils.generateRefreshTokenCookie(user, rememberMe).toString()
+                cookieUtils.generateRefreshTokenCookie(user, rememberMe, userAgent, ip).toString()
         );
     }
 
@@ -281,7 +283,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthServiceResult linkSocialAccount(LinkSocialRequest request) {
+    public AuthServiceResult linkSocialAccount(LinkSocialRequest request, String userAgent, String ip) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -302,13 +304,13 @@ public class AuthService {
 
         return new AuthServiceResult(
                 jwtProvider.generateAccessToken(user),
-                cookieUtils.generateRefreshTokenCookie(user, true).toString()
+                cookieUtils.generateRefreshTokenCookie(user, true, userAgent, ip).toString()
         );
     }
 
     @Transactional
     public void initiateEmailChange(String password, Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
+        User user = userRepository.findById(UUID.fromString(authentication.getName()))
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
@@ -342,19 +344,19 @@ public class AuthService {
             throw new TokenNotFoundException("Token expired", "TOKEN_EXPIRED", HttpStatus.GONE);
         }
 
-        if (userRepository.findByEmail(newEmail).isPresent()) {
+        if (userRepository.findByEmail(newEmail.toLowerCase()).isPresent()) {
             throw new BaseException("Email already in use", "EMAIL_EXISTS", HttpStatus.CONFLICT);
         }
 
         String code = String.format("%06d", ThreadLocalRandom.current().nextInt(999999));
-        token.setNewEmail(newEmail);
+        token.setNewEmail(newEmail.toLowerCase());
         token.setCode(code);
         tokenRepository.save(token);
 
         outboxPublisher.publish("user.email.change.new",
-                new EmailChangeMessage(newEmail, tokenValue, code, token.getUser().getId()));
+                new EmailChangeMessage(newEmail.toLowerCase(), tokenValue, code, token.getUser().getId()));
 
-        log.info("New email {} set for change, code sent", newEmail);
+        log.info("New email {} set for change, code sent", newEmail.toLowerCase());
     }
 
     @Transactional

@@ -41,4 +41,10 @@ public class RefreshToken {
 
     @Column(nullable = false)
     private boolean rememberMe;
+
+    @Column(length = 512)
+    private String userAgent;
+
+    @Column(length = 45)
+    private String ip;
 }

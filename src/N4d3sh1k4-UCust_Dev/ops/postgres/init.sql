@@ -1,0 +1,5 @@
+CREATE DATABASE user_service_db;
+CREATE DATABASE business_service_db;
+CREATE DATABASE security_service_db;
+CREATE DATABASE billing_service_db;
+CREATE DATABASE generative_orchestration_service_db;

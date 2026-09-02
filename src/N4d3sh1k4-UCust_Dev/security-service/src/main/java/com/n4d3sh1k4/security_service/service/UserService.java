@@ -28,7 +28,7 @@ public class UserService {
         return userIdentityRepository.findByProviderAndProviderUserId(provider, providerUserId)
                 .map(UserIdentity::getUser)
                 .orElseGet(() -> {
-                    if (userRepository.findByEmail(email).isPresent()) {
+                    if (userRepository.findByEmail(email.toLowerCase()).isPresent()) {
                         throw new OAuthEmailAlreadyExistsException(email, provider, providerUserId);
                     }
 

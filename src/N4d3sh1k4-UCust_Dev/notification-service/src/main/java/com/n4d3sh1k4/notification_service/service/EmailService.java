@@ -75,7 +75,7 @@ public class EmailService {
 
         String htmlContent = templateEngine.process("login-email", context);
 
-        //sendHtmlEmail(to, "Новый вход в аккаунт", htmlContent);
+        sendHtmlEmail(to, "Новый вход в аккаунт", htmlContent);
         log.info("Login notification email sent to {}", to);
     }
 
@@ -113,7 +113,9 @@ public class EmailService {
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
-        } catch (MessagingException _) {
+        } catch (MessagingException e) {
+            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
+            throw new RuntimeException("Email sending failed", e);
         }
     }
 }

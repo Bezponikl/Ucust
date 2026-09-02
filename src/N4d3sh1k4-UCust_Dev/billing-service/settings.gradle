@@ -1,1 +1,4 @@
-rootProject.name = 'billing-service'
+rootProject.name = "billing-service"
+
+include ':common'
+project(':common').projectDir = new File('../common')

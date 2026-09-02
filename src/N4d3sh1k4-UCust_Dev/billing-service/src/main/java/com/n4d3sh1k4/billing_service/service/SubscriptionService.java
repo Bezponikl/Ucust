@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -42,7 +42,7 @@ public class SubscriptionService {
                 .userId(userId)
                 .tariffId(freeTariff.getId())
                 .startDate(Instant.now())
-                .nextResetDate(Instant.now().plus(1, ChronoUnit.MONTHS))
+                .nextResetDate(Instant.now().atZone(ZoneOffset.UTC).plusMonths(1).toInstant())
                 .paid(true)
                 .build();
 
@@ -60,7 +60,7 @@ public class SubscriptionService {
         subscription.setUserId(userId);
         subscription.setTariffId(tariff.getId());
         subscription.setStartDate(Instant.now());
-        subscription.setNextResetDate(Instant.now().plus(1, ChronoUnit.MONTHS));
+        subscription.setNextResetDate(Instant.now().atZone(ZoneOffset.UTC).plusMonths(1).toInstant());
         subscription.setPaid(true);
         subscriptionRepository.save(subscription);
 
@@ -84,7 +84,7 @@ public class SubscriptionService {
         subscription.setUserId(userId);
         subscription.setTariffId(tariff.getId());
         subscription.setStartDate(Instant.now());
-        subscription.setNextResetDate(Instant.now().plus(1, ChronoUnit.MONTHS));
+        subscription.setNextResetDate(Instant.now().atZone(ZoneOffset.UTC).plusMonths(1).toInstant());
         subscription.setPaid(true);
         subscriptionRepository.save(subscription);
 

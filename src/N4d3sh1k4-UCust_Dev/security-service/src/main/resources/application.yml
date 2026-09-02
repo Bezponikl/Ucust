@@ -12,7 +12,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
   rabbitmq:
     host: 127.0.0.1
     port: 5680
@@ -28,6 +28,7 @@ spring:
 app:
   oauth2:
     redirect-uri: "http://localhost:8100/api/v0/login/oauth2/code/{registrationId}"
+  frontend-url: "http://localhost:3000"
   default-admin:
     email: ${DEFAULT_ADMIN_EMAIL:admin@email.nl}
     password: ${DEFAULT_ADMIN_PASSWORD:123456nl}
@@ -46,8 +47,6 @@ cookie:
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     root: INFO
     org.springframework.web: DEBUG
     org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG

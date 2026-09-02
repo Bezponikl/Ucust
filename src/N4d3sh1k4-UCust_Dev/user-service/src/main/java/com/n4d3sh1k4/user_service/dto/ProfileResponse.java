@@ -12,6 +12,9 @@ public record ProfileResponse(
     @Schema(description = "Имя", example = "Олег")
     String firstName,
 
+    @Schema(description = "Отчество", example = "Сергеевич")
+    String middleName,
+
     @Schema(description = "Фамилия", example = "Иванов")
     String lastName,
 

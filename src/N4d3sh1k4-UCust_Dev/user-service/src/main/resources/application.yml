@@ -24,6 +24,12 @@ spring:
     listener:
       simple:
         default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2.0
+          max-interval: 10s
     template:
       retry:
         enabled: true
@@ -39,5 +45,5 @@ minio:
   secret-key: ${MINIO_SECRET_KEY:password123}
   bucket: user-service
   base:
-    path: http://localhost:9020/user-service/
+    path: http://localhost:8100/s3/user-service/
     avatar: b84e7c4a19b762c769541cd557e97f7f.png

@@ -28,6 +28,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
+import java.util.UUID;
 
 @Tag(name="Авторизация", description = "всё про авторизацию")
 @RestController
@@ -37,11 +39,13 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final AuthService authService;
     private final YandexAuthService  yandexAuthService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthController(AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, UserRepository userRepository, UserDetailsServiceImpl userDetailsService, JwtProvider jwtProvider, UserDetailsServiceImpl userDetailsServiceImpl, PasswordEncoder passwordEncoder, RoleRepository roleRepository, CookieUtils cookieUtils, AuthService authService, YandexAuthService yandexAuthService) {
         this.authenticationManager = authenticationManager;
         this.authService = authService;
         this.yandexAuthService = yandexAuthService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Operation(summary = "Регистрация пользователей", description = "Позволяет добавить пользователя в систему. После регистрации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
@@ -86,11 +90,17 @@ public class AuthController {
 
     @Operation(summary = "Обновление refresh токена авторизации", description = "Позволяет фронту обновить refresh токен пользователя без необходимости повторного входа а аккаунт по истечению времени пребывания авторизованным.")
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
+    public ResponseEntity<?> refresh(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletRequest request) {
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        AuthServiceResult result = authService.refreshToken(refreshToken);
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) {
+            ip = request.getRemoteAddr();
+        }
+        String userAgent = request.getHeader("User-Agent");
+
+        AuthServiceResult result = authService.refreshToken(refreshToken, userAgent, ip);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
                 .body(new JwtResponse(result.getAccesToken()));
@@ -98,13 +108,13 @@ public class AuthController {
 
     @Operation(summary = "Выход пользователя из аккаунта", description = "Позволяет пользователю обнулить текущую сессию. Удаляет токен из куки.")
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@CookieValue(name = "refreshToken", required = false) String refreshToken, Principal principal) {
+    public ResponseEntity<Void> logout(@CookieValue(name = "refreshToken", required = false) String refreshToken, Principal principal) {
         String userId = principal.getName();
         AuthServiceResult result = authService.logoutUser(userId, refreshToken);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
-                .body("Logged out successfully");
+                .build();
     }
 
     @Operation(summary = "Смена/Восстановление пароля Шаг 1", description = "Принимает почту пользователя и отправляет на неё письмо для восстановления пароля.")
@@ -124,8 +134,14 @@ public class AuthController {
     @Operation(summary = "Авторизация через Яндекс (мобильное приложение)",
                description = "Принимает access token от Яндекс OAuth и возвращает JWT токены.")
     @PostMapping("/yandex-mobile")
-    public ResponseEntity<?> yandexMobile(@RequestBody YandexMobileTokenRequest request) {
-        AuthServiceResult result = yandexAuthService.authenticateMobile(request.getAccessToken());
+    public ResponseEntity<?> yandexMobile(@RequestBody YandexMobileTokenRequest request, HttpServletRequest httpRequest) {
+        String ip = httpRequest.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) {
+            ip = httpRequest.getRemoteAddr();
+        }
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        AuthServiceResult result = yandexAuthService.authenticateMobile(request.getAccessToken(), userAgent, ip);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
@@ -134,8 +150,14 @@ public class AuthController {
 
     @Operation(summary = "Привязка соцсети", description = "Привязывает соцсеть к аккаунту после ввода пароля.")
     @PostMapping("/link-social")
-    public ResponseEntity<?> linkSocial(@Valid @RequestBody LinkSocialRequest request) {
-        AuthServiceResult result = authService.linkSocialAccount(request);
+    public ResponseEntity<?> linkSocial(@Valid @RequestBody LinkSocialRequest request, HttpServletRequest httpRequest) {
+        String ip = httpRequest.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) {
+            ip = httpRequest.getRemoteAddr();
+        }
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        AuthServiceResult result = authService.linkSocialAccount(request, userAgent, ip);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
                 .body(new JwtResponse(result.getAccesToken()));
@@ -160,5 +182,48 @@ public class AuthController {
     public ResponseEntity<?> confirmEmailChange(@Valid @RequestBody ConfirmEmailChangeRequest request) {
         authService.confirmEmailChange(request.getToken(), request.getCode());
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Список активных сессий", description = "Возвращает все активные сессии текущего пользователя")
+    @GetMapping("/sessions")
+    public ResponseEntity<List<SessionResponse>> getSessions(
+            @CookieValue(name = "refreshToken", required = false) String currentRefreshToken,
+            Principal principal) {
+        UUID userId = UUID.fromString(principal.getName());
+        List<SessionResponse> sessions = refreshTokenService.findAllByUserId(userId).stream()
+                .map(token -> new SessionResponse(
+                        token.getId(),
+                        token.getIp(),
+                        token.getUserAgent(),
+                        token.getCreatedAt() != null ? token.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant() : null,
+                        token.getExpiryDate(),
+                        token.isRememberMe(),
+                        token.getToken().equals(currentRefreshToken)
+                ))
+                .toList();
+        return ResponseEntity.ok(sessions);
+    }
+
+    @Operation(summary = "Завершить сессию", description = "Завершает конкретную сессию по ID")
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable UUID sessionId,
+            @CookieValue(name = "refreshToken", required = false) String currentRefreshToken,
+            Principal principal) {
+        UUID userId = UUID.fromString(principal.getName());
+        refreshTokenService.deleteSessionById(userId, sessionId, currentRefreshToken);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Завершить все сессии кроме текущей", description = "Вы logout из всех устройств кроме текущего")
+    @DeleteMapping("/sessions")
+    public ResponseEntity<Void> deleteAllSessions(
+            @CookieValue(name = "refreshToken", required = false) String currentRefreshToken,
+            Principal principal) {
+        UUID userId = UUID.fromString(principal.getName());
+        if (currentRefreshToken != null) {
+            refreshTokenService.deleteByUserIdExceptToken(userId, currentRefreshToken);
+        }
+        return ResponseEntity.noContent().build();
     }
 }

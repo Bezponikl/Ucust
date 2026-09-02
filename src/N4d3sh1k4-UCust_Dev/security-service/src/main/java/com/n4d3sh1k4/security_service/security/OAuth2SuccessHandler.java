@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -30,6 +31,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final CookieUtils cookieUtils;
     private final UserService userService;
 
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationSuccess(@NonNull HttpServletRequest request,
                                         @NonNull HttpServletResponse response,
@@ -48,7 +52,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         if (email == null || email.isBlank()) {
             log.error("OAuth2 login failed: Provider {} did not return an email", provider);
-            response.sendRedirect("http://localhost:3000/login?error=email_not_found");
+            response.sendRedirect(frontendUrl + "/login?error=email_not_found");
             return;
         }
 
@@ -62,17 +66,23 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         try {
             User user = userService.processOAuthPostLogin(provider, providerUserId, email, firstName, lastName, phone);
 
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isBlank()) {
+                ip = request.getRemoteAddr();
+            }
+            String userAgent = request.getHeader("User-Agent");
+
             String accessToken = jwtProvider.generateAccessToken(user);
-            ResponseCookie refreshTokenCookie = cookieUtils.generateRefreshTokenCookie(user, true);
+            ResponseCookie refreshTokenCookie = cookieUtils.generateRefreshTokenCookie(user, true, userAgent, ip);
 
             response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 
-            String targetUrl = "http://localhost:3000/oauth-callback?token=" + accessToken;
+            String targetUrl = frontendUrl + "/oauth-callback?token=" + accessToken;
             response.sendRedirect(targetUrl);
 
         } catch (OAuthEmailAlreadyExistsException e) {
             log.warn("OAuth2 collision: Email {} is already registered via another method", e.getEmail());
-            String targetUrl = String.format("http://localhost:3000/login?error=email_exists_link_required&email=%s&provider=%s&providerUserId=%s",
+            String targetUrl = String.format(frontendUrl + "/login?error=email_exists_link_required&email=%s&provider=%s&providerUserId=%s",
                     e.getEmail(), e.getProvider().name(), e.getProviderUserId());
             response.sendRedirect(targetUrl);
         }

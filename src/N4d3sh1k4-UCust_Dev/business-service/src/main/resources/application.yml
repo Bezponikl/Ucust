@@ -13,6 +13,12 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5680
+    username: ${RABBITMQ_USER:service-user}
+    password: ${RABBITMQ_PASS:servicepassword}
+    virtual-host: universal-host
 
 server:
   port: 8104
@@ -26,5 +32,5 @@ minio:
   secret-key: ${MINIO_SECRET_KEY:bus-strong-pass}
   bucket: business-service
   default:
-    path: http://localhost:9020/business-service/
+    path: http://localhost:8100/s3/business-service/
     logo: b84e7c4a19b762c769541cd557e97f7f.png

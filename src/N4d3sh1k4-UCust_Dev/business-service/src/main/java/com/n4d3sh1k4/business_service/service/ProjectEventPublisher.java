@@ -3,17 +3,25 @@ package com.n4d3sh1k4.business_service.service;
 import com.n4d3sh1k4.common.dto.ProjectCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class ProjectEventPublisher {
 
-    private final OutboxPublisher outboxPublisher;
+    private static final String EXCHANGE = "user-exchange";
+    private static final String ROUTING_KEY = "project.created";
+
+    private final RabbitTemplate rabbitTemplate;
 
     public void projectCreated(ProjectCreatedEvent event) {
-        log.info("Storing project.created event for project {}", event.projectId());
-        outboxPublisher.publish("project.created", event);
+        try {
+            rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, event);
+        } catch (Exception e) {
+            log.error("Failed to publish project.created event for project {}: {}",
+                    event.projectId(), e.getMessage());
+        }
     }
 }

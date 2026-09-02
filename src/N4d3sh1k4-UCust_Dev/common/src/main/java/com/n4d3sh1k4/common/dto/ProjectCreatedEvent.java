@@ -1,5 +1,6 @@
 package com.n4d3sh1k4.common.dto;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 public record ProjectCreatedEvent(
@@ -11,4 +12,4 @@ public record ProjectCreatedEvent(
         String toneOfVoice,
         String city,
         int postCount
-) {}
+) implements Serializable {}

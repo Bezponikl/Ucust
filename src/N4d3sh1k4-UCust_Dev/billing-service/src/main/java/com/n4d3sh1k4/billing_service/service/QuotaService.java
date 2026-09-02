@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -102,7 +102,7 @@ public class QuotaService {
     private Instant rollForward(Instant nextResetDate, Instant now) {
         Instant next = nextResetDate;
         while (!next.isAfter(now)) {
-            next = next.plus(1, ChronoUnit.MONTHS);
+            next = next.atZone(ZoneOffset.UTC).plusMonths(1).toInstant();
         }
         return next;
     }
@@ -133,7 +133,7 @@ public class QuotaService {
                 .userId(userId)
                 .tariffId(freeTariff.getId())
                 .startDate(Instant.now())
-                .nextResetDate(Instant.now().plus(1, ChronoUnit.MONTHS))
+                .nextResetDate(Instant.now().atZone(ZoneOffset.UTC).plusMonths(1).toInstant())
                 .paid(true)
                 .build();
         subscriptionRepository.save(subscription);

@@ -457,20 +457,31 @@ class SaigaLLMSkill:
                 "hashtags": "#ресторан #вкуснаяеда #гастрономия #шефповар #ужин"
             }
 
-        # 3.2. Кофейни, пекарни, бариста
-        elif any(w in full_text_search for w in ["кофе", "латте", "капучино", "десерт", "выпечк", "пекарн", "барист", "круассан"]):
-            lead = f"Идеальный утренний ритуал в «{company_name}» ☕"
-            body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
-                f"Мы тщательно подобрали зерно свежей обжарки и настроили экстракцию, чтобы каждый глоток дарил вам заряд вдохновения и сил на весь день.\n\n"
-                f"Добавьте к этому свежий хрустящий десерт — и день точно сложится удачно!{comments_phrase}"
-            )
-            cta = "Заглядывайте к нам за чашкой любимого напитка! А какой кофе вы пьёте по утрам? Напишите в комментариях ☕" if has_comments else "Ждём вас на чашку ароматного кофе каждый день! ☕✨"
+        # 3.2. Кофейни, пекарни, кондитерские, десерты
+        elif any(w in full_text_search for w in ["кофе", "латте", "капучино", "десерт", "выпечк", "пекарн", "барист", "круассан", "торт", "чизкейк", "тирамису", "шоколад"]):
+            from skills.object_storytelling import ObjectKnowledgeStoryteller
+            obj_fact = ObjectKnowledgeStoryteller.find_curated_fact(f"{topic_clean} {niche}")
+            
+            lead = f"Искусство вкуса и атмосфера уюта в «{company_name}» 🍰✨"
+            if obj_fact:
+                body = (
+                    f"{topic_clean}.{visual_phrase}\n\n"
+                    f"📖 <b>История и происхождение:</b> {obj_fact['origin_story']}\n\n"
+                    f"💡 <b>Секрет рецепта:</b> {obj_fact['fun_fact']}\n\n"
+                    f"✨ {obj_fact['sensory_hook']}{comments_phrase}"
+                )
+            else:
+                body = (
+                    f"{topic_clean}.{visual_phrase}\n\n"
+                    f"Мы готовим каждый десерт и напиток по выверенным рецептурам из 100% натуральных ингредиентов.\n\n"
+                    f"Свежая выпечка, тающие кремы и чашка ароматного кофе — идеальный повод сделать паузу и порадовать себя!{comments_phrase}"
+                )
+            cta = "Заглядывайте к нам на чашку любимого напитка и десерт! А что выбираете вы? Напишите в комментариях 🍰👇" if has_comments else "Ждём вас на свежие десерты и кофе каждый день! ☕✨"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Cinematic atmospheric coffee storytelling photograph. A smiling friendly barista leaning over a rustic wooden counter, gently handing a steaming ceramic cup of cappuccino with delicate latte art directly toward the viewer at golden morning hour. Soft warm sunlight streaming through large cafe windows with floating dust motes, cozy welcoming cafe atmosphere, authentic heartfelt UGC lifestyle.",
-                "hashtags": "#кофе #кофейня #латтеарт #доброеутро #кофеман"
+                "visual_prompt": "Cinematic atmospheric dessert storytelling photograph. A beautiful artisan pastry freshly plated on handcrafted ceramic plate in a warm sunlit cafe. Soft powdered sugar glistening, delicate mint leaf garnish, golden morning sunlight, rich textures, 35mm shallow depth of field.",
+                "hashtags": "#десерты #кондитерская #кофе #выпечка #сладости"
             }
 
         # 3.3. Beauty / Салоны красоты / Барбершопы / Косметология

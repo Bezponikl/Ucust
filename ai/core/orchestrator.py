@@ -4,6 +4,7 @@ import uuid
 import json
 import time
 import hashlib
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from storage.models import UserProfile, OrchestratorTrace, PublicationHistory, ProjectMetadata, ContentTask
 
@@ -526,10 +527,25 @@ class UnifiedOrchestrator:
             comments = user_data.get("comments", [])
             views = user_data.get("views", 0)
             likes = user_data.get("likes", 0)
+            dislikes = user_data.get("dislikes", 0)
             shares = user_data.get("shares", 0)
+            other_reactions = user_data.get("other_reactions", 0)
             comments_count = len(comments) if comments else user_data.get("comments_count", 0)
             
-            er = engine.calculate_engagement_rate(views, likes, comments_count, shares)
+            # Расчет позитивности, чистого одобрения (NAI), взвешенного WPR и логарифмического Score
+            positivity = engine.calculate_positivity_metrics(
+                views=views,
+                likes=likes,
+                dislikes=dislikes,
+                comments=comments_count,
+                shares=shares,
+                other_reactions=other_reactions
+            )
+            er = positivity["engagement_rate"]
+            nai = positivity["net_approval_index"]
+            wpr = positivity["weighted_positivity_rate"]
+            score = positivity["log_positivity_score"]
+            grade = positivity["grade"]
             analysis = engine.analyze_comments(comments)
             
             # Сохранение в SQL (PublicationHistory & UserProfile)
@@ -539,13 +555,18 @@ class UnifiedOrchestrator:
                     if pub:
                         pub.views_count = views
                         pub.likes_count = likes
+                        pub.dislikes_count = dislikes
                         pub.comments_count = comments_count
                         pub.shares_count = shares
                         pub.engagement_rate = er
+                        pub.net_approval_index = nai
+                        pub.weighted_positivity_rate = wpr
+                        pub.log_positivity_score = score
+                        pub.positivity_grade = grade
                         pub.comments_analysis = analysis
                         pub.last_monitored_at = datetime.utcnow()
                         self.db.commit()
-                        print(f"[UnifiedOrchestrator] 📊 Метрики публикации #{publication_id} сохранены (ER: {er}%, Комментариев: {comments_count}).")
+                        print(f"[UnifiedOrchestrator] 📊 Метрики публикации #{publication_id} сохранены (Score: {score}, NAI: {nai}, WPR: {wpr}%, ER: {er}%).")
                 except Exception as sql_e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения метрик в SQL: {sql_e}")
             
@@ -575,11 +596,16 @@ class UnifiedOrchestrator:
 
             self._log_trace(session_id, "FeedbackLoopEngine", "FeedbackProcessed", {
                 "er": er,
+                "net_approval_index": nai,
+                "weighted_positivity_rate": wpr,
+                "log_positivity_score": score,
+                "grade": grade,
                 "objections": analysis.get("top_objections"),
                 "questions": analysis.get("top_questions")
             })
             return {
                 "status": "success",
+                "positivity_metrics": positivity,
                 "engagement_rate": er,
                 "comments_analysis": analysis,
                 "rag_indexed_count": indexed_count,

@@ -82,12 +82,17 @@ class PublicationHistory(Base):
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     extra_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
 
-    # Метрики вовлеченности (Engagement & Feedback)
+    # Метрики вовлеченности и позитивности (Engagement & Positivity Rate)
     views_count: Mapped[int] = mapped_column(Integer, default=0)
     likes_count: Mapped[int] = mapped_column(Integer, default=0)
+    dislikes_count: Mapped[int] = mapped_column(Integer, default=0)
     comments_count: Mapped[int] = mapped_column(Integer, default=0)
     shares_count: Mapped[int] = mapped_column(Integer, default=0)
     engagement_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    net_approval_index: Mapped[float] = mapped_column(Float, default=1.0)
+    weighted_positivity_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    log_positivity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    positivity_grade: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, default="NEW")
 
     # Семантический анализ комментариев и реакций
     comments_analysis: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)

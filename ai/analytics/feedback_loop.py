@@ -7,6 +7,7 @@ Feedback Loop & Audience Response Engine for UCust.AI.
 from __future__ import annotations
 
 import re
+import math
 import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
@@ -16,8 +17,8 @@ logger = logging.getLogger("feedback_loop")
 
 class FeedbackLoopEngine:
     """
-    Движок замкнутого цикла обратной связи:
-    1. Расчет вовлеченности (ER) и ранжирование постов.
+    Движок замкнутого цикла обратной связи и самообучения:
+    1. Расчет вовлеченности (ER) и позитивности аудитории (NAI, WPR, Log Score).
     2. Семантический анализ комментариев: извлечение болей, вопросов и возражений.
     3. Синхронизация инсайтов аудитории в RAG и SQL.
     4. Автоматическая адаптация будущих контент-планов.
@@ -42,6 +43,82 @@ class FeedbackLoopEngine:
 
     def __init__(self):
         pass
+
+    @classmethod
+    def calculate_positivity_metrics(
+        cls,
+        views: int,
+        likes: int,
+        dislikes: int = 0,
+        comments: int = 0,
+        shares: int = 0,
+        other_reactions: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Математический расчет качества восприятия (позитивности) поста:
+        1. NAI (Net Approval Index) — Индекс чистого одобрения [0.0 ... 1.0]:
+           NAI = L / (L + D + 1)
+        2. WPR (Weighted Positivity Rate) — Взвешенная позитивность на просмотр (%):
+           WPR = ((1.0 * L + 1.5 * R - 2.0 * D) / max(V, 1)) * 100
+        3. Logarithmic Positivity Score — Логарифмический масштабированный балл:
+           Score = log10(V + 1) * ((1.0 * L + 1.5 * R + 1) / (1.0 * D + 1))
+        """
+        V = max(0, int(views))
+        L = max(0, int(likes))
+        D = max(0, int(dislikes))
+        # R — суммарные реакции более глубокого вовлечения (комментарии + репосты + кастомные эмодзи)
+        R = max(0, int(comments) + int(shares) + int(other_reactions))
+
+        # 1. Индекс чистого одобрения (Net Approval Index)
+        nai = float(L) / float(L + D + 1)
+        nai_rounded = round(nai, 4)
+
+        # 2. Взвешенный расчет с просмотрами (Weighted Positivity Rate в %)
+        safe_v = max(V, 1)
+        wpr = ((1.0 * L + 1.5 * R - 2.0 * D) / safe_v) * 100.0
+        wpr_rounded = round(wpr, 2)
+
+        # 3. Логарифмический масштабированный балл (Logarithmic Positivity Score)
+        log_views = math.log10(V + 1)
+        positivity_multiplier = (1.0 * L + 1.5 * R + 1.0) / (1.0 * D + 1.0)
+        score = log_views * positivity_multiplier
+        score_rounded = round(score, 2)
+
+        # 4. Категоризация и грейд успешности поста
+        if V < 20:
+            grade = "INITIAL_REACH"
+            sentiment_summary = "Стартовый охват (мало данных)"
+        elif score >= 100.0 and nai >= 0.85:
+            grade = "VIRAL_POSITIVE"
+            sentiment_summary = "🔥 Вирусный хит с максимальным одобрением"
+        elif score >= 20.0 and nai >= 0.70:
+            grade = "HIGH_POSITIVE"
+            sentiment_summary = "⭐ Высокий устойчивый позитив аудитории"
+        elif score >= 5.0 and nai >= 0.50:
+            grade = "MODERATE_POSITIVE"
+            sentiment_summary = "👍 Умеренно-позитивный отклик"
+        elif D > L or nai < 0.40:
+            grade = "NEGATIVE_OUTFLOW"
+            sentiment_summary = "⚠️ Преобладание негатива / Требуется реакция"
+        else:
+            grade = "CONTROVERSIAL"
+            sentiment_summary = "⚡ Спорный контент (высокий уровень дизлайков)"
+
+        # Взвешенный ER для совместимости
+        er = cls.calculate_engagement_rate(views=V, likes=L, comments=int(comments), shares=int(shares))
+
+        return {
+            "views": V,
+            "likes": L,
+            "dislikes": D,
+            "reactions": R,
+            "net_approval_index": nai_rounded,
+            "weighted_positivity_rate": wpr_rounded,
+            "log_positivity_score": score_rounded,
+            "engagement_rate": er,
+            "grade": grade,
+            "summary": sentiment_summary
+        }
 
     @classmethod
     def calculate_engagement_rate(cls, views: int, likes: int, comments: int, shares: int) -> float:
@@ -158,18 +235,18 @@ class FeedbackLoopEngine:
                 metadata={"category": "audience_feedback", "company_name": company_name}
             ))
 
-        # 2. Документ с лучшими темами и форматами с высоким ER
+        # 2. Документ с лучшими темами и форматами с высоким Score и одобрением (NAI)
         if top_performing_topics:
             hooks_lines = [
-                f"- «{t.get('topic', '')}» (Формат: {t.get('format', 'Пост')}, ER: {t.get('er', 0.0)}%)"
+                f"- «{t.get('topic', '')}» (Формат: {t.get('format', 'Пост')}, Positivity Score: {t.get('log_positivity_score', t.get('score', 0.0))}, Одобрение NAI: {t.get('net_approval_index', t.get('nai', 1.0))}, ER: {t.get('er', 0.0)}%)"
                 for t in top_performing_topics[:5]
             ]
             docs_to_ingest.append(Document(
                 doc_id=f"high_performing_hooks_{company_name}",
                 text=(
-                    f"Самые результативные публикации и форматы {company_name} с максимальным откликом аудитории:\n"
+                    f"Самые результативные и позитивно воспринятые публикации {company_name} с максимальным одобрением:\n"
                     + "\n".join(hooks_lines) + "\n"
-                    f"Рекомендация: масштабировать подобные структуры постов и хуки в контент-плане."
+                    f"Рекомендация: масштабировать подобные структуры постов, формулы хуков и офферы в контент-плане."
                 ),
                 metadata={"category": "high_performing_hooks", "company_name": company_name}
             ))
@@ -188,24 +265,38 @@ class FeedbackLoopEngine:
     ) -> Dict[str, Any]:
         """
         Генерирует конкретные рекомендации по адаптации контент-стратегии:
-        - Какие форматы усилить
+        - Ранжирование по логарифмическому баллу позитивности (Log Positivity Score)
+        - Выявление спорных и негативных тем для отработки
+        - Какие форматы масштабировать
         - Какие темы добавить для закрытия болей
         """
-        high_er_posts = sorted(
-            [p for p in history_records if p.get("er", 0) > 0],
-            key=lambda x: x.get("er", 0),
+        # Сортируем по логарифмическому баллу позитивности и вовлеченности
+        high_performing_posts = sorted(
+            history_records,
+            key=lambda x: (x.get("log_positivity_score", 0.0), x.get("er", 0.0)),
             reverse=True
         )[:3]
+
+        controversial_posts = [
+            p for p in history_records 
+            if (p.get("dislikes_count", 0) > 0 or p.get("net_approval_index", 1.0) < 0.6)
+        ]
 
         objections = comments_insights.get("top_objections", [])
         questions = comments_insights.get("top_questions", [])
 
         actionable_recommendations = []
 
-        if high_er_posts:
-            best = high_er_posts[0]
+        if high_performing_posts:
+            best = high_performing_posts[0]
             actionable_recommendations.append(
-                f"Увеличить частоту формата '{best.get('format', 'Кейс')}' — он показал максимальную вовлеченность (ER: {best.get('er', 0)}%)."
+                f"Масштабировать формат '{best.get('format', 'Пост')}' — он показал рекордный балл позитивности (Score: {best.get('log_positivity_score', 0)}, NAI: {best.get('net_approval_index', 1.0)})."
+            )
+
+        if controversial_posts:
+            worst = controversial_posts[0]
+            actionable_recommendations.append(
+                f"Отработать критику к теме «{worst.get('topic', 'Прошлая публикация')}» (NAI: {worst.get('net_approval_index', 0.5)}) через экспертный пост с фактами и гарантиями."
             )
 
         if objections:
@@ -220,9 +311,10 @@ class FeedbackLoopEngine:
 
         return {
             "status": "success",
-            "top_performing_posts": high_er_posts,
+            "top_performing_posts": high_performing_posts,
+            "controversial_posts": controversial_posts,
             "identified_objections": objections,
             "identified_questions": questions,
             "recommendations": actionable_recommendations,
-            "summary": f"Стратегия адаптирована: выявлено {len(objections)} возражений, {len(questions)} частых вопросов и {len(high_er_posts)} топ-форматов."
+            "summary": f"Стратегия адаптирована: выявлено {len(objections)} возражений, {len(questions)} частых вопросов и {len(high_performing_posts)} топ-публикаций."
         }

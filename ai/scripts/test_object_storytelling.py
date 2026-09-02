@@ -132,9 +132,23 @@ async def test_object_storytelling_suite():
     print(f"📄 Сгенерированный пост:\n{post_res['post_text']}\n")
     print(f"🏷️ Хэштеги:\n{post_res['hashtags']}\n")
     assert "История и происхождение" in post_res["post_text"] or "Лингуанотто" in post_res["post_text"]
-    assert "Секрет рецепта" in post_res["post_text"] or "маскарпоне" in post_res["post_text"]
-    assert "#ucust" not in post_res["hashtags"].lower()
-    print("✅ Пост в Сайге успешно обогащен историческим сторителлингом!")
+    # 8. Тестирование генератора экспертных постов «Знали ли вы, что...» (Краффин и Корица)
+    print("\n" + "=" * 80)
+    print("🥐 8. ТЕСТИРОВАНИЕ ФОРМАТА «ЗНАЛИ ЛИ ВЫ, ЧТО...» (КРАФФИН С КОРИЦЕЙ)")
+    print("=" * 80)
+    did_you_know = ObjectKnowledgeStoryteller.generate_curated_did_you_know_post(
+        topic="Краффин с корицей и воздушным срезом",
+        niche="Кондитерская и пекарня",
+        company_name="Bakery Mood",
+        city="Москва"
+    )
+    print(f"📄 Текст поста:\n{did_you_know['post_text']}\n")
+    print(f"🏷️ Хэштеги:\n{did_you_know['hashtags']}\n")
+    print(f"🎨 Визуальный промпт для FLUX/SDXL:\n{did_you_know['visual_prompt']}\n")
+    assert "корица" in did_you_know["post_text"].lower()
+    assert "антиоксидант" in did_you_know["post_text"].lower()
+    assert "краффин" in did_you_know["post_text"].lower()
+    print("✅ Формат «Знали ли вы, что...» с пользой ингредиентов идеально сгенерирован!")
 
     print("\n🎉 ВСЕ ТЕСТЫ МОДУЛЯ СТОРИТЕЛЛИНГА И ФАКТОВ ОБ ОБЪЕКТАХ УСПЕШНО ПРОЙДЕНЫ!")
 

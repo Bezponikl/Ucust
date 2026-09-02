@@ -526,20 +526,23 @@ class UnifiedOrchestrator:
             publication_id = user_data.get("publication_id")
             comments = user_data.get("comments", [])
             views = user_data.get("views", 0)
-            likes = user_data.get("likes", 0)
             dislikes = user_data.get("dislikes", 0)
             shares = user_data.get("shares", 0)
             other_reactions = user_data.get("other_reactions", 0)
+            platform = user_data.get("platform", "telegram")
+            raw_reactions = user_data.get("reactions") or user_data.get("reactions_breakdown")
             comments_count = len(comments) if comments else user_data.get("comments_count", 0)
             
-            # Расчет позитивности, чистого одобрения (NAI), взвешенного WPR и логарифмического Score
+            # Расчет позитивности, чистого одобрения (NAI), взвешенного WPR и логарифмического Score с учетом мультиплатформенных реакций
             positivity = engine.calculate_positivity_metrics(
                 views=views,
                 likes=likes,
                 dislikes=dislikes,
                 comments=comments_count,
                 shares=shares,
-                other_reactions=other_reactions
+                other_reactions=other_reactions,
+                platform=platform,
+                raw_reactions=raw_reactions
             )
             er = positivity["engagement_rate"]
             nai = positivity["net_approval_index"]

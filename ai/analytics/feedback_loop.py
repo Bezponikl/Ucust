@@ -41,8 +41,128 @@ class FeedbackLoopEngine:
         (r"(?i)рассрочк[а-я]*|кредит|оплат[а-я]*\s*частями|безнал", "Условия оплаты и рассрочки")
     ]
 
+    # Справочники реакций и эмодзи по соцсетям
+    EMOJI_POSITIVE_SET = {
+        '👍', '❤️', '🔥', '🎉', '🤩', '🥰', '👏', '💯', '⚡', '🤝', '🏆',
+        '😍', '🚀', '👌', '💪', '✨', '💐', '💎', '🎯', '🙌', '🌟', '💖',
+        'like', 'super', 'love', 'fire', 'heart', 'applause', 'celebrate'
+    }
+    EMOJI_NEGATIVE_SET = {
+        '👎', '💩', '🤮', '😡', '🤬', '🥱', '💔', '🤡', '🤦', '🖕', '🤢',
+        'dislike', 'hate', 'angry', 'trash', 'frown', 'bad', 'crap'
+    }
+    EMOJI_AMUSED_NEUTRAL_SET = {
+        '🤔', '😱', '🤯', '👀', '🤷', '🤨', '😂', '🤣', '😆', '😄',
+        'funny', 'laugh', 'wow', 'sad'
+    }
+
     def __init__(self):
         pass
+
+    @classmethod
+    def parse_social_reactions(
+        cls,
+        platform: str,
+        raw_metrics: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Универсальный парсер реакций и кастомных эмодзи для любых соцсетей:
+        Telegram, VK, Instagram, TikTok, YouTube, MAX.
+        
+        Принимает:
+        - raw_metrics со словарем эмодзи: {"👍": 150, "🔥": 80, "👎": 4, "custom_fire": 12, "💩": 1}
+        - Либо стандартные поля: {"likes": 1200, "dislikes": 5, "comments": 45, "shares": 30, "saves": 70}
+        - Либо смешанный формат с кастомными эмодзи.
+        """
+        p_lower = (platform or "telegram").lower()
+        
+        likes = int(raw_metrics.get("likes", 0) or raw_metrics.get("like", 0))
+        dislikes = int(raw_metrics.get("dislikes", 0) or raw_metrics.get("dislike", 0))
+        comments = int(raw_metrics.get("comments", 0) or raw_metrics.get("comment", 0))
+        shares = int(raw_metrics.get("shares", 0) or raw_metrics.get("reposts", 0) or raw_metrics.get("share", 0))
+        saves = int(raw_metrics.get("saves", 0) or raw_metrics.get("bookmarks", 0) or raw_metrics.get("favorites", 0))
+        
+        custom_positives = 0
+        custom_negatives = 0
+        custom_neutral = 0
+
+        breakdown = {
+            "platform": platform,
+            "positive_emojis": {},
+            "negative_emojis": {},
+            "neutral_emojis": {},
+            "custom_emojis": {},
+            "high_intent_actions": {"saves": saves, "shares": shares, "comments": comments}
+        }
+
+        # 1. Извлечение словаря реакций (если передан словарь эмодзи или поле reactions)
+        reactions_dict = {}
+        if isinstance(raw_metrics.get("reactions"), dict):
+            reactions_dict.update(raw_metrics["reactions"])
+        elif isinstance(raw_metrics.get("reactions"), list):
+            for item in raw_metrics["reactions"]:
+                if isinstance(item, dict) and "emoji" in item:
+                    reactions_dict[str(item.get("emoji"))] = int(item.get("count", 1))
+                elif isinstance(item, str):
+                    reactions_dict[item] = reactions_dict.get(item, 0) + 1
+
+        # Также сканируем ключи первого уровня raw_metrics
+        for k, v in raw_metrics.items():
+            if k not in {"views", "likes", "like", "dislikes", "dislike", "comments", "comment", "shares", "share", "reposts", "saves", "bookmarks", "favorites", "reactions", "platform", "post_id"}:
+                if isinstance(v, (int, float)) and v > 0:
+                    reactions_dict[str(k)] = int(v)
+
+        # 2. Классификация эмодзи и кастомных реакций
+        for emoji_key, count in reactions_dict.items():
+            clean_key = str(emoji_key).strip()
+            key_lower = clean_key.lower()
+
+            # Проверка стандартных позитивных эмодзи
+            if clean_key in cls.EMOJI_POSITIVE_SET or key_lower in cls.EMOJI_POSITIVE_SET:
+                likes += count
+                breakdown["positive_emojis"][clean_key] = count
+
+            # Проверка стандартных негативных эмодзи
+            elif clean_key in cls.EMOJI_NEGATIVE_SET or key_lower in cls.EMOJI_NEGATIVE_SET:
+                dislikes += count
+                breakdown["negative_emojis"][clean_key] = count
+
+            # Проверка нейтральных/смех
+            elif clean_key in cls.EMOJI_AMUSED_NEUTRAL_SET or key_lower in cls.EMOJI_AMUSED_NEUTRAL_SET:
+                custom_neutral += count
+                breakdown["neutral_emojis"][clean_key] = count
+
+            # Кастомные эмодзи (Telegram Premium / Brand Emojis)
+            else:
+                # Если в имени кастомного эмодзи есть маркер негатива
+                if any(neg_kw in key_lower for neg_kw in ["neg", "bad", "trash", "poop", "clown", "hate", "angry", "dislike"]):
+                    custom_negatives += count
+                    dislikes += count
+                    breakdown["custom_emojis"][f"{clean_key} (негатив)"] = count
+                else:
+                    # Все остальные кастомные брендовые эмодзи трактуются как активный позитив
+                    custom_positives += count
+                    breakdown["custom_emojis"][clean_key] = count
+
+        # 3. Расчет суммарного R (глубокое вовлечение с учетом весов соцсетей)
+        # Комментарии (1.5x) + Репосты (1.8x) + Закладки/Сохранения Instagram/TikTok (2.0x) + Кастомные позитивные эмодзи (1.5x) + Смех/Любопытство (1.0x)
+        weighted_R = (
+            comments * 1.0 +
+            shares * 1.2 +
+            saves * 1.5 +
+            custom_positives * 1.0 +
+            custom_neutral * 0.7
+        )
+
+        return {
+            "effective_likes": likes,
+            "effective_dislikes": dislikes,
+            "effective_reactions": round(weighted_R, 2),
+            "raw_comments": comments,
+            "raw_shares": shares,
+            "raw_saves": saves,
+            "breakdown": breakdown
+        }
 
     @classmethod
     def calculate_positivity_metrics(
@@ -52,7 +172,9 @@ class FeedbackLoopEngine:
         dislikes: int = 0,
         comments: int = 0,
         shares: int = 0,
-        other_reactions: int = 0
+        other_reactions: int = 0,
+        platform: str = "telegram",
+        raw_reactions: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Математический расчет качества восприятия (позитивности) поста:
@@ -64,10 +186,19 @@ class FeedbackLoopEngine:
            Score = log10(V + 1) * ((1.0 * L + 1.5 * R + 1) / (1.0 * D + 1))
         """
         V = max(0, int(views))
-        L = max(0, int(likes))
-        D = max(0, int(dislikes))
-        # R — суммарные реакции более глубокого вовлечения (комментарии + репосты + кастомные эмодзи)
-        R = max(0, int(comments) + int(shares) + int(other_reactions))
+
+        # Если передан словарь кастомных эмодзи / мультиплатформенных реакций
+        if raw_reactions:
+            parsed = cls.parse_social_reactions(platform, raw_reactions)
+            L = parsed["effective_likes"]
+            D = parsed["effective_dislikes"]
+            R = parsed["effective_reactions"]
+            breakdown_info = parsed["breakdown"]
+        else:
+            L = max(0, int(likes))
+            D = max(0, int(dislikes))
+            R = max(0, int(comments) + int(shares) + int(other_reactions))
+            breakdown_info = None
 
         # 1. Индекс чистого одобрения (Net Approval Index)
         nai = float(L) / float(L + D + 1)
@@ -107,7 +238,7 @@ class FeedbackLoopEngine:
         # Взвешенный ER для совместимости
         er = cls.calculate_engagement_rate(views=V, likes=L, comments=int(comments), shares=int(shares))
 
-        return {
+        result = {
             "views": V,
             "likes": L,
             "dislikes": D,
@@ -119,6 +250,9 @@ class FeedbackLoopEngine:
             "grade": grade,
             "summary": sentiment_summary
         }
+        if breakdown_info:
+            result["reactions_breakdown"] = breakdown_info
+        return result
 
     @classmethod
     def calculate_engagement_rate(cls, views: int, likes: int, comments: int, shares: int) -> float:

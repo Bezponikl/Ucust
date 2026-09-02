@@ -174,6 +174,30 @@ def build_pdf():
         textColor=colors.HexColor("#92400E"),
         alignment=1
     )
+    style_h2_blue = ParagraphStyle(
+        "H2Blue",
+        parent=styles["Normal"],
+        fontName="Arial-Bold",
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.HexColor("#1E40AF"),
+        spaceBefore=6,
+        spaceAfter=2
+    )
+    style_formula = ParagraphStyle(
+        "FormulaBox",
+        parent=styles["Normal"],
+        fontName="Arial-Bold",
+        fontSize=8.5,
+        leading=12,
+        textColor=colors.HexColor("#1E3A8A"),
+        backColor=colors.HexColor("#EFF6FF"),
+        borderColor=colors.HexColor("#BFDBFE"),
+        borderWidth=1,
+        borderPadding=5,
+        spaceBefore=3,
+        spaceAfter=4
+    )
 
     story = []
 
@@ -315,6 +339,110 @@ def build_pdf():
         story.append(Paragraph(f"✨ <b>{title}</b>", style_h2_plus))
         story.append(Paragraph(desc, style_body))
 
+    story.append(Spacer(1, 4))
+
+    # 3. Раздел 2.1: Математический аппарат расчета позитивности постов
+    story.append(Paragraph("2.1. Математический аппарат расчета позитивности и качества восприятия постов", style_h1))
+    story.append(Paragraph(
+        "Для оценки качества взаимодействия аудитории с контентом система использует три взаимодополняющие математические формулы, учитывающие специфику реакций (Telegram эмодзи, VK реакции, Instagram/TikTok закладки, YouTube лайки/дизлайки):",
+        style_body
+    ))
+
+    # Формула 1: NAI
+    story.append(Paragraph("1️⃣ Индекс чистого одобрения (Net Approval Index — NAI):", style_h2_blue))
+    story.append(Paragraph("NAI = L / (L + D + 1)", style_formula))
+    story.append(Paragraph(
+        "<b>Назначение:</b> Отражает баланс одобрения и негатива без искажения объемами охвата. Значение от 0.0 до 1.0 (чем ближе к 1.0, тем лояльнее аудитория). Единица в знаменателе защищает от деления на ноль для новых постов.",
+        style_body
+    ))
+
+    # Формула 2: WPR
+    story.append(Paragraph("2️⃣ Взвешенная позитивность с учетом просмотров (Weighted Positivity Rate — WPR %):", style_h2_blue))
+    story.append(Paragraph("WPR = ( (1.0 · L + 1.5 · R − 2.0 · D) / max(V, 1) ) · 100%", style_formula))
+    story.append(Paragraph(
+        "<b>Назначение:</b> Оценивает процент позитивно вовлеченных пользователей от общего числа просмотров. Каждому действию присвоен социальный вес: лайки (1.0x), комментарии и репосты (1.5x), сохранения в закладки Instagram/TikTok (2.0x), а негативным дизлайкам и эмодзи (👎, 💩, 🤡, 😡) — штрафной вес (-2.0x).",
+        style_body
+    ))
+
+    # Формула 3: Logarithmic Positivity Score
+    story.append(Paragraph("3️⃣ Логарифмический масштабированный балл (Logarithmic Positivity Score — Score):", style_h2_blue))
+    story.append(Paragraph("Score = log₁₀(V + 1) · [ (1.0 · L + 1.5 · R + 1) / (1.0 · D + 1) ]", style_formula))
+    story.append(Paragraph(
+        "<b>Назначение:</b> Логарифмическая прогрессия log₁₀(V + 1) компенсирует падение процента вовлеченности на вирусных миллионных охватах, а множитель позитива мгновенно обнуляет общий балл, если публикация вызывает волну хейта (D &gt; L), блокируя продвижение некачественного контента.",
+        style_body
+    ))
+
+    # Сводная таблица примеров
+    formula_table_data = [
+        [
+            Paragraph("Сценарий поста", style_cell_bold),
+            Paragraph("Охват (V)", style_cell_bold),
+            Paragraph("Лайки (L)", style_cell_bold),
+            Paragraph("Реакции (R)", style_cell_bold),
+            Paragraph("Дизлайки (D)", style_cell_bold),
+            Paragraph("NAI", style_cell_bold),
+            Paragraph("WPR %", style_cell_bold),
+            Paragraph("Score", style_cell_bold),
+            Paragraph("Грейд системы", style_cell_bold)
+        ],
+        [
+            Paragraph("Маленький пост", style_cell),
+            Paragraph("100", style_cell),
+            Paragraph("10", style_cell),
+            Paragraph("0", style_cell),
+            Paragraph("0", style_cell),
+            Paragraph("0.9091", style_cell),
+            Paragraph("+10.0%", style_cell),
+            Paragraph("22.05", style_cell_bold),
+            Paragraph("HIGH_POSITIVE ⭐", style_badge_ready)
+        ],
+        [
+            Paragraph("Средний охват", style_cell),
+            Paragraph("10 000", style_cell),
+            Paragraph("800", style_cell),
+            Paragraph("0", style_cell),
+            Paragraph("20", style_cell),
+            Paragraph("0.9744", style_cell),
+            Paragraph("+7.60%", style_cell),
+            Paragraph("152.57", style_cell_bold),
+            Paragraph("VIRAL_POSITIVE 🔥", style_badge_ready)
+        ],
+        [
+            Paragraph("Вирусный хейт/спор", style_cell),
+            Paragraph("100 000", style_cell),
+            Paragraph("2 000", style_cell),
+            Paragraph("0", style_cell),
+            Paragraph("1 500", style_cell),
+            Paragraph("0.5713", style_cell),
+            Paragraph("-1.00%", style_cell),
+            Paragraph("6.67", style_cell_bold),
+            Paragraph("CONTROVERSIAL ⚠️", style_badge_partial)
+        ],
+        [
+            Paragraph("Вирусный суперхит", style_cell),
+            Paragraph("100 000", style_cell),
+            Paragraph("8 000", style_cell),
+            Paragraph("700", style_cell),
+            Paragraph("50", style_cell),
+            Paragraph("0.9937", style_cell),
+            Paragraph("+8.95%", style_cell),
+            Paragraph("887.35", style_cell_bold),
+            Paragraph("VIRAL_POSITIVE 🔥", style_badge_ready)
+        ]
+    ]
+
+    formula_table = Table(formula_table_data, colWidths=[2.6 * cm, 1.4 * cm, 1.3 * cm, 1.3 * cm, 1.4 * cm, 1.3 * cm, 1.4 * cm, 1.4 * cm, 3.4 * cm])
+    formula_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#D1D5DB")),
+        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+    ]))
+
+    story.append(formula_table)
     story.append(Spacer(1, 6))
 
     # 4. Раздел 3: Недостающие элементы и Дорожная карта (Roadmap)

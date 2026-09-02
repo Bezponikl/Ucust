@@ -223,10 +223,19 @@ class ComfyCLIRunner:
                             node["widgets_values_named"]["denoise"] = 1.0
 
                 elif node_type == "ClownsharKSampler_Beta":
+                    # Lightning LoRA (Node 6) is designed for 4-8 steps and CFG 1.0
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
+                        node["widgets_values"][3] = 4       # steps = 4 for Lightning 4-steps LoRA
+                        if not is_edit:
+                            node["widgets_values"][5] = 1.0 # denoise = 1.0 for generation from noise
+                        node["widgets_values"][6] = 1.0     # cfg = 1.0 for Lightning distillation
                         node["widgets_values"][7] = chosen_seed
                     if "widgets_values_named" in node:
+                        node["widgets_values_named"]["steps"] = 4
+                        node["widgets_values_named"]["cfg"] = 1.0
                         node["widgets_values_named"]["seed"] = chosen_seed
+                        if not is_edit:
+                            node["widgets_values_named"]["denoise"] = 1.0
 
                 # 6. UNET & Memory Optimization
                 if node_type == "UNETLoader":

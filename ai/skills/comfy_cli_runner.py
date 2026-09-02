@@ -228,7 +228,14 @@ class ComfyCLIRunner:
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
 
-                # 6. Device optimization
+                # 6. UNET & Memory Optimization
+                if node_type == "UNETLoader":
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 2:
+                        node["widgets_values"][1] = "fp8_e4m3fn"
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["weight_dtype"] = "fp8_e4m3fn"
+
+                # 7. Device optimization
                 if node_type == "CLIPLoader":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 3 and node["widgets_values"][2] == "cpu":
                         node["widgets_values"][2] = "default"

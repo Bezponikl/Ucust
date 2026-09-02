@@ -101,6 +101,14 @@ class ObjectKnowledgeStoryteller:
             "fun_fact": "Исследования психологов доказали: аромат теплой коричной выпечки активизирует зоны мозга, отвечающие за ощущение безопасности и счастья.",
             "sensory_hook": "Нежнейшее пуховое тесто, пропитанное карамелизированной корицей и тающей крем-чиз глазурью."
         },
+        "миндал": {
+            "name": "Миндальный ролл (Almond Roll) с кремом Франжипан",
+            "origin_year": "XVI в. / Франция",
+            "country": "Франция / Италия",
+            "origin_story": "Основа начинки — крем Франжипан (Frangipane), созданный французскими кондитерами из тертого отборного миндаля, фермерского сливочного масла и ванили. Запекаясь внутри слоеного теста, он превращается в густой ореховый марципан.",
+            "fun_fact": "Миндаль — природный источник магния и антиоксидантов, поддерживающих нервную систему. Тонкие лепестки миндаля при запекании карамелизуются, создавая идеальный хрустящий контраст с нежной тающей пастой внутри.",
+            "sensory_hook": "Хрустящие лепестки миндаля, слоистое тающее тесто и богатый, бархатистый ореховый крем."
+        },
 
         # --- 2. МЕБЕЛЬ И МАТЕРИАЛЫ ---
         "кресло eames": {
@@ -286,4 +294,47 @@ class ObjectKnowledgeStoryteller:
             "hashtags": hashtags,
             "visual_prompt": "Cinematic close-up food photography of an artisan cruffin pastry vertically cut in half, revealing airy honeycomb swirled cinnamon layers on a clean soft pastel pink background, soft natural studio light, mouthwatering texture, 35mm shallow depth of field."
         }
+
+    @classmethod
+    def generate_equation_formula_post(
+        cls,
+        topic: str,
+        niche: str = "Пекарня и кондитерская",
+        company_name: str = "Ваша кондитерская",
+        city: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Генерирует эмоциональный пост по формуле «Уравнение идеального вкуса»:
+        [Ингредиент 1] + [Ингредиент 2] + [Ингредиент 3] = [Идеальный продукт 🫶🏻]
+        с психотерапевтическим лайфстайл-акцентом на снятие стресса и радость в простых вещах.
+        """
+        if "миндал" in topic.lower() or "ролл" in topic.lower():
+            post_text = (
+                f"Слоёное тесто + миндальные лепестки и паста = идеальный ролл с миндалём от «{company_name}» 🫶🏻\n\n"
+                f"Съев его, можно почувствовать, как жизнь становится чуть ярче, а проблемы — чуть менее важными. "
+                f"Так что, если вдруг сегодня что-то идёт не так, знайте: ролл с миндалём всегда поднимет настроение "
+                f"и напомнит, что даже в простых вещах можно найти искреннюю радость! 🍰✨"
+            )
+        else:
+            post_text = (
+                f"Хрустящая корочка + премиальные ингредиенты + забота наших мастеров = идеальный «{topic}» от «{company_name}» 🫶🏻\n\n"
+                f"Маленькая пауза посреди насыщенного дня, которая дарит тепло, уют и напоминает о том, "
+                f"как важно радовать себя каждый день! ✨☕"
+            )
+
+        from skills.competitor_hashtags import NicheCompetitorHashtagEngine
+        hashtags = NicheCompetitorHashtagEngine.get_competitor_hashtags(
+            niche=niche,
+            topic=topic,
+            city=city,
+            company_name=company_name
+        )
+
+        return {
+            "post_text": post_text,
+            "cta": "Побалуйте себя любимым десертом сегодня! Ждём вас в гости 🫶🏻🍰",
+            "hashtags": hashtags,
+            "visual_prompt": "Cinematic gourmet food photography of a round almond roll pastry vertically sliced in half on a white ceramic plate with gold rim, showing golden flaky layers, rich almond paste cream interior, and crunchy toasted almond flakes on top, bright soft studio daylight, 35mm photorealistic."
+        }
+
 

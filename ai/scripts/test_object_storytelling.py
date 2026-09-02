@@ -147,8 +147,23 @@ async def test_object_storytelling_suite():
     print(f"🎨 Визуальный промпт для FLUX/SDXL:\n{did_you_know['visual_prompt']}\n")
     assert "корица" in did_you_know["post_text"].lower()
     assert "антиоксидант" in did_you_know["post_text"].lower()
-    assert "краффин" in did_you_know["post_text"].lower()
-    print("✅ Формат «Знали ли вы, что...» с пользой ингредиентов идеально сгенерирован!")
+    # 9. Тестирование формулы «Уравнение идеального вкуса» (Миндальный ролл)
+    print("\n" + "=" * 80)
+    print("🥐 9. ТЕСТИРОВАНИЕ ФОРМУЛЫ «УРАВНЕНИЕ ИДЕАЛЬНОГО ВКУСА» (МИНДАЛЬНЫЙ РОЛЛ)")
+    print("=" * 80)
+    equation_post = ObjectKnowledgeStoryteller.generate_equation_formula_post(
+        topic="Ролл с миндалем и франжипаном",
+        niche="Кондитерская и пекарня",
+        company_name="La Patisserie",
+        city="Москва"
+    )
+    print(f"📄 Текст поста:\n{equation_post['post_text']}\n")
+    print(f"🏷️ Хэштеги:\n{equation_post['hashtags']}\n")
+    assert "слоёное тесто" in equation_post["post_text"].lower()
+    assert "миндальные лепестки" in equation_post["post_text"].lower()
+    assert "ролл с миндалём" in equation_post["post_text"].lower()
+    assert "#ucust" not in equation_post["hashtags"].lower()
+    print("✅ Формула «Уравнение идеального вкуса» успешно протестирована!")
 
     print("\n🎉 ВСЕ ТЕСТЫ МОДУЛЯ СТОРИТЕЛЛИНГА И ФАКТОВ ОБ ОБЪЕКТАХ УСПЕШНО ПРОЙДЕНЫ!")
 

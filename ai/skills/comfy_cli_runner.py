@@ -407,11 +407,48 @@ class ComfyCLIRunner:
 
         return filename
 
+    async def _ensure_default_input_images(self, client: Optional[Any] = None) -> None:
+        """Гарантирует наличие файла-заглушки 1.png в ComfyUI input для предотвращения ошибок валидации."""
+        try:
+            # 1. Попытка создания на диске
+            input_dirs = [
+                os.path.join(PROJECT_ROOT, "..", "ComfyUI", "input"),
+                "/opt/ucust/ComfyUI/input",
+                "ComfyUI/input"
+            ]
+            for in_dir in input_dirs:
+                if os.path.exists(in_dir):
+                    target_file = os.path.join(in_dir, "1.png")
+                    if not os.path.exists(target_file):
+                        try:
+                            from PIL import Image
+                            img = Image.new("RGB", (64, 64), color=(30, 30, 30))
+                            img.save(target_file, format="PNG")
+                        except Exception:
+                            pass
+
+            # 2. Попытка загрузки через ComfyUI API /upload/image
+            if client is not None:
+                try:
+                    from PIL import Image
+                    import io
+                    buf = io.BytesIO()
+                    img = Image.new("RGB", (64, 64), color=(30, 30, 30))
+                    img.save(buf, format="PNG")
+                    buf.seek(0)
+                    files = {"image": ("1.png", buf, "image/png")}
+                    data = {"overwrite": "true"}
+                    await client.post(f"{self.comfyui_url}/upload/image", files=files, data=data)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     async def execute_workflow(
         self,
         workflow_graph: Optional[Dict[str, Any]] = None,
-        photo_prompt: str = "Commercial SMM Candid Photograph, high resolution",
-        raw_topic: Optional[str] = None,
+        photo_prompt: str = "Commercial SMM photo",
+        raw_topic: str = "",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         aspect_ratio: str = "1:1",
@@ -420,10 +457,6 @@ class ComfyCLIRunner:
     ) -> Dict[str, Optional[str]]:
         """
         Submits photo prompt graph to ComfyUI local API / CLI runner and returns generated image file paths.
-        Поддерживает:
-        - Realism 2.0 (Qwen-Image / FluxKontext)
-        - Переключение Mode: Edit (72) True/False
-        - Раскладку вложений 1, 2, 3 в ноды LoadImage 55, 64, 65
         """
         online = await self.is_server_online()
         use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
@@ -432,6 +465,7 @@ class ComfyCLIRunner:
         if online and not use_mocks and httpx is not None and attachments:
             try:
                 async with httpx.AsyncClient(timeout=30.0) as up_client:
+                    await self._ensure_default_input_images(up_client)
                     for att in attachments[:3]:
                         fname = await self.upload_attachment(att, client=up_client)
                         if fname:
@@ -461,6 +495,7 @@ class ComfyCLIRunner:
                 api_payload_graph = self.to_api_prompt(customized_graph)
                 payload = {"prompt": api_payload_graph}
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    await self._ensure_default_input_images(client)
                     response = await client.post(url, json=payload)
                     if response.is_success:
                         res_json = response.json()

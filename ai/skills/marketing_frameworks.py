@@ -1,11 +1,13 @@
 # File: skills/marketing_frameworks.py
 """
-Marketing Frameworks & Psychological Triggers Engine for UCust.AI.
+Marketing Frameworks, JTBD, Value Ladder & Behavioral Economics Engine for UCust.AI.
 Усиливает маркетинговые навыки платформы без дообучения нейросети за счет:
 1. 7 классических формул копирайтинга (AIDA, PAS, BAB, 4P, StoryBrand, Hook-Story-Offer, FAB).
 2. Лестницы узнавания Бена Ханта (5 ступеней прогрева: Unaware -> Most Aware).
-3. Психологических триггеров Чалдини (Social Proof, Scarcity, Authority, Reciprocity, Risk Reversal).
-4. Динамического Few-Shot инжектирования золотых эталонов по нишам.
+3. 5 Психологических триггеров Чалдини (Social Proof, Scarcity, Authority, Reciprocity, Risk Reversal).
+4. JTBD (Jobs-to-be-Done) Движка — трансформация свойств продукта в функциональную, эмоциональную и социальную ценность.
+5. Лестницы ценности Рассела Брансона (Value Ladder: Lead Magnet -> Tripwire -> Core Offer -> Profit Maximizer).
+6. Модели поведения Фогга для CTA (BJ Fogg Behavior Model: B = MAP) — устранение трения и микро-конверсии.
 """
 
 from __future__ import annotations
@@ -41,19 +43,178 @@ class PsychologicalTrigger(str, Enum):
     RISK_REVERSAL = "risk_reversal"  # Гарантия возврата, договор, оплата по результату
 
 
+class ValueLadderTier(str, Enum):
+    LEAD_MAGNET = "lead_magnet"            # 0 ₽: Бесплатный чек-лист, гайд, расчет сметы, аудит
+    TRIPWIRE = "tripwire"                  # Недорогой пробник (300-900 ₽): снятие первого финансового барьера
+    CORE_OFFER = "core_offer"              # Основной продукт / услуга: флагман компании
+    PROFIT_MAXIMIZER = "profit_maximizer"  # VIP / Апсейл: абонемент, годовая гарантия, расширенный пакет
+
+
+# ============================================================================
+# 1. JTBD (JOBS-TO-BE-DONE) ENGINE
+# ============================================================================
+
+class JTBDTransformer:
+    """
+    Преобразует сухие технические характеристики продукта в 3 измерения JTBD:
+    1. Functional Job (Функциональная задача): какую практическую работу выполняет продукт.
+    2. Emotional Job (Эмоциональная задача): какое чувство спокойствия / радости дарит клиенту.
+    3. Social Job (Социальная задача): как клиента воспринимают окружающие (семья, друзья, коллеги).
+    """
+
+    NICHE_JTBD_PATTERNS = {
+        "мебель": {
+            "functional": "Надежная мебель точных размеров, которая выдерживает ежедневные нагрузки без скрипов и деформаций.",
+            "emotional": "Ощущение уюта, тепла и спокойствия дома после тяжелого рабочего дня.",
+            "social": "Гордость перед гостями за стильный интерьер и статус эстета с идеальным вкусом."
+        },
+        "стоматология": {
+            "functional": "Безболезненное лечение зубов и восстановление жевательной функции с гарантией долговечности.",
+            "emotional": "Избавление от страха зубной боли и абсолютная уверенность при общении.",
+            "social": "Широкая, открытая и статусная улыбка, привлекающая людей и повышающая авторитет."
+        },
+        "автосервис": {
+            "functional": "Точная диагностика и ремонт неисправностей с первого раза по прозрачной смете.",
+            "emotional": "Уверенность в безопасности автомобиля в дальних поездках с семьей без риска внезапной поломки.",
+            "social": "Репутация практичного водителя, у которого автомобиль всегда в идеальном техническом состоянии."
+        },
+        "кофейня": {
+            "functional": "Быстрое получение свежесваренного кофе из отборных зерен со стабильным вкусом.",
+            "emotional": "Утренний заряд энергии и 15 минут удовольствия наедине со своими мыслями.",
+            "social": "Принадлежность к сообществу ценителей качественного specialty-кофе и стильного городского лайфстайла."
+        },
+        "it": {
+            "functional": "Автоматизация рутинных процессов, безотказная работа инфраструктуры и сокращение издержек.",
+            "emotional": "Спокойствие за сохранность данных и отсутствие авралов в выходные дни.",
+            "social": "Имидж инновационной компании, опережающей конкурентов на технологическом уровне."
+        }
+    }
+
+    @classmethod
+    def transform_feature(cls, niche: str, raw_feature: str = "") -> Dict[str, str]:
+        """Преобразует характеристику в JTBD-триаду."""
+        niche_key = "it"
+        for key in cls.NICHE_JTBD_PATTERNS:
+            if key in niche.lower():
+                niche_key = key
+                break
+        
+        base_jtbd = cls.NICHE_JTBD_PATTERNS.get(niche_key, cls.NICHE_JTBD_PATTERNS["it"])
+        
+        feature_text = raw_feature if raw_feature else "высокие стандарты качества"
+        return {
+            "raw_feature": feature_text,
+            "functional_job": base_jtbd["functional"],
+            "emotional_job": base_jtbd["emotional"],
+            "social_job": base_jtbd["social"],
+            "jtbd_summary_prompt": (
+                f"Клиент нанимает продукт не ради свойства «{feature_text}», а ради:\n"
+                f"• Функционально: {base_jtbd['functional']}\n"
+                f"• Эмоционально: {base_jtbd['emotional']}\n"
+                f"• Социально: {base_jtbd['social']}"
+            )
+        }
+
+
+# ============================================================================
+# 2. VALUE LADDER ARCHITECT (ЛЕСТНИЦА ЦЕННОСТИ)
+# ============================================================================
+
+class ValueLadderArchitect:
+    """
+    Формирует 4-уровневую продуктовую воронку по Расселу Брансону для любой ниши бизнеса.
+    """
+
+    VALUE_LADDER_BLUEPRINTS = {
+        "мебель": {
+            ValueLadderTier.LEAD_MAGNET: "Бесплатный 3D-дизайн проект с расчетом сметы за 15 минут (0 ₽)",
+            ValueLadderTier.TRIPWIRE: "Набор образцов премиального шпона и защитного масла на дом (490 ₽)",
+            ValueLadderTier.CORE_OFFER: "Изготовление обеденного стола / кухни из массива дуба под ключ",
+            ValueLadderTier.PROFIT_MAXIMIZER: "VIP-пакет «Интерьер под ключ» с 5-летней гарантией и ежегодным сервисным уходом"
+        },
+        "стоматология": {
+            ValueLadderTier.LEAD_MAGNET: "Чек-лист правильного ухода за эмалью + Онлайн-консультация ортодонта (0 ₽)",
+            ValueLadderTier.TRIPWIRE: "Компьютерная 3D-томография челюсти со скидкой 70% (990 ₽)",
+            ValueLadderTier.CORE_OFFER: "Комплексная имплантация / Установка керамических виниров E-Max",
+            ValueLadderTier.PROFIT_MAXIMIZER: "Годовой абонемент семейного стоматологического обслуживания VIP"
+        },
+        "автосервис": {
+            ValueLadderTier.LEAD_MAGNET: "Чек-лист подготовки автомобиля к сезону + Инспекция по 40 параметрам (0 ₽)",
+            ValueLadderTier.TRIPWIRE: "Компьютерная диагностика двигателя и сброс ошибок (450 ₽)",
+            ValueLadderTier.CORE_OFFER: "Комплексное ТО (масла, фильтры, колодки) с гарантией на запчасти",
+            ValueLadderTier.PROFIT_MAXIMIZER: "Годовая программа поддержки на дорогах 24/7 и сезонное хранение шин"
+        },
+        "default": {
+            ValueLadderTier.LEAD_MAGNET: "Бесплатный PDF-гайд / экспресс-аудит от эксперта за 0 ₽",
+            ValueLadderTier.TRIPWIRE: "Пробная мини-консультация / тестовый образец с 80% скидкой",
+            ValueLadderTier.CORE_OFFER: "Основной флагманский продукт / услуга под ключ",
+            ValueLadderTier.PROFIT_MAXIMIZER: "Премиальный VIP-пакет с максимальным сопровождением и расширенной гарантией"
+        }
+    }
+
+    @classmethod
+    def get_ladder_for_niche(cls, niche: str) -> Dict[ValueLadderTier, str]:
+        """Возвращает продуктовую лестницу ценности для ниши."""
+        for key in cls.VALUE_LADDER_BLUEPRINTS:
+            if key != "default" and key in niche.lower():
+                return cls.VALUE_LADDER_BLUEPRINTS[key]
+        return cls.VALUE_LADDER_BLUEPRINTS["default"]
+
+
+# ============================================================================
+# 3. FOGG BEHAVIOR MODEL (B = MAP) FOR ZERO-FRICTION CTA
+# ============================================================================
+
+class FoggCTAGenerator:
+    """
+    Генератор призывов к действию по Модели поведения Фогга (B = Motivation x Ability x Prompt).
+    Исключает высокое трение («позвоните по телефону») и генерирует микро-конверсии с нулевым барьером.
+    """
+
+    CTA_PRESETS = {
+        "direct_keyword": [
+            "👉 Напишите слово «{keyword}» в сообщения сообщества — бот мгновенно пришлет каталог с ценами за 5 секунд!",
+            "📩 Отправьте «+» в комментарии, и мы вышлем персональный расчет стоимости прямо в личные сообщения.",
+            "💬 Напишите «{keyword}» в директ, чтобы зафиксировать спеццену и получить подарок к заказу."
+        ],
+        "one_click_quiz": [
+            "🎯 Пройдите тест из 3 вопросов по ссылке в шапке профиля и узнайте точную стоимость за 30 секунд!",
+            "⚡ Ответьте на 2 вопроса в закрепленном опросе — заберите персональный промокод на скидку."
+        ],
+        "instant_reciprocity": [
+            "🎁 Заберите бесплатную PDF-шпаргалку с разбором ошибок прямо сейчас — ссылка в шапке профиля!",
+            "📥 Напишите «ГАЙД» в личные сообщения — пришлем экспертный чек-лист без спама и звонков."
+        ]
+    }
+
+    @classmethod
+    def generate_low_friction_cta(
+        cls,
+        action_type: str = "direct_keyword",
+        keyword: str = "РАСЧЕТ",
+        company_name: str = ""
+    ) -> str:
+        """Генерирует призыв к действию с минимальным порогом входа."""
+        presets = cls.CTA_PRESETS.get(action_type, cls.CTA_PRESETS["direct_keyword"])
+        template = random.choice(presets)
+        return template.format(keyword=keyword, company_name=company_name)
+
+
+# ============================================================================
+# 4. MASTER MARKETING FRAMEWORK DIRECTOR (FACADE)
+# ============================================================================
+
 class MarketingFrameworkDirector:
     """
-    Арт-директор маркетинговых фреймворков и прогрева:
-    - Управляет архитектурой продающего текста без дообучения весов.
-    - Автоматически выбирает оптимальный фреймворк под цель публикации и ступень воронки.
-    - Инжектирует триггеры поведенческой экономики.
+    Главный арт-директор маркетинга UCust.AI:
+    Объединяет Копирайтинг (7 формул) + Прогрев Ханта (5 ступеней) + Триггеры Чалдини + JTBD + Value Ladder + Fogg CTA.
     """
 
     FRAMEWORK_DESCRIPTIONS = {
         MarketingFramework.AIDA: {
             "name": "AIDA (Attention, Interest, Desire, Action)",
             "goal": "Классическая универсальная продающая структура для промо и анонсов",
-            "blocks": ["1. Взрывной заголовок (Внимание)", "2. Любопытный факт или инсайт (Интерес)", "3. Образ выгоды и результат (Желание)", "4. Прямой призыв к действию (Действие)"]
+            "blocks": ["1. Взрывной заголовок (Внимание)", "2. Любопытный факт или инсайт (Интерес)", "3. Образ выгоды и результат (Желание)", "4. Низкофрикционный CTA (Действие)"]
         },
         MarketingFramework.PAS: {
             "name": "PAS (Problem, Agitation, Solution)",
@@ -87,64 +248,66 @@ class MarketingFrameworkDirector:
         }
     }
 
-    # Золотые эталонные хуки и триггеры по ступеням Ханта
     HUNT_STAGE_STRATEGIES = {
         HuntStage.STAGE_1_UNAWARE: {
             "framework": MarketingFramework.BAB,
             "trigger": PsychologicalTrigger.RECIPROCITY,
+            "value_tier": ValueLadderTier.LEAD_MAGNET,
             "hook_formula": "«90% людей даже не подозревают, почему...»",
             "vibe": "Разрушение мифов, вовлечение, легкий юмор, лайфстайл"
         },
         HuntStage.STAGE_2_PROBLEM_AWARE: {
             "framework": MarketingFramework.PAS,
             "trigger": PsychologicalTrigger.AUTHORITY,
-            "hook_formula": "«Знакомая ситуация: вы платите за X, а получаете...»",
-            "vibe": "Точный удар в скрытые риски, переплаты и потерянное время"
+            "value_tier": ValueLadderTier.LEAD_MAGNET,
+            "hook_formula": "«Почему попытка сэкономить на... оборачивается переплатой в 2 раза?»",
+            "vibe": "Боль, дискомфорт, вскрытие скрытых рисков, экспертный совет"
         },
         HuntStage.STAGE_3_SOLUTION_AWARE: {
             "framework": MarketingFramework.FAB,
-            "trigger": PsychologicalTrigger.AUTHORITY,
-            "hook_formula": "«Сравнение в лоб: метод А против метода Б. Что выбрать в 2026 году?»",
-            "vibe": "Экспертное сравнение подходов, факты, прозрачный расчет сметы"
+            "trigger": PsychologicalTrigger.RISK_REVERSAL,
+            "value_tier": ValueLadderTier.TRIPWIRE,
+            "hook_formula": "«Сравнение в лоб: Подход А против Подхода Б — что выгоднее на дистанции 3 лет?»",
+            "vibe": "Объективное сравнение, технические нюансы, снятие страхов"
         },
         HuntStage.STAGE_4_PRODUCT_AWARE: {
             "framework": MarketingFramework.STORYBRAND,
             "trigger": PsychologicalTrigger.SOCIAL_PROOF,
-            "hook_formula": "«Кейс: как мы решили нестандартную задачу клиента за 48 часов»",
-            "vibe": "Твердые кейсы, отзывы, демонстрация процессов в цеху/клинике, гарантии"
+            "value_tier": ValueLadderTier.CORE_OFFER,
+            "hook_formula": "«Кейс: как мы решили задачу клиента X за Y дней без единой переделки»",
+            "vibe": "Закулисье, честные отзывы, процесс производства, твердые пруфы"
         },
         HuntStage.STAGE_5_MOST_AWARE: {
             "framework": MarketingFramework.AIDA,
             "trigger": PsychologicalTrigger.SCARCITY_FOMO,
-            "hook_formula": "«Только до [дедлайн]: специальное предложение для тех, кто планировал...»",
-            "vibe": "Прямая продажа, дедлайн, скидка, бронь слота, четкий CTA"
+            "value_tier": ValueLadderTier.CORE_OFFER,
+            "hook_formula": "«Только до [День недели]: заберите [Бонус] при заказе...»",
+            "vibe": "Горячий оффер, четкий дедлайн, ограничение по слотам, моментальный CTA"
         }
     }
 
-    # Психологические триггеры Чалдини
     TRIGGER_TEMPLATES = {
-        PsychologicalTrigger.SOCIAL_PROOF: "⭐ Социальное доказательство: более {client_count} довольных клиентов, средний рейтинг {rating}/5 на основе реальных отзывов.",
-        PsychologicalTrigger.SCARCITY_FOMO: "⏳ Дефицит и дедлайн: спецпредложение действует только до конца недели (осталось {slots_count} свободных слота).",
-        PsychologicalTrigger.AUTHORITY: "🏆 Авторитет и технологии: сертифицированное оборудование, строгие стандарты качества и опыт мастеров от 10 лет.",
-        PsychologicalTrigger.RECIPROCITY: "🎁 Взаимный обмен: напишите нам сейчас и получите бесплатный расчет сметы / 3D-визуализацию в подарок до оформления заказа.",
-        PsychologicalTrigger.RISK_REVERSAL: "🛡️ Снятие рисков: официальный договор, фиксированная цена без скрытых доплат и гарантия качества до 5 лет."
+        PsychologicalTrigger.SOCIAL_PROOF: (
+            "⭐ Социальное доказательство: Более {client_count} довольных клиентов уже выбрали нас. "
+            "Средний рейтинг на картах — {rating} из 5.0."
+        ),
+        PsychologicalTrigger.SCARCITY_FOMO: (
+            "⏳ Ограничение и дефицит: Спецпредложение действует строго до конца недели. "
+            "Осталось всего {slots_count} свободных слота на замер/консультацию."
+        ),
+        PsychologicalTrigger.AUTHORITY: (
+            "🏛️ Экспертность и технологии: Официальный контроль качества, немецкое оборудование "
+            "и команда сертифицированных специалистов с опытом от 7 лет."
+        ),
+        PsychologicalTrigger.RECIPROCITY: (
+            "🎁 Принцип взаимности: Мы подготовили бесплатный расчет сметы и 3D-визуализацию для вас — "
+            "никаких скрытых условий и навязывания."
+        ),
+        PsychologicalTrigger.RISK_REVERSAL: (
+            "🛡️ Полное снятие рисков: Работаем строго по договору с фиксированной ценой "
+            "и официальной гарантией до 5 лет."
+        )
     }
-
-    @classmethod
-    def get_stage_for_day(cls, day_index: int, total_days: int = 30) -> HuntStage:
-        """
-        Равномерно и циклично распределяет дни контент-плана по лестнице прогрева Ханта.
-        """
-        cycle = [
-            HuntStage.STAGE_1_UNAWARE,
-            HuntStage.STAGE_2_PROBLEM_AWARE,
-            HuntStage.STAGE_3_SOLUTION_AWARE,
-            HuntStage.STAGE_4_PRODUCT_AWARE,
-            HuntStage.STAGE_5_MOST_AWARE,
-            HuntStage.STAGE_2_PROBLEM_AWARE,
-            HuntStage.STAGE_4_PRODUCT_AWARE
-        ]
-        return cycle[day_index % len(cycle)]
 
     @classmethod
     def construct_marketing_prompt(
@@ -152,51 +315,64 @@ class MarketingFrameworkDirector:
         company_name: str,
         niche: str,
         topic: str,
-        framework: Optional[MarketingFramework] = None,
-        hunt_stage: Optional[HuntStage] = None,
-        trigger: Optional[PsychologicalTrigger] = None,
-        brand_dna: Optional[Dict[str, Any]] = None,
-        website_dossier: Optional[str] = None,
-        pain_points: Optional[List[str]] = None
+        framework: MarketingFramework,
+        hunt_stage: HuntStage,
+        trigger: PsychologicalTrigger,
+        pain_points: Optional[List[str]] = None,
+        contacts: Optional[Dict[str, Any]] = None,
+        raw_feature: str = ""
     ) -> Dict[str, Any]:
         """
-        Генерирует высокоточный когнитивный промпт для LLM с жесткой структурой фреймворка,
-        ступенью лестницы Ханта и поведенческим триггером.
+        Формирует комплексную маркетинговую директиву для Saiga LLM с интеграцией:
+        - Выбранного фреймворка копирайтинга
+        - Ступени прогрева Бена Ханта
+        - JTBD трансформации
+        - Продуктовой воронки Value Ladder
+        - Fogg Model Low-Friction CTA
         """
-        stage = hunt_stage or HuntStage.STAGE_3_SOLUTION_AWARE
-        stage_meta = cls.HUNT_STAGE_STRATEGIES[stage]
+        fw_info = cls.FRAMEWORK_DESCRIPTIONS.get(framework, cls.FRAMEWORK_DESCRIPTIONS[MarketingFramework.AIDA])
+        stage_strategy = cls.HUNT_STAGE_STRATEGIES.get(hunt_stage, cls.HUNT_STAGE_STRATEGIES[HuntStage.STAGE_2_PROBLEM_AWARE])
+        trigger_text = cls.TRIGGER_TEMPLATES.get(trigger, "").format(client_count="1 200+", rating="4.9", slots_count="3")
         
-        chosen_framework = framework or stage_meta["framework"]
-        chosen_trigger = trigger or stage_meta["trigger"]
+        # 1. JTBD трансформация
+        jtbd = JTBDTransformer.transform_feature(niche, raw_feature)
+        
+        # 2. Value Ladder уровень
+        value_ladder = ValueLadderArchitect.get_ladder_for_niche(niche)
+        tier = stage_strategy.get("value_tier", ValueLadderTier.CORE_OFFER)
+        tier_offer = value_ladder.get(tier, "Основное предложение")
 
-        framework_info = cls.FRAMEWORK_DESCRIPTIONS[chosen_framework]
-        trigger_text = cls.TRIGGER_TEMPLATES[chosen_trigger].format(
-            client_count="1 200+",
-            rating="4.9",
-            slots_count="3"
+        # 3. Fogg Low-Friction CTA
+        low_friction_cta = FoggCTAGenerator.generate_low_friction_cta(
+            action_type="direct_keyword",
+            keyword="РАСЧЕТ" if "мебель" in niche.lower() else "КОНСУЛЬТАЦИЯ",
+            company_name=company_name
         )
 
-        pains_str = ", ".join(pain_points[:3]) if pain_points else "страх некачественной работы, переплаты, срыв сроков"
+        pains_str = ", ".join(pain_points) if pain_points else "страх переплаты и сомнения в качестве"
 
         prompt_instructions = (
-            f"Ты — элитный маркетинговый стратег и копирайтер высшей категории.\n"
-            f"Напиши публикацию для компании «{company_name}» (Ниша: {niche}).\n\n"
-            f"🎯 ТЕМА ПУБЛИКАЦИИ: {topic}\n"
-            f"🪜 СТУПЕНЬ ПРОГРЕВА ЦА (Лестница Ханта): {stage.value.upper()} ({stage_meta['vibe']})\n"
-            f"📐 МАРКЕТИНГОВЫЙ ФРЕЙМВОРК: {framework_info['name']}\n"
-            f"Обязательная структура текста:\n"
-            + "\n".join([f"  • {b}" for b in framework_info['blocks']]) + "\n\n"
-            f"🧠 ПСИХОЛОГИЧЕСКИЙ ТРИГГЕР ДЛЯ ВШИВАНИЯ: {chosen_trigger.value.upper()}\n"
-            f"Формула триггера: «{trigger_text}»\n\n"
-            f"⚡ БОЛИ АУДИТОРИИ ДЛЯ ЗАКРЫТИЯ: {pains_str}\n"
-            f"🚫 СТРОГИЕ ПРАВИЛА: Никаких штампов («мы динамично развиваемся», «рады представить»). Только факты, польза, живой ритм и понятный призыв к действию."
+            f"=== СТРОГАЯ МАРКЕТИНГОВАЯ ДИРЕКТИВА ДЛЯ ТЕКСТА ===\n"
+            f"1. Структура текста: Формула {fw_info['name']}.\n"
+            f"   Обязательные блоки:\n" + "\n".join(f"   • {b}" for b in fw_info['blocks']) + "\n"
+            f"2. Психологическая ступень воронки Ханта: {hunt_stage.value.upper()} ({stage_strategy['vibe']}).\n"
+            f"3. JTBD-фокус (Jobs-to-be-Done):\n"
+            f"   {jtbd['jtbd_summary_prompt']}\n"
+            f"4. Продуктовый уровень (Value Ladder): [{tier.value.upper()}] -> Оффер: {tier_offer}.\n"
+            f"5. Обязательный психологический триггер:\n"
+            f"   {trigger_text}\n"
+            f"6. Низкофрикционный призыв к действию (Fogg Model B=MAP):\n"
+            f"   {low_friction_cta}\n"
+            f"7. Тональность: Живая, дружелюбная, без шаблонных фраз («В современном мире», «Не упустите шанс»)."
         )
 
         return {
-            "framework": chosen_framework.value,
-            "framework_name": framework_info["name"],
-            "hunt_stage": stage.value,
-            "psychological_trigger": chosen_trigger.value,
+            "framework": framework.value,
+            "hunt_stage": hunt_stage.value,
+            "psychological_trigger": trigger.value,
+            "value_ladder_tier": tier.value,
+            "jtbd": jtbd,
+            "fogg_cta": low_friction_cta,
             "trigger_prompt": trigger_text,
             "full_marketing_prompt": prompt_instructions
         }
@@ -211,28 +387,33 @@ class MarketingFrameworkDirector:
         hunt_stage: HuntStage = HuntStage.STAGE_2_PROBLEM_AWARE,
         trigger: PsychologicalTrigger = PsychologicalTrigger.SOCIAL_PROOF,
         pain_points: Optional[List[str]] = None,
-        contacts: Optional[Dict[str, Any]] = None
+        contacts: Optional[Dict[str, Any]] = None,
+        raw_feature: str = ""
     ) -> Dict[str, Any]:
         """
-        Генерирует готовый эталонный пост, строго следующий выбранному фреймворку
-        (AIDA, PAS, BAB, 4P, StoryBrand, Hook-Story-Offer, FAB) с вшитым психологическим триггером.
+        Генерирует готовый эталонный пост, строго следующий выбранному фреймворку,
+        с JTBD-акцентом, продуктовой ступенью и низкофрикционным призывом по модели Фогга.
         """
         f_info = cls.FRAMEWORK_DESCRIPTIONS[framework]
         t_text = cls.TRIGGER_TEMPLATES[trigger].format(client_count="1 200+", rating="4.9", slots_count="3")
-        
+        jtbd = JTBDTransformer.transform_feature(niche, raw_feature)
+        fogg_cta = FoggCTAGenerator.generate_low_friction_cta(
+            action_type="direct_keyword",
+            keyword="РАСЧЕТ" if "мебель" in niche.lower() else "КОНСУЛЬТАЦИЯ",
+            company_name=company_name
+        )
+
         lead = ""
         body = ""
-        cta = ""
 
         # 1. AIDA
         if framework == MarketingFramework.AIDA:
             lead = f"🔥 «{topic}» — как получить максимум результата в {niche}?"
             body = (
                 f"Интересный факт: 8 из 10 клиентов сталкиваются с тем, что результат не оправдывает ожиданий из-за скрытых компромиссов в качестве.\n\n"
-                f"В «{company_name}» мы выстроили процесс иначе: европейские стандарты, прозрачная смета и пошаговый контроль на каждом этапе.\n\n"
+                f"В «{company_name}» мы смотрим на задачу иначе: {jtbd['functional_job']} Вы получаете {jtbd['emotional_job']}\n\n"
                 f"{t_text}"
             )
-            cta = "👉 Напишите в сообщения сообщества слово «КОНСУЛЬТАЦИЯ» — забронируйте спецпредложение до конца недели!"
 
         # 2. PAS (Боль -> Усиление -> Решение)
         elif framework == MarketingFramework.PAS:
@@ -240,66 +421,60 @@ class MarketingFrameworkDirector:
             body = (
                 f"Проблема: вы заказываете услугу, надеясь на быстрый результат, но получаете срыв сроков, переделки и скрытые доплаты.\n\n"
                 f"Чем дольше тянуть с исправлением, тем выше итоговые затраты и потерянные нервы.\n\n"
-                f"Решение от «{company_name}»: мы берем на себя полную ответственность по официальному договору. {t_text}"
+                f"Решение от «{company_name}»: {jtbd['functional_job']} и {jtbd['emotional_job']}. {t_text}"
             )
-            cta = "📩 Оставьте заявку в директ или напишите в комментарии «+» — рассчитаем точную стоимость за 15 минут!"
 
         # 3. BAB (Before -> After -> Bridge)
         elif framework == MarketingFramework.BAB:
             lead = f"🔄 До и После: реальная трансформация с «{company_name}»"
             body = (
                 f"❌ ДО: долгий поиск надежных исполнителей, сомнения в качестве и постоянный стресс из-за дедлайнов.\n\n"
-                f"✅ ПОСЛЕ: идеальный результат точно в срок, премиальный внешний вид и абсолютное спокойствие за каждую деталь.\n\n"
-                f"🌉 МОСТ: наш авторский подход и строгий контроль качества помогли закрыть эту задачу без единой переделки. {t_text}"
+                f"✅ ПОСЛЕ: {jtbd['emotional_job']} и {jtbd['social_job']}\n\n"
+                f"🌉 МОСТ: наш авторский подход и строгий контроль качества помогли закрыть эту задачу под ключ. {t_text}"
             )
-            cta = "✨ Хотите такой же результат? Напишите нам в личные сообщения для детального разбора вашего проекта!"
 
         # 4. 4P (Picture -> Promise -> Prove -> Push)
         elif framework == MarketingFramework.FOUR_P:
             lead = f"✨ Представьте: ваш проект в сфере {niche} реализован безупречно с первого раза"
             body = (
-                f"Картина: вы получаете именно то, о чем мечтали — стильно, надежно и без головной боли.\n\n"
-                f"Обещание «{company_name}»: мы гарантируем соблюдение всех технических норм и фиксируем финальную цену в договоре.\n\n"
+                f"Картина: вы получаете {jtbd['emotional_job']}.\n\n"
+                f"Обещание «{company_name}»: {jtbd['functional_job']}\n\n"
                 f"Доказательства: {t_text}\n\n"
                 f"Дедлайн: бронирование льготных условий открыто только до воскресенья!"
             )
-            cta = "🚀 Жмите на кнопку сообщения или звоните прямо сейчас — не упустите свой слот!"
 
         # 5. StoryBrand (Клиент - Герой, Бренд - Проводник)
         elif framework == MarketingFramework.STORYBRAND:
             lead = f"📖 История одного решения: как преодолеть главное препятствие в {niche}"
             body = (
-                f"Каждый наш клиент стремится к совершенству, но на пути часто встают недобросовестные подрядчики и раздутые сметы.\n\n"
+                f"Каждый наш клиент стремится к идеальному результату, но на пути часто встают недобросовестные подрядчики и раздутые сметы.\n\n"
                 f"Команда «{company_name}» выступает вашим надежным проводником. Наш план предельно прост:\n"
                 f"1. Бесплатный аудит и расчет\n"
                 f"2. Заключение прозрачного договора\n"
-                f"3. Сдача идеального результата под ключ\n\n"
+                f"3. {jtbd['functional_job']}\n\n"
                 f"{t_text}"
             )
-            cta = "🎯 Сделайте первый шаг к цели — напишите нам в личные сообщения прямо сейчас!"
 
         # 6. Hook-Story-Offer (Reels/Shorts)
         elif framework == MarketingFramework.HOOK_STORY_OFFER:
             lead = f"⚡ Перестаньте делать это, если хотите идеальный результат в {niche}!"
             body = (
                 f"Вчера на объекте команда «{company_name}» столкнулась с классической ошибкой: клиент доверился обещаниям на словах и потерял 3 недели.\n\n"
-                f"Мы исправили ситуацию за 2 дня благодаря отлаженным технологиям и опыту команды.\n\n"
+                f"Мы исправили ситуацию за 2 дня благодаря отлаженным технологиям: {jtbd['functional_job']}\n\n"
                 f"{t_text}"
             )
-            cta = "🔥 Пишите «ХОЧУ» в комментариях — вышлем персональный оффер и чек-лист от «" + company_name + "» в личные сообщения!"
 
         # 7. FAB (Feature -> Advantage -> Benefit)
         else:
             lead = f"💎 В чем секрет качества «{company_name}»? Разбор на пальцах"
             body = (
                 f"Характеристика (Feature): мы используем только оригинальные сертифицированные материалы и технологии.\n\n"
-                f"Преимущество (Advantage): это исключает износ, деформацию и брак, в отличие от бюджетных аналогов.\n\n"
-                f"Выгода для вас (Benefit): вы экономите до 40% бюджета в долгосрочной перспективе и наслаждаетесь результатом годами.\n\n"
+                f"Преимущество (Advantage): {jtbd['functional_job']}\n\n"
+                f"Выгода для вас (Benefit): {jtbd['emotional_job']} и {jtbd['social_job']}\n\n"
                 f"{t_text}"
             )
-            cta = "📲 Узнайте подробности и оформите заявку в сообщениях сообщества!"
 
-        full_post = f"{lead}\n\n{body}\n\n{cta}"
+        full_post = f"{lead}\n\n{body}\n\n{fogg_cta}"
 
         return {
             "status": "success",
@@ -310,6 +485,8 @@ class MarketingFrameworkDirector:
             "framework_name": f_info["name"],
             "hunt_stage": hunt_stage.value,
             "psychological_trigger": trigger.value,
+            "jtbd": jtbd,
+            "fogg_cta": fogg_cta,
             "post_text": full_post,
             "hashtags": f"#{niche.replace(' ', '')} #{company_name.replace(' ', '')} #маркетинг #качество"
         }

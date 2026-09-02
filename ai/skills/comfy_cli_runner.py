@@ -298,12 +298,23 @@ class ComfyCLIRunner:
                 from_slot = link[2]
                 links_map[link_id] = [from_node, from_slot]
 
-        # 2. Build API Prompt nodes
+        # 2. Build API Prompt nodes (skipping GUI-only display nodes like Image Comparer)
+        gui_only_types = {
+            "Image Comparer (rgthree)",
+            "Image Comparer",
+            "Note",
+            "Markdown",
+            "PreviewImage",
+            "Fast Groups Bypasser (rgthree)",
+            "Fast Muter (rgthree)",
+            "Bookmark (rgthree)"
+        }
+
         api_prompt = {}
         for node in workflow_json.get("nodes", []):
             node_id = str(node.get("id"))
             class_type = node.get("type")
-            if not class_type:
+            if not class_type or class_type in gui_only_types or "comparer" in class_type.lower():
                 continue
 
             inputs = {}
@@ -312,7 +323,7 @@ class ComfyCLIRunner:
             if "widgets_values_named" in node and isinstance(node["widgets_values_named"], dict):
                 inputs.update(node["widgets_values_named"])
 
-            # Add linked inputs
+            # Add linked inputs (skip links coming from filtered GUI nodes)
             for inp in node.get("inputs", []):
                 inp_name = inp.get("name")
                 link_id = inp.get("link")

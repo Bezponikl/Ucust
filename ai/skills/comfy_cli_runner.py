@@ -368,6 +368,9 @@ class ComfyCLIRunner:
                 inp_name = inp.get("name")
                 link_id = inp.get("link")
                 if link_id is not None and link_id in links_map:
+                    # In Text-to-Image mode (not is_edit), do NOT attach dummy images to TextEncode!
+                    if not is_edit and class_type == "TextEncodeQwenImageEditPlus" and inp_name in {"image1", "image2", "image3"}:
+                        continue
                     inputs[inp_name] = links_map[link_id]
 
             api_prompt[node_id] = {

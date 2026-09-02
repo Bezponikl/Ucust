@@ -12,7 +12,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 import os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable, KeepTogether
@@ -678,22 +678,59 @@ def build_pdf():
 
     story.append(Spacer(1, 4))
 
-    # 10. Раздел 2.7: Стратегия распределения медиа (Фото 80% + Текст 20%) и Кастомные тарифы
-    story.append(Paragraph("2.7. Стратегия медиа-пакетов (Фото 80% + Текст 20%) и Кастомный тариф", style_h1))
+    # 10. Раздел 2.7: Стратегия распределения медиа (Фото 80% + Текст 20%) и Тарифная сетка
+    story.append(Paragraph("2.7. Стратегия медиа-пакетов и Динамическая тарифная сетка (Управление через Бэкенд)", style_h1))
     story.append(Paragraph(
-        "На текущем этапе генеративный контур адаптирован под максимальную стабильность и бережное использование VRAM:",
+        "Количество постов и разрешенные дни недели <b>полностью настраиваются и управляются через Бэкенд</b> в базе данных. AI-оркестратор динамически адаптируется под любую переданную квоту:",
         style_body
     ))
+
+    tariff_table_data = [
+        [
+            Paragraph("Название тарифа", style_cell_bold),
+            Paragraph("Управление объемом (через Бэкенд)", style_cell_bold),
+            Paragraph("Медиа-оснащение (AI)", style_cell_bold)
+        ],
+        [
+            Paragraph("<font color='#2563EB'><b>Тариф «START»</b></font>", style_cell_bold),
+            Paragraph("Количество генераций и дни (например, 8–12 постов, Пн/Ср/Пт) <b>задаются через Бэкенд</b>", style_cell),
+            Paragraph("Студийные фото (80%) + Текстовые посты/Опросы (20%) + Подбор хэштегов конкурентов", style_cell)
+        ],
+        [
+            Paragraph("<font color='#2563EB'><b>Тариф «BUSINESS»</b></font>", style_cell_bold),
+            Paragraph("Количество генераций и дни (например, 20–22 поста, Пн–Пт) <b>задаются через Бэкенд</b>", style_cell),
+            Paragraph("Детальные фотосессии (срез, макро, интерьер) + Сторителлинг + Маркетинговые воронки", style_cell)
+        ],
+        [
+            Paragraph("<font color='#2563EB'><b>Тариф «ENTERPRISE»</b></font>", style_cell_bold),
+            Paragraph("Интенсивный график (например, 30–60 постов ежедневно) <b>задается через Бэкенд</b>", style_cell),
+            Paragraph("Полная автоматизация всех каналов + Глубокий RAG-анализ ниши + Приоритет в очереди", style_cell)
+        ],
+        [
+            Paragraph("<font color='#7C3AED'><b>Тариф «CUSTOM» (All-Inclusive)</b></font>", style_cell_bold),
+            Paragraph("Любые кастомные квоты и произвольные часы публикаций <b>задаются через Бэкенд</b>", style_cell),
+            Paragraph("Разблокировка 100% функционала: скрапинг Яндекс.Карт и 2GIS, омниканальный радар, VIP-приоритет", style_cell)
+        ]
+    ]
+
+    tariff_table = Table(tariff_table_data, colWidths=[38 * mm, 72 * mm, 70 * mm])
+    tariff_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+
+    story.append(tariff_table)
+    story.append(Spacer(1, 4))
 
     media_and_custom_rules = [
         ("📸 2-Режимная модель медиа (Студийные фото 80% + Текст/Интерактив 20%):",
          "Для 80% публикаций генерируются детализированные студийные фотографии (макросъемка товаров, срезы выпечки, интерьеры), а для 20% — легкие текстовые опросы и новости. Генерация видео временно отключена и автоматически замещается фотосессиями для 100% стабильности и исключения перегрузок VRAM."),
 
-        ("🧮 Бесшовная динамическая адаптация тарифов (Data-Driven Scaling):",
-         "Оркестратор не содержит захардкоженных лимитов: при любом изменении маркетинговой сетки на бэкенде (от 5 до 60 постов в месяц) система сама пропорционально пересчитывает шаг календаря и распределение типов постов без правки кода AI."),
-
-        ("👑 Кастомный тариф All-Inclusive (Enterprise / VIP Режим):",
-         "Снятие любых искусственных ограничений: произвольное расписание (по 2–3 поста в день), глубокий анализ отзывов с Яндекс.Карт и 2GIS, раздельное управление автопилотом по каналам и наивысший приоритет в очереди задач RabbitMQ.")
+        ("🧮 Бесшовная динамическая адаптация квот (Data-Driven Scaling):",
+         "Оркестратор не содержит захардкоженных цифр: при изменении тарифных настроек на бэкенде система автоматически пересчитывает интервалы между публикациями без изменения исходного кода AI.")
     ]
 
     for title, desc in media_and_custom_rules:

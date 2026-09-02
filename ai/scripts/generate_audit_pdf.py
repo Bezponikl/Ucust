@@ -1,9 +1,8 @@
+# File: ai/scripts/generate_audit_pdf.py
 """
-generate_audit_pdf.py
-======================================================================
-Генерация расширенного официального PDF-отчета:
-"UCust.AI — Аудит готовности архитектуры, Сверх-функционал и Дорожная карта"
-======================================================================
+Executive Architecture Audit, Super-Features & Complete Roadmap Report for UCust.AI.
+Генерирует исчерпывающий, структурированный PDF-отчет для руководства, сейлз-менеджеров
+и технических специалистов со всеми формулами, 5 ступенями Ханта, фреймворками и дорожной картой.
 """
 
 import sys
@@ -16,7 +15,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether, HRFlowable
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable, KeepTogether
 )
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -24,7 +23,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 
 class NumberedCanvas(canvas.Canvas):
-    """Нумератор страниц и колонтитулы."""
+    """Кастомный канвас для нумерации 'Страница X из Y' и корпоративных колонтитулов."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
@@ -34,20 +33,20 @@ class NumberedCanvas(canvas.Canvas):
         self._startPage()
 
     def save(self):
-        num_pages = len(self._saved_page_states)
+        page_count = len(self._saved_page_states)
         for state in self._saved_page_states:
             self.__dict__.update(state)
-            self.draw_page_decorations(num_pages)
+            self.draw_page_decorations(page_count)
             super().showPage()
         super().save()
 
-    def draw_page_decorations(self, page_count):
+    def draw_page_decorations(self, page_count: int):
         self.saveState()
-        self.setFont("Arial", 8)
+        self.setFont("Arial", 7.5)
         self.setFillColor(colors.HexColor("#6B7280"))
-        
+
         # Верхний колонтитул
-        self.drawString(1.5 * cm, A4[1] - 1.2 * cm, "UCust.AI — Архитектурный аудит, Сверх-функционал и Roadmap")
+        self.drawString(1.5 * cm, A4[1] - 1.2 * cm, "UCust.AI — Архитектурный аудит, Маркетинговые фреймворки и Roadmap")
         self.setStrokeColor(colors.HexColor("#E5E7EB"))
         self.setLineWidth(0.5)
         self.line(1.5 * cm, A4[1] - 1.3 * cm, A4[0] - 1.5 * cm, A4[1] - 1.3 * cm)
@@ -61,7 +60,7 @@ class NumberedCanvas(canvas.Canvas):
 
 
 def build_pdf():
-    # Регистрация кириллических шрифтов Windows
+    # Регистрация шрифтов
     font_path = "C:/Windows/Fonts/arial.ttf"
     font_bold_path = "C:/Windows/Fonts/arialbd.ttf"
     pdfmetrics.registerFont(TTFont("Arial", font_path))
@@ -82,86 +81,109 @@ def build_pdf():
 
     styles = getSampleStyleSheet()
     
-    # Кастомные типографические стили
     style_title = ParagraphStyle(
         "DocTitle",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=18,
-        leading=22,
+        fontSize=17,
+        leading=21,
         textColor=colors.HexColor("#1E3A8A"),
-        spaceAfter=4
+        spaceAfter=3
     )
     style_subtitle = ParagraphStyle(
         "DocSubtitle",
         parent=styles["Normal"],
         fontName="Arial",
-        fontSize=10,
-        leading=14,
+        fontSize=9.5,
+        leading=13,
         textColor=colors.HexColor("#4B5563"),
-        spaceAfter=10
+        spaceAfter=8
     )
     style_h1 = ParagraphStyle(
         "H1",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=12,
-        leading=16,
+        fontSize=11.5,
+        leading=15,
         textColor=colors.HexColor("#1F2937"),
-        spaceBefore=10,
-        spaceAfter=6
+        spaceBefore=8,
+        spaceAfter=5
     )
     style_h2_plus = ParagraphStyle(
         "H2Plus",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=9.5,
-        leading=13,
-        textColor=colors.HexColor("#047857"), # Зеленый для преимуществ
-        spaceBefore=6,
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#047857"),
+        spaceBefore=5,
+        spaceAfter=2
+    )
+    style_h2_blue = ParagraphStyle(
+        "H2Blue",
+        parent=styles["Normal"],
+        fontName="Arial-Bold",
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#1E40AF"),
+        spaceBefore=5,
         spaceAfter=2
     )
     style_h2_missing = ParagraphStyle(
         "H2Missing",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=9.5,
-        leading=13,
-        textColor=colors.HexColor("#B45309"), # Янтарный для недостающих
-        spaceBefore=6,
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#B45309"),
+        spaceBefore=5,
         spaceAfter=2
     )
     style_body = ParagraphStyle(
         "Body",
         parent=styles["Normal"],
         fontName="Arial",
-        fontSize=8,
-        leading=11.5,
+        fontSize=7.8,
+        leading=11,
         textColor=colors.HexColor("#374151"),
-        spaceAfter=4
+        spaceAfter=3
+    )
+    style_formula = ParagraphStyle(
+        "FormulaBox",
+        parent=styles["Normal"],
+        fontName="Arial-Bold",
+        fontSize=8,
+        leading=11,
+        textColor=colors.HexColor("#1E3A8A"),
+        backColor=colors.HexColor("#EFF6FF"),
+        borderColor=colors.HexColor("#BFDBFE"),
+        borderWidth=1,
+        borderPadding=4,
+        spaceBefore=2,
+        spaceAfter=3
     )
     style_cell = ParagraphStyle(
         "Cell",
         parent=styles["Normal"],
         fontName="Arial",
-        fontSize=7.5,
-        leading=10,
+        fontSize=7,
+        leading=9.5,
         textColor=colors.HexColor("#1F2937")
     )
     style_cell_bold = ParagraphStyle(
         "CellBold",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=7.5,
-        leading=10,
+        fontSize=7,
+        leading=9.5,
         textColor=colors.HexColor("#1F2937")
     )
     style_badge_ready = ParagraphStyle(
         "BadgeReady",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=7,
-        leading=9,
+        fontSize=6.5,
+        leading=8.5,
         textColor=colors.HexColor("#065F46"),
         alignment=1
     )
@@ -169,42 +191,18 @@ def build_pdf():
         "BadgePartial",
         parent=styles["Normal"],
         fontName="Arial-Bold",
-        fontSize=7,
-        leading=9,
+        fontSize=6.5,
+        leading=8.5,
         textColor=colors.HexColor("#92400E"),
         alignment=1
-    )
-    style_h2_blue = ParagraphStyle(
-        "H2Blue",
-        parent=styles["Normal"],
-        fontName="Arial-Bold",
-        fontSize=9.5,
-        leading=13,
-        textColor=colors.HexColor("#1E40AF"),
-        spaceBefore=6,
-        spaceAfter=2
-    )
-    style_formula = ParagraphStyle(
-        "FormulaBox",
-        parent=styles["Normal"],
-        fontName="Arial-Bold",
-        fontSize=8.5,
-        leading=12,
-        textColor=colors.HexColor("#1E3A8A"),
-        backColor=colors.HexColor("#EFF6FF"),
-        borderColor=colors.HexColor("#BFDBFE"),
-        borderWidth=1,
-        borderPadding=5,
-        spaceBefore=3,
-        spaceAfter=4
     )
 
     story = []
 
     # 1. Титульный блок
     story.append(Paragraph("UCust.AI — Архитектурный аудит и Дорожная карта", style_title))
-    story.append(Paragraph("Сравнение с ТЗ, внедренные сверх-возможности (Super-Features) и план боевого автопостинга", style_subtitle))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#2563EB"), spaceAfter=10))
+    story.append(Paragraph("Сравнение с ТЗ, внедренные сверх-возможности (Super-Features), методология продаж и автопостинг", style_subtitle))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#2563EB"), spaceAfter=8))
 
     # 2. Раздел 1: Сводная таблица готовности
     story.append(Paragraph("1. Сводная таблица готовности по 11 разделам спецификации", style_h1))
@@ -262,13 +260,13 @@ def build_pdf():
             Paragraph("8", style_cell_bold),
             Paragraph("Формирование стратегии (Strategy Engine)", style_cell),
             Paragraph("✅ 100%", style_badge_ready),
-            Paragraph("Воронка TOFU/MOFU/BOFU, визуальная сетка 3x3, арсенал хуков, календарь праздников.", style_cell)
+            Paragraph("Воронка TOFU/MOFU/BOFU, визуальная сетка 3x3, арсенал хуков, календарь праздников, лестница Ханта.", style_cell)
         ],
         [
             Paragraph("9", style_cell_bold),
             Paragraph("Генерация контента (Content Generation)", style_cell),
             Paragraph("✅ 100%", style_badge_ready),
-            Paragraph("SaigaLLMSkill + CriticMunger (Self-Healing Loop), ComfyUI FLUX/SDXL, LTX-Video.", style_cell)
+            Paragraph("SaigaLLMSkill + CriticMunger (Self-Healing Loop), 7 маркетинговых фреймворков, ComfyUI FLUX/SDXL, LTX-Video.", style_cell)
         ],
         [
             Paragraph("10", style_cell_bold),
@@ -280,7 +278,7 @@ def build_pdf():
             Paragraph("11", style_cell_bold),
             Paragraph("Анализ обратной связи (Feedback Loop)", style_cell),
             Paragraph("✅ 100%", style_badge_ready),
-            Paragraph("FeedbackLoopEngine — расчет ER, тональность, FAQ/возражения, RAG, адаптация контент-плана.", style_cell)
+            Paragraph("FeedbackLoopEngine — расчет NAI, WPR%, Log Score, мультиплатформенные эмодзи, авто-адаптация контент-плана.", style_cell)
         ]
     ]
 
@@ -293,15 +291,15 @@ def build_pdf():
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#D1D5DB")),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
     ]))
 
     story.append(table)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
 
-    # 3. Раздел 2: Реализовано ЛУЧШЕ, чем в базовом ТЗ (Super-Features)
-    story.append(Paragraph("2. Реализовано лучше и глубже, чем в исходном ТЗ (Enterprise Super-Features)", style_h1))
+    # 3. Раздел 2: 12 Сверх-возможностей
+    story.append(Paragraph("2. Реализованный сверх-функционал Enterprise уровня (Super-Features)", style_h1))
     
     super_features = [
         ("1. Гибридный Clean RAG с BAAI Reranker и 8 категориями памяти",
@@ -329,7 +327,7 @@ def build_pdf():
          "Временный кэш парсинга автоматически удаляется каждые 5 часов (защита от переполнения диска при 100+ пользователях), а сгенерированные фото/видео архивируются через 30 дней с сохранением финальных промптов в RAG-памяти."),
 
         ("9. Замкнутый цикл обратной связи и мультиплатформенные реакции (FeedbackLoopEngine)",
-         "Система оценивает качество восприятия постов по 3 математическим формулам (NAI, WPR%, Log Positivity Score) с автоматической адаптацией под специфику соцсетей: Telegram (стандартные эмодзи и Telegram Premium паки), VK (реакции и репосты), Instagram/TikTok (сохранения в закладки с максимальным весом и Direct-шеры), YouTube (лайки/дизлайки) и MAX. На основе этих данных система перестраивает контент-план под реальные боли ЦА."),
+         "Система оценивает качество восприятия постов по 3 математическим формулам (NAI, WPR%, Log Positivity Score) с автоматической адаптацией под специфику соцсетей: Telegram (эмодзи и Premium-паки), VK (реакции и репосты), Instagram/TikTok (сохранения в закладки с максимальным весом и Direct-шеры), YouTube (лайки/дизлайки) и MAX. На основе этих данных система перестраивает контент-план под реальные боли ЦА."),
 
         ("10. Умная маршрутизация сайтов-мостов и витрин (Smart Bridge Router)",
          "Автоматическое распознавание сайтов-одностраничников и витрин с единственной кнопкой перехода в основной каталог/маркетплейс (пример: <code>maksima.uz</code> &rarr; <code>status.uz</code>). Парсер на лету переходит в целевой магазин, выгружает товары, цены, контакты и синтезирует единое RAG-досье бренда."),
@@ -347,10 +345,10 @@ def build_pdf():
 
     story.append(Spacer(1, 4))
 
-    # 3. Раздел 2.1: Математический аппарат расчета позитивности постов
+    # 4. Раздел 2.1: Математический аппарат расчета позитивности постов
     story.append(Paragraph("2.1. Математический аппарат расчета позитивности и качества восприятия постов", style_h1))
     story.append(Paragraph(
-        "Для оценки качества взаимодействия аудитории с контентом система использует три взаимодополняющие математические формулы, учитывающие специфику реакций (Telegram эмодзи, VK реакции, Instagram/TikTok закладки, YouTube лайки/дизлайки):",
+        "Для оценки качества взаимодействия аудитории с контентом система использует три взаимодополняющие математические формулы, учитывающие специфику реакций соцсетей:",
         style_body
     ))
 
@@ -444,14 +442,127 @@ def build_pdf():
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#D1D5DB")),
-        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ]))
 
     story.append(formula_table)
     story.append(Spacer(1, 6))
 
-    # 4. Раздел 3: Недостающие элементы и Дорожная карта (Roadmap)
+    # 5. Раздел 2.2: Руководство для менеджеров — 5 Ступеней прогрева Бена Ханта
+    story.append(Paragraph("2.2. Руководство для менеджеров: 5 Ступеней прогрева Бена Ханта (Customer Awareness Journey)", style_h1))
+    story.append(Paragraph(
+        "Лестница узнавания Бена Ханта — это модель, описывающая <b>психологический путь покупателя от полного незнания о проблеме до момента закрытия сделки</b>. В отличие от примитивного спама «Купите со скидкой», система выстраивает 30-дневный контент-план как автоматическую воронку продаж:",
+        style_body
+    ))
+
+    hunt_stages_details = [
+        ("1️⃣ Ступень 1: Безразличие / Не знают о проблеме (Unaware)",
+         "<b>Психология клиента:</b> Человек живет обычной жизнью, проблемы не замечает. Прямая продажа вызовет раздражение.<br/>"
+         "<b>Цель ИИ:</b> Зацепить внимание, вызвать улыбку или интерес через юмор, бытовой контраст или разрушение мифов.<br/>"
+         "<b>Фреймворк и триггеры:</b> Фреймворк <b>BAB</b> (Before-After-Bridge) + Взаимный обмен (Reciprocity).<br/>"
+         "<b>Пример для менеджеров:</b> <i>«POV: Пытаешься сесть на старый скрипучий стул и не разбудить кота... А как выглядит ваше любимое кресло для отдыха?»</i>"),
+
+        ("2️⃣ Ступень 2: Осознание проблемы / Боль (Problem Aware)",
+         "<b>Психология клиента:</b> Человек почувствовал дискомфорт (переплата, неудобство, поломка), но не знает истинных причин.<br/>"
+         "<b>Цель ИИ:</b> Точно попасть в скрытую боль клиента, усилить последствия бездействия и показать, что есть решение.<br/>"
+         "<b>Фреймворк и триггеры:</b> Фреймворк <b>PAS</b> (Problem-Agitation-Solution) + Авторитет и технологии (Authority).<br/>"
+         "<b>Пример для менеджеров:</b> <i>«Почему 90% попыток сэкономить на мебели из опилок заканчиваются разбухшей столешницей уже через 2 месяца?»</i>"),
+
+        ("3️⃣ Ступень 3: Поиск решения / Сравнение подходов (Solution Aware)",
+         "<b>Психология клиента:</b> Человек понял проблему и выбирает <i>способ</i> ее решения (сделать самому vs купить готовое vs заказать массив).<br/>"
+         "<b>Цель ИИ:</b> Экспертно сравнить методы в лоб и доказать объективное превосходство правильного подхода.<br/>"
+         "<b>Фреймворк и триггеры:</b> Фреймворк <b>FAB</b> (Feature-Advantage-Benefit) + Снятие рисков (Risk Reversal).<br/>"
+         "<b>Пример для менеджеров:</b> <i>«МДФ в эмали против Натурального дуба: честный расчет стоимости эксплуатации за 5 лет службы».</i>"),
+
+        ("4️⃣ Ступень 4: Выбор компании и продукта (Product Aware)",
+         "<b>Психология клиента:</b> Клиент определился с методом (хочет именно массив дуба), но выбирает, <i>у кого именно</i> заказать.<br/>"
+         "<b>Цель ИИ:</b> Показать реальные кейсы, цех, команду, отзывы, сертификаты и выгоду заказа именно в нашей компании.<br/>"
+         "<b>Фреймворк и триггеры:</b> Фреймворк <b>StoryBrand</b> (Клиент-Герой, Бренд-Проводник) + Социальное доказательство (Social Proof).<br/>"
+         "<b>Пример для менеджеров:</b> <i>«Кейс: как мы изготовили обеденный стол 2.4 м для семьи из 6 человек за 7 дней. Отзыв заказчика и закулисье цеха».</i>"),
+
+        ("5️⃣ Ступень 5: Горячая покупка / Выбор оффера (Most Aware)",
+         "<b>Психология клиента:</b> Человек полностью доверяет бренду и готов платить. Ему нужен только понятный повод и финальный импульс.<br/>"
+         "<b>Цель ИИ:</b> Закрыть сделку здесь и сейчас через дедлайн, понятный CTA и ограниченное спецпредложение.<br/>"
+         "<b>Фреймворк и триггеры:</b> Фреймворк <b>AIDA</b> или <b>4P</b> + Дефицит и срочность (Scarcity / FOMO).<br/>"
+         "<b>Пример для менеджеров:</b> <i>«Только до воскресенья: при заказе стола — защитное масло и сборка в подарок! Осталось 3 слота на замер».</i>")
+    ]
+
+    for title, desc in hunt_stages_details:
+        story.append(Paragraph(f"<b>{title}</b>", style_h2_blue))
+        story.append(Paragraph(desc, style_body))
+
+    story.append(Spacer(1, 4))
+
+    # 6. Раздел 2.3: Сводная таблица маркетинговых фреймворков и триггеров Чалдини
+    story.append(Paragraph("2.3. Сводка 7 Маркетинговых фреймворков и 5 психологических триггеров", style_h1))
+    
+    fw_table_data = [
+        [
+            Paragraph("Фреймворк", style_cell_bold),
+            Paragraph("Структура формулы", style_cell_bold),
+            Paragraph("Лучшее применение в SMM", style_cell_bold),
+            Paragraph("Основной триггер", style_cell_bold)
+        ],
+        [
+            Paragraph("AIDA", style_cell_bold),
+            Paragraph("Attention &rarr; Interest &rarr; Desire &rarr; Action", style_cell),
+            Paragraph("Продающие промо-посты, спецпредложения, анонсы акций", style_cell),
+            Paragraph("Scarcity / FOMO (Дедлайн)", style_cell)
+        ],
+        [
+            Paragraph("PAS", style_cell_bold),
+            Paragraph("Problem &rarr; Agitation &rarr; Solution", style_cell),
+            Paragraph("Посты в скрытые боли ЦА (страх переплаты, поломки)", style_cell),
+            Paragraph("Authority (Оборудование/Стандарты)", style_cell)
+        ],
+        [
+            Paragraph("BAB", style_cell_bold),
+            Paragraph("Before &rarr; After &rarr; Bridge", style_cell),
+            Paragraph("Кейсы трансформации, сравнения ДО и ПОСЛЕ", style_cell),
+            Paragraph("Reciprocity (Бесплатная польза)", style_cell)
+        ],
+        [
+            Paragraph("4P", style_cell_bold),
+            Paragraph("Picture &rarr; Promise &rarr; Prove &rarr; Push", style_cell),
+            Paragraph("Эмоциональное погружение с твердыми пруфами и дедлайном", style_cell),
+            Paragraph("Social Proof (Рейтинг 4.9, отзывы)", style_cell)
+        ],
+        [
+            Paragraph("StoryBrand", style_cell_bold),
+            Paragraph("Hero &rarr; Problem &rarr; Guide &rarr; Plan &rarr; CTA", style_cell),
+            Paragraph("Имиджевые посты, истории клиентов, миссия компании", style_cell),
+            Paragraph("Risk Reversal (Договор, гарантия 5 лет)", style_cell)
+        ],
+        [
+            Paragraph("HSO (Reels)", style_cell_bold),
+            Paragraph("3-sec Hook &rarr; Story &rarr; Offer", style_cell),
+            Paragraph("Короткие вертикальные видео Reels / Shorts / Клипы", style_cell),
+            Paragraph("Scarcity (Спеццена в комментариях)", style_cell)
+        ],
+        [
+            Paragraph("FAB", style_cell_bold),
+            Paragraph("Feature &rarr; Advantage &rarr; Benefit", style_cell),
+            Paragraph("Технические обзоры товаров, перевод свойств в выгоду", style_cell),
+            Paragraph("Authority (Сертификаты качества)", style_cell)
+        ]
+    ]
+
+    fw_table = Table(fw_table_data, colWidths=[2.2 * cm, 4.8 * cm, 6.2 * cm, 3.8 * cm])
+    fw_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#D1D5DB")),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+
+    story.append(fw_table)
+    story.append(Spacer(1, 6))
+
+    # 7. Раздел 3: Недостающие элементы и Дорожная карта (Roadmap)
     story.append(Paragraph("3. Недостающие элементы и Дорожная карта реализации (Roadmap до 100%)", style_h1))
     
     missing_items = [
@@ -483,7 +594,7 @@ def build_pdf():
 
     # Сборка документа
     doc.build(story, canvasmaker=NumberedCanvas)
-    print(f"✅ Расширенный PDF успешно сгенерирован: {pdf_filename}")
+    print(f"✅ Исчерпывающий PDF успешно сгенерирован: {pdf_filename}")
     return pdf_filename
 
 

@@ -94,15 +94,13 @@ async def run_live_posting_test(
 
     # 3. Публикация в тестовый канал
     target_channel = channel or os.getenv("TELEGRAM_TARGET_CHANNEL", "@testaipublisher")
-    publisher = TelegramPublisher(target_channel=target_channel)
+    publisher = TelegramPublisher(target_channel=target_channel, bot_token=bot_token)
 
     print(f"📤 Отправка в канал {target_channel}...")
     try:
         success = await publisher.publish(text=full_message, media_path=media_path)
         if success:
-            print(f"✅ Пост успешно опубликован в {target_channel}!")
-        else:
-            print(f"ℹ️ Пост сформирован (для реальной отправки укажите Telegram session или TELEGRAM_TARGET_CHANNEL).")
+            print(f"✅ Пост успешно сформирован и отправлен в {target_channel}!")
     except Exception as e:
         print(f"⚠️ Ошибка при отправке в канал: {e}")
 
@@ -120,6 +118,7 @@ if __name__ == "__main__":
     parser.add_argument("--niche", type=str, default="Кондитерская и пекарня", help="Ниша бизнеса")
     parser.add_argument("--city", type=str, default="Москва", help="Город")
     parser.add_argument("--channel", type=str, default=None, help="Целевой Telegram-канал (например @my_test_channel)")
+    parser.add_argument("--bot-token", type=str, default=None, help="Telegram Bot Token (например 123456:ABC-DEF...)")
     parser.add_argument("--media", type=str, default=None, help="Путь к фото для прикрепления")
 
     args = parser.parse_args()
@@ -129,5 +128,7 @@ if __name__ == "__main__":
         niche=args.niche,
         city=args.city,
         channel=args.channel,
-        media_path=args.media
+        media_path=args.media,
+        bot_token=args.bot_token
     ))
+

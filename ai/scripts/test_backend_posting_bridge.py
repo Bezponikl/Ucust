@@ -116,6 +116,24 @@ async def run_all_bridge_tests():
     assert "approve" in payload_confirmation["approval_workflow"]["callback_actions"]
     assert "regenerate" in payload_confirmation["approval_workflow"]["callback_actions"]
 
+    # 4. Тестирование RabbitMQBridgeClient (AMQP)
+    print("\n" + "=" * 80)
+    print("🐇 4. ТЕСТИРОВАНИЕ RABBITMQ BRIDGE CLIENT (SPRING AMQP СОВМЕСТИМОСТЬ)")
+    print("=" * 80)
+    from bridge.backend_posting_bridge import RabbitMQBridgeClient
+    rmq_client = RabbitMQBridgeClient(
+        host="localhost",
+        port=5672,
+        username="service-user",
+        password="servicepassword"
+    )
+    print(f"   • RabbitMQ Connection URL: {rmq_client.get_connection_url()[:25]}***")
+    rmq_res = await rmq_client.publish_post_bundle(payload_autopilot)
+    print(f"   • Статус публикации в RabbitMQ: {rmq_res['status']}")
+    print(f"   • Exchange: {rmq_res['exchange']} | Routing Key: {rmq_res['routing_key']}")
+    assert "rabbitmq" in rmq_res["status"]
+    print("✅ RabbitMQ клиент успешно сконфигурирован под Spring AMQP бэкенда!")
+
     print("\n🎉 ВСЕ ТЕСТЫ МОСТА ПЕРЕДАЧИ В БЭКЕНД УСПЕШНО ПРОЙДЕНЫ!")
 
 

@@ -124,6 +124,9 @@ class ContentStrategyEngine:
         stages = ["TOFU", "MOFU", "BOFU", "TOFU", "MOFU", "BOFU", "MOFU"]
         plan_items = []
 
+        # 2. Интеграция Маркетинговых Фреймворков и Лестницы Ханта
+        from skills.marketing_frameworks import MarketingFrameworkDirector, HuntStage, MarketingFramework, PsychologicalTrigger
+
         for day in range(1, days_count + 1):
             slot_idx = (day - 1) % (len(grid_slots) if grid_slots else 9)
             slot_info = grid_slots[slot_idx] if grid_slots and slot_idx < len(grid_slots) else {
@@ -134,6 +137,12 @@ class ContentStrategyEngine:
             }
             pain = pains[(day - 1) % len(pains)]
 
+            # Определение ступени прогрева по лестнице Ханта
+            hunt_stage = MarketingFrameworkDirector.get_stage_for_day(day - 1, total_days=days_count)
+            stage_strategy = MarketingFrameworkDirector.HUNT_STAGE_STRATEGIES[hunt_stage]
+            framework = stage_strategy["framework"]
+            trigger = stage_strategy["trigger"]
+
             # Проверка, выпадает ли на этот день праздник
             holiday_event = events_by_day.get(day)
 
@@ -143,6 +152,8 @@ class ContentStrategyEngine:
                 topic = f"🎉 [Праздник: {h_title}] Поздравление от «{company_name}» и праздничный комплимент клиентам"
                 format_type = "Праздничный ситуативный пост + Поздравление + Промокод"
                 target_pain = f"Праздничное настроение и забота о клиентах: {h_title} ({holiday_event['vibe']})"
+                framework = MarketingFramework.AIDA
+                trigger = PsychologicalTrigger.RECIPROCITY
             else:
                 stage = stages[(day - 1) % len(stages)]
                 # Если есть реальный вопрос аудитории и день четный — делаем пост-ответ
@@ -151,27 +162,51 @@ class ContentStrategyEngine:
                     topic = f"Отвечаем на частый вопрос клиентов: «{actual_q}» — честный разбор от {company_name}"
                     format_type = "Пост-ответ на вопрос аудитории + Экспертный разбор"
                     target_pain = f"Вопрос от реальных подписчиков: {actual_q}"
+                    framework = MarketingFramework.FAB
+                    trigger = PsychologicalTrigger.AUTHORITY
                 elif stage == "TOFU":
                     topic = f"Как избежать главной ошибки в {niche}: секреты профессионалов"
                     format_type = "Пост-разбор + Вопрос в комментариях"
                     target_pain = pain
+                    framework = MarketingFramework.BAB
+                    trigger = PsychologicalTrigger.RECIPROCITY
                 elif stage == "MOFU":
                     topic = f"Честно о том, как мы закрываем проблему «{pain}» в {company_name}"
                     format_type = "Кейс До/После + Демонстрация процесса"
                     target_pain = pain
+                    framework = MarketingFramework.PAS
+                    trigger = PsychologicalTrigger.RISK_REVERSAL
                 else: # BOFU
                     topic = f"Специальное предложение от «{company_name}»: гарантия качества и выгода"
                     format_type = "Продающий оффер + Промокод + CTA"
                     target_pain = pain
+                    framework = MarketingFramework.FOUR_P
+                    trigger = PsychologicalTrigger.SCARCITY_FOMO
+
+            # Генерация точной промпт-директивы для нейросети
+            prompt_directive = MarketingFrameworkDirector.construct_marketing_prompt(
+                company_name=company_name,
+                niche=niche,
+                topic=topic,
+                framework=framework,
+                hunt_stage=hunt_stage,
+                trigger=trigger,
+                pain_points=[target_pain]
+            )
 
             plan_items.append({
                 "day": day,
                 "stage": stage,
+                "hunt_stage": hunt_stage.value,
+                "marketing_framework": framework.value,
+                "framework_name": prompt_directive["framework_name"],
+                "psychological_trigger": trigger.value,
                 "topic": topic,
                 "target_pain_point": target_pain,
                 "format": format_type,
                 "is_holiday": bool(holiday_event),
                 "holiday_info": holiday_event,
+                "prompt_directive": prompt_directive["full_marketing_prompt"],
                 "grid_slot": {
                     "slot_number": slot_info.get("slot", slot_idx + 1),
                     "shot_type": slot_info.get("type"),

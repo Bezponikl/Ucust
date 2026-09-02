@@ -1,3 +1,5 @@
+import os
+import sys
 import uuid
 import json
 import time
@@ -364,6 +366,33 @@ class UnifiedOrchestrator:
             except Exception as h_err:
                 print(f"[UnifiedOrchestrator] ⚠️ Ошибка сбора календаря праздников: {h_err}")
 
+            # 8. Извлечение информации из загруженных документов клиента (PDF, DOCX, PPTX)
+            client_docs_data = None
+            from collectors.document_collector import DocumentCollector
+            doc_collector = DocumentCollector()
+            doc_candidates = (user_data.get("documents") or user_data.get("files") or 
+                              user_data.get("file_paths") or user_data.get("document_paths") or [])
+            if isinstance(doc_candidates, str):
+                doc_candidates = [doc_candidates]
+            
+            valid_doc_paths = [
+                f for f in doc_candidates 
+                if isinstance(f, str) and os.path.splitext(f)[1].lower() in {".pdf", ".docx", ".pptx", ".txt", ".md", ".csv"} and os.path.exists(f)
+            ]
+            if valid_doc_paths:
+                try:
+                    client_docs_data = doc_collector.extract_documents_batch(valid_doc_paths)
+                    for d_idx, doc_item in enumerate(client_docs_data):
+                        if doc_item.get("status") == "success" and doc_item.get("raw_text"):
+                            rag_docs.append(Document(
+                                doc_id=f"client_doc_{company_name}_{d_idx+1}",
+                                text=f"Документ клиента '{doc_item['file_name']}' ({doc_item['format'].upper()}) для {company_name}:\n{doc_item['raw_text']}",
+                                metadata={"category": "client_files", "company_name": company_name, "file_name": doc_item["file_name"]}
+                            ))
+                    print(f"[UnifiedOrchestrator] 📄 Извлечено {len(client_docs_data)} клиентских документов для '{company_name}'.")
+                except Exception as doc_err:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка парсинга документов клиента: {doc_err}")
+
             try:
                 indexed_count = await self.rag.ingest_documents_async(rag_docs)
                 print(f"[UnifiedOrchestrator] 📚 Векторная база знаний RAG успешно обогащена: {indexed_count} чанков для '{company_name}'.")
@@ -392,6 +421,7 @@ class UnifiedOrchestrator:
                         visual_grid_dna=visual_grid_dna,
                         brand_dossier={
                             "website_dossier": website_data.get("structured_dossier") if website_data else None,
+                            "documents_dossier": doc_collector.synthesize_dossier_from_docs(client_docs_data) if (client_docs_data and 'doc_collector' in locals()) else None,
                             "strategy": strategy_data,
                             "pains": pains_list
                         },
@@ -410,6 +440,33 @@ class UnifiedOrchestrator:
                 "status": "success",
                 "profile": brand_profile,
                 "profile_id": profile_id or 1
+            }
+
+        if task_type in {"parse_documents", "ingest_client_files", "extract_documents"}:
+            from collectors.document_collector import DocumentCollector
+            doc_collector = DocumentCollector()
+            
+            file_paths = user_data.get("file_paths") or user_data.get("files") or user_data.get("documents") or []
+            if isinstance(file_paths, str):
+                file_paths = [file_paths]
+                
+            company_name = user_data.get("company_name", "Наша Компания")
+            niche = user_data.get("niche", "Бизнес")
+            
+            extracted = doc_collector.extract_documents_batch(file_paths)
+            indexed_count = await doc_collector.sync_documents_to_rag(company_name, niche, extracted, self.rag)
+            dossier = doc_collector.synthesize_dossier_from_docs(extracted)
+            
+            self._log_trace(session_id, "DocumentCollector", "DocumentsParsed", {
+                "files_count": len(file_paths),
+                "indexed_chunks": indexed_count,
+                "company": company_name
+            })
+            return {
+                "status": "success",
+                "extracted_documents": extracted,
+                "rag_indexed_count": indexed_count,
+                "synthesized_dossier": dossier
             }
             
         if task_type == "get_trends":
@@ -731,8 +788,6 @@ class UnifiedOrchestrator:
                     # Сохранение финального промпта фото в RAG (категория photo_generation_history)
                     if photo_prompt:
                         try:
-                            import os
-                            import uuid
                             from rag.models import Document
                             photo_id = os.path.splitext(os.path.basename(photo_res.get("file_path", "")))[0] if photo_res.get("file_path") else str(uuid.uuid4())[:8]
                             prompt_doc = Document(

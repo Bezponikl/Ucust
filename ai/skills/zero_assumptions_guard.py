@@ -24,7 +24,7 @@ class ZeroAssumptionsGuard:
     # Регулярные выражения для поиска опасных галлюцинаций
     PRICE_HALLUCINATION = re.compile(r'скидк[а-яё\s]*(?:до|на|-|\s)*\s*(?:5[0-9]|6[0-9]|7[0-9]|8[0-9]|9[0-9])\s*%', re.IGNORECASE)
     UNCONFIRMED_24_7 = re.compile(r'\b(круглосуточно|24/7|работаем\s+ночью)\b', re.IGNORECASE)
-    FAKE_FAST_DELIVERY = re.compile(r'\bдостав(?:ка|им)?\s+за\s+(?:5|10|15)\s+минут\b', re.IGNORECASE)
+    FAKE_FAST_DELIVERY = re.compile(r'\bдостав[а-яё]*\s+за\s+(?:5|10|15)\s+минут\b', re.IGNORECASE)
     MAGIC_MEDICAL_CLAIM = re.compile(r'\b(исцелит|лечит\s+все\s+болезни|100%\s+излечение|гарантия\s+выздоровления)\b', re.IGNORECASE)
 
     @classmethod

@@ -210,6 +210,77 @@ class BackendPostingBridge:
 
         return {"status": "error", "post_id": payload["post_id"]}
 
+    async def fetch_client_subscription_quota_async(
+        self,
+        client_id: str,
+        target_month: int = 9,
+        target_year: int = 2026
+    ) -> Dict[str, Any]:
+        """
+        Запрашивает у Бэкенда действующий тарифный план и разрешенные слоты/дни для генерации.
+        """
+        quota_url = f"{self.backend_url.rsplit('/', 2)[0]}/clients/{client_id}/subscription-quota"
+        
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(quota_url)
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception as e:
+            logger.info(f"[BackendPostingBridge] ℹ️ Использован согласованный тарифный план для клиента {client_id}: {e}")
+
+        # Согласованная тарифная сетка по умолчанию (BUSINESS: 20 постов в месяц, Пн-Пт)
+        return {
+            "client_id": client_id,
+            "status": "active",
+            "tier_name": "BUSINESS",
+            "monthly_post_limit": 20,
+            "posts_per_week": 5,
+            "allowed_days_of_week": [0, 1, 2, 3, 4], # Пн, Вт, Ср, Чт, Пт
+            "preferred_hours": ["10:00", "14:30", "18:00"],
+            "video_generation_allowed": True,
+            "client_timezone": "Europe/Moscow",
+            "remaining_quota": 20
+        }
+
+    def calculate_allowed_calendar_dates(
+        self,
+        quota: Dict[str, Any],
+        start_date: Optional[datetime] = None,
+        days_ahead: int = 30
+    ) -> List[Dict[str, Any]]:
+        """
+        Формирует календарную сетку генерации строго по разрешенным тарифом дням недели и лимитам.
+        """
+        allowed_days = set(quota.get("allowed_days_of_week", [0, 1, 2, 3, 4]))
+        limit = int(quota.get("monthly_post_limit", 20))
+        hours = quota.get("preferred_hours", ["10:00"])
+        tz = quota.get("client_timezone", "Europe/Moscow")
+
+        current = start_date or datetime.now()
+        schedule_slots: List[Dict[str, Any]] = []
+
+        for offset in range(1, days_ahead + 1):
+            day_candidate = current + timedelta(days=offset)
+            if day_candidate.weekday() in allowed_days:
+                chosen_hour = hours[len(schedule_slots) % len(hours)]
+                h, m = map(int, chosen_hour.split(":"))
+                slot_time = day_candidate.replace(hour=h, minute=m, second=0, microsecond=0)
+                schedule_slots.append({
+                    "slot_index": len(schedule_slots) + 1,
+                    "date": slot_time.strftime("%Y-%m-%d"),
+                    "time": slot_time.strftime("%H:%M"),
+                    "iso_local": slot_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "weekday": slot_time.strftime("%A"),
+                    "timezone": tz
+                })
+                if len(schedule_slots) >= limit:
+                    break
+
+        return schedule_slots
+
+
 
 class RabbitMQBridgeClient:
     """

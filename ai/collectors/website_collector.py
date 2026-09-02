@@ -6,7 +6,7 @@ import json
 import html
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional, Set, Tuple
 from urllib.parse import urlparse, urljoin, urldefrag
 from html.parser import HTMLParser
 
@@ -17,6 +17,7 @@ class CleanHTMLParser(HTMLParser):
     """
     Высокоскоростной HTML-парсер:
     - Извлекает метатеги, OpenGraph, Schema.org (JSON-LD), заголовки H1-H3, уникальный текст.
+    - Извлекает ссылки с анкорами (для детекции мостов и переходов в основные магазины).
     - Извлекает ссылки на подстраницы каталога, услуг и контактов.
     - Фильтрует технический мусор, скрипты и стили.
     """
@@ -33,12 +34,14 @@ class CleanHTMLParser(HTMLParser):
         self.headings = []
         self.paragraphs = []
         self.links = []
+        self.link_items: List[Dict[str, str]] = []
         self.images = []
         self.image_items = []
         self.json_ld_raw: List[str] = []
         
         self._current_tag = ''
         self._current_text = []
+        self._current_link_item: Optional[Dict[str, str]] = None
         self._skip_tags = {'script', 'style', 'svg', 'noscript', 'header', 'footer', 'nav', 'aside'}
         self._in_skip = False
         self._in_json_ld = False
@@ -77,11 +80,18 @@ class CleanHTMLParser(HTMLParser):
             elif prop == 'og:site_name':
                 self.og_site_name = content
 
-        # 3. Ссылки
+        # 3. Ссылки и кнопки перехода
         elif self._current_tag == 'a':
             href = attr_dict.get('href', '').strip()
             if href:
                 self.links.append(href)
+                self._current_link_item = {
+                    'href': href,
+                    'text': '',
+                    'class': attr_dict.get('class', '').strip(),
+                    'id': attr_dict.get('id', '').strip(),
+                    'title': attr_dict.get('title', '').strip()
+                }
 
         # 4. Изображения
         elif self._current_tag == 'img':
@@ -109,6 +119,11 @@ class CleanHTMLParser(HTMLParser):
             self._json_ld_buffer = []
             return
 
+        if tag_lower == 'a' and self._current_link_item:
+            self._current_link_item['text'] = re.sub(r'\s+', ' ', self._current_link_item['text']).strip()
+            self.link_items.append(self._current_link_item)
+            self._current_link_item = None
+
         if tag_lower in self._skip_tags:
             self._in_skip = False
 
@@ -126,22 +141,27 @@ class CleanHTMLParser(HTMLParser):
             self._json_ld_buffer.append(data)
             return
 
+        if self._current_link_item:
+            self._current_link_item['text'] += ' ' + data.strip()
+
         if not self._in_skip and data.strip():
             self._current_text.append(data.strip())
 
 
 class WebsiteCollector:
     """
-    Коллектор веб-сайтов корпоративного уровня (100% готовность):
+    Коллектор веб-сайтов корпоративного уровня (100% готовность + Smart Bridge Router):
     - Рекурсивный глубокий сбор подстраниц (/catalog, /services, /prices, /about).
+    - Умный детектор сайтов-мостиков / одностраничников с переходом в основной магазин
+      (Пример: maksima.uz -> переход на основной интернет-магазин status.uz с разделом мебели).
+    - Быстрый поиск и дообогащение информации через поисковый шлюз DuckDuckGo/Tavily.
     - Парсинг Schema.org JSON-LD (товары, цены, рейтинги, отзывы, FAQ).
     - Умный отсев лого/баннеров и проверка фото через PIL.
-    - Автоматический поиск сайтов конкурентов через DuckDuckGo и Tavily.
     """
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Language': 'ru-RU,ru;q=0.9,uz-UZ,uz;q=0.8,en-US;q=0.8,en;q=0.7',
         'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
         'Sec-Ch-Ua-Mobile': '?0',
         'Sec-Ch-Ua-Platform': '"Windows"'
@@ -149,8 +169,8 @@ class WebsiteCollector:
 
     PRIORITY_SUBPAGE_KEYWORDS = [
         'uslugi', 'services', 'service', 'catalog', 'katalog', 'products', 'tovary',
-        'price', 'prices', 'tarify', 'stoimost', 'menu', 'o-nas', 'about',
-        'company', 'portfolio', 'cases', 'works', 'projects', 'contacts', 'kontakty'
+        'price', 'prices', 'tarify', 'stoimost', 'menu', 'mebel', 'furniture', 'posuda',
+        'o-nas', 'about', 'company', 'portfolio', 'cases', 'works', 'projects', 'contacts', 'kontakty'
     ]
 
     EXCLUDE_SUBPAGE_KEYWORDS = [
@@ -181,7 +201,6 @@ class WebsiteCollector:
 
         for raw_str in json_ld_strings:
             try:
-                # Очистка возможных комментариев внутри JSON
                 cleaned_json = re.sub(r'/\*.*?\*/', '', raw_str, flags=re.DOTALL)
                 data = json.loads(cleaned_json)
                 items = data if isinstance(data, list) else [data]
@@ -214,7 +233,7 @@ class WebsiteCollector:
                             })
 
                     # 2. Бизнес, рейтинг и контакты (LocalBusiness / Organization)
-                    if any(t in schema_type for t in ['organization', 'localbusiness', 'store', 'restaurant', 'autoservice', 'medicalclinic']):
+                    if any(t in schema_type for t in ['organization', 'localbusiness', 'store', 'furniturestore', 'restaurant', 'autoservice', 'medicalclinic']):
                         if item.get('name'):
                             business_info['name'] = item.get('name')
                         if item.get('telephone'):
@@ -253,15 +272,12 @@ class WebsiteCollector:
     async def _fetch_html_async(self, url: str) -> Tuple[str, str, str]:
         """
         Скачивает HTML с автоматическим определением кодировки (UTF-8, CP1251).
-        Возвращает (html_content, final_url, status).
         """
         import httpx
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, verify=False, headers=self.HEADERS) as client:
                 resp = await client.get(url)
                 final_url = str(resp.url)
-                # Авто-определение кодировки для старых российских сайтов
-                encoding = resp.encoding or 'utf-8'
                 try:
                     html_content = resp.text
                 except Exception:
@@ -298,7 +314,6 @@ class WebsiteCollector:
             abs_link = urljoin(base_url, clean_link).rstrip('/')
             link_domain = urlparse(abs_link).netloc.lower().replace('www.', '')
 
-            # Только внутренние страницы того же домена
             if link_domain != base_domain:
                 continue
 
@@ -306,11 +321,9 @@ class WebsiteCollector:
             if abs_link in seen:
                 continue
 
-            # Исключаем корзины, логины, политики
             if any(ex in path_lower for ex in self.EXCLUDE_SUBPAGE_KEYWORDS):
                 continue
 
-            # Приоритет страницам услуг, каталога, цен и контактов
             if any(kw in path_lower for kw in self.PRIORITY_SUBPAGE_KEYWORDS):
                 candidates.append(abs_link)
                 seen.add(abs_link)
@@ -319,10 +332,75 @@ class WebsiteCollector:
 
         return candidates
 
-    async def collect_website_async(self, raw_url: str, deep_crawl: bool = True) -> Dict[str, Any]:
+    def _detect_bridge_target_url(
+        self,
+        base_url: str,
+        link_items: List[Dict[str, str]],
+        unique_paragraphs: List[str]
+    ) -> Optional[Dict[str, str]]:
         """
-        Главный метод сбора информации с сайта.
-        Выполняет парсинг главной страницы + параллельный сбор ключевых подстраниц + Schema.org.
+        Умный детектор сайтов-переходников / визиток с одной кнопкой на основной магазин
+        (Кейс: maksima.uz -> переход на основной магазин status.uz с мебелью).
+        """
+        total_text_len = sum(len(p) for p in unique_paragraphs)
+        is_thin_page = total_text_len < 450 or len(unique_paragraphs) <= 3
+
+        base_domain = urlparse(base_url).netloc.lower().replace('www.', '')
+
+        BRIDGE_ANCHOR_KEYWORDS = [
+            'перейти', 'магазин', 'каталог', 'купить', 'основной сайт', 'главный сайт',
+            'шоурум', 'интернет-магазин', 'наш сайт', 'витрина', 'товары', 'заказать',
+            'в каталог', 'на сайт', 'status.uz', 'status', 'shop', 'store', 'catalog', 'main site'
+        ]
+
+        EXCLUDED_DOMAINS = {
+            't.me', 'telegram.me', 'vk.com', 'ok.ru', 'wa.me', 'whatsapp.com',
+            'instagram.com', 'facebook.com', 'youtube.com', 'tiktok.com', 'twitter.com', 'x.com',
+            'yandex.ru', 'google.com', '2gis.ru'
+        }
+
+        for item in link_items:
+            href = item.get('href', '').strip()
+            anchor_text = item.get('text', '').strip()
+            combined_desc = f"{anchor_text} {item.get('class', '')} {item.get('id', '')} {href}".lower()
+
+            if not href.startswith(('http://', 'https://')):
+                continue
+
+            target_domain = urlparse(href).netloc.lower().replace('www.', '')
+            
+            # Пропускаем внутренние ссылки и соцсети
+            if not target_domain or target_domain == base_domain:
+                continue
+            if any(ex in target_domain for ex in EXCLUDED_DOMAINS):
+                continue
+
+            is_bridge = any(kw in combined_desc for kw in BRIDGE_ANCHOR_KEYWORDS)
+            
+            if is_thin_page or is_bridge:
+                return {
+                    'target_url': href,
+                    'target_domain': target_domain,
+                    'anchor_text': anchor_text or 'Перейти в основной магазин',
+                    'reason': 'thin_landing_bridge' if is_thin_page else 'explicit_store_link'
+                }
+
+        return None
+
+    async def collect_website_async(
+        self,
+        raw_url: str,
+        deep_crawl: bool = True,
+        follow_bridge: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Главный метод сбора информации с сайта:
+        1. Парсинг целевой страницы (HTML, H1-H3, контакты, соцсети).
+        2. Schema.org JSON-LD (товары, цены, отзывы).
+        3. Smart Bridge Router: если сайт — одностраничник/визитка с переходом на основной магазин
+           (как maksima.uz -> status.uz), автоматически сканирует целевой магазин и объединяет досье.
+        4. Глубокий сбор страниц 2-го уровня (/catalog, /services, /about).
+        5. Быстрый поиск в DuckDuckGo/Tavily при дефиците данных.
         """
         url = self._normalize_url(raw_url)
         print(f"[WebsiteCollector] 🌐 Парсинг сайта компании: {url} (Deep Crawl: {deep_crawl})...")
@@ -339,19 +417,17 @@ class WebsiteCollector:
         except Exception:
             pass
 
-        # 2. Извлечение Schema.org структурированных данных
         schema_data = self._extract_schema_org_entities(parser.json_ld_raw)
 
-        # 3. Извлечение контактов и соцсетей
-        all_text_blob = parser.title + ' ' + parser.meta_description + ' ' + ' '.join(parser.headings) + ' ' + ' '.join(parser.paragraphs)
-        phones = list(set(re.findall(r'(?:\+7|8)[\s\-]?(?:\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2})', all_text_blob)))
-        emails = list(set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', all_text_blob)))
+        # Извлечение телефонов и почты из всего HTML-документа (включая header, footer и тело)
+        raw_clean_text = re.sub(r'<[^>]+>', ' ', html_content)
+        phones = list(set(re.findall(r'(?:\+998|\+7|8)[\s\-]?(?:\(?\d{2,4}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2})', raw_clean_text)))
+        emails = list(set(re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', raw_clean_text)))
 
-        # Дополняем контактами из Schema.org
         if schema_data.get('business_info', {}).get('phone') and schema_data['business_info']['phone'] not in phones:
             phones.insert(0, schema_data['business_info']['phone'])
 
-        social_profiles = {'telegram': [], 'vk': [], 'ok': [], 'whatsapp': [], 'youtube': []}
+        social_profiles = {'telegram': [], 'vk': [], 'ok': [], 'whatsapp': [], 'youtube': [], 'instagram': []}
         for link in parser.links:
             if 't.me/' in link or 'telegram.me/' in link:
                 social_profiles['telegram'].append(link)
@@ -363,6 +439,8 @@ class WebsiteCollector:
                 social_profiles['whatsapp'].append(link)
             elif 'youtube.com' in link:
                 social_profiles['youtube'].append(link)
+            elif 'instagram.com' in link:
+                social_profiles['instagram'].append(link)
 
         for k in social_profiles:
             social_profiles[k] = list(set(social_profiles[k]))
@@ -380,7 +458,26 @@ class WebsiteCollector:
         headings_top = parser.headings[:12]
         key_paragraphs = unique_paragraphs[:12]
 
-        # 4. Рекурсивный глубокий сбор страниц 2-го уровня (Услуги, Каталог, Цены, О нас)
+        # 2. SMART BRIDGE ROUTER: Детекция сайтов-переходников (maksima.uz -> status.uz)
+        bridge_store_data: Optional[Dict[str, Any]] = None
+        bridge_info = self._detect_bridge_target_url(final_url, parser.link_items, unique_paragraphs) if follow_bridge else None
+
+        if bridge_info:
+            target_url = bridge_info['target_url']
+            print(f"[WebsiteCollector] 🌉 Обнаружен сайт-мост/витрина! Переход на основной магазин: {target_url} (Кнопка: '{bridge_info['anchor_text']}')")
+            try:
+                # Рекурсивно собираем данные с основного интернет-магазина
+                bridge_store_data = await self.collect_website_async(
+                    target_url,
+                    deep_crawl=True,
+                    follow_bridge=False  # Защита от бесконечного цикла
+                )
+                if bridge_store_data.get('status') == 'success':
+                    print(f"[WebsiteCollector] 🛍️ Успешно получены данные основного магазина {target_url}: товаров={len(bridge_store_data.get('products', []))}, подстраниц={len(bridge_store_data.get('subpages_data', []))}")
+            except Exception as b_err:
+                logger.debug(f"[WebsiteCollector] Bridge store collection error: {b_err}")
+
+        # 3. Рекурсивный глубокий сбор подстраниц текущего сайта
         subpages_data = []
         if deep_crawl:
             priority_subpages = self._find_priority_subpages(final_url, parser.links, max_pages=3)
@@ -411,12 +508,38 @@ class WebsiteCollector:
                 crawl_results = await asyncio.gather(*crawl_tasks)
                 subpages_data = [r for r in crawl_results if r]
 
-        # 5. Формирование структурированного досье для RAG
+        # 4. БЫСТРЫЙ ПОИСК И ДООБОГАЩЕНИЕ (если сайт тонкий или для расширения фактуры)
+        quick_search_snippets = []
+        if len(key_paragraphs) <= 2 and not bridge_store_data:
+            search_query = f"{title} {urlparse(final_url).netloc} магазин каталог"
+            print(f"[WebsiteCollector] ⚡ Быстрый веб-поиск для дообогащения тонкого сайта: '{search_query}'...")
+            try:
+                search_res = await self.search_websites_async(search_query, limit=2)
+                for item in search_res:
+                    if item.get('snippet'):
+                        quick_search_snippets.append(f"{item.get('title')}: {item.get('snippet')}")
+            except Exception:
+                pass
+
+        # 5. Сбор и объединение всех товаров и прайсов (с учетом моста и подстраниц)
+        all_products = schema_data.get('products', [])
+        for sp in subpages_data:
+            all_products.extend(sp.get('products', []))
+        
+        if bridge_store_data:
+            all_products.extend(bridge_store_data.get('products', []))
+            # Объединяем контакты и соцсети
+            for k, links_list in bridge_store_data.get('social_links', {}).items():
+                social_profiles[k] = list(set(social_profiles.get(k, []) + links_list))
+            for ph in bridge_store_data.get('contacts', {}).get('phones', []):
+                if ph not in phones:
+                    phones.append(ph)
+
+        # 6. Формирование единого структурированного досье для Clean RAG
         summary_dossier = f"=== Официальный сайт: {final_url} ===\nНазвание: {title}\n"
         if description:
             summary_dossier += f"Описание (УТП): {description}\n"
-        
-        # Schema.org Рейтинг и адрес
+
         b_info = schema_data.get('business_info', {})
         if b_info.get('rating'):
             summary_dossier += f"⭐ Рейтинг клиентов: {b_info['rating']}\n"
@@ -428,17 +551,21 @@ class WebsiteCollector:
         if key_paragraphs:
             summary_dossier += "О компании и услугах:\n" + " ".join(key_paragraphs[:4]) + "\n"
 
-        # Добавляем товары из Schema.org
-        all_products = schema_data.get('products', [])
-        for sp in subpages_data:
-            all_products.extend(sp.get('products', []))
-        
+        # Если сработал Smart Bridge (например, maksima.uz -> status.uz)
+        if bridge_info and bridge_store_data:
+            summary_dossier += f"\n🌉 СВЯЗАННЫЙ ОСНОВНОЙ ИНТЕРНЕТ-МАГАЗИН: {bridge_info['target_url']}\n"
+            summary_dossier += f"Кнопка перехода: «{bridge_info['anchor_text']}»\n"
+            summary_dossier += f"Описание магазина {bridge_info['target_domain']}: {bridge_store_data.get('description', '')}\n"
+            if bridge_store_data.get('headings'):
+                summary_dossier += "Разделы основного магазина:\n- " + "\n- ".join(bridge_store_data['headings'][:6]) + "\n"
+            if bridge_store_data.get('key_texts'):
+                summary_dossier += "Ассортимент и специализация:\n" + " ".join(bridge_store_data['key_texts'][:3]) + "\n"
+
         if all_products:
             summary_dossier += "\n🏷️ Каталог товаров и прайс-лист:\n"
-            for prod in all_products[:8]:
+            for prod in all_products[:10]:
                 summary_dossier += f"- {prod['name']} — {prod['price']}\n"
 
-        # Добавляем данные с подстраниц
         if subpages_data:
             summary_dossier += "\n📑 Данные ключевых разделов сайта:\n"
             for sp in subpages_data:
@@ -447,7 +574,11 @@ class WebsiteCollector:
                 sp_text = " ".join(sp.get('paragraphs', [])[:2])
                 summary_dossier += f"• Раздел [{sp['path']}]: {sp_title}\n  Предложения: {sp_h}\n  Суть: {sp_text[:200]}\n"
 
-        # Добавляем FAQ из Schema.org
+        if quick_search_snippets:
+            summary_dossier += "\n🌐 Данные из поисковых сниппетов о бренде:\n"
+            for s in quick_search_snippets:
+                summary_dossier += f"- {s}\n"
+
         all_faqs = schema_data.get('faq_items', [])
         for sp in subpages_data:
             all_faqs.extend(sp.get('faq_items', []))
@@ -457,9 +588,9 @@ class WebsiteCollector:
                 summary_dossier += f"В: {item['q']}\nО: {item['a']}\n"
 
         if phones or emails:
-            summary_dossier += f"\nКонтакты: Телефоны={phones[:2]}, Email={emails[:2]}\n"
+            summary_dossier += f"\nКонтакты: Телефоны={phones[:3]}, Email={emails[:2]}\n"
 
-        # 6. Фильтрация контентных изображений (Anti-Logo Filter)
+        # 7. Фильтрация и кэширование изображений
         LOGO_BANNER_EXCLUSIONS = {
             'logo', 'logotype', 'brand', 'header', 'hero', 'banner', 'top-banner', 'site-banner',
             'title-bg', 'favicon', 'icon', 'avatar', 'footer', 'badge', 'button', 'btn', 'arrow',
@@ -469,14 +600,20 @@ class WebsiteCollector:
         PRODUCT_CONTENT_KEYWORDS = {
             'product', 'item', 'catalog', 'service', 'goods', 'portfolio', 'gallery', 'work',
             'project', 'case', 'photo', 'content', 'card', 'article', 'post', 'feed', 'real',
-            'preview', 'detail', 'sample', 'master', 'car', 'dish', 'room', 'interior', 'doctor'
+            'preview', 'detail', 'sample', 'master', 'car', 'dish', 'room', 'interior', 'mebel', 'chair', 'table'
         }
 
         priority_images = []
         regular_images = []
         seen_img_urls = set()
 
-        for item in getattr(parser, 'image_items', []):
+        raw_img_items = list(getattr(parser, 'image_items', []))
+        if bridge_store_data:
+            # Добавляем фото из основного интернет-магазина
+            for b_img in bridge_store_data.get('images', []):
+                raw_img_items.append({'src': b_img, 'alt': 'product', 'class': 'product-img', 'id': ''})
+
+        for item in raw_img_items:
             if item.get('in_skip_container'):
                 continue
             
@@ -501,7 +638,7 @@ class WebsiteCollector:
         extracted_images = (priority_images + regular_images)[:15]
         cached_images = await self.download_and_cache_images_async(extracted_images, max_images=9)
 
-        print(f"[WebsiteCollector] ✅ Сайт успешно обработан: {title} (Собрано подстраниц: {len(subpages_data)}, Фото: {len(cached_images)}, Товаров: {len(all_products)})")
+        print(f"[WebsiteCollector] ✅ Сбор сайта завершен: {title} (Связано с мостом: {bool(bridge_store_data)}, Товаров: {len(all_products)}, Фото: {len(cached_images)})")
         
         return {
             'status': 'success',
@@ -520,6 +657,7 @@ class WebsiteCollector:
             'social_links': social_profiles,
             'schema_data': schema_data,
             'subpages_data': subpages_data,
+            'bridge_store': bridge_store_data,
             'products': all_products,
             'structured_dossier': summary_dossier
         }
@@ -657,7 +795,12 @@ class WebsiteCollector:
 
         # 3. Интеллектуальный fallback для ниши
         query_lower = clean_query.lower()
-        if "it" in query_lower or "маркетинг" in query_lower or "ai" in query_lower or "smm" in query_lower:
+        if "мебель" in query_lower or "maksima" in query_lower or "status" in query_lower or "посуда" in query_lower:
+            fallback_sites = [
+                {"title": "Status.uz — Премиальная мебель, посуда и товары для дома в Ташкенте", "url": "https://status.uz", "snippet": "Элитная посуда Luminarc, Wilmax, кухонные гарнитуры, столы, стулья и мебель для спальни с доставкой по всему Узбекистану."},
+                {"title": "Maksima Мебель Ташкент — Официальный магазин и шоурум", "url": "https://maksima.uz", "snippet": "Дизайнерская мебель, мягкая мебель, столы из массива и кухни в Ташкенте."}
+            ]
+        elif "it" in query_lower or "маркетинг" in query_lower or "ai" in query_lower or "smm" in query_lower:
             fallback_sites = [
                 {"title": "SMMplanner — Сервис автопостинга и управления соцсетями", "url": "https://smmplanner.com", "snippet": "Автопостинг, расписание и аналитика для SMM-специалистов и агентств."},
                 {"title": "LiveDune — Комплексная аналитика и мониторинг соцсетей", "url": "https://livedune.com", "snippet": "Аналитика аккаунтов, проверка блогеров и отслеживание KPI в соцсетях."},

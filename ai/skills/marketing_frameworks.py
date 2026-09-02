@@ -486,6 +486,10 @@ class MarketingFrameworkDirector:
             company_name=company_name
         )
 
+        # Строгая защита от утечек названий моделей
+        from skills.tech_sanitizer import TechSanitizer
+        sanitized_post = TechSanitizer.sanitize_text(full_post)
+
         return {
             "status": "success",
             "company_name": company_name,
@@ -497,6 +501,6 @@ class MarketingFrameworkDirector:
             "psychological_trigger": trigger.value,
             "jtbd": jtbd,
             "fogg_cta": fogg_cta,
-            "post_text": full_post,
+            "post_text": sanitized_post,
             "hashtags": dynamic_hashtags
         }

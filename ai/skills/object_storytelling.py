@@ -330,8 +330,11 @@ class ObjectKnowledgeStoryteller:
             company_name=company_name
         )
 
+        from skills.tech_sanitizer import TechSanitizer
+        clean_post_text = TechSanitizer.sanitize_text(post_text)
+
         return {
-            "post_text": post_text,
+            "post_text": clean_post_text,
             "cta": "Побалуйте себя любимым десертом сегодня! Ждём вас в гости 🫶🏻🍰",
             "hashtags": hashtags,
             "visual_prompt": "Cinematic gourmet food photography of a round almond roll pastry vertically sliced in half on a white ceramic plate with gold rim, showing golden flaky layers, rich almond paste cream interior, and crunchy toasted almond flakes on top, bright soft studio daylight, 35mm photorealistic."

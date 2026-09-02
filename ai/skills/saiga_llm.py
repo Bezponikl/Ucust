@@ -705,8 +705,12 @@ class SaigaLLMSkill:
             company_name=company_name
         )
 
+        # Строгая защита от утечек названий внутренних моделей (Saiga, FLUX, Moondream, RAG и др.)
+        from skills.tech_sanitizer import TechSanitizer
+        clean_post = TechSanitizer.sanitize_text(full_post)
+
         return {
-            "post_text": full_post,
+            "post_text": clean_post,
             "promo_code": f"{company_name.upper().replace(' ', '')}2026",
             "visual_prompt": visual_prompt,
             "hashtags": ht

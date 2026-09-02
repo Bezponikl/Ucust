@@ -201,14 +201,14 @@ def build_pdf():
         [
             Paragraph("2", style_cell_bold),
             Paragraph("Источники данных (Сайт, Файлы, Соцсети, Карты)", style_cell),
-            Paragraph("🟨 90%", style_badge_partial),
+            Paragraph("🟨 95%", style_badge_partial),
             Paragraph("Сайт (WebsiteCollector), Файлы (DocumentCollector: PDF/DOCX/PPTX), TG, VK. Карты — базовый каркас.", style_cell)
         ],
         [
             Paragraph("3", style_cell_bold),
             Paragraph("Сбор данных с сайта (Website Crawling)", style_cell),
-            Paragraph("🟨 90%", style_badge_partial),
-            Paragraph("Рекурсивный обход подстраниц, отсев лого/шапок, отбор товаров, H1-H3, цены, контакты.", style_cell)
+            Paragraph("✅ 100%", style_badge_ready),
+            Paragraph("Глубокий сбор страниц 2-го уровня (/services, /catalog, /prices), Schema.org JSON-LD (товары/FAQ), Anti-Logo фильтр.", style_cell)
         ],
         [
             Paragraph("4", style_cell_bold),

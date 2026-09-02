@@ -239,7 +239,7 @@ class BackendPostingBridge:
             "posts_per_week": 5,
             "allowed_days_of_week": [0, 1, 2, 3, 4], # Пн, Вт, Ср, Чт, Пт
             "preferred_hours": ["10:00", "14:30", "18:00"],
-            "video_generation_allowed": True,
+            "video_generation_allowed": False, # Видео временно отключено — фокус на студийных фото и текстах
             "client_timezone": "Europe/Moscow",
             "remaining_quota": 20
         }
@@ -252,6 +252,10 @@ class BackendPostingBridge:
     ) -> List[Dict[str, Any]]:
         """
         Формирует календарную сетку генерации строго по разрешенным тарифом дням недели и лимитам.
+        Автоматически распределяет посты на:
+        - 📸 80% постов с детальной студийной фотографией
+        - 📝 20% текстовых / интерактивных постов (опросы, новости, цитаты)
+        (Видео временно отключено и автоматически замещается студийными фото).
         """
         allowed_days = set(quota.get("allowed_days_of_week", [0, 1, 2, 3, 4]))
         limit = int(quota.get("monthly_post_limit", 20))
@@ -264,21 +268,29 @@ class BackendPostingBridge:
         for offset in range(1, days_ahead + 1):
             day_candidate = current + timedelta(days=offset)
             if day_candidate.weekday() in allowed_days:
+                slot_idx = len(schedule_slots) + 1
                 chosen_hour = hours[len(schedule_slots) % len(hours)]
                 h, m = map(int, chosen_hour.split(":"))
                 slot_time = day_candidate.replace(hour=h, minute=m, second=0, microsecond=0)
+                
+                # Распределение: каждый 5-й пост — текстовый/интерактив (20%), остальные 80% — с фото
+                is_text_only = (slot_idx % 5 == 0)
+                media_type = "TEXT_ONLY" if is_text_only else "PHOTO"
+
                 schedule_slots.append({
-                    "slot_index": len(schedule_slots) + 1,
+                    "slot_index": slot_idx,
                     "date": slot_time.strftime("%Y-%m-%d"),
                     "time": slot_time.strftime("%H:%M"),
                     "iso_local": slot_time.strftime("%Y-%m-%dT%H:%M:%S"),
                     "weekday": slot_time.strftime("%A"),
+                    "media_type": media_type,
                     "timezone": tz
                 })
                 if len(schedule_slots) >= limit:
                     break
 
         return schedule_slots
+
 
 
 

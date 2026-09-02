@@ -314,6 +314,10 @@ class ComfyCLIRunner:
                     else:
                         from_node, from_slot = "74", 0  # EmptySD3LatentImage / EmptyLatentImage
 
+                # If link comes from Image Comparer (Node 68), bypass it directly to VAEDecode (Node 54)!
+                if from_node == "68" or from_node == 68:
+                    from_node, from_slot = "54", 0  # VAEDecode output image
+
                 links_map[link_id] = [from_node, from_slot]
 
         # 2. Build API Prompt nodes (skipping GUI-only and unneeded switch/comparer nodes)

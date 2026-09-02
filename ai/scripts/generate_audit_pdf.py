@@ -739,7 +739,76 @@ def build_pdf():
 
     story.append(Spacer(1, 4))
 
-    # 11. Раздел 3: Недостающие элементы и Дорожная карта (Roadmap)
+    # 11. Раздел 2.8: Маркетинговые воронки продаж (TOFU, MOFU, BOFU, Хант, Value Ladder)
+    story.append(Paragraph("2.8. Архитектура воронок продаж: TOFU &rarr; MOFU &rarr; BOFU, Лестница Ханта и Flywheel", style_h1))
+    story.append(Paragraph(
+        "AI-контур автоматически распределяет контент по <b>4 взаимодополняющим воронкам продаж</b>, "
+        "чтобы превращать случайных читателей в постоянных покупателей без ручного вмешательства маркетолога:",
+        style_body
+    ))
+
+    # Сводная таблица классической воронки TOFU-MOFU-BOFU
+    funnel_table_data = [
+        [
+            Paragraph("Уровень воронки", style_cell_bold),
+            Paragraph("Доля в плане и Цель", style_cell_bold),
+            Paragraph("Используемые форматы и Фреймворки", style_cell_bold),
+            Paragraph("Психологические триггеры", style_cell_bold)
+        ],
+        [
+            Paragraph("<font color='#0D9488'><b>TOFU</b></font><br/>(Top of Funnel)<br/><i>Верх воронки</i>", style_cell_bold),
+            Paragraph("<b>45% контента</b><br/>Охват холодной аудитории, вирусный интерес, привлечение подписчиков", style_cell),
+            Paragraph("• Микро-посты «Уравнение вкуса/результата»<br/>• Факты «Знали ли вы, что...»<br/>• Тренды и мемы ниши 2024–2026<br/>• Фреймворки: Hook-Story-Offer, FAB", style_cell),
+            Paragraph("Любопытство, Social Proof, снятие тревожности", style_cell)
+        ],
+        [
+            Paragraph("<font color='#2563EB'><b>MOFU</b></font><br/>(Middle of Funnel)<br/><i>Середина воронки</i>", style_cell_bold),
+            Paragraph("<b>35% контента</b><br/>Прогрев, доверие, демонстрация стандартов и экспертности бренда", style_cell),
+            Paragraph("• Экспертный сторителлинг (история десерта, происхождение дуба)<br/>• Разбор ошибок и кейсы ДО/ПОСЛЕ<br/>• Фреймворки: PAS, BAB, StoryBrand", style_cell),
+            Paragraph("Authority (Стандарты), Reciprocity (Польза/Гайд)", style_cell)
+        ],
+        [
+            Paragraph("<font color='#DC2626'><b>BOFU</b></font><br/>(Bottom of Funnel)<br/><i>Низ воронки</i>", style_cell_bold),
+            Paragraph("<b>20% контента</b><br/>Прямая конверсия в оплату, заявку, визит или звонок", style_cell),
+            Paragraph("• Спецпредложения с дедлайном<br/>• Промокоды и подарочные наборы<br/>• Fogg CTA («Напишите + в ЛС»)<br/>• Фреймворки: 4P, AIDA (Action)", style_cell),
+            Paragraph("Scarcity (Лимит мест/времени), Risk Reversal (Гарантия)", style_cell)
+        ]
+    ]
+
+    funnel_table = Table(funnel_table_data, colWidths=[32 * mm, 46 * mm, 62 * mm, 40 * mm])
+    funnel_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+
+    story.append(funnel_table)
+    story.append(Spacer(1, 4))
+
+    # Описание других воронок
+    extra_funnels = [
+        ("🎯 5 Ступеней узнавания Бена Ханта (Stages of Awareness):",
+         "Сквозной прогрев аудитории от полного безразличия (<i>Unaware</i>) &rarr; осознание боли (<i>Problem Aware</i>) &rarr; поиск решений (<i>Solution Aware</i>) &rarr; выбор продукта (<i>Product Aware</i>) &rarr; покупка (<i>Most Aware</i>). Система сама чередует ступени в календарной сетке."),
+
+        ("🪜 Лестница ценности Рассела Брансона (Value Ladder):",
+         "Автоматическая связка контента: <b>Lead Magnet</b> (бесплатный чек-лист за 0 ₽) &rarr; <b>Tripwire</b> (тест-драйв/пробник за 490 ₽) &rarr; <b>Core Offer</b> (основной продукт) &rarr; <b>Profit Maximizer</b> (VIP-абонемент)."),
+
+        ("🔄 Воронка удержания и сарафанного радио (Retention & Flywheel Funnel):",
+         "Специальные публикации для действующих клиентов: закрытые бонусные программы, напоминания о сезонном обслуживании и вовлечение в создание пользовательского контента (UGC-отзывы)."),
+
+        ("⚡ Модель поведенческой конверсии Фогга (BJ Fogg B = MAP):",
+         "Исключение трения при закрытии сделки: вместо сложных звонков система предлагает микро-действие с нулевым барьером (<i>«Напишите КОРИЦА в комментариях и бот пришлет купон на десерт за 5 секунд»</i>).")
+    ]
+
+    for title, desc in extra_funnels:
+        story.append(Paragraph(f"<b>{title}</b>", style_h2_blue))
+        story.append(Paragraph(desc, style_body))
+
+    story.append(Spacer(1, 4))
+
+    # 12. Раздел 3: Недостающие элементы и Дорожная карта (Roadmap)
     story.append(Paragraph("3. Недостающие элементы и Дорожная карта реализации (Roadmap до 100%)", style_h1))
     
     missing_items = [

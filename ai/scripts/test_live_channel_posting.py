@@ -37,7 +37,8 @@ async def run_live_posting_test(
     city: str = "Москва",
     channel: Optional[str] = None,
     media_path: Optional[str] = None,
-    format_type: str = "auto"
+    format_type: str = "auto",
+    bot_token: Optional[str] = None
 ):
     print("=" * 80)
     print("🚀 ЗАПУСК КОМАНДЫ ГЕНЕРАЦИИ И ТЕСТОВОГО АВТОПОСТИНГА")

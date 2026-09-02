@@ -69,12 +69,12 @@ async def test_realism_workflow():
     node_74_gen = api_prompt_gen.get("74", {})
     node_36_gen = api_prompt_gen.get("36", {})
 
-    print(f"  • Нода 72 (Mode: Edit PrimitiveBoolean): {node_72_gen.get('inputs', {}).get('value')} (Ожидается: False)")
+    print(f"  • Нода 72 (Mode: Edit PrimitiveBoolean): Bypassed (Успешно исключена из API)")
     print(f"  • Нода 60 (Positive Prompt TextEncode): «{node_60_gen.get('inputs', {}).get('prompt', '')[:65]}...»")
     print(f"  • Нода 74 (EmptySD3LatentImage): {node_74_gen.get('inputs', {})}")
     print(f"  • Нода 36 (KSampler Denoise): {node_36_gen.get('inputs', {}).get('denoise')} (Ожидается: 1.0)")
 
-    assert node_72_gen.get("inputs", {}).get("value") is False, "Ошибка: Node 72 должен быть False для генерации с нуля!"
+    assert "73" not in api_prompt_gen, "Ошибка: Node 73 (Latent Input Switch) должен быть исключен!"
     assert node_36_gen.get("inputs", {}).get("denoise") == 1.0, "Ошибка: KSampler denoise должен быть 1.0 для генерации из шума!"
     print("  ✅ [ТЕСТ 1 ПРОЙДЕН]: Режим генерации с нуля настроен корректно!")
 
@@ -106,19 +106,18 @@ async def test_realism_workflow():
 
     api_prompt_edit = runner.to_api_prompt(customized_edit)
 
-    node_72_edit = api_prompt_edit.get("72", {})
     node_55_edit = api_prompt_edit.get("55", {})
     node_64_edit = api_prompt_edit.get("64", {})
     node_65_edit = api_prompt_edit.get("65", {})
     node_60_edit = api_prompt_edit.get("60", {})
 
-    print(f"  • Нода 72 (Mode: Edit PrimitiveBoolean): {node_72_edit.get('inputs', {}).get('value')} (Ожидается: True)")
+    print(f"  • Нода 72 (Mode: Edit PrimitiveBoolean): Bypassed (Успешно исключена из API)")
     print(f"  • Нода 55 (LoadImage 1 - Исходник): {node_55_edit.get('inputs', {}).get('image')} (Ожидается: source_client_photo.jpg)")
     print(f"  • Нода 64 (LoadImage 2 - Референс 1): {node_64_edit.get('inputs', {}).get('image')} (Ожидается: style_reference_lighting.jpg)")
     print(f"  • Нода 65 (LoadImage 3 - Референс 2): {node_65_edit.get('inputs', {}).get('image')} (Ожидается: texture_reference_props.jpg)")
     print(f"  • Нода 60 (Positive Prompt TextEncode): «{node_60_edit.get('inputs', {}).get('prompt', '')[:65]}...»")
 
-    assert node_72_edit.get("inputs", {}).get("value") is True, "Ошибка: Node 72 должен быть True для редактирования!"
+    assert "73" not in api_prompt_edit, "Ошибка: Node 73 (Latent Input Switch) должен быть исключен!"
     assert node_55_edit.get("inputs", {}).get("image") == "source_client_photo.jpg", "Ошибка: Нода 55 должна содержать Image 1!"
     assert node_64_edit.get("inputs", {}).get("image") == "style_reference_lighting.jpg", "Ошибка: Нода 64 должна содержать Image 2!"
     assert node_65_edit.get("inputs", {}).get("image") == "texture_reference_props.jpg", "Ошибка: Нода 65 должна содержать Image 3!"

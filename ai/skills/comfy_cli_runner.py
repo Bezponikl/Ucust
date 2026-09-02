@@ -289,6 +289,16 @@ class ComfyCLIRunner:
         if not isinstance(workflow_json, dict) or "nodes" not in workflow_json:
             return workflow_json
 
+        # Determine if edit mode is active
+        is_edit = False
+        for node in workflow_json.get("nodes", []):
+            nid = node.get("id")
+            if nid == 72 or node.get("type") == "PrimitiveBoolean" or "Mode: Edit" in str(node.get("title", "")):
+                if "widgets_values" in node and len(node["widgets_values"]) > 0:
+                    is_edit = bool(node["widgets_values"][0])
+                elif "widgets_values_named" in node and "value" in node["widgets_values_named"]:
+                    is_edit = bool(node["widgets_values_named"]["value"])
+
         # 1. Build link map: link_id -> [from_node_id_str, from_slot_idx]
         links_map = {}
         for link in workflow_json.get("links", []):
@@ -296,12 +306,22 @@ class ComfyCLIRunner:
                 link_id = link[0]
                 from_node = str(link[1])
                 from_slot = link[2]
+
+                # If link comes from Latent Input Switch (Node 73), bypass it directly!
+                if from_node == "73" or from_node == 73:
+                    if is_edit:
+                        from_node, from_slot = "58", 0  # VAEEncode
+                    else:
+                        from_node, from_slot = "74", 0  # EmptySD3LatentImage / EmptyLatentImage
+
                 links_map[link_id] = [from_node, from_slot]
 
-        # 2. Build API Prompt nodes (skipping GUI-only display nodes like Image Comparer)
+        # 2. Build API Prompt nodes (skipping GUI-only and unneeded switch/comparer nodes)
         gui_only_types = {
             "Image Comparer (rgthree)",
             "Image Comparer",
+            "Latent Input Switch",
+            "PrimitiveBoolean",
             "Note",
             "Markdown",
             "PreviewImage",

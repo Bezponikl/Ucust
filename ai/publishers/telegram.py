@@ -92,8 +92,7 @@ class TelegramPublisher(BasePublisher):
         # 1. Если задан Bot Token — используем прямой HTTP Bot API (100% надежно и быстро)
         if self.bot_token and self.bot_token.strip():
             bot_success = await self._publish_via_bot_api(text, media_path)
-            if bot_success:
-                return True
+            return bot_success
 
         # 2. Попытка через Telethon UserBot с таймаутом 2.5 сек (защита от зависания)
         client = await self._get_client()

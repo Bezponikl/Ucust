@@ -102,6 +102,11 @@ async def run_live_posting_test(
         success = await publisher.publish(text=full_message, media_path=media_path)
         if success:
             print(f"✅ Пост успешно сформирован и отправлен в {target_channel}!")
+        else:
+            print(f"\n❌ Не удалось отправить пост в Telegram. Возможные причины:")
+            print(f"   1. Неверный токен бота (проверьте токен от @BotFather).")
+            print(f"   2. Бот не добавлен в администраторы канала {target_channel}.")
+            print(f"   3. У бота нет права на 'Публикацию сообщений' (Post Messages).")
     except Exception as e:
         print(f"⚠️ Ошибка при отправке в канал: {e}")
 

@@ -4,6 +4,7 @@ import re
 import json
 import time
 from typing import Any, Dict, List, Optional, Union
+from skills.competitor_hashtags import NicheCompetitorHashtagEngine
 
 class SaigaLLMSkill:
     """
@@ -684,11 +685,14 @@ class SaigaLLMSkill:
         )
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
-        ht = hashtags
-        if company_name.lower() not in ["ucust", "ucust ai", "ucust.ai", "ucast"]:
-            ht = re.sub(r'#ucust\w*|#ucast\w*', '', ht, flags=re.IGNORECASE).strip()
-            ht = " ".join(ht.split())
-            full_post = re.sub(r'#ucust\w*|#ucast\w*', '', full_post, flags=re.IGNORECASE).strip()
+        
+        # Динамический расчет коммерческих хэштегов конкурентов
+        ht = NicheCompetitorHashtagEngine.get_competitor_hashtags(
+            niche=niche,
+            topic=topic_clean,
+            city=city or "",
+            company_name=company_name
+        )
 
         return {
             "post_text": full_post,

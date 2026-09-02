@@ -476,6 +476,16 @@ class MarketingFrameworkDirector:
 
         full_post = f"{lead}\n\n{body}\n\n{fogg_cta}"
 
+        # Генерация профессиональных поисковых тегов конкурентов
+        from skills.competitor_hashtags import NicheCompetitorHashtagEngine
+        city_val = contacts.get("city", "") if contacts and isinstance(contacts, dict) else ""
+        dynamic_hashtags = NicheCompetitorHashtagEngine.get_competitor_hashtags(
+            niche=niche,
+            topic=topic,
+            city=city_val,
+            company_name=company_name
+        )
+
         return {
             "status": "success",
             "company_name": company_name,
@@ -488,5 +498,5 @@ class MarketingFrameworkDirector:
             "jtbd": jtbd,
             "fogg_cta": fogg_cta,
             "post_text": full_post,
-            "hashtags": f"#{niche.replace(' ', '')} #{company_name.replace(' ', '')} #маркетинг #качество"
+            "hashtags": dynamic_hashtags
         }

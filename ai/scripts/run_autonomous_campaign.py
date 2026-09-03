@@ -46,12 +46,53 @@ async def run_pipeline(
 
     start_total = time.time()
 
-    # Подготавливаем вложения (локальные файлы или URL)
+    # Подготавливаем вложения (локальные файлы, прямые ссылки или веб-страницы)
     attachments = []
     if images:
+        import httpx
+        from urllib.parse import urljoin
+        import re
+
         for img in images:
             if os.path.exists(img):
                 attachments.append({"url": img, "local_path": os.path.abspath(img)})
+            elif img.startswith("http://") or img.startswith("https://"):
+                # Проверяем, прямая ли это ссылка на картинку или веб-страница
+                is_direct_image = any(img.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"])
+                if is_direct_image:
+                    attachments.append({"url": img})
+                else:
+                    # Это веб-страница (например, https://ucust.online/) — извлекаем превью / og:image / баннер
+                    print(f"[AttachmentsResolver] 🌐 Обнаружен URL веб-страницы '{img}', извлекаем превью и метаданные...")
+                    try:
+                        with httpx.Client(timeout=8.0, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0 UCustBot/2.0"}) as client:
+                            resp = client.get(img)
+                            if resp.status_code == 200:
+                                html_text = resp.text
+                                # Поиск og:image или twitter:image
+                                og_match = re.search(r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE) or \
+                                           re.search(r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]', html_text, re.IGNORECASE) or \
+                                           re.search(r'<meta[^>]+name=[\'"]twitter:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE) or \
+                                           re.search(r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+name=[\'"]twitter:image[\'"]', html_text, re.IGNORECASE) or \
+                                           re.search(r'<link[^>]+rel=[\'"](?:image_src|icon|apple-touch-icon)[\'"][^>]+href=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE)
+                                if og_match:
+                                    preview_url = urljoin(img, og_match.group(1))
+                                    print(f"[AttachmentsResolver] ✅ Найдено OpenGraph превью: {preview_url}")
+                                    attachments.append({"url": preview_url, "source_page": img})
+                                else:
+                                    # Ищем первое крупное изображение / логотип / баннер
+                                    img_match = re.search(r'<img[^>]+src=[\'"]([^\'"]+\.(?:png|webp|jpg|jpeg))[\'"]', html_text, re.IGNORECASE)
+                                    if img_match:
+                                        first_img = urljoin(img, img_match.group(1))
+                                        print(f"[AttachmentsResolver] ✅ Найден ключевой визуал страницы: {first_img}")
+                                        attachments.append({"url": first_img, "source_page": img})
+                                    else:
+                                        attachments.append({"url": img})
+                            else:
+                                attachments.append({"url": img})
+                    except Exception as ex:
+                        print(f"[AttachmentsResolver] ⚠️ Ошибка при извлечении превью сайта: {ex}")
+                        attachments.append({"url": img})
             else:
                 attachments.append({"url": img})
 

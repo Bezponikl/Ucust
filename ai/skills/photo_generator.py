@@ -235,8 +235,11 @@ class CinematographyDirector:
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
             subject = visual_spec.get("visual_description", "extreme macro product photography of compact ESP-32 microcontroller board with dual-in-line gold header pins and USB Type-C port")
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["пасочниц", "форм"]):
+            subject = "set of premium pleated brown cellulose Panettone and Easter Kulich paper baking molds with gold filigree and traditional carved wooden paskha pyramid mold on baker table"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "пасхальн", "освящен"]):
-            subject = "traditional artisanal glazed Easter brioche cake with delicate sugar icing, pastel sugar sprinkles and spring floral garnish"
+            subject = "tall cylindrical golden-brown artisanal Easter Kulich brioche cake baked in a pleated brown parchment paper Panettone baking mold with subtle gold filigree, crowned with a thick snowy-white royal sugar glaze dripping naturally down the domed crust, artfully garnished with dried lavender petals, chopped green pistachios, candied orange peel and delicate sugar pearls"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
             subject = "charming fluffy domestic tabby cat with expressive amber eyes resting peacefully in a warm sunbeam, relaxed paws, pure domestic happiness"

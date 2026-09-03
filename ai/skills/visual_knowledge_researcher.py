@@ -137,6 +137,21 @@ class VisualKnowledgeResearcher:
             "visual_description": "rustic glass dish of artisanal Italian Tiramisu, layered with espresso-soaked Savoiardi ladyfingers, velvety mascarpone cream and dusted with a generous cloud of dark Dutch cocoa powder",
             "text_story": "традиционный венецианский тирамису: печенье савоярди, пропитанное крепким эспрессо с марсалой, и крем из свежего маскарпоне"
         },
+        "кулич": {
+            "en_term": "traditional tall artisanal Easter Kulich in pleated panettone paper mold with dripping white glaze",
+            "visual_description": "tall cylindrical golden-brown artisanal Easter Kulich brioche cake baked in a decorative pleated brown parchment paper Panettone baking mold with subtle gold filigree patterns, crowned with a thick snowy-white royal sugar glaze dripping naturally down the domed crust, artfully garnished with dried lavender flowers, chopped green pistachios, candied orange peel and delicate pastel sugar pearls, warm festive daylight",
+            "text_story": "пышный сдобный пасхальный кулич в рифленой форме для панеттоне: волокнистый золотистый мякиш с вымоченным в роме изюмом, плотная белоснежная глазурь с аппетитными подтеками и авторский весенний декор"
+        },
+        "пасх": {
+            "en_term": "traditional truncated pyramid cottage cheese Paskha with embossed relief",
+            "visual_description": "sculpted four-sided truncated pyramid of rich velvety farm cottage cheese Paskha with embossed traditional relief lettering on its sides, garnished with candied fruits, toasted sliced almonds, dried cranberries and spring flowers on a porcelain stand",
+            "text_story": "традиционная творожная пасха в форме усеченной пирамиды из отборного фермерского творога со сливочным маслом, цукатами и лепестками миндаля"
+        },
+        "форм": {
+            "en_term": "pleated parchment panettone paper baking molds and wooden paskha molds",
+            "visual_description": "set of premium pleated brown parchment paper Panettone baking molds with elegant gold filigree patterns standing on a rustic baker's floured wooden table, alongside a carved wooden paskha pyramid mold, surrounded by fresh farm eggs and cinnamon sticks",
+            "text_story": "жаропрочные формы для выпечки куличей и панеттоне из гофрированного пергамента с золотым тиснением и разборные пасочницы для творожной пасхи"
+        },
 
         # =========================================================================
         # 4. БЬЮТИ, КОСМЕТИКА, КРЕМЫ И ПОМАДЫ

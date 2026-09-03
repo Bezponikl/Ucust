@@ -228,13 +228,13 @@ class VisualKnowledgeResearcher:
         # 8. АВТОСПОРТ, ТЮНИНГ И ДЕТЕЙЛИНГ
         # =========================================================================
         "gt2871": {
-            "en_term": "Garrett GT2871R ball bearing automotive turbocharger",
-            "visual_description": "authentic high-performance Garrett GT2871R turbocharger for Nissan Silvia SR20-DET, featuring precision silver cast aluminum radial compressor volute housing, front circular air intake inlet with gleaming CNC-machined curved aluminum impeller blades and center lock nut, 90-degree charge pipe outlet, cylindrical metallic wastegate actuator canister with a vacuum hose, resting on a clean professional garage workbench, automotive product photography",
+            "en_term": "compact Garrett GT2871R ball bearing automotive turbocharger",
+            "visual_description": "compact handheld automotive turbocharger (Garrett GT2871R, 20 cm tabletop size, small lightweight part easily held in two hands), resting neatly on a garage workbench, precision silver cast aluminum radial compressor volute housing, compact 70mm circular front air intake with gleaming CNC-machined curved aluminum impeller blades and center lock nut, 90-degree charge pipe outlet, compact cylindrical wastegate actuator with black hose, realistic accurate real-world scale and proportions, tabletop commercial automotive product photography",
             "text_story": "культовая производительная турбина GT2871 для моторов SR20-DET: быстрый спул на фланце T25, стабильный наддув и честная отдача для Nissan Silvia S13/S14/S15"
         },
         "турбин": {
-            "en_term": "automotive turbocharger",
-            "visual_description": "authentic brand-new car turbocharger assembly with cast aluminum radial compressor volute housing, circular front intake with sharp curved impeller blades, side wastegate actuator, clean automotive performance product photography",
+            "en_term": "compact automotive turbocharger",
+            "visual_description": "compact handheld car turbocharger assembly (20 cm tabletop scale, realistic small component), cast aluminum radial compressor volute housing, circular front intake with sharp curved impeller blades, compact side wastegate actuator, accurate real-world proportions, tabletop automotive product photography",
             "text_story": "профессиональная система турбонаддува: мгновенный отклик на педаль газа и запас прочности при экстремальных нагрузках"
         },
         "sr20": {

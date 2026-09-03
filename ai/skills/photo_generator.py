@@ -339,7 +339,7 @@ class PhotoGeneratorSkill:
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])
 
-        print(f"\n[PhotoGeneratorSkill] 📸 Сформирован промпт для ComfyUI (Ниша: {niche_key}):\n  👉 {positive_prompt}\n")
+        print(f"\n[PhotoGeneratorSkill] 📸 Сформирован промпт для ComfyUI (Ниша: {niche}):\n  👉 {positive_prompt}\n")
 
         return {
             "positive_prompt": positive_prompt,

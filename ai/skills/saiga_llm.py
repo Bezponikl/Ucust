@@ -655,9 +655,11 @@ class SaigaLLMSkill:
 
         # 3.11. Туризм / Отели / Путешествия / Глэмпинги
         elif any(w in full_text_search for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых", "база отдыха", "курорт", "море", "горы", "экскурси"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Откройте мир ярких впечатлений вместе с «{company_name}» ✈️🌄"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Идеальный отдых начинается с правильного выбора локации и заботы о каждой мелочи путешествия.\n\n"
                 f"Завораживающие виды, премиальный сервис, авторские маршруты и полное погружение в атмосферу — пора сменить обстановку и зарядиться энергией!{comments_phrase}"
             )
@@ -665,15 +667,17 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Breathtaking emotional travel storytelling photograph. A traveler wrapped in a cozy knitted blanket holding a steaming mug of tea, sitting on the edge of a rustic wooden glamping deck watching a majestic golden sunrise over misty mountain peaks and pine forests. Quiet awe, peace, deep connection with nature, cinematic atmospheric light, photorealistic.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#путешествия #туризм #отдых #отель #глэмпинг"
             }
 
         # 3.12. Ритейл / Одежда / E-commerce / Товары
         elif any(w in full_text_search for w in ["магазин", "одежд", "стил", "мод", "товар", "доставк", "подарок", "аксессуар", "маркетплейс"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Стиль и качество, которые подчеркнут вашу индивидуальность: «{company_name}» 🛍️"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Мы собрали коллекцию, в которой каждая деталь продумана до мелочей: от премиальных материалов до идеальной посадки.\n\n"
                 f"Быстрая доставка, удобная примерка и гарантированное качество — порадуйте себя новинками уже сегодня!{comments_phrase}"
             )
@@ -681,15 +685,17 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Charming candid fashion storytelling photograph. A stylish woman standing in front of a warm boutique mirror, playfully adjusting the collar of a chic elegant coat with a confident, joyful smile, surrounded by soft neutral textures and ambient warm light. Authentic moment of self-expression and delight, natural depth of field, photorealistic.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#шопинг #стиль #мода #одежда #новинки"
             }
 
         # 3.13. Фермерские продукты / Овощи и фрукты / Рынок / Продуктовые лавки
         elif any(w in full_text_search for w in ["овощ", "фрукт", "рынок", "фермер", "продукты", "базар", "ягод", "зелень", "урожай", "лавка", "грядк"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Свежесть только с грядки: отборный урожай в «{company_name}» 🍅🌿"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Никакой химии и долгого хранения — только настоящий вкус, сочность и аромат, как из бабушкиного сада.\n\n"
                 f"Спелые грунтовые томаты, хрустящая зелень, сладкие сезонные фрукты и честный вес. Приходите пробовать и выбирайте лучшее для домашнего стола!{comments_phrase}"
             )
@@ -697,37 +703,42 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Mouthwatering authentic market food photography. A rustic weathered wooden market stall brimming with vibrant, ripe red heirloom tomatoes, crisp green herbs, and sun-kissed fruits with glistening morning dew drops. Warm natural sunlight streaming through market canvas awning, authentic candid bazaar atmosphere, rich organic textures, 35mm shallow depth of field.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#овощи #фрукты #фермерскиепродукты #рынок #свежесть #зож"
             }
 
         # 3.14. Creator Economy / Приватные Telegram-каналы / Закрытые клубы / Подписки / OnlyFans / Boosty
         elif any(w in full_text_search for w in ["приват", "онлифанс", "onlyfans", "boosty", "закрытый канал", "эксклюзив", "клуб", "подписк", "vip", "интим", "модель", "18+"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"То, что никогда не попадет в открытый доступ: эксклюзив в закрытом клубе «{company_name}» 🤫🔥"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
-                f"Здесь нет цензуры, рамок и банального контента — только самый личный, откровенный и эстетичный бэкстейдж, прямые эфиры и общение один на один.\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
+                f"Здесь нет рамок и банального контента — только самый личный, откровенный и эстетичный бэкстейдж, авторские съемки и общение один на один.\n\n"
                 f"Каждый день — свежий эксклюзивный материал, который доступен только избранному кругу подписчиков.{comments_phrase}"
             )
             cta = "Входная ссылка-инвайт сгорает через 24 часа! Забирай доступ в приват прямо сейчас по ссылке в описании профиля или пиши в ЛС 🔒👇" if has_comments else "Забирай закрытый доступ в личных сообщениях прямо сейчас! 🤫✨"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}VIP",
-                "visual_prompt": "Seductive atmospheric aesthetic storytelling portrait. A mesmerizing charismatic creator in subtle ambient neon and warm candlelight, playful confident gaze, striking silhouette in soft focus, intimate cinematic room atmosphere, authentic raw smartphone candid grain, tasteful artistic mood, 35mm shallow depth of field.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#exclusive #vip #private #lifestyle #backstage #эстетика"
             }
 
         # =========================================================================
         # 4. ДИНАМИЧЕСКИЙ УНИВЕРСАЛЬНЫЙ ГЕНЕРАТОР (FALLBACK ДЛЯ ЛЮБОЙ НИШИ)
         # =========================================================================
+        from skills.photo_generator import CinematographyDirector
         lead = f"Новости и актуальные решения от «{company_name}»"
+        organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
         body = (
-            f"{topic_clean}.{visual_phrase}\n\n"
+            f"{organic_story}{visual_phrase}\n\n"
             f"В компании «{company_name}» мы постоянно совершенствуем наш подход в сфере «{niche}», "
             f"чтобы каждый клиент получал надёжный, прогнозируемый и качественный результат.\n\n"
             f"Опыт команды, индивидуальный подход к задачам и современные стандарты сервиса экономят ваше время и ресурсы.{comments_phrase}"
         )
         cta = f"Поделитесь вашим мнением в комментариях 👇 — мы открыты к диалогу и рады ответить на любые вопросы!" if has_comments else f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи!"
+        visual_prompt = CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"]
         hashtags = f"#{niche.replace(' ', '_')} #бизнес #качество #новости"
         visual_prompt = (
             f"Cinematic emotional storytelling photograph for {niche}. "

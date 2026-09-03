@@ -116,6 +116,72 @@ class CinematographyDirector:
                 niche_en = v
                 break
 
+        # =========================================================================
+        # ПИЛАР 1: АУТЕНТИЧНЫЙ МИР И СФЕРА ДЕЯТЕЛЬНОСТИ (Niche World-Building)
+        # Каждая сфера имеет свой собственный неповторимый контекст и атмосферу.
+        # Категорически запрещен дефолтный шаблон "человек за верстаком/столом".
+        # =========================================================================
+        niche_universe = {
+            "setting": f"aesthetic contemporary {niche_en} setting",
+            "props": "tactile authentic materials and natural atmospheric depth"
+        }
+
+        if any(w in niche_lower or w in topic_lower for w in ["религи", "церков", "храм", "собор", "пасх", "кулич"]):
+            niche_universe = {
+                "setting": "majestic historic cathedral interior with towering stone arches, golden gilded altar details, soft sunbeams filtering through ancient stained glass windows",
+                "props": "glowing beeswax candles in soft chiaroscuro, natural linen cloth, delicate incense haze, tranquil sacred stillness"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["животн", "зоо", "кот", "кошк", "котик", "питом"]):
+            niche_universe = {
+                "setting": "warm sunlit Scandinavian-style home living room, natural herringbone hardwood floor, soft textured woven throw blanket",
+                "props": "healthy potted indoor monstera plant, delicate dust motes floating in golden afternoon window sunbeams, pure domestic peaceful haven"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["собак", "щен"]):
+            niche_universe = {
+                "setting": "vibrant sun-drenched green park lawn, gentle golden hour sunbeams casting long warm shadows",
+                "props": "natural dew on lush grass, soft rustic background trees in creamy bokeh, joyful freedom"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["кофе", "кофейн", "барист", "эспрессо", "капучин", "раф"]):
+            niche_universe = {
+                "setting": "sunlit rustic specialty craft coffee shop, polished vintage oak counter, soft morning street view in background bokeh",
+                "props": "artisan ceramic cup, delicate rising fragrant steam, roasted coffee bean jar, warm brass accents"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["пекарн", "кондитерск", "выпечк", "десерт", "торт", "чизкейк", "круассан"]):
+            niche_universe = {
+                "setting": "artisan French pastry boutique, warm marble countertop with scattered fine flour dust and toasted almond flakes",
+                "props": "flaky golden crust, fresh spring berry garnish, vintage baker's wooden paddle in soft focus"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["электроник", "плата", "esp32", "esp-32", "arduino", "микроконтроллер", "чип", "схемотехник", "iot"]):
+            niche_universe = {
+                "setting": "clean high-tech electronics engineering laboratory, professional blue anti-static silicone soldering mat",
+                "props": "precision tweezers, fine copper circuit traces, gold-plated header pins, micro-components in crisp macro focus"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["авто", "детейлинг", "автосервис", "полировк", "керамик"]):
+            niche_universe = {
+                "setting": "pristine modern luxury auto detailing studio, glowing linear ceiling LED strip lights reflecting on deep paintwork",
+                "props": "mirror-like gloss, hydrophobic micro water beads, ultra-plush microfiber towel in soft background"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["стоматолог", "зуб", "клиник", "медицин", "винир"]):
+            niche_universe = {
+                "setting": "ultramodern sunlit aesthetic dental clinic, calm reassuring atmosphere with warm travertine marble and glass accents",
+                "props": "flawless hygiene, soft diffused glare-free illumination, pure comfort and relief"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["недвижим", "квартир", "новостройк", "интерьер", "ремонт"]):
+            niche_universe = {
+                "setting": "spacious sun-drenched newly renovated open-plan living room with floor-to-ceiling panoramic windows overlooking evening sky",
+                "props": "designer minimalist furniture, warm architectural ambient lighting, the feeling of dream home security"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["фитнес", "спорт", "тренировк", "тренер"]):
+            niche_universe = {
+                "setting": "spacious modern loft fitness gym with exposed brick and panoramic industrial windows, dramatic sunbeams piercing the room",
+                "props": "matte black dumbbells, glistening water bottle, energetic motivational ambiance"
+            }
+        elif any(w in niche_lower or w in topic_lower for w in ["юриспруд", "юрист", "адвокат", "договор"]):
+            niche_universe = {
+                "setting": "prestigious corporate corner boardroom overlooking glowing evening city skyline through floor-to-ceiling glass",
+                "props": "fountain pen resting beside crisp signed legal agreement document on polished walnut table, sealed deal and peace of mind"
+            }
+
         # 1. Анализ сюжета и определение световой схемы
         if "закат" in topic_lower or "пляж" in topic_lower or "вечер" in topic_lower:
             light_key = "rim_backlight"
@@ -132,12 +198,12 @@ class CinematographyDirector:
             color_key = "warm_analogous"
             comp_key = "framing"
             persp_key = "bokeh_shallow"
-        elif "десерт" in topic_lower or "ролл" in topic_lower or "выпечк" in topic_lower or "кофе" in topic_lower or "еда" in topic_lower or "кулич" in topic_lower or "огурец" in topic_lower or "плата" in topic_lower or "esp" in topic_lower or "электроник" in topic_lower or "микроконтроллер" in topic_lower or "турбин" in topic_lower or "инструмент" in topic_lower or "ювелир" in topic_lower or "кольц" in topic_lower or "косметик" in topic_lower or "крем" in topic_lower:
+        elif any(w in topic_lower for w in ["десерт", "ролл", "выпечк", "кофе", "еда", "кулич", "огурец", "плата", "esp", "электроник", "микроконтроллер", "турбин", "инструмент", "ювелир", "кольц", "косметик", "крем"]):
             light_key = "high_key"
             color_key = "warm_analogous"
             comp_key = "golden_spiral"
             persp_key = "tabletop_commercial"
-        elif "флаг" in topic_lower or "архитектур" in topic_lower or "спорт" in topic_lower or "фитнес" in topic_lower:
+        elif any(w in topic_lower for w in ["флаг", "архитектур", "спорт", "фитнес"]):
             light_key = "rim_backlight"
             color_key = "teal_orange"
             comp_key = "triangles"
@@ -148,14 +214,16 @@ class CinematographyDirector:
             comp_key = "rule_of_thirds"
             persp_key = "candid_eye_level"
 
-        # 2. Интеллектуальный поиск точной спецификации одежды / объекта через VisualKnowledgeResearcher
+        # =========================================================================
+        # ПИЛАР 2: РОЛЬ ПРОДУКТА И АРКА ЗРИТЕЛЯ (Product as Hero / Catalyst)
+        # Кадр фиксирует кульминацию арки: идеальный момент гармонии, радости или безопасности.
+        # =========================================================================
         from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
-        # Динамическая сборка объекта с переводом сущностей на чистый английский
         if "массаж" in topic_lower or "камн" in topic_lower:
             subject = visual_spec.get("visual_description", "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening")
-            environment = "peaceful luxury wellness SPA room, marble surface, soft warm candlelight and towels in soft focus"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "бикини" in topic_lower or "стринги" in topic_lower or "купальник" in topic_lower or "модел" in topic_lower:
             garment_desc = visual_spec.get("visual_description", "elegant stylish minimalist swimwear")
             if "пляж" in topic_lower or "закат" in topic_lower:
@@ -165,31 +233,34 @@ class CinematographyDirector:
                 subject = f"captivating charismatic female model posing with poise and elegance, wearing {garment_desc}"
                 environment = "moody luxury penthouse lounge with soft neon ambient reflections, subtle velvet textures, cinematic depth"
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
-            subject = visual_spec.get("visual_description", f"extreme macro product photography of compact ESP-32 microcontroller board")
-            environment = "clean high-tech electronics engineering workbench, blue anti-static silicone soldering mat, precision tweezers and fine copper wires in soft background bokeh, tabletop macro focus"
-        elif "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
-            subject = "charming fluffy domestic tabby cat with expressive amber eyes resting peacefully on a warm wooden surface"
-            environment = "cozy sunlit living room with natural house plants, soft warm window sunlight in background bokeh"
-        elif "собак" in topic_lower or "щен" in topic_lower:
-            subject = "healthy energetic loyal dog with shining fur looking curiously at the camera"
-            environment = "bright sunlit green park with gentle golden hour sunbeams and lush grass"
-        elif "кулич" in topic_lower or "пасх" in topic_lower:
+            subject = visual_spec.get("visual_description", "extreme macro product photography of compact ESP-32 microcontroller board with dual-in-line gold header pins and USB Type-C port")
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "пасхальн", "освящен"]):
             subject = "traditional artisanal glazed Easter brioche cake with delicate sugar icing, pastel sugar sprinkles and spring floral garnish"
-            environment = "rustic wooden table with natural linen napkin, warm soft window daylight"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
+            subject = "charming fluffy domestic tabby cat with expressive amber eyes resting peacefully in a warm sunbeam, relaxed paws, pure domestic happiness"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["собак", "щенок", "щенк", "пес", "пёс"]):
+            subject = "healthy energetic loyal dog with shining fur looking curiously and happily at the camera"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "кофе" in topic_lower or "эфиопи" in topic_lower or "капучин" in topic_lower:
-            subject = "artisanal ceramic cup of creamy cappuccino with intricate latte art, fresh ripe peach slice and delicate white jasmine flowers on saucer"
-            environment = "cozy sunlit craft specialty coffee shop, warm rustic oak table"
+            subject = "artisanal ceramic cup of creamy cappuccino with intricate latte art, fresh ripe peach slice and delicate white jasmine flowers on saucer, gentle rising steam"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "крем" in topic_lower or "сыворотк" in topic_lower or "помад" in topic_lower or "блеск для губ" in topic_lower or "косметик" in topic_lower:
-            subject = visual_spec.get("visual_description", f"luxury commercial cosmetic product display")
+            subject = visual_spec.get("visual_description", "luxury commercial cosmetic product display")
             environment = "minimalist luxury travertine marble stone podium, delicate fresh water droplets, soft botanical accents in blurred background, clean studio aesthetic"
         elif "турбин" in topic_lower or "gt2871" in topic_lower or "койловер" in topic_lower or "перфоратор" in topic_lower or "шуруповерт" in topic_lower or "инструмент" in topic_lower:
-            subject = visual_spec.get("visual_description", f"precision tabletop commercial photograph of professional engineering component")
-            environment = "clean professional workshop table, cedar wood shavings and blueprint schematics in soft background bokeh, authentic craftsmanship"
+            subject = visual_spec.get("visual_description", "precision tabletop commercial photograph of professional engineering component")
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         else:
             raw_vis = visual_spec.get("visual_description")
             subject = f"authentic candid commercial scene: {raw_vis}" if raw_vis and raw_vis != topic else f"authentic commercial scene representing {niche_en}"
-            environment = f"aesthetic contemporary {niche_en} setting, natural room depth"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
 
+        # =========================================================================
+        # ПИЛАР 3: ВНУТРЕННЯЯ ИСТОРИЯ И РЕКВИЗИТ КАК ЭКСПОЗИЦИЯ (Implied Narrative)
+        # =========================================================================
         lighting = cls.LIGHTING_SCHEMES[light_key]
         color_scheme = cls.COLOR_HARMONIES[color_key]
         composition = cls.COMPOSITION_GEOMETRIES[comp_key]
@@ -234,7 +305,7 @@ logger = logging.getLogger("photo_generator_skill")
 class PhotoGeneratorSkill:
     """
     Автономный ИИ-фотограф для SMM.
-    - Динамический Prompt Engineering под нишу бизнеса
+    - Динамический Prompt Engineering под нишу бизнеса (3-Pillar Narrative Engine)
     - Поддержка соотношений сторон: 1:1 (Квадрат), 4:5 (Портрет), 16:9 (Баннер), 9:16 (Stories)
     - Интеграция с ComfyUI / SDXL / Diffusers / Local Visual Engine
     """
@@ -247,6 +318,24 @@ class PhotoGeneratorSkill:
     }
 
     NICHE_PRESETS = {
+        "религия": {
+            "subject": "majestic historic cathedral sanctuary with towering carved stone arches, golden gilded altar details, glowing beeswax candles, soft ethereal sunbeams filtering through ancient stained glass windows",
+            "environment": "sacred historic sanctuary, timeless spiritual tranquility, marble floor reflecting candle glow, authentic cultural heritage atmosphere",
+            "lighting": "warm golden candle glow, ethereal sunbeams through stained glass, gentle chiaroscuro highlights",
+            "camera": "Cinematic 35mm architectural perspective, peaceful reverence and awe, Hasselblad color science, photorealistic"
+        },
+        "животные": {
+            "subject": "adorable healthy domestic tabby cat resting peacefully on a warm wooden floor in a sunny spot next to a soft woven blanket, calm content expression",
+            "environment": "cozy warm sunlit Scandinavian-style home living room, potted green plants, peaceful domestic haven",
+            "lighting": "soft diffused morning window sunlight, gentle golden room ambient, natural warmth",
+            "camera": "Eye-level macro pet photography, shallow depth of field, sharp tactile fur details, authentic UGC warmth"
+        },
+        "электроника": {
+            "subject": "compact ESP-32 microcontroller board with dual-in-line gold header pins, CP2102 chip and USB Type-C port, extreme macro product shot",
+            "environment": "clean high-tech electronics engineering workbench, blue anti-static silicone soldering mat, precision tweezers in soft background bokeh",
+            "lighting": "high-key precision studio lighting, crisp metallic highlights on solder pads",
+            "camera": "Macro tabletop lens, crisp copper circuit traces, tactile electronic engineering photography"
+        },
         "кофейня": {
             "subject": "smiling friendly barista leaning over rustic wooden counter, gently handing a steaming artisanal ceramic cup of cappuccino with delicate latte art directly toward viewer",
             "environment": "cozy local craft coffee shop, large sunlit window with soft floating dust motes, relaxed warm background",

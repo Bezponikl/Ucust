@@ -57,7 +57,7 @@ class CinematographyDirector:
         "framing": "Natural architectural framing through doorway, window arch or soft foliage",
         "negative_space": "Expansive negative space creating a high-end minimalist, breathable composition",
         "triangles": "Stable triangular geometry balancing masses and creating visual permanence",
-        "golden_spiral": "Golden ratio Fibonacci spiral naturally drawing focus into the scene center"
+        "golden_spiral": "Harmonious golden ratio proportions naturally drawing viewer focus into the scene focal point"
     }
 
     PERSPECTIVES = {
@@ -492,6 +492,7 @@ class PhotoGeneratorSkill:
 
     DEFAULT_NEGATIVE_PROMPT = (
         "smartphone, phone screen, holding smartphone, camera UI, viewfinder, bezel, device mockup, "
+        "spiral lines, golden spiral overlay, graphic circle lines, diagram, geometric curves, grid overlay, "
         "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
         "nsfw, nude, naked, explicit, bad anatomy, deformed fingers, extra limbs, blurry face, bad eyes, "
         "low quality, oversaturated, plastic 3d render, watermark, text, signature"

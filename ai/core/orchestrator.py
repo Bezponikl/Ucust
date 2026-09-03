@@ -20,6 +20,11 @@ class SecurityGuard:
         "system prompt", "ты теперь", "print db", "ignore above"
     ]
     
+    HARMFUL_AND_OFFENSIVE_TERMS = [
+        "гитлер", "нацизм", "фашизм", "расизм", "экстремизм", "терроризм",
+        "свастик", "геноцид", "наркотик", "порно", "инцест", "самоубийств"
+    ]
+    
     TONE_STOPWORDS = [
         "безумно", "потрясающе", "волшебный", "сказочный",
         "крушить барьеры", "руинах обыденности", "сверхъестественн",
@@ -52,7 +57,7 @@ class SecurityGuard:
     @classmethod
     def check_user_input(cls, user_text: str) -> bool:
         """
-        Проверяет ввод пользователя на попытки взлома и инъекций.
+        Проверяет ввод пользователя на попытки взлома, инъекций и запрещенный токсичный контент.
         Возвращает True, если безопасно, и False, если есть подозрения.
         """
         if not user_text:
@@ -62,6 +67,11 @@ class SecurityGuard:
         for kw in cls.FORBIDDEN_KEYWORDS:
             if kw in text_lower:
                 print(f"[SecurityGuard] 🚨 ОБНАРУЖЕНА ПОПЫТКА ВЗЛОМА: '{kw}' в запросе пользователя!")
+                return False
+                
+        for hw in cls.HARMFUL_AND_OFFENSIVE_TERMS:
+            if hw in text_lower:
+                print(f"[SecurityGuard] 🚨 ОБНАРУЖЕН ЗАПРЕЩЕННЫЙ/ТОКСИЧНЫЙ КОНТЕНТ: '{hw}'!")
                 return False
         return True
 

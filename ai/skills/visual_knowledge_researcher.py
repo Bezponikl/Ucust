@@ -252,13 +252,13 @@ class VisualKnowledgeResearcher:
         # 9. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IOT
         # =========================================================================
         "esp-32": {
-            "en_term": "ESP32 30-pin Type-C development board",
-            "visual_description": "compact 30-pin ESP32 NodeMCU development board with matte black PCB substrate, modern USB Type-C port, ESP-WROOM-32 shielded metal RF module, two parallel rows of gold-plated 15-pin headers (30 pins total), dual tactile EN/BOOT buttons, CP2102 chip, copper circuit traces, extreme macro photography",
+            "en_term": "ESP32 30-pin Type-C NodeMCU development board",
+            "visual_description": "narrow vertical rectangular (52mm x 28mm) matte black FR-4 PCB microcontroller board, strictly dual-in-line DIP-30 layout with exactly two straight parallel rows of 15 gold-plated header pins along the long left and right side edges only (15 pins left + 15 pins right = 30 pins total, strictly NO pins on top or bottom edges), silver metallic rectangular shielded RF module at the upper half with laser-etched 'ESP-32' logo and serpentine WiFi antenna, modern USB Type-C port centered at the bottom edge flanked by two tiny black tactile buttons labeled EN and BOOT, CP2102 chip, clean copper circuit traces, extreme macro tabletop photography",
             "text_story": "компактная 30-пиновая отладочная плата ESP-32 с удобным разъемом Type-C: двухъядерный процессор Xtensa LX6, встроенный Wi-Fi и Bluetooth BLE для умных устройств и IoT-автоматизации"
         },
         "esp32": {
-            "en_term": "ESP32 30-pin Type-C development board",
-            "visual_description": "compact 30-pin ESP32 NodeMCU development board with matte black PCB substrate, modern USB Type-C port, ESP-WROOM-32 shielded metal RF module, two parallel rows of gold-plated 15-pin headers (30 pins total), dual tactile EN/BOOT buttons, CP2102 chip, copper circuit traces, extreme macro photography",
+            "en_term": "ESP32 30-pin Type-C NodeMCU development board",
+            "visual_description": "narrow vertical rectangular (52mm x 28mm) matte black FR-4 PCB microcontroller board, strictly dual-in-line DIP-30 layout with exactly two straight parallel rows of 15 gold-plated header pins along the long left and right side edges only (15 pins left + 15 pins right = 30 pins total, strictly NO pins on top or bottom edges), silver metallic rectangular shielded RF module at the upper half with laser-etched 'ESP-32' logo and serpentine WiFi antenna, modern USB Type-C port centered at the bottom edge flanked by two tiny black tactile buttons labeled EN and BOOT, CP2102 chip, clean copper circuit traces, extreme macro tabletop photography",
             "text_story": "компактная 30-пиновая отладочная плата ESP-32 с удобным разъемом Type-C: двухъядерный процессор Xtensa LX6, встроенный Wi-Fi и Bluetooth BLE для умных устройств и IoT-автоматизации"
         },
         "arduino uno": {
@@ -270,6 +270,40 @@ class VisualKnowledgeResearcher:
             "en_term": "Arduino Uno R3 development board",
             "visual_description": "authentic Arduino UNO R3 microcontroller board with classic vibrant royal blue matte PCB, gold-plated female header sockets, socketed ATmega328P DIP microchip, 16MHz silver crystal oscillator, standard USB port, red reset button, crisp white silkscreen pin labels, macro electronics workbench photography",
             "text_story": "классическая отладочная плата Arduino UNO R3 на микроконтроллере ATmega328P: надежный стандарт для быстрого прототипирования и обучения робототехнике"
+        },
+
+        # =========================================================================
+        # 10. КОМПЬЮТЕРЫ И НОУТБУКИ С УНИКАЛЬНОЙ АРХИТЕКТУРОЙ (LAPTOP SIGNATURES)
+        # =========================================================================
+        "gx701": {
+            "en_term": "ASUS ROG Zephyrus S GX701 gaming laptop",
+            "visual_description": "ASUS ROG Zephyrus S GX701 ultra-slim 17-inch gaming laptop, signature forward-positioned RGB per-key keyboard shifted to the front edge, vertical side-mounted touchpad on the right doubling as an illuminated digital number pad, large stylish perforated brushed magnesium intake plate above the keyboard with luminous ROG eye logo, Active Aerodynamic System (AAS) bottom chassis vent visibly lifted 5mm at the rear for cooling, ultra-thin screen bezels, premium matte black metal body with copper diamond-cut chamfered edges",
+            "text_story": "флагманский 17-дюймовый ультрабук ASUS ROG Zephyrus GX701: уникальная компоновка с клавиатурой у переднего края, цифровым тачпадом сбоку и активной системой охлаждения AAS с приподнимающимся днищем"
+        },
+        "zephyrus": {
+            "en_term": "ASUS ROG Zephyrus gaming laptop",
+            "visual_description": "ASUS ROG Zephyrus ultra-slim gaming laptop with CNC AniMe Matrix LED lid, forward-shifted ergonomic keyboard, side-mounted precision touchpad with numpad mode, active aerodynamic intake vents, premium dark magnesium-aluminum chassis",
+            "text_story": "ультратонкий игровой флагман ASUS ROG Zephyrus с продуманным охлаждением, матричным дисплеем на крышке и эргономичной раскладкой"
+        },
+        "zenbook duo": {
+            "en_term": "ASUS ZenBook Duo dual-screen laptop",
+            "visual_description": "ASUS ZenBook Duo revolutionary dual-screen laptop with primary OLED display and secondary tilted matte touchscreen (ScreenPad Plus) spanning the upper half of the base deck above the keyboard, keyboard shifted to the front edge with vertical numeric trackpad, spun-metal celestial blue chassis",
+            "text_story": "революционный двухэкранный ноутбук ASUS ZenBook Duo: дополнительный сенсорный экран ScreenPad Plus над клавиатурой для максимальной продуктивности"
+        },
+        "asus duo": {
+            "en_term": "ASUS ZenBook Duo dual-screen laptop",
+            "visual_description": "ASUS ZenBook Duo revolutionary dual-screen laptop with primary OLED display and secondary tilted matte touchscreen (ScreenPad Plus) spanning the upper half of the base deck above the keyboard, keyboard shifted to the front edge with vertical numeric trackpad, spun-metal celestial blue chassis",
+            "text_story": "революционный двухэкранный ноутбук ASUS ZenBook Duo: дополнительный сенсорный экран ScreenPad Plus над клавиатурой для максимальной продуктивности"
+        },
+        "thinkpad": {
+            "en_term": "Lenovo ThinkPad X1 laptop",
+            "visual_description": "iconic Lenovo ThinkPad X1 business laptop in matte raven-black soft-touch carbon fiber chassis, iconic bright red TrackPoint rubber nub centered between G-H-B keys, physical mouse click buttons with red accent line above trackpad, glowing red LED dot on the ThinkPad logo at palm rest, dual stainless steel 180-degree hinges",
+            "text_story": "легендарный бизнес-ноутбук ThinkPad: матовый прочный корпус из углеволокна, фирменный красный трекпоинт и эргономичная клавиатура с защитой от влаги"
+        },
+        "macbook": {
+            "en_term": "Apple MacBook Pro Space Black laptop",
+            "visual_description": "Apple MacBook Pro laptop in unibody anodized Space Black CNC aluminum, centered giant glass Force Touch trackpad, black anodized keyboard well with full-height function keys and Touch ID, slim braided MagSafe 3 cable connected, edge-to-edge Liquid Retina XDR display with rounded top corners and centered camera notch",
+            "text_story": "культовый Apple MacBook Pro в цельнометаллическом корпусе Space Black: дисплей Liquid Retina XDR, трекпад Force Touch и процессор Apple Silicon для максимальной автономности"
         },
 
         # =========================================================================
@@ -306,15 +340,16 @@ class VisualKnowledgeResearcher:
     async def research_visual_spec(cls, topic: str) -> Dict[str, str]:
         """
         Ищет точную визуальную специфику для любого объекта, SKU, инструмента, блюда или услуги.
-        Сначала проверяет локальную экспертную базу, при необходимости делает фоновый запрос к поисковику.
+        Сначала проверяет локальную экспертную базу (по наибольшему совпадению), при необходимости делает фоновый запрос к поисковику.
         """
         if not topic:
             return {}
 
         topic_lower = topic.lower()
 
-        # 1. Проверяем локальную экспертную базу
-        for key, spec in cls.CURATED_VISUAL_SPECS.items():
+        # 1. Проверяем локальную экспертную базу по наибольшей специфичности (длинные ключи первыми)
+        sorted_specs = sorted(cls.CURATED_VISUAL_SPECS.items(), key=lambda x: len(x[0]), reverse=True)
+        for key, spec in sorted_specs:
             if key in topic_lower:
                 logger.info(f"[VisualKnowledgeResearcher] 🎯 Найдена точная спецификация для «{key}»")
                 return spec
@@ -328,7 +363,7 @@ class VisualKnowledgeResearcher:
                         "https://api.tavily.com/search",
                         json={
                             "api_key": tavily_key,
-                            "query": f"what is {topic} visual components physical appearance materials design",
+                            "query": f"what is {topic} visual components physical appearance materials design layout",
                             "max_results": 2
                         }
                     )
@@ -359,7 +394,8 @@ class VisualKnowledgeResearcher:
         Синхронная обертка для быстрого вызова из генераторов промптов.
         """
         topic_lower = topic.lower()
-        for key, spec in cls.CURATED_VISUAL_SPECS.items():
+        sorted_specs = sorted(cls.CURATED_VISUAL_SPECS.items(), key=lambda x: len(x[0]), reverse=True)
+        for key, spec in sorted_specs:
             if key in topic_lower:
                 return spec
                 
@@ -372,7 +408,7 @@ class VisualKnowledgeResearcher:
                         "https://api.tavily.com/search",
                         json={
                             "api_key": tavily_key,
-                            "query": f"what is {topic} components visual appearance materials",
+                            "query": f"what is {topic} components visual appearance materials layout",
                             "max_results": 1
                         }
                     )

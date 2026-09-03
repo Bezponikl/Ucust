@@ -577,8 +577,26 @@ class SaigaLLMSkill:
                 "hashtags": "#недвижимость #квартира #новостройки #интерьер #уют"
             }
 
-        # 3.6. Автобизнес / СТО / Детейлинг / Тюнинг / JDM
-        elif any(w in full_text_search for w in ["автомобил", "машин", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "тюнинг", "техосмотр", "турбин", "sr20", "gt2871", "jdm"]) and "автоном" not in full_text_search:
+        # 3.6. Автоспорт / Тюнинг / JDM / Турбонаддув
+        elif any(w in full_text_search for w in ["тюнинг", "турбин", "sr20", "gt2871", "jdm", "наддув", "интеркулер", "койловер", "мотор", "двигател", "выхлоп"]):
+            from skills.photo_generator import CinematographyDirector
+            lead = f"Максимум мощности и надежности: проекты от «{company_name}» 🏎️💨"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            body = (
+                f"{organic_story}{visual_phrase}\n\n"
+                f"Грамотный тюнинг — это точный расчет тепловых нагрузок, выбор проверенных компонентов и безупречная сборка.\n\n"
+                f"Сборка кастомных трасс, установка турбокитов, настройка буста и стендовая калибровка гарантируют стабильную отдачу и безопасность мотора в любых режимах.{comments_phrase}"
+            )
+            cta = "Какой сетап планируете собрать в этом сезоне? Делитесь в комментариях! 🏁👇" if has_comments else "Пишите в личные сообщения — подберем и соберем идеальный конфиг под ваш авто! 🔧🏁"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
+                "hashtags": "#тюнинг #автоспорт #jdm #турбо #drift #авто"
+            }
+
+        # 3.7. Автосервис / СТО / Детейлинг / Автомойка
+        elif any(w in full_text_search for w in ["автомобил", "машин", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "техосмотр"]) and "автоном" not in full_text_search:
             from skills.photo_generator import CinematographyDirector
             lead = f"Безупречный вид и надёжность вашего автомобиля с «{company_name}» 🚗"
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)

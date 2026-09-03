@@ -96,7 +96,7 @@ class CinematographyDirector:
             color_key = "warm_analogous"
             comp_key = "framing"
             persp_key = "bokeh_shallow"
-        elif "десерт" in topic_lower or "ролл" in topic_lower or "выпечк" in topic_lower or "кофе" in topic_lower or "еда" in topic_lower:
+        elif "десерт" in topic_lower or "ролл" in topic_lower or "выпечк" in topic_lower or "кофе" in topic_lower or "еда" in topic_lower or "плата" in topic_lower or "esp" in topic_lower or "электроник" in topic_lower or "микроконтроллер" in topic_lower or "турбин" in topic_lower or "инструмент" in topic_lower or "ювелир" in topic_lower or "кольц" in topic_lower or "косметик" in topic_lower or "крем" in topic_lower:
             light_key = "high_key"
             color_key = "warm_analogous"
             comp_key = "golden_spiral"
@@ -148,15 +148,20 @@ class CinematographyDirector:
 
         colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
+        # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат
+        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "model", "woman", "man", "person", "barista", "doctor"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор"])
+        
+        texture_desc = "natural skin texture, authentic pores, genuine human expression" if is_human_scene else "tactile surface texture, crisp micro-details, pristine material finish, macro lens clarity"
+
         full_prompt = (
-            f"Authentic candid commercial photograph for {niche}. "
+            f"Authentic commercial photograph for {niche}. "
             f"Subject: {subject}. "
             f"Environment: {environment}. "
             f"{colors_str}"
             f"Lighting & Atmosphere: {lighting}. "
             f"Color Harmony: {color_scheme}. "
             f"Composition & Framing: {composition}. "
-            f"Perspective & Optics: {perspective}, 35mm film masterpiece, fine tactile detail, Hasselblad color science, uncompressed raw photo, natural skin texture, tactile realism, natural grain, photorealistic."
+            f"Perspective & Optics: {perspective}, 35mm film masterpiece, fine tactile detail, Hasselblad color science, uncompressed raw photo, {texture_desc}, tactile realism, natural grain, photorealistic."
         )
 
         return {

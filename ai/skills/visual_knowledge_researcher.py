@@ -147,10 +147,15 @@ class VisualKnowledgeResearcher:
             "visual_description": "sculpted four-sided truncated pyramid of rich velvety farm cottage cheese Paskha with embossed traditional relief lettering on its sides, garnished with candied fruits, toasted sliced almonds, dried cranberries and spring flowers on a porcelain stand",
             "text_story": "традиционная творожная пасха в форме усеченной пирамиды из отборного фермерского творога со сливочным маслом, цукатами и лепестками миндаля"
         },
-        "форм": {
+        "формы для выпечки": {
             "en_term": "pleated parchment panettone paper baking molds and wooden paskha molds",
             "visual_description": "set of premium pleated brown parchment paper Panettone baking molds with elegant gold filigree patterns standing on a rustic baker's floured wooden table, alongside a carved wooden paskha pyramid mold, surrounded by fresh farm eggs and cinnamon sticks",
             "text_story": "жаропрочные формы для выпечки куличей и панеттоне из гофрированного пергамента с золотым тиснением и разборные пасочницы для творожной пасхи"
+        },
+        "пасочниц": {
+            "en_term": "traditional wooden carved pyramid mold for cottage cheese paskha",
+            "visual_description": "handcrafted wooden carved pyramid mold for cottage cheese paskha with ornate relief lettering, rustic baker table aesthetic",
+            "text_story": "разборная деревянная пасочница для приготовления традиционной творожной пасхи"
         },
         "торт": {
             "en_term": "gourmet artisanal multi-layer cake with cleanly cut slice",

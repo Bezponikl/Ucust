@@ -71,14 +71,20 @@ class CinematographyDirector:
     }
 
     NICHE_EN_MAP = {
+        "martech": "innovative AI MarTech software platform and digital marketing analytics",
+        "маркетинг": "modern AI marketing automation and growth analytics platform",
+        "saas": "cutting-edge cloud SaaS software and AI intelligence enterprise",
+        "it": "modern high-tech IT software and artificial intelligence enterprise",
+        "ии": "modern artificial intelligence and machine learning technology",
         "электроник": "electronics and embedded IoT hardware",
-        "it": "modern IT software and digital technology",
         "кофейн": "craft specialty coffee shop",
         "кофе": "specialty coffee and espresso bar",
         "ресторан": "fine dining gourmet restaurant",
         "пекарн": "artisan bakery and pastry shop",
         "кондитерск": "pastry confectionery and dessert boutique",
-        "авто": "luxury automotive detailing and workshop",
+        "детейлинг": "luxury automotive detailing and ceramic studio",
+        "автомобил": "modern automotive showroom and engineering workshop",
+        "автосервис": "professional auto repair and diagnostic bay",
         "мебел": "high-end designer handcrafted furniture",
         "стоматолог": "modern pristine dental clinic",
         "медицин": "modern healthcare and wellness clinic",
@@ -126,6 +132,18 @@ class CinematographyDirector:
         # При перегенерации (var > 0) интерьер, окружение и реквизит циклически меняются!
         # =========================================================================
         niche_environments = {
+            "martech": [
+                {"setting": "sleek contemporary tech startup headquarters with glass partition walls and panoramic city skyline view", "props": "ultra-thin laptop with glowing analytics dashboard, minimal glass table, modern architectural daylight"},
+                {"setting": "modern sunlit open-plan digital innovation lab with minimalist Scandinavian oak desks", "props": "sleek monitors displaying real-time AI conversion charts, potted indoor plants, bright productive ambiance"},
+                {"setting": "futuristic executive tech boardroom at golden hour with floor-to-ceiling panoramic glass", "props": "clean aluminum tablet, modern data visualization, elite tech prestige and growth"},
+                {"setting": "bright creative IT workspace with warm ambient pendant lighting and whiteboards", "props": "ergonomic workstation, high-tech SaaS dashboards, breakthrough clarity and success"}
+            ],
+            "it": [
+                {"setting": "modern high-tech software engineering office with floor-to-ceiling glass windows and natural daylight", "props": "clean minimalist desk with ultra-thin laptop showing AI code and metrics, contemporary tech atmosphere"},
+                {"setting": "innovative AI technology hub with sleek architectural design and soft ambient illumination", "props": "cutting-edge digital workstation, data analytics visualizations, focused creativity"},
+                {"setting": "sunlit Scandinavian style tech coworking space with lush green indoor plants and wooden tables", "props": "sleek laptop, warm natural morning daylight, inspiring productivity"},
+                {"setting": "panoramic rooftop tech terrace with view of modern city skyscrapers at golden hour", "props": "tablet showing cloud software growth, futuristic optimism and mastery"}
+            ],
             "религия": [
                 {"setting": "majestic historic cathedral interior with towering stone arches, golden gilded altar details, soft sunbeams filtering through ancient stained glass windows", "props": "glowing beeswax candles in soft chiaroscuro, natural linen cloth, delicate incense haze, tranquil sacred stillness"},
                 {"setting": "bright sunlit artisan monastery kitchen courtyard with natural morning daylight, rustic carved wooden table", "props": "fresh spring pussy willow branches, hand-woven natural linen napkin, warm soft window illumination"},
@@ -156,7 +174,7 @@ class CinematographyDirector:
                 {"setting": "top-down architectural tech workspace with anodized aluminum plates and brass precision calipers", "props": "clean circuit board layout, microchip silicon reflections, high-precision layout"},
                 {"setting": "atmospheric prototyping studio with soft ambient amber and cyan LED edge illumination", "props": "breadboards, neatly organized jumper wires, cutting-edge innovation atmosphere"}
             ],
-            "авто": [
+            "детейлинг": [
                 {"setting": "pristine modern luxury auto detailing studio, glowing linear ceiling LED strip lights reflecting on deep paintwork", "props": "mirror-like gloss, hydrophobic micro water beads, ultra-plush microfiber towel in soft background"},
                 {"setting": "high-end showroom floor at golden hour, polished epoxy reflective floor", "props": "dramatic rim lighting on car curves, flawless metallic paint depth, pristine prestige"},
                 {"setting": "clean engineering tuning bay with professional modular tool cabinets in blurred background", "props": "ceramic coating applicator block, crisp reflection of overhead studio softbox"},
@@ -233,6 +251,11 @@ class CinematographyDirector:
             color_key = "warm_analogous"
             comp_key = "framing"
             persp_key = "bokeh_shallow"
+        elif any(w in niche_lower for w in ["martech", "маркетинг", "saas", "it", "ии"]) or any(w in topic_lower for w in ["martech", "маркетинг", "saas", "ии-платформ", "автоматизац", "генеративн", "нейросеть"]):
+            light_key = lighting_rotation[var]
+            color_key = "muted_editorial" if var % 2 == 0 else "teal_orange"
+            comp_key = comp_rotation[var]
+            persp_key = "candid_eye_level" if var % 2 == 0 else "bokeh_shallow"
         elif any(w in topic_lower for w in ["десерт", "ролл", "выпечк", "кофе", "еда", "огурец", "плата", "esp", "электроник", "микроконтроллер", "турбин", "инструмент", "ювелир", "кольц", "косметик", "крем"]):
             light_key = lighting_rotation[var]
             color_key = color_rotation[var]
@@ -256,10 +279,13 @@ class CinematographyDirector:
         from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
-        if "массаж" in topic_lower or "камн" in topic_lower:
+        if any(w in niche_lower for w in ["martech", "маркетинг", "saas", "it", "ии"]) or any(w in topic_lower for w in ["martech", "маркетинг", "saas", "ии-платформ", "автоматизац", "генеративн", "нейросеть"]):
+            subject = "sleek modern workspace with an open ultra-thin laptop displaying a glowing clean AI marketing automation dashboard with real-time conversion growth graphs, creative preview cards, and automated campaign metrics in sharp focus"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif "массаж" in topic_lower or "камн" in topic_lower:
             subject = visual_spec.get("visual_description", "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening")
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif "бикини" in topic_lower or "стринги" in topic_lower or "купальник" in topic_lower or "модел" in topic_lower:
+        elif any(w in topic_lower for w in ["купальник", "бикини", "стринги", "нижнее белье", "swimwear", "lingerie"]):
             garment_desc = visual_spec.get("visual_description", "elegant stylish minimalist swimwear")
             if "пляж" in topic_lower or "закат" in topic_lower:
                 subject = f"athletic graceful young female model posing naturally, wearing {garment_desc}"
@@ -270,7 +296,7 @@ class CinematographyDirector:
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
             subject = visual_spec.get("visual_description", "extreme macro product photography of compact ESP-32 microcontroller board with dual-in-line gold header pins and USB Type-C port")
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif any(w in topic_lower for w in ["пасочниц", "форм"]):
+        elif any(w in topic_lower for w in ["пасочниц", "формы для выпечки", "бумажные формы", "формочки для кулич"]):
             subject = "set of premium pleated brown cellulose Panettone and Easter Kulich paper baking molds with gold filigree and traditional carved wooden paskha pyramid mold on baker table"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["вид сверху", "flatlay", "флэтлей"]):

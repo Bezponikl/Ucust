@@ -64,7 +64,7 @@ class CinematographyDirector:
         "bokeh_shallow": "Shallow depth of field (f/1.4), creamy bokeh background isolation",
         "low_angle_heroic": "Low-angle heroic perspective conveying confidence, scale and mastery",
         "tabletop_commercial": "Top-down / 45-degree angled tabletop commercial perspective with rich tactile textures",
-        "candid_eye_level": "Natural eye-level 35mm perspective, authentic candid Apple ProRAW feel"
+        "candid_eye_level": "Natural eye-level 35mm perspective, clean editorial commercial photography"
     }
 
     @classmethod
@@ -156,7 +156,7 @@ class CinematographyDirector:
             f"Lighting & Atmosphere: {lighting}. "
             f"Color Harmony: {color_scheme}. "
             f"Composition & Framing: {composition}. "
-            f"Perspective & Optics: {perspective}, 35mm film masterpiece, unedited Apple ProRAW look, natural skin texture, tactile realism, natural grain, photorealistic."
+            f"Perspective & Optics: {perspective}, 35mm film masterpiece, fine tactile detail, Hasselblad color science, uncompressed raw photo, natural skin texture, tactile realism, natural grain, photorealistic."
         )
 
         return {
@@ -245,7 +245,7 @@ class PhotoGeneratorSkill:
             "subject": "caring friendly doctor in clean white coat having warm empathetic conversation with smiling relieved patient, genuine trust and safety",
             "environment": "bright modern consultation room with wood and green plant accents, welcoming atmosphere",
             "lighting": "soft bright diffused natural light, calm trustworthy and reassuring atmosphere",
-            "camera": "Natural smartphone point-of-view, authentic candid healthcare photo, relief and care"
+            "camera": "Natural eye-level perspective, authentic candid healthcare photo, relief and care"
         },
         "ремонт": {
             "subject": "architect and proud homeowner standing together in finished open-plan room looking at blueprints with genuine satisfaction and pride",
@@ -257,7 +257,7 @@ class PhotoGeneratorSkill:
             "subject": "focused inspired student in headphones experiencing breakthrough moment of excitement while taking notes next to laptop by sunny window",
             "environment": "bright modern library or student coworking corner, organized learning space",
             "lighting": "natural sunny window light, soft warm ambiance, inspiring study mood",
-            "camera": "Tabletop angle, authentic study lifestyle UGC photo, intellectual growth and ambition"
+            "camera": "Tabletop angle, authentic study lifestyle photo, intellectual growth and ambition"
         },
         "туризм": {
             "subject": "traveler wrapped in cozy blanket holding steaming mug of tea sitting on edge of wooden glamping deck watching golden sunrise over misty mountains",
@@ -287,7 +287,7 @@ class PhotoGeneratorSkill:
             "subject": "passionate dedicated professional deeply engaged in their craft at modern sunlit workstation, genuine focus, pride and mastery",
             "environment": "sunlit contemporary creative workspace or bright meeting room, productive human atmosphere",
             "lighting": "natural window daylight, soft warm room ambient, golden highlights",
-            "camera": "Casual tabletop angle, authentic business lifestyle UGC storytelling photo"
+            "camera": "Casual tabletop angle, authentic business lifestyle storytelling photo"
         },
         "рынок": {
             "subject": "rustic weathered wooden market crate overflowing with vibrant ripe red tomatoes and crisp fresh herbs, dewdrops glistening in morning sun",
@@ -299,11 +299,12 @@ class PhotoGeneratorSkill:
             "subject": "captivating charismatic creator in subtle ambient neon and candlelight, striking aesthetic silhouette, confident playful gaze",
             "environment": "stylish moody modern penthouse lounge or aesthetic cozy studio room with velvet textures",
             "lighting": "moody cinematic rim lighting, warm candle glow, subtle deep shadows and atmospheric highlights",
-            "camera": "Cinematic 35mm portrait, candid smartphone selfie aesthetic, intimate artistic depth of field"
+            "camera": "Cinematic 35mm portrait, intimate artistic depth of field"
         }
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "smartphone, phone screen, holding smartphone, camera UI, viewfinder, bezel, device mockup, "
         "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
         "nsfw, nude, naked, explicit, bad anatomy, deformed fingers, extra limbs, blurry face, bad eyes, "
         "low quality, oversaturated, plastic 3d render, watermark, text, signature"

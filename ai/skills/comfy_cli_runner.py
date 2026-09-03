@@ -402,15 +402,36 @@ class ComfyCLIRunner:
                     raw_bytes = base64.b64decode(b64data)
                 except Exception as e:
                     logger.warning("Error decoding base64 attachment: %s", e)
-            elif os.path.exists(att):
-                filename = os.path.basename(att)
+            elif att.startswith("http://") or att.startswith("https://"):
                 try:
-                    with open(att, "rb") as f:
-                        raw_bytes = f.read()
-                except Exception as e:
-                    logger.warning("Error reading attachment file: %s", e)
+                    import httpx as hx
+                    with hx.Client(timeout=15.0, follow_redirects=True) as dl_client:
+                        resp = dl_client.get(att)
+                        if resp.is_success and len(resp.content) > 100:
+                            raw_bytes = resp.content
+                            clean_name = os.path.basename(att.split("?")[0])
+                            if not clean_name.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+                                clean_name = f"{uuid.uuid4().hex[:8]}.png"
+                            filename = clean_name
+                except Exception as dl_err:
+                    logger.warning("Error fetching attachment from URL '%s': %s", att, dl_err)
             else:
-                return os.path.basename(att)
+                clean_name = os.path.basename(att.split("?")[0])
+                return clean_name if clean_name else "1.png"
+
+        # Конвертация в стандартный PNG/RGB если это необычный формат (например ico)
+        if raw_bytes:
+            try:
+                from PIL import Image
+                with Image.open(io.BytesIO(raw_bytes)) as pil_img:
+                    rgb_img = pil_img.convert("RGB")
+                    buf = io.BytesIO()
+                    rgb_img.save(buf, format="PNG")
+                    raw_bytes = buf.getvalue()
+                    if not filename.lower().endswith(".png"):
+                        filename = f"{os.path.splitext(filename)[0]}.png"
+            except Exception as pil_err:
+                logger.debug("Pillow normalization skipped: %s", pil_err)
 
         if raw_bytes and client and httpx:
             try:

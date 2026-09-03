@@ -69,15 +69,16 @@ async def run_pipeline(
                             resp = client.get(img)
                             if resp.status_code == 200:
                                 html_text = resp.text
-                                # Поиск og:image или twitter:image
+                                # Поиск og:image или twitter:image или preload/ключевых изображений
                                 og_match = re.search(r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE) or \
                                            re.search(r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]', html_text, re.IGNORECASE) or \
                                            re.search(r'<meta[^>]+name=[\'"]twitter:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE) or \
-                                           re.search(r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+name=[\'"]twitter:image[\'"]', html_text, re.IGNORECASE) or \
-                                           re.search(r'<link[^>]+rel=[\'"](?:image_src|icon|apple-touch-icon)[\'"][^>]+href=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE)
+                                           re.search(r'<link[^>]+rel=[\'"]preload[\'"][^>]+href=[\'"]([^\'"]+\.(?:webp|png|jpg|jpeg))[\'"]', html_text, re.IGNORECASE) or \
+                                           re.search(r'<img[^>]+src=[\'"]([^\'"]+\.(?:webp|png|jpg|jpeg))[\'"]', html_text, re.IGNORECASE)
                                 if og_match:
-                                    preview_url = urljoin(img, og_match.group(1))
-                                    print(f"[AttachmentsResolver] ✅ Найдено OpenGraph превью: {preview_url}")
+                                    raw_src = og_match.group(1).split("?")[0]
+                                    preview_url = urljoin(img, raw_src)
+                                    print(f"[AttachmentsResolver] ✅ Найден ключевой визуал / превью страницы: {preview_url}")
                                     attachments.append({"url": preview_url, "source_page": img})
                                 else:
                                     # Ищем первое крупное изображение / логотип / баннер

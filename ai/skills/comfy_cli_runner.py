@@ -57,7 +57,7 @@ class ComfyCLIRunner:
         comfyui_url: Optional[str] = None,
         output_dir: Optional[str] = None,
         workflow_template_path: Optional[str] = None,
-        timeout: float = 300.0,
+        timeout: float = 600.0,
     ) -> None:
         self.comfyui_url = (comfyui_url or os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")).rstrip("/")
         self.output_dir = output_dir or os.getenv("COMFYUI_OUTPUT_DIR", os.path.join(PROJECT_ROOT, "output", "photos"))
@@ -541,18 +541,42 @@ class ComfyCLIRunner:
                                         for img in image_list:
                                             fname = img.get("filename")
                                             if fname:
+                                                subfolder = img.get("subfolder", "")
+                                                img_type = img.get("type", "output")
                                                 dest_path = os.path.join(self.output_dir, fname)
                                                 
                                                 # Download / fetch full image data
+                                                downloaded = False
                                                 try:
-                                                    img_resp = await client.get(f"{self.comfyui_url}/view?filename={fname}")
-                                                    if img_resp.is_success:
+                                                    params = {"filename": fname}
+                                                    if subfolder:
+                                                        params["subfolder"] = subfolder
+                                                    if img_type:
+                                                        params["type"] = img_type
+                                                    img_resp = await client.get(f"{self.comfyui_url}/view", params=params)
+                                                    if img_resp.is_success and len(img_resp.content) > 1000:
                                                         with open(dest_path, "wb") as f:
                                                             f.write(img_resp.content)
+                                                        downloaded = True
                                                 except Exception as dl_err:
-                                                    logger.warning("Error downloading photo from ComfyUI: %s", dl_err)
+                                                    logger.warning("Error downloading photo from ComfyUI API: %s", dl_err)
                                                     
-                                                print(f"[PhotoGeneratorSkill] 🖼️ Фото успешно сгенерировано ComfyUI: {dest_path}")
+                                                # Локальный поиск в папке ComfyUI/output на сервере (если API вернул пустой буфер)
+                                                if not downloaded or not os.path.exists(dest_path) or os.path.getsize(dest_path) < 1000:
+                                                    import shutil
+                                                    cand_dirs = [
+                                                        os.path.join(PROJECT_ROOT, "..", "ComfyUI", "output"),
+                                                        "/opt/ucust/ComfyUI/output",
+                                                        "ComfyUI/output"
+                                                    ]
+                                                    for cdir in cand_dirs:
+                                                        src_f = os.path.join(cdir, subfolder, fname) if subfolder else os.path.join(cdir, fname)
+                                                        if os.path.exists(src_f) and os.path.getsize(src_f) > 1000:
+                                                            shutil.copy2(src_f, dest_path)
+                                                            downloaded = True
+                                                            break
+                                                    
+                                                print(f"[PhotoGeneratorSkill] 🖼️ Фото успешно получено из ComfyUI: {dest_path}")
                                                 return {
                                                     "status": "success",
                                                     "photo_path": dest_path,

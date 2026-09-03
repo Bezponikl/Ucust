@@ -393,7 +393,11 @@ class ComfyCLIRunner:
         raw_bytes = None
 
         if isinstance(att, dict):
-            att = att.get("dataUrl") or att.get("url") or att.get("file_path") or att
+            local_cand = att.get("local_path")
+            if local_cand and os.path.exists(local_cand):
+                att = local_cand
+            else:
+                att = att.get("dataUrl") or att.get("url") or att.get("file_path") or att
 
         if isinstance(att, str):
             if att.startswith("data:image"):
@@ -402,6 +406,13 @@ class ComfyCLIRunner:
                     raw_bytes = base64.b64decode(b64data)
                 except Exception as e:
                     logger.warning("Error decoding base64 attachment: %s", e)
+            elif os.path.exists(att):
+                filename = os.path.basename(att)
+                try:
+                    with open(att, "rb") as f:
+                        raw_bytes = f.read()
+                except Exception as e:
+                    logger.warning("Error reading local attachment file '%s': %s", att, e)
             elif att.startswith("http://") or att.startswith("https://"):
                 try:
                     import httpx as hx
@@ -417,7 +428,7 @@ class ComfyCLIRunner:
                     logger.warning("Error fetching attachment from URL '%s': %s", att, dl_err)
             else:
                 clean_name = os.path.basename(att.split("?")[0])
-                return clean_name if clean_name else "1.png"
+                filename = clean_name if clean_name else "1.png"
 
         # Конвертация в стандартный PNG/RGB если это необычный формат (например ico)
         if raw_bytes:
@@ -433,6 +444,24 @@ class ComfyCLIRunner:
             except Exception as pil_err:
                 logger.debug("Pillow normalization skipped: %s", pil_err)
 
+        # 1. Прямая запись на диск в папки ComfyUI/input
+        if raw_bytes:
+            input_dirs = [
+                os.path.join(PROJECT_ROOT, "..", "ComfyUI", "input"),
+                "/opt/ucust/ComfyUI/input",
+                "ComfyUI/input"
+            ]
+            for in_dir in input_dirs:
+                if os.path.exists(in_dir):
+                    try:
+                        dest_f = os.path.join(in_dir, filename)
+                        with open(dest_f, "wb") as f_out:
+                            f_out.write(raw_bytes)
+                        logger.info("Saved input attachment locally to '%s'", dest_f)
+                    except Exception as ex:
+                        pass
+
+        # 2. Загрузка через ComfyUI API /upload/image
         if raw_bytes and client and httpx:
             try:
                 files = {"image": (filename, raw_bytes, "image/png")}
@@ -441,7 +470,7 @@ class ComfyCLIRunner:
                 if upload_res.is_success:
                     up_json = upload_res.json()
                     filename = up_json.get("name", filename)
-                    logger.info("Uploaded image to ComfyUI input: %s", filename)
+                    logger.info("Uploaded image to ComfyUI input via API: %s", filename)
             except Exception as up_err:
                 logger.warning("Failed to upload image via ComfyUI API: %s", up_err)
 

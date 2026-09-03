@@ -2,7 +2,8 @@
 """
 VisualKnowledgeResearcher — Универсальный мульти-доменный модуль параллельного поиска
 и визуальной спецификации объектов (автобизнес/тюнинг, электроника/микроконтроллеры,
-fashion/белье, гастрономия, инженерия) для сверхточного промпт-инжиниринга в ComfyUI.
+строительный инструмент, косметика/кремы/помады, fashion/белье, гастрономия, инженерия)
+для сверхточного промпт-инжиниринга в ComfyUI.
 """
 
 from __future__ import annotations
@@ -24,14 +25,91 @@ logger = logging.getLogger("visual_knowledge_researcher")
 class VisualKnowledgeResearcher:
     """
     Исследователь визуальных деталей и точных спецификаций оборудования, микроэлектроники,
-    автокомпонентов, одежды и сложных товаров.
+    строительных инструментов, премиальной косметики, автокомпонентов и модных товаров.
     Переводит инженерные аббревиатуры и SKU в фотореалистичные физические дескрипторы для ComfyUI.
     """
 
     # Предустановленная верифицированная база точных спецификаций сложных объектов
     CURATED_VISUAL_SPECS: Dict[str, Dict[str, str]] = {
         # =========================================================================
-        # 1. АВТОСПОРТ, ТЮНИНГ, ТУРБОНАДДУВ И JDM
+        # 1. СТРОИТЕЛЬНЫЙ ИНСТРУМЕНТ, РЕМОНТ И ОБОРУДОВАНИЕ
+        # =========================================================================
+        "шуруповерт": {
+            "en_term": "heavy-duty cordless brushless drill driver",
+            "visual_description": "high-end 20V brushless cordless drill driver with knurled metal keyless chuck, ergonomic dual-injection rubberized grip, high-capacity slide-in lithium-ion battery with bright LED fuel gauge, crisp metallic torque selector ring, placed on rustic workshop wood with delicate cedar shavings",
+            "text_story": "мощный бесщеточный шуруповерт с высоким крутящим моментом, металлическим быстрозажимным патроном и емким аккумулятором для точной работы без перегрева"
+        },
+        "дрель": {
+            "en_term": "heavy-duty cordless brushless drill driver",
+            "visual_description": "high-end 20V brushless cordless drill driver with knurled metal keyless chuck, ergonomic dual-injection rubberized grip, high-capacity slide-in lithium-ion battery with bright LED fuel gauge, crisp metallic torque selector ring, placed on rustic workshop wood with delicate cedar shavings",
+            "text_story": "мощный бесщеточный шуруповерт с высоким крутящим моментом, металлическим быстрозажимным патроном и емким аккумулятором для точной работы без перегрева"
+        },
+        "перфоратор": {
+            "en_term": "professional SDS-Plus rotary hammer drill",
+            "visual_description": "rugged professional SDS-Plus rotary hammer drill with heavy-duty cast aluminum gear housing, anti-vibration rubberized rear handle, precision steel depth gauge, durable textured composite body with dust-sealed ventilation ports",
+            "text_story": "профессиональный перфоратор с патроном SDS-Plus, надежным пневматическим ударным механизмом и эффективной системой гашения вибрации для бурения твердого бетона"
+        },
+        "лазерный уровень": {
+            "en_term": "360-degree self-leveling green beam laser level",
+            "visual_description": "compact rugged 360-degree 3D self-leveling green beam laser level with impact-resistant rubber overmolded housing, glowing crisp emerald laser projection windows, mounted on a sleek aluminum micro-adjust tripod in a sunlit renovation space",
+            "text_story": "самовыравнивающийся лазерный уровень с ярким зеленым лучом 360°: безупречная видимость разметки даже при ярком свете и точность до миллиметра"
+        },
+        "нивелир": {
+            "en_term": "360-degree self-leveling green beam laser level",
+            "visual_description": "compact rugged 360-degree 3D self-leveling green beam laser level with impact-resistant rubber overmolded housing, glowing crisp emerald laser projection windows, mounted on a sleek aluminum micro-adjust tripod in a sunlit renovation space",
+            "text_story": "самовыравнивающийся лазерный уровень с ярким зеленым лучом 360°: безупречная видимость разметки даже при ярком свете и точность до миллиметра"
+        },
+        "болгарк": {
+            "en_term": "heavy-duty cordless angle grinder",
+            "visual_description": "heavy-duty brushless angle grinder with quick-lock wheel nut, precision spark guard, textured slim ergonomic body and brushed metal gearbox housing, placed on a dark steel workbench",
+            "text_story": "производительная углошлифовальная машина с плавным пуском, защитой от заклинивания диска и эргономичным хватом для уверенного реза металла и камня"
+        },
+        "ушм": {
+            "en_term": "heavy-duty cordless angle grinder",
+            "visual_description": "heavy-duty brushless angle grinder with quick-lock wheel nut, precision spark guard, textured slim ergonomic body and brushed metal gearbox housing, placed on a dark steel workbench",
+            "text_story": "производительная углошлифовальная машина с плавным пуском, защитой от заклинивания диска и эргономичным хватом для уверенного реза металла и камня"
+        },
+
+        # =========================================================================
+        # 2. БЬЮТИ, КОСМЕТИКА, КРЕМЫ И УХОД ЗА КОЖЕЙ
+        # =========================================================================
+        "крем": {
+            "en_term": "luxury hydrating skincare cream in heavy frosted glass jar",
+            "visual_description": "luxurious heavy frosted glass skincare jar with a polished champagne-gold metallic screw cap, rich whipped velvety white cream texture slightly swirling inside, fresh glistening micro-droplets of water on the cool glass, displayed on a minimalist travertine stone podium",
+            "text_story": "насыщенный увлажняющий крем с шелковистой тающей текстурой, натуральными пептидами и гиалуроновой кислотой для глубокого восстановления и сияния кожи"
+        },
+        "сыворотк": {
+            "en_term": "luxury botanical facial serum in glass dropper bottle",
+            "visual_description": "amber glass apothecary serum bottle with a delicate glass dropper dispensing a single crystal-clear luminous serum droplet, soft diffused lighting, resting on a smooth natural river stone with delicate water ripples",
+            "text_story": "концентрированная сыворотка с легкой формулой: мгновенное проникновение в глубокие слои кожи, выравнивание тона и мощный антиоксидантный эффект"
+        },
+        "флюид": {
+            "en_term": "lightweight radiant facial fluid dispenser",
+            "visual_description": "sleek minimalist matte ceramic dispenser bottle with metallic pump head dispensing a silky pearlescent fluid drop on a clean pastel marble surface",
+            "text_story": "невесомый флюид с деликатным сияющим финишем: увлажнение 24 часа без липкости и жирного блеска"
+        },
+
+        # =========================================================================
+        # 3. ДЕКОРАТИВНАЯ КОСМЕТИКА, ПОМАДЫ И МАКИЯЖ
+        # =========================================================================
+        "помад": {
+            "en_term": "ultra-luxury satin lipstick in fluted gold magnetic case",
+            "visual_description": "ultra-luxury satin lipstick in a heavy magnetic fluted gold case with a pristine sharp diagonal bullet tip, rich velvety pigmented texture with subtle dewy moisture sheen, accompanied by an artistic smooth pigment swatch on textured slate stone",
+            "text_story": "роскошная помада с сатиновым финишем: насыщенный стойкий пигмент, бархатное скольжение и ухаживающие растительные масла в составе"
+        },
+        "блеск для губ": {
+            "en_term": "high-shine plumping lip gloss / lip oil",
+            "visual_description": "crystal-clear luxury lip oil tube with thick acrylic walls, plush doe-foot applicator pulled out glistening with luminous reflective pink-peach glaze and micro-shimmer",
+            "text_story": "масло-блеск с зеркальным глянцевым эффектом: визуальный объем, комфортное увлажнение и нежный полупрозрачный оттенок без ощущения липкости"
+        },
+        "тинт": {
+            "en_term": "velvet gradient lip tint",
+            "visual_description": "frosted glass lip tint vial with soft-matte velvet texture, soft ombre rose pigment swatch demonstrating smooth airy blendability",
+            "text_story": "стойкий бархатный тинт с эффектом зацелованных губ: воздушная текстура и стойкость цвета в течение всего дня"
+        },
+
+        # =========================================================================
+        # 4. АВТОСПОРТ, ТЮНИНГ, ТУРБОНАДДУВ И JDM
         # =========================================================================
         "gt2871": {
             "en_term": "Garrett GT2871R turbocharger",
@@ -55,7 +133,7 @@ class VisualKnowledgeResearcher:
         },
 
         # =========================================================================
-        # 2. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IOT
+        # 5. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IOT
         # =========================================================================
         "esp-32": {
             "en_term": "ESP32 30-pin Type-C development board",
@@ -84,7 +162,7 @@ class VisualKnowledgeResearcher:
         },
 
         # =========================================================================
-        # 3. FASHION, ПЛЯЖ И ПРИВАТ
+        # 6. FASHION, ПЛЯЖ И ПРИВАТ
         # =========================================================================
         "микробикини": {
             "en_term": "micro-bikini",
@@ -113,7 +191,7 @@ class VisualKnowledgeResearcher:
         },
 
         # =========================================================================
-        # 4. КУЛИНАРИЯ, ДЕСЕРТЫ И РЕСТОРАНЫ
+        # 7. КУЛИНАРИЯ, ДЕСЕРТЫ И РЕСТОРАНЫ
         # =========================================================================
         "дубайский шоколад": {
             "en_term": "Dubai Fix pistachio kataifi chocolate",
@@ -135,7 +213,7 @@ class VisualKnowledgeResearcher:
     @classmethod
     async def research_visual_spec(cls, topic: str) -> Dict[str, str]:
         """
-        Ищет точную визуальную специфику для любого объекта, SKU, компонента или одежды.
+        Ищет точную визуальную специфику для любого объекта, SKU, инструмента, крема или помады.
         Сначала проверяет локальную базу, при необходимости делает запрос к поисковику.
         """
         if not topic:
@@ -167,7 +245,6 @@ class VisualKnowledgeResearcher:
                         results = data.get("results", [])
                         if results:
                             snippet = results[0].get("content", "")[:250]
-                            # Очищаем сниппет от лишних спецсимволов
                             clean_snippet = re.sub(r'[\r\n\t]+', ' ', snippet).strip()
                             return {
                                 "en_term": topic,
@@ -223,6 +300,6 @@ class VisualKnowledgeResearcher:
 
         return {
             "en_term": topic,
-            "visual_description": f"authentic commercial representation of {topic} with crisp engineering textures",
+            "visual_description": f"authentic commercial representation of {topic} with crisp physical textures",
             "text_story": topic
         }

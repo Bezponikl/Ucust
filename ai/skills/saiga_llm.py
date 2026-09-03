@@ -143,6 +143,45 @@ class SaigaLLMSkill:
             clean = topic.strip().rstrip(".")
             return f"В центре внимания сегодня — {clean[0].lower() + clean[1:] if len(clean) > 1 else clean}."
 
+    @staticmethod
+    def _sanitize_llm_post(text: str, company_name: str) -> str:
+        """
+        Фильтрует сырой вывод LLM:
+        - Удаляет спам эмодзи-цифрами (1️⃣, 2️⃣, 3️⃣)
+        - Удаляет инфоцыганские клише («крушить барьеры», «руины обыденности», «пушка-бомба»)
+        - Приводит текст к чистой, структурированной форме без лишних списков.
+        """
+        if not text:
+            return ""
+            
+        lines = []
+        cringe_patterns = [
+            r"крушить барьеры.*?[!?.\\n]",
+            r"революция в руинах.*?[!?.\\n]",
+            r"держись крепче.*?[!?.\\n]",
+            r"сверхъестественн\w*",
+            r"выстрел в мир\w*",
+        ]
+        
+        for line in text.splitlines():
+            s = line.strip()
+            if not s:
+                lines.append("")
+                continue
+            # Убираем списочные эмодзи 1️⃣, 2️⃣, 3️⃣
+            s = re.sub(r'^[0-9]️⃣\s*', '', s)
+            s = re.sub(r'[🔫💣💥🎉😎]', '', s)
+            # Убираем двойные восклицательные знаки
+            s = re.sub(r'!{2,}', '!', s)
+            lines.append(s)
+            
+        clean_text = "\n".join(lines).strip()
+        for pat in cringe_patterns:
+            clean_text = re.sub(pat, "", clean_text, flags=re.IGNORECASE)
+        # Схлопываем лишние пустые строки
+        clean_text = re.sub(r'\n{3,}', '\n\n', clean_text).strip()
+        return clean_text
+
     def generate_smm_post(
         self,
         topic: str,
@@ -187,28 +226,42 @@ class SaigaLLMSkill:
             try:
                 comments_info = f"\nЧастые вопросы и комментарии аудитории: {', '.join(comments_context)}" if comments_context else ""
                 rag_info = f"\nФАКТЫ ИЗ БАЗЫ ЗНАНИЙ БРЕНДА (RAG):\n{rag_context}\n(Строго опирайся на эти факты, цены, боли и УТП)" if rag_context else ""
+                
                 system_instruction = (
-                    f"Ты — опытный главный SMM-редактор и копирайтер компании «{company_name}» (Ниша: {niche}, Город: {city}). "
-                    f"Напиши публикацию для социальных сетей на тему: «{topic}».\n"
-                    f"Тон общения: {tone}.\n"
+                    f"Ты — главный бренд-редактор и экспертный копирайтер компании «{company_name}» (Сфера бизнеса: {niche}, Город: {city}).\n"
+                    f"Напиши профессиональную публикацию для социальных сетей на тему: «{topic}».\n\n"
+                    f"СТРОГИЕ СТАНДАРТЫ КАЧЕСТВА ТЕКСТА (Zero-Fluff & Anti-Cringe):\n"
+                    f"1. ЗАПРЕТ НА КЛИШЕ И ИНФОЦИГАНСКИЙ ВОСТОРГ: Категорически запрещены фразы вроде «крушить барьеры», «революция в руинах», «сверхъестественный», «встречайте», «пушка/бомба», «не просто X, а Y», «держись крепче».\n"
+                    f"2. ЛИМИТ ЭМОДЗИ: Не более 2-3 уместных эмодзи на весь пост. Запрещены списки с эмодзи-цифрами (1️⃣, 2️⃣, 3️⃣) и агрессивные смайлы (🔫, 💣, 💥).\n"
+                    f"3. СТРУКТУРА ПОСТА (3-4 лаконичных абзаца без списков):\n"
+                    f"   - Заголовок-хук с названием компании «{company_name}» (1 строка с аккуратным эмодзи).\n"
+                    f"   - Точное описание продукта, технических характеристик или пользы простым экспертным языком.\n"
+                    f"   - Польза для клиента, надежность и решение реальной задачи.\n"
+                    f"   - Спокойный и уважительный призыв к диалогу или заказу в личные сообщения.\n"
+                    f"4. ТОНАЛЬНОСТЬ: Интеллигентный, спокойный, уверенный тон эксперта и основателя бренда.\n"
                     f"{rag_info}\n"
-                    f"{visual_context or ''}{comments_info}\n"
-                    f"Требования: живой русский язык, структурированные абзацы, "
-                    f"без штампов и клише, обязательный призыв к диалогу и комментариям в конце."
+                    f"{visual_context or ''}{comments_info}"
                 )
                 output = self._llm.create_chat_completion(
                     messages=[
                         {"role": "system", "content": system_instruction},
-                        {"role": "user", "content": f"Напиши пост для соцсетей на тему: {topic}"}
+                        {"role": "user", "content": f"Напиши лаконичный и экспертный пост для соцсетей компании «{company_name}» на тему: {topic}."}
                     ],
-                    temperature=self.temperature,
+                    temperature=0.5,
                     max_tokens=self.max_tokens
                 )
                 generated_text = output["choices"][0]["message"]["content"].strip()
-                if len(generated_text) > 30:
+                cleaned_text = self._sanitize_llm_post(generated_text, company_name)
+                
+                from skills.photo_generator import CinematographyDirector
+                vis_prompt = CinematographyDirector.compose_cinematic_prompt(topic, niche)["prompt"]
+                
+                if len(cleaned_text) > 30:
                     return {
-                        "post_text": generated_text,
-                        "promo_code": f"{company_name.upper().replace(' ', '')}2026"
+                        "post_text": cleaned_text,
+                        "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                        "visual_prompt": vis_prompt,
+                        "hashtags": f"#{niche.replace(' ', '_')} #{company_name.replace(' ', '')} #качество #надежность"
                     }
             except Exception as e:
                 print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}")

@@ -24,24 +24,33 @@ async def run_pipeline(
     niche: str = "Автономный AI-маркетинг и мульти-агентные системы",
     tone: str = "Дерзкий, уверенный, вдохновляющий",
     channel: str = "@testaipublisher",
-    auto_publish: bool = True
+    auto_publish: bool = True,
+    stage: Optional[str] = None,
+    framework: Optional[str] = None,
+    trigger: Optional[str] = None,
+    tier: str = "BUSINESS"
 ):
     print("=" * 60)
     print("🚀 ЗАПУСК СКВОЗНОГО АВТОНОМНОГО ПАЙПЛАЙНА UCUST AI")
     print(f"📌 Тема / Промпт: {topic}")
     print(f"🏢 Компания: {company_name} | Ниша: {niche}")
     print(f"🎯 Тональность: {tone}")
+    print(f"💼 Тариф: {tier} | Ступень воронки: {stage or 'Auto (Ступень 2 / Проблема)'} | Фреймворк: {framework or 'Auto'}")
     print("=" * 60)
 
     start_total = time.time()
 
-    # 1. Запуск Оркестратора (Сайга + Критик Мангер + Валидация)
+    # 1. Запуск Оркестратора (Сайга + Воронка Ханта + Критик Мангер + Валидация)
     orch = UnifiedOrchestrator()
     task_data = {
         "topic": topic,
         "company_name": company_name,
         "niche": niche,
         "tone": tone,
+        "hunt_stage": stage,
+        "framework": framework,
+        "trigger": trigger,
+        "tier": tier,
         "generate_image": True,
         "aspect_ratio": "1:1"
     }
@@ -175,6 +184,10 @@ def main():
     parser.add_argument("--company", type=str, default="UCust", help="Название компании")
     parser.add_argument("--niche", type=str, default="Автономный AI-маркетинг и мульти-агентные системы", help="Ниша")
     parser.add_argument("--tone", type=str, default="Дерзкий, уверенный, вдохновляющий", help="Тон общения")
+    parser.add_argument("--stage", type=str, default="problem_aware", choices=["unaware", "problem_aware", "solution_aware", "product_aware", "most_aware"], help="Ступень воронки Бена Ханта (1..5)")
+    parser.add_argument("--framework", type=str, default=None, choices=["AIDA", "PAS", "BAB", "4P", "StoryBrand", "HSO", "FAB"], help="Формула копирайтинга")
+    parser.add_argument("--trigger", type=str, default=None, choices=["social_proof", "scarcity_fomo", "authority", "reciprocity", "risk_reversal"], help="Психологический триггер Чалдини")
+    parser.add_argument("--tier", type=str, default="BUSINESS", choices=["START", "BUSINESS", "ENTERPRISE", "CUSTOM"], help="Тариф медиа-оснащения")
     parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
     parser.add_argument("--no-publish", action="store_true", help="Не отправлять в Telegram, только вывести в консоль")
 
@@ -185,6 +198,10 @@ def main():
         company_name=args.company,
         niche=args.niche,
         tone=args.tone,
+        stage=args.stage,
+        framework=args.framework,
+        trigger=args.trigger,
+        tier=args.tier,
         channel=args.channel,
         auto_publish=not args.no_publish
     ))

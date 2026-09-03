@@ -198,12 +198,13 @@ class SaigaLLMSkill:
         rag_context: Optional[str] = None,
         user_notes: Optional[str] = None,
         tone_override: Optional[str] = None,
+        marketing_directive: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> dict:
         """
         Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,
         нишу и компанию, обогащая текст деталями визуального анализа от Moondream,
-        анализом комментариев/возражений и точными фактами из RAG базы знаний.
+        анализом комментариев/возражений, точными фактами из RAG и глубокой маркетинговой воронкой Ханта (JTBD, Value Ladder, Fogg CTA).
         """
         if tone_override:
             tone = tone_override
@@ -220,12 +221,15 @@ class SaigaLLMSkill:
             print(f"[SaigaSkill] 👁️ Включен визуальный контекст от Moondream: {visual_context[:100]}...")
         if comments_context:
             print(f"[SaigaSkill] 💬 Учтены комментарии аудитории: {len(comments_context)} шт.")
+        if marketing_directive:
+            print(f"[SaigaSkill] 🎯 Маркетинговая воронка: Ступень Ханта={marketing_directive.get('hunt_stage')}, Фреймворк={marketing_directive.get('framework')}")
         
         # Если загружена реальная модель llama-cpp
         if self._is_loaded and self._llm:
             try:
                 comments_info = f"\nЧастые вопросы и комментарии аудитории: {', '.join(comments_context)}" if comments_context else ""
                 rag_info = f"\nФАКТЫ ИЗ БАЗЫ ЗНАНИЙ БРЕНДА (RAG):\n{rag_context}\n(Строго опирайся на эти факты, цены, боли и УТП)" if rag_context else ""
+                mktg_info = f"\n{marketing_directive.get('full_marketing_prompt', '')}\n" if marketing_directive else ""
                 
                 system_instruction = (
                     f"Ты — главный бренд-редактор и экспертный копирайтер компании «{company_name}» (Сфера бизнеса: {niche}, Город: {city}).\n"
@@ -240,13 +244,16 @@ class SaigaLLMSkill:
                     f"   - Спокойный и уважительный призыв к диалогу или заказу в личные сообщения.\n"
                     f"4. ТОНАЛЬНОСТЬ: Интеллигентный, спокойный, уверенный тон эксперта и основателя бренда.\n"
                     f"5. ОБЪЕМ И ЛАКОНИЧНОСТЬ: Целевой объем 500-800 символов (3 коротких содержательных абзаца), чтобы текст идеально читался с экрана и легко усваивался.\n"
+                    f"{mktg_info}\n"
                     f"{rag_info}\n"
                     f"{visual_context or ''}{comments_info}"
                 )
+                fw_name = marketing_directive.get('framework', 'экспертный стиль') if marketing_directive else 'экспертный стиль'
+                hunt_name = marketing_directive.get('hunt_stage', 'осознание') if marketing_directive else 'осознание'
                 output = self._llm.create_chat_completion(
                     messages=[
                         {"role": "system", "content": system_instruction},
-                        {"role": "user", "content": f"Напиши лаконичный и экспертный пост для соцсетей компании «{company_name}» на тему: {topic}."}
+                        {"role": "user", "content": f"Напиши пост для соцсетей компании «{company_name}» на тему: {topic}. Структура: {fw_name}, воронка: {hunt_name}."}
                     ],
                     temperature=0.5,
                     max_tokens=self.max_tokens

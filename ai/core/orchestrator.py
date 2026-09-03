@@ -737,6 +737,34 @@ class UnifiedOrchestrator:
             
             # 3. Генерация аутентичного SMM текста через Сайгу (с учетом RAG, Moondream и комментариев)
             t_text_start = time.time()
+            # 1. Формирование маркетинговой директивы (5 Ступеней Ханта, JTBD, Value Ladder, Fogg CTA, Фреймворки)
+            from skills.marketing_frameworks import (
+                MarketingFrameworkDirector, HuntStage, MarketingFramework, PsychologicalTrigger
+            )
+            
+            raw_stage = user_data.get("hunt_stage") or user_data.get("stage")
+            hunt_stage_enum = HuntStage(raw_stage) if raw_stage in [s.value for s in HuntStage] else HuntStage.STAGE_2_PROBLEM_AWARE
+            stage_strategy = MarketingFrameworkDirector.HUNT_STAGE_STRATEGIES[hunt_stage_enum]
+            
+            raw_fw = user_data.get("framework")
+            framework_enum = MarketingFramework(raw_fw) if raw_fw in [f.value for f in MarketingFramework] else stage_strategy["framework"]
+            
+            raw_trigger = user_data.get("trigger")
+            trigger_enum = PsychologicalTrigger(raw_trigger) if raw_trigger in [t.value for t in PsychologicalTrigger] else stage_strategy["trigger"]
+            
+            marketing_bundle = MarketingFrameworkDirector.construct_marketing_prompt(
+                company_name=company_name,
+                niche=niche,
+                topic=prompt,
+                framework=framework_enum,
+                hunt_stage=hunt_stage_enum,
+                trigger=trigger_enum,
+                pain_points=user_data.get("pain_points") or [f"неэффективность и переплаты в нише {niche}"],
+                raw_feature=prompt
+            )
+            
+            print(f"[UnifiedOrchestrator] 🎯 Воронка Ханта: {hunt_stage_enum.value.upper()} | Фреймворк: {framework_enum.value} | Триггер: {trigger_enum.value}")
+
             saiga = SaigaLLMSkill()
             visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
             comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
@@ -756,7 +784,8 @@ class UnifiedOrchestrator:
                 audience_questions=audience_q,
                 comments_enabled=bool(user_data.get("comments_enabled", False)),
                 brand_profile=brand_profile,
-                rag_context=rag_fact_context
+                rag_context=rag_fact_context,
+                marketing_directive=marketing_bundle
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")

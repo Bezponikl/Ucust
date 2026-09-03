@@ -21,6 +21,100 @@ class NicheCompetitorHashtagEngine:
 
     # База топовых поисковых хэштегов конкурентов по нишам
     COMPETITOR_NICHE_TAGS: Dict[str, Dict[str, List[str]]] = {
+        "электроник": {
+            "geo_commercial": [
+                "электроника{city}", "радиодетали{city}", "компоненты{city}", "умныйдом{city}"
+            ],
+            "niche_discovery": [
+                "электроника", "умныйдом", "iot", "микроконтроллеры", "схемотехника",
+                "робототехника", "diyэлектроника", "ардуино", "встраиваемыесистемы", "esp32"
+            ],
+            "topic_specific": {
+                "esp": ["esp32", "esp8266", "микроконтроллер", "wifiмодуль", "iotразработка"],
+                "плат": ["отладочнаяплата", "печатнаяплата", "pcbдизайн", "схемотехника", "пайка"],
+                "умн": ["умныйдом", "автоматизация", "датчики", "smarthome", "интернетвещей"]
+            }
+        },
+        "зоо": {
+            "geo_commercial": [
+                "зоомагазин{city}", "ветеринар{city}", "груминг{city}", "зоотовары{city}"
+            ],
+            "niche_discovery": [
+                "зоотовары", "питомцы", "котики", "уходзаживотными", "ветеринария",
+                "кошки", "собаки", "зоомагазин", "любимыйкот", "счастливыйпитомец"
+            ],
+            "topic_specific": {
+                "кот": ["котики", "кошка", "уходзакотиками", "кошачьяжизнь", "любимыйкот"],
+                "собак": ["собака", "дрессировка", "уходзасобакой", "верныйдруг", "щенки"],
+                "корм": ["премиумкорм", "правильноепитаниеживотных", "рациондляпитомцев"]
+            }
+        },
+        "кот": {
+            "geo_commercial": [
+                "зоомагазин{city}", "ветеринар{city}", "груминг{city}", "зоотовары{city}"
+            ],
+            "niche_discovery": [
+                "котики", "питомцы", "уходзакошками", "кошачьяжизнь", "котокафе",
+                "любимыйкот", "кошкиикоты", "пушистыйдруг", "зоотовары"
+            ],
+            "topic_specific": {
+                "кот": ["котики", "кошка", "уходзакотиками", "кошачьяжизнь", "любимыйкот"],
+                "корм": ["премиумкорм", "рациондлякошек", "здоровыйкот"]
+            }
+        },
+        "кофе": {
+            "geo_commercial": [
+                "кофейня{city}", "кофе{city}", "гдепопитькофе{city}", "свежаяобжарка{city}"
+            ],
+            "niche_discovery": [
+                "спешелтикофе", "кофейня", "свежаяобжарка", "латтеарт", "бариста",
+                "арабика", "утреннийкофе", "зерновойкофе", "кофессобой"
+            ],
+            "topic_specific": {
+                "эфиопи": ["эфиопияиргачеффе", "спешелтикофе", "мытаяарабика", "светлаяобжарка"],
+                "обжарк": ["свежаяобжарка", "обжаркакофе", "авторскийкофе", "крафтовыйкофе"],
+                "капучин": ["латтеарт", "капучино", "идеальнаяпенка", "рафкофе"]
+            }
+        },
+        "фитнес": {
+            "geo_commercial": [
+                "фитнес{city}", "спортзал{city}", "тренер{city}", "тренировки{city}"
+            ],
+            "niche_discovery": [
+                "фитнес", "тренировки", "спортзал", "зож", "персональныйтренер",
+                "похудение", "фитнесмотивация", "рельеф", "силовоетроеборье", "здоровоетело"
+            ],
+            "topic_specific": {
+                "питан": ["планпитания", "бжу", "правильноепитание", "сушкатела"],
+                "тренер": ["персональныйтренер", "программатренировок", "индивидуальныйтренинг"]
+            }
+        },
+        "юриспруд": {
+            "geo_commercial": [
+                "юрист{city}", "адвокат{city}", "юридическаяконсультация{city}", "юруслуги{city}"
+            ],
+            "niche_discovery": [
+                "юридическиеуслуги", "юрист", "защитабизнеса", "арбитраж", "договоры",
+                "консультацияюриста", "сопровождениесделок", "налоговыйаудит"
+            ],
+            "topic_specific": {
+                "договор": ["аудитдоговоров", "составлениедоговора", "коммерческоеправо"],
+                "суд": ["арбитражныйсуд", "защитавсуде", "судебныеспоры"]
+            }
+        },
+        "ремонт": {
+            "geo_commercial": [
+                "ремонтквартир{city}", "дизайнинтерьера{city}", "отделка{city}", "ремонтподключ{city}"
+            ],
+            "niche_discovery": [
+                "ремонтквартир", "дизайнинтерьера", "отделкаподключ", "ремонтподключ",
+                "капитальныйремонт", "дизайнпроект", "новостройкаремонт", "красивыйинтерьер"
+            ],
+            "topic_specific": {
+                "дизайн": ["дизайнпроект", "дизайнинтерьера", "современныйинтерьер"],
+                "смет": ["фиксированнаясмета", "ремонтподоговору", "гарантиянаремонт"]
+            }
+        },
         "мебель": {
             "geo_commercial": [
                 "мебель{city}", "мебельназаказ{city}", "мебельотпроизводителя{city}",
@@ -67,6 +161,18 @@ class NicheCompetitorHashtagEngine:
                 "диагностик": ["компьютернаядиагностика", "автодиагностика", "проверкаавто", "сканеравто"],
                 "двигател": ["ремонтдвигателя", "капиталкадвс", "моторист", "диагностикадвс"],
                 "подвеск": ["ремонтподвески", "сходразвал", "диагностикаходовой", "ходоваячасть"]
+            }
+        },
+        "авто": {
+            "geo_commercial": [
+                "автосервис{city}", "детейлинг{city}", "авто{city}"
+            ],
+            "niche_discovery": [
+                "автосервис", "детейлинг", "ремонтавто", "автомобили", "кузовнойремонт", "полировкакузова"
+            ],
+            "topic_specific": {
+                "керамик": ["керамика9h", "керамическоепокрытие", "защитакузова", "детейлинг"],
+                "пленк": ["оклейкапленкой", "бронепленка", "полиуретан", "антигравийнаяпленка"]
             }
         },
         "ресторан": {
@@ -158,54 +264,55 @@ class NicheCompetitorHashtagEngine:
         """
         Формирует профессиональный поисковый хэштег-пакет как у топовых конкурентов ниши.
         """
-        niche_key = "мебель"
+        niche_key = None
+        niche_lower = (niche or "").lower()
+        topic_lower = (topic or "").lower()
+        
+        # 1. Точный поиск по нише и ключевым словам темы
         for key in cls.COMPETITOR_NICHE_TAGS:
-            if key in niche.lower():
+            if key in niche_lower or key in topic_lower:
                 niche_key = key
                 break
 
-        niche_data = cls.COMPETITOR_NICHE_TAGS[niche_key]
+        selected_tags: List[str] = []
         clean_city = cls.sanitize_city(city)
 
-        selected_tags: List[str] = []
-
-        # 1. Гео-коммерческие теги конкурентов (1-2 штуки)
-        if clean_city:
-            for geo_pattern in niche_data.get("geo_commercial", []):
-                tag = geo_pattern.format(city=clean_city)
-                if tag.lower() not in cls.BLOCKED_TAGS and f"#{tag}" not in selected_tags:
-                    selected_tags.append(f"#{tag}")
-                    if len(selected_tags) >= 2:
-                        break
-
-        # 2. Тематический предметный тег по теме публикации (1-2 штуки)
-        topic_lower = topic.lower()
-        topic_dict = niche_data.get("topic_specific", {})
-        for kw, tags_list in topic_dict.items():
-            if kw in topic_lower:
-                for t in tags_list:
-                    if t.lower() not in cls.BLOCKED_TAGS and f"#{t}" not in selected_tags:
-                        selected_tags.append(f"#{t}")
-                        if len(selected_tags) >= 4:
+        # 2. Если ниша найдена в базе конкурентов
+        if niche_key:
+            niche_data = cls.COMPETITOR_NICHE_TAGS[niche_key]
+            # Гео-теги
+            if clean_city:
+                for geo_pattern in niche_data.get("geo_commercial", []):
+                    tag = geo_pattern.format(city=clean_city)
+                    if tag.lower() not in cls.BLOCKED_TAGS and f"#{tag}" not in selected_tags:
+                        selected_tags.append(f"#{tag}")
+                        if len(selected_tags) >= 2:
                             break
-                break
+            # Тематические теги
+            topic_tags_dict = niche_data.get("topic_specific", {})
+            for t_key, t_list in topic_tags_dict.items():
+                if t_key in topic_lower:
+                    for t_item in t_list:
+                        if t_item.lower() not in cls.BLOCKED_TAGS and f"#{t_item}" not in selected_tags:
+                            selected_tags.append(f"#{t_item}")
+                            if len(selected_tags) >= 4:
+                                break
+            # Категорийные теги
+            for d_tag in niche_data.get("niche_discovery", []):
+                if d_tag.lower() not in cls.BLOCKED_TAGS and f"#{d_tag}" not in selected_tags:
+                    selected_tags.append(f"#{d_tag}")
+                    if len(selected_tags) >= limit:
+                        break
+        else:
+            # 3. Динамическая генерация из реальных слов темы и ниши (БЕЗ ложного падения в мебель!)
+            words = re.findall(r'[a-zA-Zа-яА-Я0-9]{3,}', f"{niche} {topic}")
+            for w in words:
+                w_clean = w.lower()
+                if w_clean not in cls.BLOCKED_TAGS and len(w_clean) > 3 and f"#{w_clean}" not in selected_tags:
+                    selected_tags.append(f"#{w_clean}")
+                    if len(selected_tags) >= limit:
+                        break
+            if clean_city and len(selected_tags) > 0:
+                selected_tags.append(f"#{selected_tags[0].replace('#', '')}{clean_city}")
 
-        # 3. Среднечастотные категорийные теги ниши (для поиска аналогичных постов других брендов)
-        for disc_tag in niche_data.get("niche_discovery", []):
-            if disc_tag.lower() not in cls.BLOCKED_TAGS and f"#{disc_tag}" not in selected_tags:
-                selected_tags.append(f"#{disc_tag}")
-            if len(selected_tags) >= limit:
-                break
-
-        # Если не набралось — дополняем надежными нишевыми тегами
-        if not selected_tags:
-            selected_tags = [f"#{niche.replace(' ', '')}"]
-
-        # Финальная очистка от любых стоп-слов и дублей
-        final_tags: List[str] = []
-        for t in selected_tags:
-            clean_name = t.replace("#", "").lower()
-            if clean_name not in cls.BLOCKED_TAGS and t not in final_tags:
-                final_tags.append(t)
-
-        return " ".join(final_tags[:limit])
+        return " ".join(selected_tags[:limit])

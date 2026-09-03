@@ -87,6 +87,37 @@ class SaigaLLMSkill:
             "Всегда перечитывай свой финальный текст перед отправкой на наличие этих ошибок и исправляй их до того, как показать пользователю."
         )
 
+    @staticmethod
+    def _transform_brief_into_organic_story(topic: str, niche: str) -> str:
+        """
+        Преобразует входящий бриф / промпт в органичное повествование,
+        а не вставляет его механически 'в лоб'.
+        """
+        if not topic:
+            return ""
+        topic_lower = topic.lower().strip()
+        
+        # Если это уже связный готовый абзац с несколькими предложениями
+        if len(topic.split()) > 15 and "." in topic:
+            return topic.strip()
+            
+        # Умная трансформация коротких тем и брифов в рекламную драматургию
+        if "массаж" in topic_lower or "spa" in topic_lower or "камн" in topic_lower:
+            return "Когда хочется замедлиться и вернуть телу естественную легкость, лучший выбор — глубокий релакс-массаж с органическими маслами и прогретыми базальтовыми камнями."
+        elif ("девушк" in topic_lower or "модел" in topic_lower) and ("пляж" in topic_lower or "купальник" in topic_lower or "закат" in topic_lower):
+            return "Лето, закатные лучи солнца и уверенность в каждом движении: открываем сезон стильных пляжных образов и идеальной формы."
+        elif "бикини" in topic_lower or "приват" in topic_lower or "неон" in topic_lower:
+            return "Утонченная чувственность, смелые силуэты и приглушенный неоновый свет — коллекция, которая создана, чтобы приковывать взгляды."
+        elif "ролл" in topic_lower or "десерт" in topic_lower or "круассан" in topic_lower or "выпечк" in topic_lower:
+            return "Хрустящие лепестки миндаля, слоистое золотистое тесто и богатый, бархатистый крем с французским характером."
+        elif "коктейл" in topic_lower or "вино" in topic_lower or "бокал" in topic_lower:
+            return "Идеальный баланс благородных вкусов, свежих акцентов и авторской подачи для особенного вечера."
+        elif "трениров" in topic_lower or "фитнес" in topic_lower or "спорт" in topic_lower:
+            return "Энергия, выносливость и радость преодоления: каждая тренировка делает вас на шаг ближе к лучшей версии себя."
+        else:
+            clean = topic.strip().rstrip(".")
+            return f"В центре внимания сегодня — {clean[0].lower() + clean[1:] if len(clean) > 1 else clean}."
+
     def generate_smm_post(
         self,
         topic: str,
@@ -451,51 +482,48 @@ class SaigaLLMSkill:
         # 3.1. Рестораны, кафе, доставка еды, гастробары
         if any(w in full_text_search for w in ["ресторан", "кафе", "меню", "блюдо", "шеф", "кухн", "гастро", "доставка еды", "пицц", "суши", "бургер"]):
             lead = f"Вкус, который запоминается: новинки в «{company_name}» 🍽️"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Наш шеф-повар соединил свежайшие локальные ингредиенты и авторскую подачу, чтобы каждый визит превращался в гастрономическое событие.\n\n"
                 f"Уютная атмосфера, идеальный баланс вкусов и заботливый сервис — бронируйте стол для особенного вечера!{comments_phrase}"
             )
             cta = "Какое блюдо из нашего меню ваше самое любимое? Делитесь в комментариях! 🍷👇" if has_comments else "Ждём вас в гости каждый день! Бронь столов в личных сообщениях 🍷"
+            
+            from skills.photo_generator import CinematographyDirector
+            vis_prompt = CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"]
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Cinematic emotional culinary storytelling photograph. A passionate focused chef in a clean dark apron using precision tweezers to place a delicate final garnish onto a gourmet signature dish in a warm open kitchen. Warm golden spotlight illuminating the culinary masterpiece, soft ambient background bokeh of an inviting dining room with wine glasses, genuine passion and artistry, shallow depth of field, 35mm photography.",
+                "visual_prompt": vis_prompt,
                 "hashtags": "#ресторан #вкуснаяеда #гастрономия #шефповар #ужин"
             }
 
         # 3.2. Кофейни, пекарни, кондитерские, десерты
         elif any(w in full_text_search for w in ["кофе", "латте", "капучино", "десерт", "выпечк", "пекарн", "барист", "круассан", "торт", "чизкейк", "тирамису", "шоколад"]):
-            from skills.object_storytelling import ObjectKnowledgeStoryteller
-            obj_fact = ObjectKnowledgeStoryteller.find_curated_fact(f"{topic_clean} {niche}")
-            
+            from skills.photo_generator import CinematographyDirector
             lead = f"Искусство вкуса и атмосфера уюта в «{company_name}» 🍰✨"
-            if obj_fact:
-                body = (
-                    f"{topic_clean}.{visual_phrase}\n\n"
-                    f"📖 <b>История и происхождение:</b> {obj_fact['origin_story']}\n\n"
-                    f"💡 <b>Секрет рецепта:</b> {obj_fact['fun_fact']}\n\n"
-                    f"✨ {obj_fact['sensory_hook']}{comments_phrase}"
-                )
-            else:
-                body = (
-                    f"{topic_clean}.{visual_phrase}\n\n"
-                    f"Мы готовим каждый десерт и напиток по выверенным рецептурам из 100% натуральных ингредиентов.\n\n"
-                    f"Свежая выпечка, тающие кремы и чашка ароматного кофе — идеальный повод сделать паузу и порадовать себя!{comments_phrase}"
-                )
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            body = (
+                f"{organic_story}{visual_phrase}\n\n"
+                f"Мы готовим каждый десерт и напиток по выверенным рецептурам из 100% натуральных ингредиентов.\n\n"
+                f"Свежая выпечка, тающие кремы и чашка ароматного кофе — идеальный повод сделать паузу и порадовать себя!{comments_phrase}"
+            )
             cta = "Заглядывайте к нам на чашку любимого напитка и десерт! А что выбираете вы? Напишите в комментариях 🍰👇" if has_comments else "Ждём вас на свежие десерты и кофе каждый день! ☕✨"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Cinematic atmospheric dessert storytelling photograph. A beautiful artisan pastry freshly plated on handcrafted ceramic plate in a warm sunlit cafe. Soft powdered sugar glistening, delicate mint leaf garnish, golden morning sunlight, rich textures, 35mm shallow depth of field.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#десерты #кондитерская #кофе #выпечка #сладости"
             }
 
         # 3.3. Beauty / Салоны красоты / Барбершопы / Косметология
         elif any(w in full_text_search for w in ["салон", "красот", "барбер", "маникюр", "стрижк", "уход", "косметол", "спа", "массаж", "брови", "ресниц"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Время уделить внимание себе: преображение в «{company_name}» ✨"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Мы создали пространство, где забота о вашей красоте и внутреннем комфорте выходит на первый план.\n\n"
                 f"Сертифицированные мастера, премиальная косметика и индивидуальный подход к каждому образу — подчеркните вашу естественную привлекательность!{comments_phrase}"
             )
@@ -503,15 +531,17 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Emotional and joyful beauty transformation photograph. A radiant client with a genuine glowing smile looking into a sunlit salon mirror, admiring her fresh stylish hair and natural makeup, while the skilled stylist behind her smiles with pride and care. Soft diffused morning window light, subtle marble and green plant accents, genuine emotion of confidence and self-love, shallow depth of field.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#красота #салонкрасоты #уходзасобой #стиль #маникюр"
             }
 
         # 3.4. Фитнес / Спорт / Йога / Тренировки
         elif any(w in full_text_search for w in ["фитнес", "спорт", "трениров", "зал", "йог", "тренер", "растяжк", "кроссфит", "похуден", "мышц"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Твоя лучшая форма начинается сегодня в «{company_name}» 💪"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Результат — это не случайность, а система правильных привычек и поддержки опытных наставников.\n\n"
                 f"Современное оборудование, персонализированные программы тренировок и заряженная атмосфера единомышленников — сделайте первый шаг к телу мечты!{comments_phrase}"
             )
@@ -519,15 +549,17 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Inspiring powerful fitness storytelling photograph. A dedicated athlete pausing after an intense workout in a bright modern loft gym, taking a deep breath of triumph and holding a water bottle, sunlight dramatically highlighting determination and athletic form. Warm golden morning rays piercing through high gym windows, authentic raw emotion of self-overcoming and strength.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#фитнес #спорт #тренировка #здоровье #мотивация"
             }
 
         # 3.5. Недвижимость / Дизайн интерьера / Аренда
         elif any(w in full_text_search for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "застройщик", "ипотек", "аренд", "интерьер", "жк"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Пространство для вашей комфортной жизни от «{company_name}» 🏡"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Мы помогаем находить не просто квадратные метры, а место, куда по-настоящему хочется возвращаться каждый вечер.\n\n"
                 f"Продуманные планировки, панорамные окна, развитая инфраструктура и полное юридическое сопровождение на каждом этапе сделки.{comments_phrase}"
             )
@@ -535,15 +567,17 @@ class SaigaLLMSkill:
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Heartwarming lifestyle storytelling photograph of a new home. A happy young homeowner sitting comfortably on the warm hardwood floor of an airy sunlit living room with a coffee mug, gazing out large floor-to-ceiling windows at a golden sunset over the city. A couple of unpacked boxes and a leafy Monstera plant nearby, pure feeling of happiness, safety, achievement and home.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#недвижимость #квартира #новостройки #интерьер #уют"
             }
 
         # 3.6. Автобизнес / СТО / Детейлинг / Автосалоны
         elif any(w in full_text_search for w in ["авто", "машин", "сто", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "тюнинг", "техосмотр"]) and "автоном" not in full_text_search:
+            from skills.photo_generator import CinematographyDirector
             lead = f"Безупречный вид и надёжность вашего автомобиля с «{company_name}» 🚗"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Ваш автомобиль заслуживает профессионального ухода и внимания к каждой детали.\n\n"
                 f"Современное диагностическое оборудование, премиальная автохимия и мастера с многолетним стажем гарантируют идеальный результат и безопасность на дороге.{comments_phrase}"
             )

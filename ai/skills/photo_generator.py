@@ -21,6 +21,144 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
+class CinematographyDirector:
+    """
+    Интеллектуальный режиссер-постановщик и арт-директор:
+    Применяет профессиональные законы кинокомпозиции, световых схем,
+    колористики и психологии восприятия кадра.
+    """
+
+    LIGHTING_SCHEMES = {
+        "low_key": "Low-Key lighting with deep velvet shadows and high emotional drama",
+        "high_key": "High-Key lighting with abundant soft luminous tones, airy and pristine",
+        "chiaroscuro": "Chiaroscuro lighting, intense Renaissance contrast between glowing highlights and deep shadow",
+        "silhouette": "Graceful dark silhouette against a radiant glowing background",
+        "gobo_shadows": "Gobo light casting soft atmospheric window blind and botanical shadow patterns",
+        "rim_backlight": "Golden hour Rim lighting / backlighting creating a glowing ethereal contour",
+        "rembrandt": "Rembrandt lighting with subtle luminous triangle highlight on cheekbone",
+        "paramount": "Paramount butterfly lighting defining facial cheekbones with elegant luxury",
+        "spotlight": "Atmospheric warm golden spotlight isolating the subject against dark ambient room",
+        "lens_flare": "Subtle warm lens flares and sunbeams, nostalgic indie film aesthetic",
+        "soft_diffused": "Soft diffused morning window daylight with gentle natural gradients"
+    }
+
+    COLOR_HARMONIES = {
+        "teal_orange": "Teal and Orange cinematic color harmony, warm golden subject tones separated from cool background",
+        "warm_analogous": "Warm analogous palette of honey, amber, terracotta and roasted gold",
+        "complementary": "Dynamic complementary color contrast creating vibrant visual energy",
+        "muted_editorial": "Refined desaturated muted color palette with timeless editorial sophistication",
+        "monochrome": "Timeless monochromatic tones emphasizing raw texture, geometry and emotion"
+    }
+
+    COMPOSITION_GEOMETRIES = {
+        "rule_of_thirds": "Rule of Thirds composition with key visual weight on dynamic power intersection points",
+        "symmetry": "Cinematic centered symmetrical framing with Wes Anderson precision and balance",
+        "leading_lines": "Dynamic leading lines guiding the viewer's eye seamlessly into the focal subject",
+        "framing": "Natural architectural framing through doorway, window arch or soft foliage",
+        "negative_space": "Expansive negative space creating a high-end minimalist, breathable composition",
+        "triangles": "Stable triangular geometry balancing masses and creating visual permanence",
+        "golden_spiral": "Golden ratio Fibonacci spiral naturally drawing focus into the scene center"
+    }
+
+    PERSPECTIVES = {
+        "bokeh_shallow": "Shallow depth of field (f/1.4), creamy bokeh background isolation",
+        "low_angle_heroic": "Low-angle heroic perspective conveying confidence, scale and mastery",
+        "tabletop_commercial": "Top-down / 45-degree angled tabletop commercial perspective with rich tactile textures",
+        "candid_eye_level": "Natural eye-level 35mm perspective, authentic candid Apple ProRAW feel"
+    }
+
+    @classmethod
+    def compose_cinematic_prompt(
+        cls,
+        topic: str,
+        niche: str = "бизнес",
+        brand_colors: Optional[List[str]] = None
+    ) -> Dict[str, str]:
+        """
+        Генерирует высокохудожественный промпт для ComfyUI Realism 2.0
+        с учетом психологии света, композиции и цвета.
+        """
+        topic_lower = topic.lower()
+
+        # 1. Анализ сюжета и определение световой схемы
+        if "закат" in topic_lower or "пляж" in topic_lower or "вечер" in topic_lower:
+            light_key = "rim_backlight"
+            color_key = "teal_orange"
+            comp_key = "rule_of_thirds"
+            persp_key = "bokeh_shallow"
+        elif "неон" in topic_lower or "приват" in topic_lower or "клуб" in topic_lower or "бар" in topic_lower:
+            light_key = "low_key"
+            color_key = "complementary"
+            comp_key = "negative_space"
+            persp_key = "candid_eye_level"
+        elif "массаж" in topic_lower or "spa" in topic_lower or "спа" in topic_lower or "камн" in topic_lower:
+            light_key = "soft_diffused"
+            color_key = "warm_analogous"
+            comp_key = "framing"
+            persp_key = "bokeh_shallow"
+        elif "десерт" in topic_lower or "ролл" in topic_lower or "выпечк" in topic_lower or "кофе" in topic_lower or "еда" in topic_lower:
+            light_key = "high_key"
+            color_key = "warm_analogous"
+            comp_key = "golden_spiral"
+            persp_key = "tabletop_commercial"
+        elif "флаг" in topic_lower or "архитектур" in topic_lower or "спорт" in topic_lower or "фитнес" in topic_lower:
+            light_key = "rim_backlight"
+            color_key = "teal_orange"
+            comp_key = "triangles"
+            persp_key = "low_angle_heroic"
+        else:
+            light_key = "soft_diffused"
+            color_key = "muted_editorial"
+            comp_key = "rule_of_thirds"
+            persp_key = "candid_eye_level"
+
+        # 2. Динамическая трансляция объекта съемки
+        if "массаж" in topic_lower or "камн" in topic_lower:
+            subject = "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening"
+            environment = "peaceful luxury wellness SPA room, marble surface, soft warm candlelight and towels in soft focus"
+        elif ("девушк" in topic_lower or "модел" in topic_lower) and ("пляж" in topic_lower or "купальник" in topic_lower):
+            subject = "athletic graceful young woman on a scenic sandy beach wearing an elegant fashionable swimsuit"
+            environment = "breathtaking ocean shoreline, gentle waves in soft background bokeh, warm sea breeze"
+        elif "неон" in topic_lower or "бикини" in topic_lower or "приват" in topic_lower:
+            subject = "captivating charismatic model in aesthetic fashionable attire, striking artistic pose and silhouette"
+            environment = "moody luxury evening penthouse lounge with subtle velvet textures and atmospheric reflections"
+        elif "ролл" in topic_lower or "десерт" in topic_lower or "выпечк" in topic_lower:
+            subject = f"freshly baked artisan pastry ({topic}), golden caramelized flaky crust with powdered sugar dusting and rich mouthwatering filling"
+            environment = "warm cozy bakery counter, rustic wooden tabletop, handcrafted artisanal ceramic plate"
+        elif "коктейл" in topic_lower or "бокал" in topic_lower or "вино" in topic_lower:
+            subject = "signature artisanal cocktail in crystal glass with delicate botanical garnish and ice crystals"
+            environment = "sleek polished dark marble bar counter in an ambient luxury lounge"
+        else:
+            subject = f"authentic candid commercial scene: {topic}"
+            environment = f"aesthetic contemporary {niche} setting, natural room depth"
+
+        lighting = cls.LIGHTING_SCHEMES[light_key]
+        color_scheme = cls.COLOR_HARMONIES[color_key]
+        composition = cls.COMPOSITION_GEOMETRIES[comp_key]
+        perspective = cls.PERSPECTIVES[persp_key]
+
+        colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
+
+        full_prompt = (
+            f"Authentic candid commercial photograph for {niche}. "
+            f"Subject: {subject}. "
+            f"Environment: {environment}. "
+            f"{colors_str}"
+            f"Lighting & Atmosphere: {lighting}. "
+            f"Color Harmony: {color_scheme}. "
+            f"Composition & Framing: {composition}. "
+            f"Perspective & Optics: {perspective}, 35mm film masterpiece, unedited Apple ProRAW look, natural skin texture, tactile realism, natural grain, photorealistic."
+        )
+
+        return {
+            "prompt": full_prompt,
+            "lighting_scheme": light_key,
+            "color_harmony": color_key,
+            "composition": comp_key,
+            "perspective": persp_key
+        }
+
+
 try:
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
     PIL_AVAILABLE = True
@@ -158,8 +296,8 @@ class PhotoGeneratorSkill:
 
     DEFAULT_NEGATIVE_PROMPT = (
         "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
-        "wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, airbrushed, unnatural stiff pose, "
-        "fake commercial look, oversaturated, blurry, bad anatomy, deformed hands, extra fingers, watermark, lowres"
+        "nsfw, nude, naked, explicit, bad anatomy, deformed fingers, extra limbs, blurry face, bad eyes, "
+        "low quality, oversaturated, plastic 3d render, watermark, text, signature"
     )
 
     def __init__(self, output_dir: Optional[str] = None):
@@ -177,68 +315,10 @@ class PhotoGeneratorSkill:
         custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Составляет аутентичный, живой промпт для мобильной фотографии на iPhone (UGC / Lifestyle).
+        Составляет высокохудожественный промпт для ComfyUI через CinematographyDirector.
         """
-        if custom_prompt and len(custom_prompt.strip()) > 30 and not custom_prompt.startswith("Authentic candid photo of a small tech"):
+        if custom_prompt and len(custom_prompt.strip()) > 30 and not custom_prompt.startswith("Authentic candid photo of a small tech") and not custom_prompt.startswith("Cinematic emotional culinary"):
             positive_prompt = custom_prompt
-            niche_key = niche
-        else:
-            niche_text = f"{niche} {topic}".lower()
-            topic_lower = topic.lower()
-
-            # Определение нишевого стиля
-            niche_key = "услуги"
-            if any(w in niche_text for w in ["флаг", "триколор", "день россии"]) and "девушк" not in topic_lower:
-                niche_key = "флаг"
-            elif any(w in niche_text for w in ["новый год", "новогодн", "рождеств", "8 марта", "23 февраля", "9 мая"]):
-                niche_key = "праздник"
-            elif any(w in niche_text for w in ["кофе", "капучино", "латте", "десерт", "пекарн", "барист", "выпечк", "ролл", "круассан"]):
-                niche_key = "кофейня"
-            elif any(w in niche_text for w in ["ресторан", "еда", "блюдо", "кухн", "шеф", "гастро", "коктейл", "вино", "стейк"]):
-                niche_key = "ресторан"
-            elif any(w in niche_text for w in ["красот", "космет", "уход", "спа", "spa", "салон", "массаж", "маникюр"]):
-                niche_key = "красота"
-            elif any(w in niche_text for w in ["фитнес", "спорт", "трениров", "зал", "йог", "пляж", "атлет"]):
-                niche_key = "фитнес"
-            elif any(w in niche_text for w in ["приват", "онлифанс", "onlyfans", "boosty", "18+", "бикини", "купальник", "белье"]):
-                niche_key = "приват"
-            elif any(w in niche_text for w in ["одежд", "стил", "мод", "магазин", "товар", "шопинг", "пальто"]):
-                niche_key = "одежда"
-            elif any(w in niche_text for w in ["авто", "машина", "детейлинг"]):
-                niche_key = "авто"
-            elif any(w in niche_text for w in ["недвижим", "квартир", "дом", "жк"]):
-                niche_key = "недвижимость"
-
-            # Динамическое формирование объекта съемки из реальной темы пользователя
-            subject = topic
-            environment = "authentic aesthetic setting matching the theme, natural depth of field"
-            lighting = "natural warm sunlight, soft ambient illumination, delicate rim lighting"
-
-            if "массаж" in topic_lower or "spa" in topic_lower or "камн" in topic_lower:
-                subject = "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic oils"
-                environment = "peaceful luxury wellness SPA room, marble surface, soft warm candlelight and towels in soft focus"
-                lighting = "soft diffused warm ambient glow, calming relaxing atmosphere"
-            elif ("девушк" in topic_lower or "модел" in topic_lower) and ("пляж" in topic_lower or "закат" in topic_lower or "купальник" in topic_lower):
-                subject = "beautiful athletic young woman on a serene ocean beach wearing an elegant stylish swimsuit at sunset"
-                environment = "scenic sandy shoreline, gentle ocean waves in soft bokeh background"
-                lighting = "breathtaking golden hour sunset backlight, warm golden sunbeams, gentle rim light"
-            elif "неон" in topic_lower or "вечер" in topic_lower or "бикини" in topic_lower or "приват" in topic_lower:
-                subject = "captivating charismatic model in aesthetic fashionable attire, striking artistic pose and silhouette"
-                environment = "moody luxury evening penthouse lounge with subtle velvet textures and atmospheric reflections"
-                lighting = "soft atmospheric neon glow, warm ambient candle accents, cinematic deep shadows"
-            elif "ролл" in topic_lower or "десерт" in topic_lower or "выпечк" in topic_lower or "круассан" in topic_lower:
-                subject = f"artisan pastry freshly baked ({topic}), golden flaky caramelized crust, dusted with delicate powdered sugar, sliced showing rich delicious filling"
-                environment = "warm cozy bakery counter, rustic wooden tabletop, artisanal ceramic plate"
-                lighting = "warm morning sunbeams streaming through bakery window, soft appetizing highlights"
-            elif "коктейл" in topic_lower or "бокал" in topic_lower:
-                subject = "signature artisanal cocktail in crystal glass with delicate botanical garnish"
-                environment = "sleek polished dark marble bar counter in an ambient luxury lounge"
-                lighting = "moody warm golden spotlight, soft bokeh of glowing bottles in background"
-            else:
-                preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["услуги"])
-                subject = f"{topic}, {preset['subject']}"
-                environment = preset['environment']
-                lighting = preset['lighting']
 
             colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
 

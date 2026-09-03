@@ -694,8 +694,15 @@ class UnifiedOrchestrator:
             niche = user_data.get("niche", "IT Automation / Сервис контента")
             city = user_data.get("city", "Москва")
             company_name = user_data.get("company_name", "UCust")
-            should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
-            aspect_ratio = user_data.get("aspect_ratio", "1:1")
+            aspect_ratio = user_data.get("aspect_ratio")
+            if not aspect_ratio:
+                fmt_lower = format_type.lower()
+                if any(k in fmt_lower for k in ["story", "stories", "reels", "shorts", "клип", "истори"]):
+                    aspect_ratio = "9:16"
+                elif any(k in fmt_lower for k in ["cover", "article", "youtube", "banner", "обложк", "стать"]):
+                    aspect_ratio = "16:9"
+                else:
+                    aspect_ratio = "1:1"
 
             # 1. Загрузка точного профиля из SQL (если передан user_id / profile_id)
             if self.db and (user_data.get("user_id") or user_data.get("profile_id")):

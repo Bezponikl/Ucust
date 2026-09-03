@@ -3,6 +3,7 @@ import os
 import re
 import json
 import time
+import random
 from typing import Any, Dict, List, Optional, Union
 from skills.competitor_hashtags import NicheCompetitorHashtagEngine
 
@@ -29,6 +30,24 @@ class SaigaLLMSkill:
         self._llm = None
         self._is_loaded = False
         self._init_prompt()
+        self._try_load_model()
+
+    def _try_load_model(self):
+        try:
+            resolved_path = self._resolve_path(self.model_path)
+            if os.path.exists(resolved_path) and not self._is_loaded:
+                from llama_cpp import Llama
+                print(f"[SaigaSkill] 🚀 Загрузка весов модели Saiga из {resolved_path}...")
+                self._llm = Llama(
+                    model_path=resolved_path,
+                    n_ctx=min(2048, self.max_tokens * 2),
+                    n_gpu_layers=int(os.getenv("LLAMA_GPU_LAYERS", "-1")),
+                    verbose=False
+                )
+                self._is_loaded = True
+                print(f"[SaigaSkill] ✅ Модель Saiga успешно загружена в память!")
+        except Exception as e:
+            pass
 
     def _resolve_path(self, path_str: str) -> str:
         if os.path.exists(path_str):
@@ -386,136 +405,60 @@ class SaigaLLMSkill:
             }
 
         # =========================================================================
-        # 2. СПЕЦИАЛИЗИРОВАННЫЕ ДЕМО-ЗАПРОСЫ И МАНИФЕСТЫ UCUST
-        # =========================================================================
-        if "как понимает" in topic_lower or "что умеет" in topic_lower or "простыми словами" in topic_lower or "для простых" in topic_lower or "не айтиш" in topic_lower or "понимает запрос" in topic_lower:
-            lead = f"В чём разница между обычным чат-ботом и маркетинговым ядром «{company_name}»?"
-            body = (
-                f"Чат-бот выдаёт текст в вакууме. Ему всё равно, купят у вас или пролистнут ленту.\n\n"
-                f"«{company_name}» работает как <b>компактная, но глубоко обученная маркетинговая связка</b>, где у каждого модуля — узкая и отточенная компетенция:\n\n"
-                f"🧠 <b>1. Психология покупателя</b> — система выявляет скрытые боли и триггеры доверия в вашей нише, а не сыплет абстрактными фразами.\n"
-                f"✍️ <b>2. Конверсионная структура</b> — текст строится по законам драматургии (крючок, ценность, снятие возражений, чёткий CTA) живым языком без «воды».\n"
-                f"🎬 <b>3. Смысловой фотопродакшн</b> — визуал создаётся как естественное продолжение идеи поста, привлекая внимание живой эстетикой вместо пластиковых стоковых картинок.\n"
-                f"🛡️ <b>4. Фильтр качества</b> — строгий пре-мортем аудит отсекает любые штампы и фальшь до публикации.\n\n"
-                f"⚡ Результат: пост и фото работают как единое целое на доверие и продажи.{visual_phrase}{comments_phrase}"
-            )
-            cta = f"Напишите нишу вашего бизнеса в комментарии — покажем, как система отработает задачу для вас! 👇" if has_comments else f"Напишите нам в личные сообщения — покажем возможности автономного пайплайна на вашем бизнесе! 🚀"
-            return {
-                "post_text": f"{lead}\n\n{body}\n\n{cta}",
-                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": (
-                    "A cinematic, slightly futuristic wide-angle photograph. "
-                    "A focused female entrepreneur with dark hair sits at a wooden desk in a warm modern cafe coworking space, visible in the left half of the frame. "
-                    "An open MacBook laptop is on the desk in front of her, its screen showing a simple chat-style text input interface. "
-                    "From the RIGHT EDGE of the laptop screen, vivid glowing streams of blue and golden digital particles and abstract light trails flow dynamically outward to the right into open air. "
-                    "These particle streams coalesce and materialize into a FLOATING rectangular photograph that hovers in the AIR to the right of the laptop — NOT on the screen — "
-                    "showing a vivid realistic image of a barista pouring latte art in a sunlit cozy cafe. "
-                    "The floating photo has a soft luminous rounded frame and appears to emerge from the particle stream. "
-                    "Warm cinematic ambient lighting, natural bokeh background, photorealistic commercial photography, wide composition."
-                ),
-                "hashtags": "#ИИдляБизнеса #SMM #GenAI"
-            }
-
-        elif "кто так" in topic_lower or "о нас" in topic_lower or "знакомств" in topic_lower or "манифест" in topic_lower:
-            lead = f"«{company_name}»: не раздутый штат, а сфокусированное ядро маркетинговых ИИ-навыков"
-            body = (
-                f"Вместо десятков разрозненных сервисов и бесконечных правок — единая сбалансированная система, "
-                f"где каждый алгоритм натренирован на конкретную бизнес-задачу:\n\n"
-                f"🎯 <b>Исследование спроса и отстройка от конкурентов</b>\n"
-                f"Мгновенный анализ рыночного контекста, формулирование твёрдых УТП и работа с ключевыми возражениями клиентов.\n\n"
-                f"✍️ <b>Конверсионный копирайтинг по законам восприятия</b>\n"
-                f"Создание ёмких, бьющих в цель публикаций с естественной тональностью — без клише, канцелярита и искусственного глянца.\n\n"
-                f"🎬 <b>Умный визуальный продакшн</b>\n"
-                f"Создание авторского фотоконтента, который органично раскрывает посыл публикации, формирует премиальный образ бренда и пробивает баннерную слепоту в ленте.\n\n"
-                f"🛡️ <b>Встроенный аудит качества (Zero-Fluff Gatekeeper)</b>\n"
-                f"Многоуровневый фильтр тональности и смысловой ценности, гарантирующий отсутствие галлюцинаций и «воды».\n\n"
-                f"📡 <b>Омниканальная дистрибуция 24/7</b>\n"
-                f"Синхронная адаптация и публикация контента в Telegram, VK, OK, MAX и геосервисы в 1 клик.{comments_phrase}"
-            )
-            cta = f"Напишите в комментариях нишу вашего бизнеса — продемонстрируем связку навыков в действии! 🚀" if has_comments else f"Напишите нам в личные сообщения — покажем, как система масштабирует маркетинг вашего дела! 🚀"
-            return {
-                "post_text": f"{lead}\n\n{body}\n\n{cta}",
-                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Authentic candid photograph: a sleek modern workspace desk with open laptop showing modern marketing analytics dashboards and AI agent workflows, a stylish coffee cup and smartphone on desk, bright natural daylight from large office window, clean contemporary aesthetic, authentic tech startup lifestyle photo.",
-                "hashtags": "#ИИагенты #маркетинг2026 #автоматизация #стартап #AIстартап"
-            }
-
-        elif "команд" in topic_lower or "собр" in topic_lower or "старт" in topic_lower or "начинаем" in topic_lower:
-            lead = f"Старт проекта «{company_name}»: открытая разработка автономного маркетинга"
-            body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
-                f"Мы объединили экспертизу в распределённых мульти-агентных системах, глубоких нейросетях и реальном маркетинге, "
-                f"чтобы создать инструмент, который берет на себя 100% рутины по созданию, контролю и дистрибуции контента.\n\n"
-                f"Наш фокус — открытая разработка, честные замеры времени работы моделей, высочайший стандарт фотореализма и измеримый результат для бизнеса.\n\n"
-                f"Спасибо каждому, кто следит за проектом и тестирует наши обновления!{comments_phrase}"
-            )
-            cta = f"Следите за нашими обновлениями и задавайте любые вопросы в комментариях 👇. Погнали! 🚀" if has_comments else f"Следите за нашими обновлениями и пишите нам в личные сообщения. Погнали! 🚀"
-            return {
-                "post_text": f"{lead}\n\n{body}\n\n{cta}",
-                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": (
-                    "Authentic candid photo of a small tech startup team of 4 people. "
-                    "IMPORTANT: each person has a completely unique and distinct face, different hairstyle, different age, different facial features — NO identical or similar faces. "
-                    "Person 1: young woman with short dark hair, glasses, casual sweater. "
-                    "Person 2: man in his 30s with beard and curly hair, blue shirt. "
-                    "Person 3: older man with grey temples, formal jacket. "
-                    "Person 4: young man with straight light hair, hoodie. "
-                    "Setting: modern bright glass-walled office, whiteboard with colorful sticky notes, laptops on table, genuine collaborative discussion. "
-                    "Natural daylight from large windows, authentic candid atmosphere, shallow depth of field, photorealistic."
-                ),
-                "hashtags": "#запуск #стартап #команда #разработка #IT"
-            }
-
-        elif "скидк" in topic_lower or "акци" in topic_lower or "промо" in topic_lower or "%" in topic_lower:
-            lead = f"Специальное предложение от «{company_name}»"
-            body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
-                f"Мы ценим ваше доверие и хотим сделать наши услуги ещё выгоднее и доступнее для вашего бизнеса. "
-                f"Успейте воспользоваться специальными условиями до конца этой недели.{comments_phrase}"
-            )
-            cta = f"Напишите промокод {company_name.upper().replace(' ', '')}2026 в личные сообщения для получения специальных условий!"
-            return {
-                "post_text": f"{lead}\n\n{body}\n\n{cta}",
-                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": f"Authentic candid commercial photograph for {niche}: stylish modern commercial product display on clean minimalist surface with subtle organic shadows, soft warm ambient lighting, elegant lifestyle commercial photography.",
-                "hashtags": "#акция #спецпредложение #маркетинг #скидки"
-            }
-
-        # =========================================================================
         # 3. УНИВЕРСАЛЬНЫЙ РЕЕСТР НИШ И СФЕР БИЗНЕСА (12+ НАПРАВЛЕНИЙ)
         # =========================================================================
 
         # 3.1. Рестораны, кафе, доставка еды, гастробары
         if any(w in full_text_search for w in ["ресторан", "кафе", "меню", "блюдо", "шеф", "кухн", "гастро", "доставка еды", "пицц", "суши", "бургер"]):
-            lead = f"Вкус, который запоминается: новинки в «{company_name}» 🍽️"
-            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Наш шеф-повар соединил свежайшие локальные ингредиенты и авторскую подачу, чтобы каждый визит превращался в гастрономическое событие.\n\n"
-                f"Уютная атмосфера, идеальный баланс вкусов и заботливый сервис — бронируйте стол для особенного вечера!{comments_phrase}"
-            )
-            cta = "Какое блюдо из нашего меню ваше самое любимое? Делитесь в комментариях! 🍷👇" if has_comments else "Ждём вас в гости каждый день! Бронь столов в личных сообщениях 🍷"
-            
             from skills.photo_generator import CinematographyDirector
-            vis_prompt = CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"]
+            leads = [
+                f"Вкус, который запоминается: новинки в «{company_name}» 🍽️",
+                f"Гастрономическое удовольствие каждого дня от «{company_name}» ✨",
+                f"Идеальный вечер и авторская кухня в «{company_name}» 🍷"
+            ]
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nНаш шеф-повар соединил свежайшие локальные ингредиенты и авторскую подачу, чтобы каждый визит превращался в гастрономическое событие.\n\nУютная атмосфера, идеальный баланс вкусов и заботливый сервис — бронируйте стол для особенного вечера!{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nМы верим, что настоящая еда должна дарить эмоции. Каждое блюдо готовится из-под ножа с максимальным вниманием к текстурам и аромату.\n\nОтличный повод собраться с близкими, попробовать новые сочетания и насладиться душевным сервисом.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nСезонные вкусы, выверенные рецепты и атмосфера тепла, в которую хочется возвращаться снова и снова.\n\nЖдем вас на обеды, уютные ужины и праздничные встречи в приятной компании!{comments_phrase}"
+            ]
+            ctas = [
+                "Какое блюдо из нашего меню ваше самое любимое? Делитесь в комментариях! 🍷👇" if has_comments else "Ждём вас в гости каждый день! Бронь столов в личных сообщениях 🍷",
+                "С кем бы разделили этот вкусный момент? Отмечайте в комментариях! 🍽️👇" if has_comments else "Забронируйте любимый столик прямо сейчас в личных сообщениях! ✨",
+                "Уже пробовали эту новинку? Напишите впечатления в комментариях! 👇" if has_comments else "Оформляйте бронь столов или доставку в личных сообщениях! 🛵💨"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": vis_prompt,
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#ресторан #вкуснаяеда #гастрономия #шефповар #ужин"
             }
 
         # 3.2. Кофейни, пекарни, кондитерские, десерты
         elif any(w in full_text_search for w in ["кофе", "латте", "капучино", "десерт", "выпечк", "пекарн", "барист", "круассан", "торт", "чизкейк", "тирамису", "шоколад"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Искусство вкуса и атмосфера уюта в «{company_name}» 🍰✨"
+            leads = [
+                f"Искусство вкуса и атмосфера уюта в «{company_name}» 🍰✨",
+                f"Идеальная пауза среди насыщенного дня: «{company_name}» ☕🌿",
+                f"Вдохновение в каждом глотке и свежем десерте от «{company_name}» 🥐💫"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Мы готовим каждый десерт и напиток по выверенным рецептурам из 100% натуральных ингредиентов.\n\n"
-                f"Свежая выпечка, тающие кремы и чашка ароматного кофе — идеальный повод сделать паузу и порадовать себя!{comments_phrase}"
-            )
-            cta = "Заглядывайте к нам на чашку любимого напитка и десерт! А что выбираете вы? Напишите в комментариях 🍰👇" if has_comments else "Ждём вас на свежие десерты и кофе каждый день! ☕✨"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nМы готовим каждый десерт и напиток по выверенным рецептурам из 100% натуральных ингредиентов.\n\nСвежая выпечка, тающие кремы и чашка ароматного кофе — идеальный повод сделать паузу и порадовать себя!{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nЗдесь утро начинается с аромата свежемолотого зерна, а день наполняется мягким теплом и вдохновением.\n\nСпешелти обжарка, фермерское молоко и ремесленная выпечка прямо из печи сделают ваш перерыв по-настоящему особенным.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nМаленькие радости создают настроение на целый день. Насладитесь вкусом, отвлекитесь от суеты и зарядитесь позитивом.{comments_phrase}"
+            ]
+            ctas = [
+                "Заглядывайте к нам на чашку любимого напитка и десерт! А что выбираете вы? Напишите в комментариях 🍰👇" if has_comments else "Ждём вас на свежие десерты и кофе каждый день! ☕✨",
+                "Какой ваш идеальный кофейный напиток? Делитесь в комментариях! ☕👇" if has_comments else "Заглядывайте на чашечку любимого напитка или берите с собой! 🥐✨",
+                "Порадуйте себя приятным перерывом — ждем вас в гости в «" + company_name + "»! 💫"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -526,14 +469,25 @@ class SaigaLLMSkill:
         # 3.3. Beauty / Салоны красоты / Барбершопы / Косметология
         elif any(w in full_text_search for w in ["салон", "красот", "барбер", "маникюр", "стрижк", "уход", "косметол", "спа", "массаж", "брови", "ресниц"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Время уделить внимание себе: преображение в «{company_name}» ✨"
+            leads = [
+                f"Время уделить внимание себе: преображение в «{company_name}» ✨",
+                f"Гармония заботы и безупречного стиля: «{company_name}» 💆‍♀️💫",
+                f"Ваша естественная привлекательность и уверенность с «{company_name}» 🌸"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Мы создали пространство, где забота о вашей красоте и внутреннем комфорте выходит на первый план.\n\n"
-                f"Сертифицированные мастера, премиальная косметика и индивидуальный подход к каждому образу — подчеркните вашу естественную привлекательность!{comments_phrase}"
-            )
-            cta = "Запишитесь на удобное время через личные сообщения или оставьте «+» в комментариях! 💅👇" if has_comments else "Ждём вас на процедуры! Онлайн-запись доступна в личных сообщениях ✨"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nМы создали пространство, где забота о вашей красоте и внутреннем комфорте выходит на первый план.\n\nСертифицированные мастера, премиальная косметика и индивидуальный подход к каждому образу — подчеркните вашу естественную привлекательность!{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nКачественный уход — это лучший способ перезагрузиться, снять усталость и почувствовать лёгкость.\n\nСовременные техники, проверенные гипоаллергенные составы и атмосфера абсолютного релакса ждут вас на каждом сеансе.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nДоверьте заботу о своем образе профессионалам: безупречная форма, здоровье и ухоженный вид каждый день.{comments_phrase}"
+            ]
+            ctas = [
+                "Запишитесь на удобное время через личные сообщения или оставьте «+» в комментариях! 💅👇" if has_comments else "Ждём вас на процедуры! Онлайн-запись доступна в личных сообщениях ✨",
+                "Какую процедуру любите больше всего? Напишите в комментариях! 🌸👇" if has_comments else "Подберите идеальное время для визита прямо в личных сообщениях! 💆‍♀️",
+                "Подарите себе часы красоты и заботы — пишите нам в личные сообщения! 💫"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -544,14 +498,25 @@ class SaigaLLMSkill:
         # 3.4. Фитнес / Спорт / Йога / Тренировки
         elif any(w in full_text_search for w in ["фитнес", "спорт", "трениров", "зал", "йог", "тренер", "растяжк", "кроссфит", "похуден", "мышц"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Твоя лучшая форма начинается сегодня в «{company_name}» 💪"
+            leads = [
+                f"Твоя лучшая форма начинается сегодня в «{company_name}» 💪",
+                f"Энергия, выносливость и результат: тренировки в «{company_name}» 🔥",
+                f"Движение к телу мечты вместе с «{company_name}» 🏋️⚡"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Результат — это не случайность, а система правильных привычек и поддержки опытных наставников.\n\n"
-                f"Современное оборудование, персонализированные программы тренировок и заряженная атмосфера единомышленников — сделайте первый шаг к телу мечты!{comments_phrase}"
-            )
-            cta = "Напишите в комментариях, какую цель ставите на этот сезон — и мы поможем составить план! 🏋️👇" if has_comments else "Записывайтесь на пробную тренировку в личных сообщениях! Погнали! 🔥"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nРезультат — это не случайность, а система правильных привычек и поддержки опытных наставников.\n\nСовременное оборудование, персонализированные программы тренировок и заряженная атмосфера единомышленников — сделайте первый шаг к телу мечты!{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nКаждая тренировка делает вас сильнее, выносливее и увереннее в себе.\n\nГрамотный тренировочный план, контроль техники выполнения и баланс нагрузок помогут достичь прогресса без травм и выгорания.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nОтличная физическая форма — это инвестиция в здоровье, бодрость и высокое качество жизни.{comments_phrase}"
+            ]
+            ctas = [
+                "Напишите в комментариях, какую цель ставите на этот сезон — и мы поможем составить план! 🏋️👇" if has_comments else "Записывайтесь на пробную тренировку в личных сообщениях! Погнали! 🔥",
+                "Готовы прокачать форму? Ставьте 🔥 в комментариях или пишите в ЛС!",
+                "Забронируйте вводное занятие с наставником прямо в личных сообщениях! 💪"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -562,14 +527,25 @@ class SaigaLLMSkill:
         # 3.5. Недвижимость / Дизайн интерьера / Аренда
         elif any(w in full_text_search for w in ["недвижим", "квартир", "риелтор", "жилье", "застройщик", "ипотек", "аренд", "новостройк", "интерьер", "жк"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Пространство для вашей комфортной жизни от «{company_name}» 🏡"
+            leads = [
+                f"Пространство для вашей комфортной жизни от «{company_name}» 🏡",
+                f"Дом, в который хочется возвращаться: решения от «{company_name}» ✨",
+                f"Инвестиции в уют и надежность вместе с «{company_name}» 🔑"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Мы помогаем находить не просто квадратные метры, а место, куда по-настоящему хочется возвращаться каждый вечер.\n\n"
-                f"Продуманные планировки, панорамные окна, развитая инфраструктура и полное юридическое сопровождение на каждом этапе сделки.{comments_phrase}"
-            )
-            cta = "Хотите получить каталог актуальных объектов? Напишите «КАТАЛОГ» в комментариях или в ЛС! 🔑" if has_comments else "Пишите в личные сообщения — подберём идеальный вариант под ваш бюджет! 🔑"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nМы помогаем находить не просто квадратные метры, а место, куда по-настоящему хочется возвращаться каждый вечер.\n\nПродуманные планировки, панорамные окна, развитая инфраструктура и полное юридическое сопровождение на каждом этапе сделки.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nВыбор жилья — это фундамент вашего будущего комфорта и безопасности семьи.\n\nЭкспертный подбор вариантов, проверка документов и выгодные условия финансирования без скрытых комиссий.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nЭстетика современных интерьеров, функциональное зонирование и премиальное окружение для нового уровня жизни.{comments_phrase}"
+            ]
+            ctas = [
+                "Хотите получить каталог актуальных объектов? Напишите «КАТАЛОГ» в комментариях или в ЛС! 🔑" if has_comments else "Пишите в личные сообщения — подберём идеальный вариант под ваш бюджет! 🔑",
+                "Какой район или планировка вам интересны? Напишите в комментариях! 👇🏡",
+                "Запишитесь на просмотр объекта или консультацию прямо в личных сообщениях! 🏠"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -580,14 +556,25 @@ class SaigaLLMSkill:
         # 3.6. Автоспорт / Тюнинг / JDM / Турбонаддув
         elif any(w in full_text_search for w in ["тюнинг", "турбин", "sr20", "gt2871", "jdm", "наддув", "интеркулер", "койловер", "мотор", "двигател", "выхлоп"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Максимум мощности и надежности: проекты от «{company_name}» 🏎️💨"
+            leads = [
+                f"Максимум мощности и надежности: проекты от «{company_name}» 🏎️💨",
+                f"Инженерный подход к тюнингу и автоспорту: «{company_name}» 🔧⚡",
+                f"Чистая отдача и стабильный наддув с «{company_name}» 🏁"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Грамотный тюнинг — это точный расчет тепловых нагрузок, выбор проверенных компонентов и безупречная сборка.\n\n"
-                f"Сборка кастомных трасс, установка турбокитов, настройка буста и стендовая калибровка гарантируют стабильную отдачу и безопасность мотора в любых режимах.{comments_phrase}"
-            )
-            cta = "Какой сетап планируете собрать в этом сезоне? Делитесь в комментариях! 🏁👇" if has_comments else "Пишите в личные сообщения — подберем и соберем идеальный конфиг под ваш авто! 🔧🏁"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nГрамотный тюнинг — это точный расчет тепловых нагрузок, выбор проверенных компонентов и безупречная сборка.\n\nСборка кастомных трасс, установка турбокитов, настройка буста и стендовая калибровка гарантируют стабильную отдачу и безопасность мотора в любых режимах.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nВ автоспорте не бывает мелочей. Каждый узел должен работать слаженно под предельными нагрузками.\n\nПрофессиональный подбор запчастей, кастомный инжиниринг и проверка каждого параметра на диностенде.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nСоздаем быстрые, надежные и сбалансированные автомобили для трека и города без компромиссов по ресурсу.{comments_phrase}"
+            ]
+            ctas = [
+                "Какой сетап планируете собрать в этом сезоне? Делитесь в комментариях! 🏁👇" if has_comments else "Пишите в личные сообщения — подберем и соберем идеальный конфиг под ваш авто! 🔧🏁",
+                "Задавайте любые технические вопросы по мотору и наддуву в комментариях! 👇⚡",
+                "Запишитесь на расчет конфига и установку турбокита в личных сообщениях! 🏎️"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -598,14 +585,25 @@ class SaigaLLMSkill:
         # 3.7. Автосервис / СТО / Детейлинг / Автомойка
         elif any(w in full_text_search for w in ["автомобил", "машин", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "техосмотр"]) and "автоном" not in full_text_search:
             from skills.photo_generator import CinematographyDirector
-            lead = f"Безупречный вид и надёжность вашего автомобиля с «{company_name}» 🚗"
+            leads = [
+                f"Безупречный вид и надёжность вашего автомобиля с «{company_name}» 🚗",
+                f"Профессиональная забота о вашем авто: сервис «{company_name}» 🔧✨",
+                f"Идеальный глянец и уверенность за рулем от «{company_name}» 🚘"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Ваш автомобиль заслуживает профессионального ухода и внимания к каждой детали.\n\n"
-                f"Современное диагностическое оборудование, премиальная автохимия и мастера с многолетним стажем гарантируют идеальный результат и безопасность на дороге.{comments_phrase}"
-            )
-            cta = "Задавайте любые вопросы по обслуживанию в комментариях 👇 Ответим оперативно!" if has_comments else "Запишитесь на обслуживание или детейлинг прямо в личных сообщениях! 🔧"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nВаш автомобиль заслуживает профессионального ухода и внимания к каждой детали.\n\nСовременное диагностическое оборудование, премиальная автохимия и мастера с многолетним стажем гарантируют идеальный результат и безопасность на дороге.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nРегулярный уход и своевременное обслуживание сохраняют стоимость автомобиля и продлевают срок службы всех узлов.\n\nЧестная диагностика, прозрачные цены и гарантия на все выполненные работы.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nВерните кузову зеркальный блеск, а салону — первозданную свежесть с нашими премиальными детейлинг-программами.{comments_phrase}"
+            ]
+            ctas = [
+                "Задавайте любые вопросы по обслуживанию в комментариях 👇 Ответим оперативно!" if has_comments else "Запишитесь на обслуживание или детейлинг прямо в личных сообщениях! 🔧",
+                "Когда в последний раз делали комплексную чистку? Пишите в комментариях! 🚗👇",
+                "Оформляйте запись на ТО или детейлинг в личных сообщениях на удобную дату! 🚘✨"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -613,17 +611,28 @@ class SaigaLLMSkill:
                 "hashtags": "#авто #детейлинг #автосервис #автомобили #СТО"
             }
 
-        # 3.7. Медицина / Стоматология / Здоровье
+        # 3.8. Медицина / Стоматология / Здоровье
         elif any(w in full_text_search for w in ["медицин", "стоматолог", "клиник", "врач", "здоровь", "зуб", "лечен", "диагностик", "анализ", "имплант", "винир", "элайнер", "отбеливан"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Забота о вашем здоровье и улыбке с «{company_name}» 🩺"
+            leads = [
+                f"Забота о вашем здоровье и идеальной улыбке с «{company_name}» 🩺✨",
+                f"Инновационная стоматология и комфортное лечение: «{company_name}» 🦷🌿",
+                f"Уверенность в себе и здоровая улыбка вместе с «{company_name}» 💎"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Здоровье и эстетика — главная ценность. В нашей клинике мы объединили доказательную медицину, передовые технологии и бережное отношение к каждому пациенту.\n\n"
-                f"Безболезненное лечение, прозрачные планы терапии и врачи с безупречной репутацией помогут вам чувствовать себя уверенно каждый день.{comments_phrase}"
-            )
-            cta = "Оставьте вопросы врачу в комментариях или запишитесь на первичную консультацию в ЛС! 👩‍⚕️" if has_comments else "Запись на консультацию открыта в личных сообщениях. Берегите здоровье! 🩺"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nЗдоровье и эстетика — главная ценность. В нашей клинике мы объединили доказательную медицину, передовые технологии и бережное отношение к каждому пациенту.\n\nБезболезненное лечение, прозрачные планы терапии и врачи с безупречной репутацией помогут вам чувствовать себя уверенно каждый день.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nКрасивая и здоровая улыбка меняет качество жизни, открывает новые возможности и дарит уверенность в общении.\n\nЦифровое планирование, щадящие методики и высочайший стандарт стерильности на каждом этапе приема.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nМы создаем комфортные условия, в которых посещение стоматолога становится легким и спокойным процессом.{comments_phrase}"
+            ]
+            ctas = [
+                "Оставьте вопросы врачу в комментариях или запишитесь на первичную консультацию в ЛС! 👩‍⚕️" if has_comments else "Запись на консультацию открыта в личных сообщениях. Берегите здоровье! 🩺",
+                "Мечтаете о голливудской улыбке? Напишите нам в личные сообщения для консультации! 🦷✨",
+                "Задайте любой вопрос стоматологу в комментариях 👇 Ответим подробно!"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -631,17 +640,28 @@ class SaigaLLMSkill:
                 "hashtags": "#медицина #здоровье #стоматология #клиника #красиваяулыбка"
             }
 
-        # 3.8. Строительство / Инструмент / Ремонт квартир / Отделка
+        # 3.9. Строительство / Инструмент / Ремонт квартир / Отделка
         elif any(w in full_text_search for w in ["ремонт", "строительств", "отделк", "дизайн", "бригад", "инструмент", "перфоратор", "шуруповерт", "нивелир", "дрель", "болгарк"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Качественный ремонт и надежный инструмент от «{company_name}» 🔨"
+            leads = [
+                f"Качественный ремонт и надежный инструмент от «{company_name}» 🔨",
+                f"Профессиональный подход к строительству и ремонту: «{company_name}» ⚡🏗️",
+                f"Надежность в каждой детали: проекты и решения от «{company_name}» 📐"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Мы превращаем чертежи в готовое, тёплое и надёжное пространство для жизни.\n\n"
-                f"Работа строго по договору, проверенное оборудование, соблюдение ГОСТов и поэтапный контроль на каждом шаге. Ремонт и строительство в удовольствие!{comments_phrase}"
-            )
-            cta = "Хотите рассчитать предварительную стоимость вашего проекта? Напишите параметры в ЛС или в комментариях! 📐" if has_comments else "Пишите в личные сообщения для бесплатной консультации и подбора оборудования! 📐"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nМы превращаем чертежи в готовое, тёплое и надёжное пространство для жизни.\n\nРабота строго по договору, проверенное оборудование, соблюдение ГОСТов и поэтапный контроль на каждом шаге. Ремонт и строительство в удовольствие!{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nКачественный результат требует правильного инструмента, опыта и строгого соблюдения технологий.\n\nФиксированная смета, прозрачные сроки и команда мастеров с подтвержденной квалификацией.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nСоздаем надежные инженерные решения и стильные интерьеры, рассчитанные на долгие годы комфортной службы.{comments_phrase}"
+            ]
+            ctas = [
+                "Хотите рассчитать предварительную стоимость вашего проекта? Напишите параметры в ЛС или в комментариях! 📐" if has_comments else "Пишите в личные сообщения для бесплатной консультации и подбора оборудования! 📐",
+                "Какой этап ремонта кажется вам самым сложным? Делитесь в комментариях! 🔨👇",
+                "Закажите бесплатный выезд замерщика или расчет сметы в личных сообщениях! 🏗️"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -649,17 +669,28 @@ class SaigaLLMSkill:
                 "hashtags": "#ремонт #строительство #инструмент #ремонтквартир #мастер"
             }
 
-        # 3.9. Ювелирные изделия / Часы / Драгоценности
+        # 3.10. Ювелирные изделия / Часы / Драгоценности
         elif any(w in full_text_search for w in ["ювелир", "кольц", "бриллиант", "серьг", "золот", "платин", "часы", "хронограф"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Искусство роскоши и непреходящая классика: «{company_name}» 💎✨"
+            leads = [
+                f"Искусство роскоши и непреходящая классика: «{company_name}» 💎✨",
+                f"Благородство металлов и сияние камней в коллекции «{company_name}» 💍💫",
+                f"Символ истинных чувств и статуса от «{company_name}» 💎"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Каждое изделие нашей коллекции создается с безупречным вниманием к пропорциям, чистоте камней и мастерству ручной огранки.\n\n"
-                f"Благородные металлы, игра граней и элегантный дизайн, который сохраняет свою ценность сквозь поколения.{comments_phrase}"
-            )
-            cta = "Какое украшение вам ближе — утонченная классика или смелый модерн? Напишите в комментариях! 💍👇" if has_comments else "Заглядывайте в наш каталог в личных сообщениях — подберем идеальное украшение! 💎"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nКаждое изделие нашей коллекции создается с безупречным вниманием к пропорциям, чистоте камней и мастерству ручной огранки.\n\nБлагородные металлы, игра граней и элегантный дизайн, который сохраняет свою ценность сквозь поколения.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nЮвелирные изделия — это не просто украшения, а овеществленные эмоции и семейные реликвии.\n\nСертифицированные драгоценные камни, авторская работа ювелиров и безупречная чистота линий.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nПодчеркните индивидуальный стиль и статус украшениями, притягивающими восхищенные взгляды.{comments_phrase}"
+            ]
+            ctas = [
+                "Какое украшение вам ближе — утонченная классика или смелый модерн? Напишите в комментариях! 💍👇" if has_comments else "Заглядывайте в наш каталог в личных сообщениях — подберем идеальное украшение! 💎",
+                "Выбираете подарок для любимого человека? Напишите нам в личные сообщения — поможем с выбором! 🎁✨",
+                "Поделитесь в комментариях: белое, желтое золото или платина? 💍👇"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
@@ -667,37 +698,32 @@ class SaigaLLMSkill:
                 "hashtags": "#ювелирныеизделия #бриллианты #роскошь #кольцо #золото #украшения"
             }
 
-        # 3.10. Флористика / Цветы / Подарочные букеты
-        elif any(w in full_text_search for w in ["букет", "цвет", "флорист", "пион", "роз", "ранункулюс", "гортензи", "тюльпан"]):
+        # 3.12. Образование / Онлайн-школы / Курсы
+        elif any(w in full_text_search for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор", "язык", "навык", "диплом"]):
             from skills.photo_generator import CinematographyDirector
-            lead = f"Дарите эмоции и свежесть вместе с «{company_name}» 🌸🌿"
+            leads = [
+                f"Инвестируйте в своё развитие вместе с «{company_name}» 🎓",
+                f"Практические навыки и новый уровень мастерства: «{company_name}» 🚀📚",
+                f"Знания, которые открывают новые горизонты от «{company_name}» ✨"
+            ]
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
-            body = (
-                f"{organic_story}{visual_phrase}\n\n"
-                f"Мы бережно отбираем самые свежие плантационные цветы, чтобы каждый букет радовал стойкостью и утонченной гармонией оттенков.\n\n"
-                f"Авторская сборка, эстетичная упаковка и бережная доставка точно ко времени для самых важных моментов.{comments_phrase}"
-            )
-            cta = "Какой сорт цветов ваш самый любимый? Делитесь в комментариях! 💐👇" if has_comments else "Оформляйте предзаказ на доставку свежих букетов прямо в личных сообщениях! 🌸✨"
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nПрактические знания, которые дают измеримый результат сразу после обучения.\n\nОпытные преподаватели-практики, разбор реальных кейсов, поддержка кураторов и комьюнити мотивированных студентов — начните свой путь к новой профессии!{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nУчиться тому, что действительно востребовано рынком — залог уверенного карьерного роста.\n\nИнтерактивные форматы, структурированная программа и обратная связь по каждому практическому заданию.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nПошаговое освоение ключевых навыков без лишней теории и воды с реальными практическими проектами в портфолио.{comments_phrase}"
+            ]
+            ctas = [
+                "Напишите кодовое слово «КУРС» в комментариях, чтобы получить бесплатный вводный урок! 👇📚" if has_comments else "Пишите в личные сообщения, чтобы забронировать место на новом потоке! 🚀📚",
+                "Какой навык хотите прокачать в первую очередь? Напишите в комментариях! 🎓👇",
+                "Успейте занять место на специальном потоке — пишите нам в личные сообщения! 💡"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
                 "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
-                "hashtags": "#цветы #букеты #флористика #доставкацветов #пионы #розы"
-            }
-
-        # 3.9. Образование / Онлайн-школы / Курсы
-        elif any(w in full_text_search for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор", "язык", "навык", "диплом"]):
-            lead = f"Инвестируйте в своё развитие вместе с «{company_name}» 🎓"
-            body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
-                f"Практические знания, которые дают измеримый результат сразу после обучения.\n\n"
-                f"Опытные преподаватели-практики, разбор реальных кейсов, поддержка кураторов и комьюнити мотивированных студентов — начните свой путь к новой профессии!{comments_phrase}"
-            )
-            cta = "Напишите кодовое слово «КУРС» в комментариях, чтобы получить бесплатный вводный урок! 👇📚" if has_comments else "Пишите в личные сообщения, чтобы забронировать место на новом потоке! 🚀📚",
-            return {
-                "post_text": f"{lead}\n\n{body}\n\n{cta}",
-                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Inspiring academic storytelling photograph. A focused student in headphones sitting by a bright window desk, experiencing a genuine breakthrough moment of excitement while taking handwritten notes next to an open laptop, eyes glowing with inspiration. Vibrant morning sunbeams, authentic atmosphere of intellectual growth and ambition.",
                 "hashtags": "#образование #онлайнкурсы #обучение #саморазвитие #навыки"
             }
 

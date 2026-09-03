@@ -852,7 +852,36 @@ class SaigaLLMSkill:
                 "hashtags": "#электроника #esp32 #arduino #iot #diy #умныйдом #робототехника"
             }
 
-        # 3.11. Туризм / Отели / Путешествия / Глэмпинги
+        # 3.11. IT / MarTech / SaaS / ИИ-маркетинг / Автоматизация бизнеса
+        elif any(w in full_text_search for w in ["martech", "saas", "маркетинг", "ии", "ai", "софт", "платформ", "автоматизац", "нейросеть", "it", "стартап", "генеративн"]):
+            from skills.photo_generator import CinematographyDirector
+            leads = [
+                f"Автоматизация маркетинга и взрывной рост конверсий: «{company_name}» 🚀📊",
+                f"Запуск автономного ИИ-маркетинга для вашего бизнеса от «{company_name}» 🤖✨",
+                f"Забудьте о рутине: искусственный интеллект масштабирует ваши продажи вместе с «{company_name}» 📈"
+            ]
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nНаша платформа берёт на себя полный цикл создания коммерческого контента: от вовлекающих постов по психологии убеждения до студийных фотореалистичных кадров за секунды.\n\nЭкономьте до 80% времени и до 90% бюджета на маркетинг без необходимости нанимать дизайнеров и копирайтеров.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nАвтономные AI-агенты анализируют поведение аудитории, выстраивают воронки продаж и генерируют креативы, которые конвертируют читателей в постоянных клиентов.\n\nПолная автономность 24/7 и измеримый результат для каждого бизнеса.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nСтудийное качество фото-визуалов и продающие тексты по лестнице Ханта — получайте десятки готовых постов в один клик.{comments_phrase}"
+            ]
+            ctas = [
+                "Хотите автоматизировать маркетинг своего проекта? Напишите нам в личные сообщения для раннего доступа! 🚀👇",
+                "Забирайте бесплатный демо-доступ к платформе прямо сейчас через личные сообщения! 💡",
+                "Готовы протестировать возможности ИИ-маркетолога? Пишите в ЛС — подключим за 2 минуты! 📈✨"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
+                "hashtags": "#martech #ai #ии #маркетинг #b2b #saas #автоматизация #нейросети"
+            }
+
+        # 3.12. Туризм / Отели / Путешествия / Глэмпинги
         elif any(w in full_text_search for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых", "база отдыха", "курорт", "море", "горы", "экскурси"]):
             from skills.photo_generator import CinematographyDirector
             lead = f"Откройте мир ярких впечатлений вместе с «{company_name}» ✈️🌄"
@@ -870,8 +899,8 @@ class SaigaLLMSkill:
                 "hashtags": "#путешествия #туризм #отдых #отель #глэмпинг"
             }
 
-        # 3.12. Ритейл / Одежда / E-commerce / Товары
-        elif any(w in full_text_search for w in ["магазин", "одежд", "стил", "мод", "товар", "доставк", "подарок", "аксессуар", "маркетплейс"]):
+        # 3.13. Ритейл / Одежда / E-commerce / Товары
+        elif any(w in full_text_search for w in ["магазин одежды", "одежда", "стильная одежда", "мода", "гардероб", "примерка", "аксессуары", "маркетплейс одежды", "бутик одежды"]):
             from skills.photo_generator import CinematographyDirector
             lead = f"Стиль и качество, которые подчеркнут вашу индивидуальность: «{company_name}» 🛍️"
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)

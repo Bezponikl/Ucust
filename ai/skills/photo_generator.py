@@ -179,66 +179,75 @@ class PhotoGeneratorSkill:
         """
         Составляет аутентичный, живой промпт для мобильной фотографии на iPhone (UGC / Lifestyle).
         """
-        if custom_prompt:
+        if custom_prompt and len(custom_prompt.strip()) > 30 and not custom_prompt.startswith("Authentic candid photo of a small tech"):
             positive_prompt = custom_prompt
             niche_key = niche
         else:
             niche_text = f"{niche} {topic}".lower()
+            topic_lower = topic.lower()
 
-            # Безопасный поиск ниши по смысловым маркерам (исключая ложные срабатывания типа "автономный" -> "авто")
+            # Определение нишевого стиля
             niche_key = "услуги"
-
-            # Праздники и государственные даты (приоритет)
-            if any(w in niche_text for w in ["флаг", "государственн", "триколор", "день россии"]):
+            if any(w in niche_text for w in ["флаг", "триколор", "день россии"]) and "девушк" not in topic_lower:
                 niche_key = "флаг"
-            elif any(w in niche_text for w in ["новый год", "новогодн", "рождеств"]):
+            elif any(w in niche_text for w in ["новый год", "новогодн", "рождеств", "8 марта", "23 февраля", "9 мая"]):
                 niche_key = "праздник"
-            elif any(w in niche_text for w in ["праздник", "поздравля", "8 марта", "23 февраля", "9 мая"]):
-                niche_key = "праздник"
-            # Ниши бизнеса
-            elif any(w in niche_text for w in ["кофе", "капучино", "латте", "десерт", "пекарн", "барист"]):
+            elif any(w in niche_text for w in ["кофе", "капучино", "латте", "десерт", "пекарн", "барист", "выпечк", "ролл", "круассан"]):
                 niche_key = "кофейня"
-            elif any(w in niche_text for w in ["ресторан", "еда", "блюдо", "кухн", "шеф", "гастро"]):
+            elif any(w in niche_text for w in ["ресторан", "еда", "блюдо", "кухн", "шеф", "гастро", "коктейл", "вино", "стейк"]):
                 niche_key = "ресторан"
-            elif any(w in niche_text for w in ["красот", "космет", "уход", "спа", "салон", "барбер", "маникюр"]):
+            elif any(w in niche_text for w in ["красот", "космет", "уход", "спа", "spa", "салон", "массаж", "маникюр"]):
                 niche_key = "красота"
-            elif any(w in niche_text for w in ["фитнес", "спорт", "трениров", "зал", "йог"]):
+            elif any(w in niche_text for w in ["фитнес", "спорт", "трениров", "зал", "йог", "пляж", "атлет"]):
                 niche_key = "фитнес"
-            elif any(w in niche_text for w in ["автомобил", "автосервис", "детейлинг", "машина", "автомойк", "автосалон", "тест-драйв", "сто"]) and "автоном" not in niche_text:
-                niche_key = "авто"
-            elif any(w in niche_text for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "жк"]):
-                niche_key = "недвижимость"
-            elif any(w in niche_text for w in ["ремонт", "строительств", "отделк", "дизайн интерьер", "стройка"]):
-                niche_key = "ремонт"
-            elif any(w in niche_text for w in ["одежд", "стил", "мод", "магазин", "товар", "шопинг"]):
-                niche_key = "одежда"
-            elif any(w in niche_text for w in ["медицин", "клиник", "стоматолог", "врач", "здоровь"]):
-                niche_key = "медицина"
-            elif any(w in niche_text for w in ["курс", "обучен", "школ", "вебинар", "урок", "репетитор"]):
-                niche_key = "образование"
-            elif any(w in niche_text for w in ["тур", "путешеств", "отел", "глэмпинг", "отдых"]):
-                niche_key = "туризм"
-            elif any(w in niche_text for w in ["юрист", "бухгалтер", "налог", "аудит", "адвокат", "финанс"]):
-                niche_key = "юриспруденция"
-            elif any(w in niche_text for w in ["овощ", "фрукт", "рынок", "фермер", "продукты", "базар", "грядк"]):
-                niche_key = "рынок"
-            elif any(w in niche_text for w in ["приват", "онлифанс", "onlyfans", "boosty", "закрытый канал", "эксклюзив", "vip", "18+"]):
+            elif any(w in niche_text for w in ["приват", "онлифанс", "onlyfans", "boosty", "18+", "бикини", "купальник", "белье"]):
                 niche_key = "приват"
-            elif any(w in niche_text for w in ["it", "ai", "нейросет", "технолог", "маркетинг", "разработк", "агент", "софт", "стартап", "автоном"]):
-                if "капучино" in topic.lower() or "кофе" in topic.lower():
-                    niche_key = "кофейня"
-                else:
-                    niche_key = "it"
+            elif any(w in niche_text for w in ["одежд", "стил", "мод", "магазин", "товар", "шопинг", "пальто"]):
+                niche_key = "одежда"
+            elif any(w in niche_text for w in ["авто", "машина", "детейлинг"]):
+                niche_key = "авто"
+            elif any(w in niche_text for w in ["недвижим", "квартир", "дом", "жк"]):
+                niche_key = "недвижимость"
 
-            preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["кофейня"])
+            # Динамическое формирование объекта съемки из реальной темы пользователя
+            subject = topic
+            environment = "authentic aesthetic setting matching the theme, natural depth of field"
+            lighting = "natural warm sunlight, soft ambient illumination, delicate rim lighting"
+
+            if "массаж" in topic_lower or "spa" in topic_lower or "камн" in topic_lower:
+                subject = "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic oils"
+                environment = "peaceful luxury wellness SPA room, marble surface, soft warm candlelight and towels in soft focus"
+                lighting = "soft diffused warm ambient glow, calming relaxing atmosphere"
+            elif ("девушк" in topic_lower or "модел" in topic_lower) and ("пляж" in topic_lower or "закат" in topic_lower or "купальник" in topic_lower):
+                subject = "beautiful athletic young woman on a serene ocean beach wearing an elegant stylish swimsuit at sunset"
+                environment = "scenic sandy shoreline, gentle ocean waves in soft bokeh background"
+                lighting = "breathtaking golden hour sunset backlight, warm golden sunbeams, gentle rim light"
+            elif "неон" in topic_lower or "вечер" in topic_lower or "бикини" in topic_lower or "приват" in topic_lower:
+                subject = "captivating charismatic model in aesthetic fashionable attire, striking artistic pose and silhouette"
+                environment = "moody luxury evening penthouse lounge with subtle velvet textures and atmospheric reflections"
+                lighting = "soft atmospheric neon glow, warm ambient candle accents, cinematic deep shadows"
+            elif "ролл" in topic_lower or "десерт" in topic_lower or "выпечк" in topic_lower or "круассан" in topic_lower:
+                subject = f"artisan pastry freshly baked ({topic}), golden flaky caramelized crust, dusted with delicate powdered sugar, sliced showing rich delicious filling"
+                environment = "warm cozy bakery counter, rustic wooden tabletop, artisanal ceramic plate"
+                lighting = "warm morning sunbeams streaming through bakery window, soft appetizing highlights"
+            elif "коктейл" in topic_lower or "бокал" in topic_lower:
+                subject = "signature artisanal cocktail in crystal glass with delicate botanical garnish"
+                environment = "sleek polished dark marble bar counter in an ambient luxury lounge"
+                lighting = "moody warm golden spotlight, soft bokeh of glowing bottles in background"
+            else:
+                preset = self.NICHE_PRESETS.get(niche_key, self.NICHE_PRESETS["услуги"])
+                subject = f"{topic}, {preset['subject']}"
+                environment = preset['environment']
+                lighting = preset['lighting']
+
             colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
             positive_prompt = (
-                f"Authentic candid lifestyle photograph for {niche}. Subject: {preset['subject']}. "
-                f"Environment: {preset['environment']}. "
+                f"Authentic candid lifestyle photograph for {niche}. Subject: {subject}. "
+                f"Environment: {environment}. "
                 f"{colors_str}"
-                f"Lighting: {preset['lighting']}. "
-                f"Camera & Style: {preset['camera']}, genuine social media aesthetic, authentic depth of field, real life texture, natural grain, unedited raw photo."
+                f"Lighting: {lighting}. "
+                f"Camera & Style: Cinematic 35mm film masterpiece, natural handheld eye-level angle, candid smartphone UGC photo, unedited Apple ProRAW look, emotional warmth, genuine social media aesthetic, authentic depth of field, real life texture, natural grain, photorealistic."
             )
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])

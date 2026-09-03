@@ -694,6 +694,7 @@ class UnifiedOrchestrator:
             niche = user_data.get("niche", "IT Automation / Сервис контента")
             city = user_data.get("city", "Москва")
             company_name = user_data.get("company_name", "UCust")
+            should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
             aspect_ratio = user_data.get("aspect_ratio")
             if not aspect_ratio:
                 fmt_lower = format_type.lower()

@@ -103,14 +103,16 @@ class CinematographyDirector:
         cls,
         topic: str,
         niche: str = "бизнес",
-        brand_colors: Optional[List[str]] = None
+        brand_colors: Optional[List[str]] = None,
+        variation_index: int = 0
     ) -> Dict[str, str]:
         """
         Генерирует высокохудожественный промпт для ComfyUI Realism 2.0
-        с учетом психологии света, композиции и цвета.
+        с учетом психологии света, композиции, цвета и номера перегенерации (variation_index).
         """
         topic_lower = topic.lower()
         niche_lower = (niche or "").lower()
+        var = variation_index % 4
 
         # Определение англоязычного контекста ниши
         niche_en = "professional commercial environment"
@@ -121,86 +123,101 @@ class CinematographyDirector:
 
         # =========================================================================
         # ПИЛАР 1: АУТЕНТИЧНЫЙ МИР И СФЕРА ДЕЯТЕЛЬНОСТИ (Niche World-Building)
-        # Каждая сфера имеет свой собственный неповторимый контекст и атмосферу.
-        # Категорически запрещен дефолтный шаблон "человек за верстаком/столом".
+        # При перегенерации (var > 0) интерьер, окружение и реквизит циклически меняются!
         # =========================================================================
-        niche_universe = {
-            "setting": f"aesthetic contemporary {niche_en} setting",
-            "props": "tactile authentic materials and natural atmospheric depth"
+        niche_environments = {
+            "религия": [
+                {"setting": "majestic historic cathedral interior with towering stone arches, golden gilded altar details, soft sunbeams filtering through ancient stained glass windows", "props": "glowing beeswax candles in soft chiaroscuro, natural linen cloth, delicate incense haze, tranquil sacred stillness"},
+                {"setting": "bright sunlit artisan monastery kitchen courtyard with natural morning daylight, rustic carved wooden table", "props": "fresh spring pussy willow branches, hand-woven natural linen napkin, warm soft window illumination"},
+                {"setting": "intimate atmospheric evening chapel with warm glowing candle bokeh and rich architectural textures", "props": "aged brass candlestick, delicate embroidered tablecloth, timeless serenity"},
+                {"setting": "festive spring celebration table by an arched stone window overlooking morning sky", "props": "natural terracotta dishware, dried floral accents, peaceful reverent warmth"}
+            ],
+            "животные": [
+                {"setting": "warm sunlit Scandinavian-style home living room, natural herringbone hardwood floor, soft textured woven throw blanket", "props": "healthy potted indoor monstera plant, delicate dust motes floating in golden afternoon window sunbeams, pure domestic peaceful haven"},
+                {"setting": "cozy sun-drenched window bench nook with plush velvet cushions and natural linen curtains", "props": "soft natural morning breeze, indoor ficus tree in background bokeh, serene relaxation"},
+                {"setting": "modern minimalist sunlit loft patio with warm wooden deck and terracotta planters", "props": "morning sunlight puddles, gentle peaceful garden view in soft focus"},
+                {"setting": "rustic country cottage fireside rug with warm amber glow", "props": "textured knitted wool blanket, cozy crackling warmth, ultimate comfort and security"}
+            ],
+            "кофейня": [
+                {"setting": "sunlit rustic specialty craft coffee shop, polished vintage oak counter, soft morning street view in background bokeh", "props": "artisan ceramic cup, delicate rising fragrant steam, roasted coffee bean jar, warm brass accents"},
+                {"setting": "minimalist luxury travertine marble counter with clean porcelain ware and fresh botanical eucalyptus", "props": "crisp morning studio daylight, glossy espresso machine reflection, refined modern aesthetic"},
+                {"setting": "charming Parisian outdoor cafe bistro table with dark wrought iron accents in golden morning sun", "props": "crumbled buttery croissant flakes, fresh daily newspaper, warm European morning atmosphere"},
+                {"setting": "warm atmospheric coffee roastery studio with burlap coffee sacks and glowing pendant lights", "props": "vintage brass coffee scale, roasted beans scattering, rich tactile aroma"}
+            ],
+            "пекарня": [
+                {"setting": "artisan French pastry boutique, warm marble countertop with scattered fine flour dust and toasted almond flakes", "props": "flaky golden crust, fresh spring berry garnish, vintage baker's wooden paddle in soft focus"},
+                {"setting": "sun-drenched rustic bakery table with natural raw linen and woven wicker bread baskets", "props": "delicate rising warm oven steam, rustic wheat sheaves, wholesome golden crust texture"},
+                {"setting": "modern high-end confectionery showcase counter with crystal-clear glass and soft warm backlighting", "props": "gourmet dessert pedestal, fresh mint leaves, edible gold leaf accents"},
+                {"setting": "bright minimalist patisserie kitchen with pristine stainless steel and white marble surfaces", "props": "precision pastry tools, glistening mirror glaze drips, culinary perfection"}
+            ],
+            "электроника": [
+                {"setting": "clean high-tech electronics engineering laboratory, professional blue anti-static silicone soldering mat", "props": "precision tweezers, fine copper circuit traces, gold-plated header pins, micro-components in crisp macro focus"},
+                {"setting": "modern minimalist R&D wooden workbench with glowing digital oscilloscope and schematic blueprints in soft focus", "props": "braided USB cables, precision multimeter probes, crisp engineering lighting"},
+                {"setting": "top-down architectural tech workspace with anodized aluminum plates and brass precision calipers", "props": "clean circuit board layout, microchip silicon reflections, high-precision layout"},
+                {"setting": "atmospheric prototyping studio with soft ambient amber and cyan LED edge illumination", "props": "breadboards, neatly organized jumper wires, cutting-edge innovation atmosphere"}
+            ],
+            "авто": [
+                {"setting": "pristine modern luxury auto detailing studio, glowing linear ceiling LED strip lights reflecting on deep paintwork", "props": "mirror-like gloss, hydrophobic micro water beads, ultra-plush microfiber towel in soft background"},
+                {"setting": "high-end showroom floor at golden hour, polished epoxy reflective floor", "props": "dramatic rim lighting on car curves, flawless metallic paint depth, pristine prestige"},
+                {"setting": "clean engineering tuning bay with professional modular tool cabinets in blurred background", "props": "ceramic coating applicator block, crisp reflection of overhead studio softbox"},
+                {"setting": "outdoor scenic mountain lookout at golden sunset, clean asphalt reflection", "props": "warm evening sun flare, glistening clean aerodynamic bodywork"}
+            ],
+            "стоматология": [
+                {"setting": "ultramodern sunlit aesthetic dental clinic, calm reassuring atmosphere with warm travertine marble and glass accents", "props": "flawless hygiene, soft diffused glare-free illumination, pure comfort and relief"},
+                {"setting": "luxury dental wellness studio with floor-to-ceiling panoramic window and indoor bamboo garden", "props": "warm natural daylight, comfortable ergonomical setting, genuine peace of mind"},
+                {"setting": "bright minimalist consultation office with contemporary Scandinavian wood finishes", "props": "crystal clear smile models, calming natural aroma, high-end medical excellence"},
+                {"setting": "spacious private aesthetic room with soft warm indirect architectural lighting", "props": "pristine comfort, soothing atmosphere, trust and care"}
+            ],
+            "недвижимость": [
+                {"setting": "spacious sun-drenched newly renovated open-plan living room with floor-to-ceiling panoramic windows overlooking evening sky", "props": "designer minimalist furniture, warm architectural ambient lighting, the feeling of dream home security"},
+                {"setting": "contemporary luxury kitchen and dining area with monolithic quartz island and designer pendant lights", "props": "fresh fruit bowl, sunbeams piercing the room, elite architectural lifestyle"},
+                {"setting": "airy sunlit master bedroom with herringbone oak flooring and sheer linen curtains fluttering in breeze", "props": "crisp white bedding, warm morning sunlight, serene sanctuary"},
+                {"setting": "panoramic sunset terrace lounge with comfortable designer armchairs overlooking vibrant city lights", "props": "warm twilight sky, ambient recessed deck lighting, prestige and triumph"}
+            ]
         }
 
-        if any(w in niche_lower or w in topic_lower for w in ["религи", "церков", "храм", "собор", "пасх", "кулич"]):
-            niche_universe = {
-                "setting": "majestic historic cathedral interior with towering stone arches, golden gilded altar details, soft sunbeams filtering through ancient stained glass windows",
-                "props": "glowing beeswax candles in soft chiaroscuro, natural linen cloth, delicate incense haze, tranquil sacred stillness"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["животн", "зоо", "кот", "кошк", "котик", "питом"]):
-            niche_universe = {
-                "setting": "warm sunlit Scandinavian-style home living room, natural herringbone hardwood floor, soft textured woven throw blanket",
-                "props": "healthy potted indoor monstera plant, delicate dust motes floating in golden afternoon window sunbeams, pure domestic peaceful haven"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["собак", "щен"]):
-            niche_universe = {
-                "setting": "vibrant sun-drenched green park lawn, gentle golden hour sunbeams casting long warm shadows",
-                "props": "natural dew on lush grass, soft rustic background trees in creamy bokeh, joyful freedom"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["кофе", "кофейн", "барист", "эспрессо", "капучин", "раф"]):
-            niche_universe = {
-                "setting": "sunlit rustic specialty craft coffee shop, polished vintage oak counter, soft morning street view in background bokeh",
-                "props": "artisan ceramic cup, delicate rising fragrant steam, roasted coffee bean jar, warm brass accents"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["пекарн", "кондитерск", "выпечк", "десерт", "торт", "чизкейк", "круассан"]):
-            niche_universe = {
-                "setting": "artisan French pastry boutique, warm marble countertop with scattered fine flour dust and toasted almond flakes",
-                "props": "flaky golden crust, fresh spring berry garnish, vintage baker's wooden paddle in soft focus"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["электроник", "плата", "esp32", "esp-32", "arduino", "микроконтроллер", "чип", "схемотехник", "iot"]):
-            niche_universe = {
-                "setting": "clean high-tech electronics engineering laboratory, professional blue anti-static silicone soldering mat",
-                "props": "precision tweezers, fine copper circuit traces, gold-plated header pins, micro-components in crisp macro focus"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["авто", "детейлинг", "автосервис", "полировк", "керамик"]):
-            niche_universe = {
-                "setting": "pristine modern luxury auto detailing studio, glowing linear ceiling LED strip lights reflecting on deep paintwork",
-                "props": "mirror-like gloss, hydrophobic micro water beads, ultra-plush microfiber towel in soft background"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["стоматолог", "зуб", "клиник", "медицин", "винир"]):
-            niche_universe = {
-                "setting": "ultramodern sunlit aesthetic dental clinic, calm reassuring atmosphere with warm travertine marble and glass accents",
-                "props": "flawless hygiene, soft diffused glare-free illumination, pure comfort and relief"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["недвижим", "квартир", "новостройк", "интерьер", "ремонт"]):
-            niche_universe = {
-                "setting": "spacious sun-drenched newly renovated open-plan living room with floor-to-ceiling panoramic windows overlooking evening sky",
-                "props": "designer minimalist furniture, warm architectural ambient lighting, the feeling of dream home security"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["фитнес", "спорт", "тренировк", "тренер"]):
-            niche_universe = {
-                "setting": "spacious modern loft fitness gym with exposed brick and panoramic industrial windows, dramatic sunbeams piercing the room",
-                "props": "matte black dumbbells, glistening water bottle, energetic motivational ambiance"
-            }
-        elif any(w in niche_lower or w in topic_lower for w in ["юриспруд", "юрист", "адвокат", "договор"]):
-            niche_universe = {
-                "setting": "prestigious corporate corner boardroom overlooking glowing evening city skyline through floor-to-ceiling glass",
-                "props": "fountain pen resting beside crisp signed legal agreement document on polished walnut table, sealed deal and peace of mind"
-            }
+        # Выбираем пул окружений по нише или дефолтный
+        env_pool = None
+        for k, pool in niche_environments.items():
+            if k in niche_lower or k in topic_lower:
+                env_pool = pool
+                break
 
-        # 1. Анализ сюжета, выбор ракурса и световой схемы
+        if env_pool:
+            niche_universe = env_pool[var]
+        else:
+            default_variations = [
+                {"setting": f"aesthetic contemporary {niche_en} setting", "props": "tactile authentic materials and natural atmospheric depth"},
+                {"setting": f"bright minimalist sunlit {niche_en} environment with marble and warm wood accents", "props": "clean architectural lines, fresh botanical touches, soft natural lighting"},
+                {"setting": f"warm luxury {niche_en} studio with soft evening ambient glow and rich textures", "props": "subtle velvet and brass details, sophisticated modern depth"},
+                {"setting": f"spacious Scandinavian loft {niche_en} with expansive windows and golden daylight", "props": "organic textures, breathable negative space, effortless elegance"}
+            ]
+            niche_universe = default_variations[var]
+
+        # =========================================================================
+        # 1. АНАЛИЗ СЮЖЕТА, ВЫБОР РАКУРСА И СВЕТОВОЙ СХЕМЫ (С динамической ротацией)
+        # =========================================================================
+        perspectives_culinary = ["culinary_macro_eyelevel", "culinary_flatlay_topdown", "culinary_45_slice", "bokeh_shallow"]
+        lighting_rotation = ["high_key", "soft_diffused", "rim_backlight", "gobo_shadows"]
+        color_rotation = ["warm_analogous", "muted_editorial", "teal_orange", "warm_analogous"]
+        comp_rotation = ["golden_spiral", "symmetry", "rule_of_thirds", "leading_lines"]
+
         if any(w in topic_lower for w in ["вид сверху", "сверху", "flatlay", "флэтлей", "ракурс сверху"]):
             light_key = "soft_diffused"
             color_key = "warm_analogous"
             comp_key = "symmetry"
             persp_key = "culinary_flatlay_topdown"
         elif any(w in topic_lower for w in ["торт", "пирог", "кусочек", "срез", "разрез", "начинк", "слои", "трюфель", "чизкейк"]):
-            light_key = "high_key"
-            color_key = "warm_analogous"
-            comp_key = "golden_spiral"
-            persp_key = "culinary_45_slice"
+            light_key = lighting_rotation[var]
+            color_key = color_rotation[var]
+            comp_key = comp_rotation[var]
+            persp_key = "culinary_45_slice" if var % 2 == 0 else "culinary_macro_eyelevel"
         elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "панеттоне", "кекс", "капкейк"]):
-            light_key = "high_key"
-            color_key = "warm_analogous"
-            comp_key = "golden_spiral"
-            persp_key = "culinary_macro_eyelevel"
+            # При перегенерации кулича чередуем ракурсы: макро 30° -> flatlay 90° -> 45° срез
+            persp_key = perspectives_culinary[var]
+            light_key = lighting_rotation[var]
+            color_key = color_rotation[var]
+            comp_key = comp_rotation[var]
         elif "закат" in topic_lower or "пляж" in topic_lower or "вечер" in topic_lower:
             light_key = "rim_backlight"
             color_key = "teal_orange"
@@ -217,20 +234,20 @@ class CinematographyDirector:
             comp_key = "framing"
             persp_key = "bokeh_shallow"
         elif any(w in topic_lower for w in ["десерт", "ролл", "выпечк", "кофе", "еда", "огурец", "плата", "esp", "электроник", "микроконтроллер", "турбин", "инструмент", "ювелир", "кольц", "косметик", "крем"]):
-            light_key = "high_key"
-            color_key = "warm_analogous"
-            comp_key = "golden_spiral"
-            persp_key = "tabletop_commercial"
+            light_key = lighting_rotation[var]
+            color_key = color_rotation[var]
+            comp_key = comp_rotation[var]
+            persp_key = "tabletop_commercial" if var % 2 == 0 else "culinary_macro_eyelevel"
         elif any(w in topic_lower for w in ["флаг", "архитектур", "спорт", "фитнес"]):
             light_key = "rim_backlight"
             color_key = "teal_orange"
             comp_key = "triangles"
             persp_key = "low_angle_heroic"
         else:
-            light_key = "soft_diffused"
-            color_key = "muted_editorial"
-            comp_key = "rule_of_thirds"
-            persp_key = "candid_eye_level"
+            light_key = lighting_rotation[var]
+            color_key = color_rotation[var]
+            comp_key = comp_rotation[var]
+            persp_key = "candid_eye_level" if var % 2 == 0 else "bokeh_shallow"
 
         # =========================================================================
         # ПИЛАР 2: РОЛЬ ПРОДУКТА И АРКА ЗРИТЕЛЯ (Product as Hero / Catalyst)
@@ -492,10 +509,11 @@ class PhotoGeneratorSkill:
         aspect_ratio: str = "1:1",
         brand_colors: Optional[List[str]] = None,
         style: str = "candid_iphone",
-        custom_prompt: Optional[str] = None
+        custom_prompt: Optional[str] = None,
+        variation_index: int = 0
     ) -> Dict[str, Any]:
         """
-        Составляет высокохудожественный промпт для ComfyUI через CinematographyDirector.
+        Составляет высокохудожественный промпт для ComfyUI через CinematographyDirector с учетом номера перегенерации.
         """
         if custom_prompt and len(custom_prompt.strip()) > 30 and not custom_prompt.startswith("Authentic candid photo of a small tech") and not custom_prompt.startswith("Cinematic emotional culinary"):
             positive_prompt = custom_prompt
@@ -503,13 +521,14 @@ class PhotoGeneratorSkill:
             cinematic_res = CinematographyDirector.compose_cinematic_prompt(
                 topic=topic,
                 niche=niche,
-                brand_colors=brand_colors
+                brand_colors=brand_colors,
+                variation_index=variation_index
             )
             positive_prompt = cinematic_res["prompt"]
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])
 
-        print(f"\n[PhotoGeneratorSkill] 📸 Сформирован промпт для ComfyUI (Ниша: {niche}):\n  👉 {positive_prompt}\n")
+        print(f"\n[PhotoGeneratorSkill] 📸 Сформирован промпт для ComfyUI (Ниша: {niche}, Вариация: {variation_index}):\n  👉 {positive_prompt}\n")
 
         return {
             "positive_prompt": positive_prompt,
@@ -518,7 +537,8 @@ class PhotoGeneratorSkill:
             "width": dimensions[0],
             "height": dimensions[1],
             "niche": niche,
-            "topic": topic
+            "topic": topic,
+            "variation_index": variation_index
         }
 
     def _get_font(self, size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -560,17 +580,19 @@ class PhotoGeneratorSkill:
         style: str = "photorealistic",
         company_name: str = "UCust",
         attachments: Optional[List[Any]] = None,
-        custom_prompt: Optional[str] = None
+        custom_prompt: Optional[str] = None,
+        variation_index: int = 0
     ) -> Dict[str, Any]:
         """
-        Полный цикл генерации профессиональной SMM фотографии и коммерческого визуала.
+        Полный цикл генерации профессиональной SMM фотографии и коммерческого визуала (с поддержкой перегенерации).
         """
         prompt_data = self.create_smm_prompt(
             topic=topic,
             niche=niche,
             aspect_ratio=aspect_ratio,
             brand_colors=brand_colors,
-            style=style
+            style=style,
+            variation_index=variation_index
         )
         if custom_prompt:
             prompt_data["positive_prompt"] = custom_prompt

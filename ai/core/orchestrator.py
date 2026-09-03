@@ -942,7 +942,7 @@ class UnifiedOrchestrator:
                 }
             }
 
-        if task_type in ["generate_image", "generate_photo", "edit_photo"]:
+        if task_type in ["generate_image", "generate_photo", "edit_photo", "regenerate_image", "regenerate_photo", "re-generate"]:
             from skills.photo_generator import PhotoGeneratorSkill
             
             prompt = user_data.get("prompt") or user_data.get("topic") or "Специальное предложение"
@@ -952,6 +952,9 @@ class UnifiedOrchestrator:
             brand_colors = user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
             company_name = user_data.get("company_name", "UCust")
             attachments = user_data.get("attachments") or user_data.get("images")
+            
+            # Поддержка перегенерации с вариацией интерьера, ракурса и освещения
+            variation_index = int(user_data.get("variation_index", 1 if "regenerate" in task_type else 0))
             
             # Обогащение промпта от Сайги, если запрос от пользователя короткий
             photo_skill = PhotoGeneratorSkill()
@@ -965,13 +968,17 @@ class UnifiedOrchestrator:
                 style=style,
                 company_name=company_name,
                 attachments=attachments,
-                custom_prompt=custom_prompt
+                custom_prompt=custom_prompt,
+                variation_index=variation_index
             )
             photo_res["moondream_analysis"] = moondream_analysis
+            photo_res["variation_index"] = variation_index
             
-            self._log_trace(session_id, "PhotoGenerator", "PhotoCreated", {
+            action_name = "PhotoRegenerated" if "regenerate" in task_type else "PhotoCreated"
+            self._log_trace(session_id, "PhotoGenerator", action_name, {
                 "topic": prompt,
                 "aspect_ratio": aspect_ratio,
+                "variation_index": variation_index,
                 "edit_mode": bool(attachments and len(attachments) > 0),
                 "attachments_count": len(attachments) if attachments else 0
             })

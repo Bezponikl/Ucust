@@ -31,17 +31,29 @@ async def run_pipeline(
     trigger: Optional[str] = None,
     tier: str = "BUSINESS",
     aspect_ratio: str = "1:1",
-    variation_index: int = 0
+    variation_index: int = 0,
+    images: Optional[List[str]] = None
 ):
     print("=" * 60)
     print("🚀 ЗАПУСК СКВОЗНОГО АВТОНОМНОГО ПАЙПЛАЙНА UCUST AI")
     print(f"📌 Тема / Промпт: {topic}")
     print(f"🏢 Компания: {company_name} | Ниша: {niche}")
     print(f"🎯 Тональность: {tone} | Формат фото: {aspect_ratio} | Вариация: #{variation_index}")
+    if images:
+        print(f"📎 Прикрепленные файлы/фото: {', '.join(images)} ({len(images)} шт.)")
     print(f"💼 Тариф: {tier} | Ступень воронки: {stage or 'Auto (Ступень 2 / Проблема)'} | Фреймворк: {framework or 'Auto'}")
     print("=" * 60)
 
     start_total = time.time()
+
+    # Подготавливаем вложения (локальные файлы или URL)
+    attachments = []
+    if images:
+        for img in images:
+            if os.path.exists(img):
+                attachments.append({"url": img, "local_path": os.path.abspath(img)})
+            else:
+                attachments.append({"url": img})
 
     # 1. Запуск Оркестратора (Сайга + Воронка Ханта + Критик Мангер + Валидация)
     orch = UnifiedOrchestrator()
@@ -56,7 +68,8 @@ async def run_pipeline(
         "tier": tier,
         "generate_image": True,
         "aspect_ratio": aspect_ratio,
-        "variation_index": variation_index
+        "variation_index": variation_index,
+        "attachments": attachments if attachments else None
     }
 
     t0 = time.time()
@@ -194,6 +207,7 @@ def main():
     parser.add_argument("--tier", type=str, default="BUSINESS", choices=["START", "BUSINESS", "ENTERPRISE", "CUSTOM"], help="Тариф медиа-оснащения")
     parser.add_argument("--aspect-ratio", "--ratio", type=str, default="1:1", choices=["1:1", "4:5", "9:16", "16:9", "3:4", "4:3"], help="Формат соотношения сторон фото")
     parser.add_argument("--variation-index", "--variation", "-v", type=int, default=0, help="Номер вариации ракурса/интерьера при перегенерации (0, 1, 2, 3...)")
+    parser.add_argument("--images", "--files", "-i", "-f", nargs="+", default=None, help="Пути к локальным файлам/фото или URL вложений для анализа Vision (Moondream) и генерации (ComfyUI)")
     parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
     parser.add_argument("--no-publish", action="store_true", help="Не отправлять в Telegram, только вывести в консоль")
 
@@ -210,6 +224,7 @@ def main():
         tier=args.tier,
         aspect_ratio=args.aspect_ratio,
         variation_index=args.variation_index,
+        images=args.images,
         channel=args.channel,
         auto_publish=not args.no_publish
     ))

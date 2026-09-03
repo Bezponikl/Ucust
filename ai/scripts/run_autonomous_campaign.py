@@ -99,13 +99,14 @@ async def run_pipeline(
             critic_score=critic_score
         )
 
-        # ── Сообщение 1: фото + полный текст поста (без хэштегов) ──────────────
-        photo_caption = post_text.strip()
-        # Telegram caption hard limit — 1024 символа
-        if len(photo_caption) > 1024:
-            photo_caption = photo_caption[:1021].rstrip() + "..."
+        # ── Умное разделение поста на 2 сообщения при превышении лимита (40% / 60%) ──
+        part1_caption, part2_text = AchievementBroadcaster.split_text_for_telegram(
+            post_text,
+            max_caption_len=950,
+            target_ratio=0.40
+        )
 
-        # ── Сообщение 2: время генерации + хэштеги ───────────────────────────
+        # ── Сообщение 2: продолжение текста (если пост большой) + время генерации + хэштеги ──
         time_lines = []
         if text_sec is not None:
             time_lines.append(f"• Текст + аудит качества: {round(text_sec, 2)} сек")
@@ -119,32 +120,37 @@ async def run_pipeline(
             time_lines.append(f"• {platforms_line}")
         time_lines.append("• Режим работы: 24/7 автономно")
 
-        metrics_message = (
+        telemetry_block = (
             f"⏱️ <b>Время генерации этого поста:</b>\n"
             + "\n".join(time_lines)
             + f"\n\n{post_hashtags}"
         )
 
-        # Отправка фото с текстом поста
-        pub_res = await broadcaster._publish_via_bot_api(photo_caption, photo_local_path)
+        if part2_text:
+            metrics_message = f"{part2_text}\n\n---\n{telemetry_block}"
+        else:
+            metrics_message = telemetry_block
+
+        # Отправка фото с 1-й частью текста (или полным постом)
+        pub_res = await broadcaster._publish_via_bot_api(part1_caption, photo_local_path)
         if pub_res is None:
             pub_res = await broadcaster.broadcast_milestone_async(
                 title="",
-                description=photo_caption,
+                description=part1_caption,
                 metrics=None,
                 media_path=photo_local_path
             )
 
         if pub_res and pub_res.get("status") == "success":
-            print(f"🎉 УСПЕШНО! Фото + пост опубликованы в {channel}")
-            # Небольшая пауза, затем метрики + хэштеги
+            print(f"🎉 УСПЕШНО! Фото + сообщение 1 (40%) опубликованы в {channel}")
+            # Небольшая пауза, затем сообщение 2 (60% + метрики + хэштеги)
             import asyncio
             await asyncio.sleep(2)
             text_res = await broadcaster._publish_via_bot_api(metrics_message, None)
             if text_res and text_res.get("status") == "success":
-                print(f"⏱️ Метрики + хэштеги опубликованы в {channel}")
+                print(f"⏱️ Сообщение 2 (60% текста + метрики + хэштеги) опубликовано в {channel}")
             else:
-                print(f"⚠️ Не удалось отправить метрики: {text_res}")
+                print(f"⚠️ Не удалось отправить сообщение 2: {text_res}")
         else:
             print(f"⚠️ Статус публикации: {pub_res}")
 

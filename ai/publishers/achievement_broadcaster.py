@@ -63,6 +63,53 @@ class AchievementBroadcaster:
                 return c
         return session_base
 
+    @staticmethod
+    def split_text_for_telegram(text: str, max_caption_len: int = 950, target_ratio: float = 0.40) -> tuple[str, str]:
+        """
+        Умное разделение текста на 2 сообщения:
+        - Если текст помещается в лимит подписи фото (<= max_caption_len) -> возвращает (text, "")
+        - Если текст большой -> делит по смысловым абзацам в пропорции ~40% (фото) + 60% (второе сообщение).
+        """
+        if not text:
+            return "", ""
+        clean = text.strip()
+        if len(clean) <= max_caption_len:
+            return clean, ""
+
+        paragraphs = [p.strip() for p in clean.split("\n\n") if p.strip()]
+        if len(paragraphs) <= 1:
+            paragraphs = [p.strip() for p in clean.split("\n") if p.strip()]
+
+        total_len = len(clean)
+        target_len = int(total_len * target_ratio)
+
+        part1_paras = []
+        part2_paras = []
+        accumulated_len = 0
+        split_done = False
+
+        for p in paragraphs:
+            p_len = len(p) + 2
+            if not split_done:
+                # Если добавление текущего абзаца не превышает hard limit max_caption_len
+                # и мы еще не набрали целевые 40% (или это первый вводный абзац)
+                if (accumulated_len + p_len <= max_caption_len) and (accumulated_len + p_len <= target_len or not part1_paras):
+                    part1_paras.append(p)
+                    accumulated_len += p_len
+                else:
+                    split_done = True
+                    part2_paras.append(p)
+            else:
+                part2_paras.append(p)
+
+        part1 = "\n\n".join(part1_paras).strip()
+        part2 = "\n\n".join(part2_paras).strip()
+
+        if len(part1) > max_caption_len:
+            part1 = part1[:max_caption_len - 3].rstrip() + "..."
+
+        return part1, part2
+
     def is_showcase_channel(self, channel: Optional[str] = None) -> bool:
         """Определяет, является ли канал официальным каналом UCust AI (@UcustAi / @testaipublisher)."""
         target = self._normalize_channel(channel or self.target_channel).lower()

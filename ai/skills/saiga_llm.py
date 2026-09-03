@@ -225,8 +225,9 @@ class SaigaLLMSkill:
             print(f"[SaigaSkill] 🎯 Маркетинговая воронка: Ступень Ханта={marketing_directive.get('hunt_stage')}, Фреймворк={marketing_directive.get('framework')}")
         
         # Если загружена реальная модель llama-cpp
-        if self._is_loaded and self._llm:
+        if self._is_loaded and self._llm and os.getenv("DISABLE_LOCAL_LLM", "").lower() not in ["1", "true", "yes"]:
             try:
+                import concurrent.futures
                 comments_info = f"\nЧастые вопросы и комментарии аудитории: {', '.join(comments_context)}" if comments_context else ""
                 rag_info = f"\nФАКТЫ ИЗ БАЗЫ ЗНАНИЙ БРЕНДА (RAG):\n{rag_context}\n(Строго опирайся на эти факты, цены, боли и УТП)" if rag_context else ""
                 mktg_info = f"\n{marketing_directive.get('full_marketing_prompt', '')}\n" if marketing_directive else ""
@@ -243,21 +244,29 @@ class SaigaLLMSkill:
                     f"   - Польза для клиента, надежность и решение реальной задачи.\n"
                     f"   - Спокойный и уважительный призыв к диалогу или заказу в личные сообщения.\n"
                     f"4. ТОНАЛЬНОСТЬ: Интеллигентный, спокойный, уверенный тон эксперта и основателя бренда.\n"
-                    f"5. ОБЪЕМ И ЛАКОНИЧНОСТЬ: Целевой объем 500-800 символов (3 коротких содержательных абзаца), чтобы текст идеально читался с экрана и легко усваивался.\n"
+                    f"5. ОБЪЕМ И ЛАКОНИЧНОСТЬ: Целевой объем 400-600 символов (3 коротких содержательных абзаца), чтобы текст идеально читался с экрана и легко усваивался.\n"
                     f"{mktg_info}\n"
                     f"{rag_info}\n"
                     f"{visual_context or ''}{comments_info}"
                 )
                 fw_name = marketing_directive.get('framework', 'экспертный стиль') if marketing_directive else 'экспертный стиль'
                 hunt_name = marketing_directive.get('hunt_stage', 'осознание') if marketing_directive else 'осознание'
-                output = self._llm.create_chat_completion(
-                    messages=[
-                        {"role": "system", "content": system_instruction},
-                        {"role": "user", "content": f"Напиши пост для соцсетей компании «{company_name}» на тему: {topic}. Структура: {fw_name}, воронка: {hunt_name}."}
-                    ],
-                    temperature=0.5,
-                    max_tokens=self.max_tokens
-                )
+                
+                def _run_llm_inference():
+                    return self._llm.create_chat_completion(
+                        messages=[
+                            {"role": "system", "content": system_instruction},
+                            {"role": "user", "content": f"Напиши лаконичный пост для компании «{company_name}» на тему: {topic}. Формула: {fw_name}, воронка: {hunt_name}."}
+                        ],
+                        temperature=0.4,
+                        max_tokens=280
+                    )
+
+                print("[SaigaSkill] ⏳ Инференс Saiga LLM (лимит 30 сек)...")
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(_run_llm_inference)
+                    output = future.result(timeout=35.0)
+
                 generated_text = output["choices"][0]["message"]["content"].strip()
                 cleaned_text = self._sanitize_llm_post(generated_text, company_name)
                 
@@ -271,8 +280,10 @@ class SaigaLLMSkill:
                         "visual_prompt": vis_prompt,
                         "hashtags": f"#{niche.replace(' ', '_')} #{company_name.replace(' ', '')} #качество #надежность"
                     }
+            except concurrent.futures.TimeoutError:
+                print("[SaigaSkill] ⚠️ Таймаут генерации Saiga (>35 сек, модель BF16 перегружает VRAM). Мгновенный переход на экспертный движок...")
             except Exception as e:
-                print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}")
+                print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}. Переход на экспертный движок...")
 
         # Сохраняем оригинальный регистр — только убираем пробелы и точку в конце
         topic_clean = topic.strip().rstrip(".")

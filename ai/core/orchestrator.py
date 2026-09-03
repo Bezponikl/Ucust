@@ -776,7 +776,8 @@ class UnifiedOrchestrator:
                 self._log_trace(session_id, "Agent_Critic_Munger", "PostReviewedAndHealed", critic_res)
             else:
                 self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", critic_res)
-            t_text_duration = round(time.time() - t_text_start, 2)
+            t_text_raw = time.time() - t_text_start
+            t_text_duration = round(t_text_raw, 2) if t_text_raw >= 0.1 else round(max(0.05, t_text_raw), 2)
             
             # 3. Формирование коммерческого фото-промпта в связке с текстом поста
             custom_visual_prompt = gen_result.get("visual_prompt")

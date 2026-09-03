@@ -28,13 +28,14 @@ async def run_pipeline(
     stage: Optional[str] = None,
     framework: Optional[str] = None,
     trigger: Optional[str] = None,
-    tier: str = "BUSINESS"
+    tier: str = "BUSINESS",
+    aspect_ratio: str = "1:1"
 ):
     print("=" * 60)
     print("🚀 ЗАПУСК СКВОЗНОГО АВТОНОМНОГО ПАЙПЛАЙНА UCUST AI")
     print(f"📌 Тема / Промпт: {topic}")
     print(f"🏢 Компания: {company_name} | Ниша: {niche}")
-    print(f"🎯 Тональность: {tone}")
+    print(f"🎯 Тональность: {tone} | Формат фото: {aspect_ratio}")
     print(f"💼 Тариф: {tier} | Ступень воронки: {stage or 'Auto (Ступень 2 / Проблема)'} | Фреймворк: {framework or 'Auto'}")
     print("=" * 60)
 
@@ -52,7 +53,7 @@ async def run_pipeline(
         "trigger": trigger,
         "tier": tier,
         "generate_image": True,
-        "aspect_ratio": "1:1"
+        "aspect_ratio": aspect_ratio
     }
 
     t0 = time.time()
@@ -188,6 +189,7 @@ def main():
     parser.add_argument("--framework", type=str, default=None, choices=["AIDA", "PAS", "BAB", "4P", "StoryBrand", "HSO", "FAB"], help="Формула копирайтинга")
     parser.add_argument("--trigger", type=str, default=None, choices=["social_proof", "scarcity_fomo", "authority", "reciprocity", "risk_reversal"], help="Психологический триггер Чалдини")
     parser.add_argument("--tier", type=str, default="BUSINESS", choices=["START", "BUSINESS", "ENTERPRISE", "CUSTOM"], help="Тариф медиа-оснащения")
+    parser.add_argument("--aspect-ratio", "--ratio", type=str, default="1:1", choices=["1:1", "4:5", "9:16", "16:9", "3:4", "4:3"], help="Формат соотношения сторон фото")
     parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
     parser.add_argument("--no-publish", action="store_true", help="Не отправлять в Telegram, только вывести в консоль")
 
@@ -202,6 +204,7 @@ def main():
         framework=args.framework,
         trigger=args.trigger,
         tier=args.tier,
+        aspect_ratio=args.aspect_ratio,
         channel=args.channel,
         auto_publish=not args.no_publish
     ))

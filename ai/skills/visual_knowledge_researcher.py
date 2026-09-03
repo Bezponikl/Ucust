@@ -228,13 +228,13 @@ class VisualKnowledgeResearcher:
         # 8. АВТОСПОРТ, ТЮНИНГ И ДЕТЕЙЛИНГ
         # =========================================================================
         "gt2871": {
-            "en_term": "Garrett GT2871 automotive snail turbocharger",
-            "visual_description": "authentic brand-new automotive snail turbocharger (Garrett GT2871 for SR20-DET), featuring the signature cast silver aluminum spiral compressor snail housing, wide circular front intake bellmouth with gleaming CNC-machined curved billet compressor wheel and central lock nut, side-mounted cylindrical wastegate actuator canister with a curved black vacuum line, precision automotive product photography on a clean dark workshop table",
+            "en_term": "Garrett GT2871R ball bearing automotive turbocharger",
+            "visual_description": "authentic high-performance Garrett GT2871R turbocharger for Nissan Silvia SR20-DET, featuring precision silver cast aluminum radial compressor volute housing, front circular air intake inlet with gleaming CNC-machined curved aluminum impeller blades and center lock nut, 90-degree charge pipe outlet, cylindrical metallic wastegate actuator canister with a vacuum hose, resting on a clean professional garage workbench, automotive product photography",
             "text_story": "культовая производительная турбина GT2871 для моторов SR20-DET: быстрый спул на фланце T25, стабильный наддув и честная отдача для Nissan Silvia S13/S14/S15"
         },
         "турбин": {
-            "en_term": "automotive snail turbocharger",
-            "visual_description": "authentic automotive car snail turbocharger with cast aluminum compressor snail housing, circular air intake bellmouth showing sharp curved impeller turbine blades, side wastegate actuator canister, clean automotive performance product photography",
+            "en_term": "automotive turbocharger",
+            "visual_description": "authentic brand-new car turbocharger assembly with cast aluminum radial compressor volute housing, circular front intake with sharp curved impeller blades, side wastegate actuator, clean automotive performance product photography",
             "text_story": "профессиональная система турбонаддува: мгновенный отклик на педаль газа и запас прочности при экстремальных нагрузках"
         },
         "sr20": {

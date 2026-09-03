@@ -1,9 +1,9 @@
 # File: ai/skills/visual_knowledge_researcher.py
 """
 VisualKnowledgeResearcher — Универсальный мульти-доменный модуль параллельного поиска
-и визуальной спецификации объектов (автобизнес/тюнинг, электроника/микроконтроллеры,
-строительный инструмент, косметика/кремы/помады, fashion/белье, гастрономия, инженерия)
-для сверхточного промпт-инжиниринга в ComfyUI.
+и визуальной спецификации объектов для ВСЕХ сфер бизнеса (стоматология, кулинария,
+кофейни/десерты, косметика/бьюти, инструмент/ремонт, автотюнинг, электроника/IoT,
+ювелирные изделия, флористика, фитнес, недвижимость, fashion/приват).
 """
 
 from __future__ import annotations
@@ -25,14 +25,150 @@ logger = logging.getLogger("visual_knowledge_researcher")
 class VisualKnowledgeResearcher:
     """
     Исследователь визуальных деталей и точных спецификаций оборудования, микроэлектроники,
-    строительных инструментов, премиальной косметики, автокомпонентов и модных товаров.
-    Переводит инженерные аббревиатуры и SKU в фотореалистичные физические дескрипторы для ComfyUI.
+    медицинских систем, блюд высокой кухни, строительных инструментов и предметов роскоши.
+    Переводит инженерные термины и SKU в фотореалистичные физические дескрипторы для ComfyUI.
     """
 
-    # Предустановленная верифицированная база точных спецификаций сложных объектов
+    # Исчерпывающий мастер-реестр верифицированных физических спецификаций
     CURATED_VISUAL_SPECS: Dict[str, Dict[str, str]] = {
         # =========================================================================
-        # 1. СТРОИТЕЛЬНЫЙ ИНСТРУМЕНТ, РЕМОНТ И ОБОРУДОВАНИЕ
+        # 1. СТОМАТОЛОГИЯ, ИМПЛАНТОЛОГИЯ И МЕДИЦИНА
+        # =========================================================================
+        "винир": {
+            "en_term": "ultra-thin E-max ceramic dental veneers",
+            "visual_description": "ultra-thin handcrafted E-max ceramic dental veneers with lifelike translucent incisal enamel layering, realistic micro-textured tooth surface reflecting ring-flash highlights, natural mamelon anatomy, resting on a clean clinical titanium tray, precision macro dental photography",
+            "text_story": "ультратонкие керамические виниры E-max: естественная полупрозрачность режущего края, анатомическая глубина цвета и голливудская эстетика без гипертрофированной белизны"
+        },
+        "имплант": {
+            "en_term": "precision medical titanium dental implant and zirconia abutment",
+            "visual_description": "precision-milled medical-grade titanium dental implant fixture with microscopic bone-integration threads, polished anatomical zirconia abutment crown, clean sterile stainless steel dental instrument tray, clinical macro lighting",
+            "text_story": "премиальные дентальные имплантаты из биосовместимого титана с гидрофильной поверхностью для надежной остеоинтеграции и пожизненной гарантии"
+        },
+        "элайнер": {
+            "en_term": "crystal-clear invisible orthodontic dental aligners",
+            "visual_description": "pair of crystal-clear medical polymer invisible orthodontic aligners, pristine transparent gloss with laser-etched precision staging markers, resting beside a sleek modern matte pastel case with glistening water drops",
+            "text_story": "прозрачные ортодонтические элайнеры: незаметное и комфортное исправление прикуса без металлических брекетов и ограничений в рационе"
+        },
+        "отбеливан": {
+            "en_term": "professional dental whitening treatment",
+            "visual_description": "radiant healthy natural smile with flawless enamel gloss, gentle cool-blue LED curing light reflection, immaculate oral aesthetics, macro portrait",
+            "text_story": "бережное кабинетное отбеливание зубов на 6–8 тонов: укрепление эмали минеральным комплексом и стойкий белоснежный результат"
+        },
+        "брекет": {
+            "en_term": "aesthetic sapphire / ceramic orthodontic brackets",
+            "visual_description": "aesthetic crystal-clear monocrystalline sapphire dental brackets with white rhodium aesthetic archwire, glistening teeth enamel in macro view",
+            "text_story": "сапфировые эстетические брекет-системы: кристальная прозрачность на зубах, надежная фиксация и быстрый путь к ровной улыбке"
+        },
+
+        # =========================================================================
+        # 2. КУЛИНАРИЯ, РЕСТОРАНЫ И ГАСТРОНОМИЯ
+        # =========================================================================
+        "стейк": {
+            "en_term": "perfectly seared Wagyu ribeye steak",
+            "visual_description": "thick dry-aged Wagyu ribeye steak with deep caramelized diamond sear marks, warm pink medium-rare center, sprinkled with flaky Maldon sea salt crystals and fresh cracked black pepper, garnished with a sprig of charred fresh rosemary on a rustic charred oak board",
+            "text_story": "мраморный стейк Рибай зернового откорма сухого вызревания: карамелизованная хрустящая корочка, тающая текстура и насыщенный мясной сок"
+        },
+        "рибай": {
+            "en_term": "perfectly seared Wagyu ribeye steak",
+            "visual_description": "thick dry-aged Wagyu ribeye steak with deep caramelized diamond sear marks, warm pink medium-rare center, sprinkled with flaky Maldon sea salt crystals and fresh cracked black pepper, garnished with a sprig of charred fresh rosemary on a rustic charred oak board",
+            "text_story": "мраморный стейк Рибай зернового откорма сухого вызревания: карамелизованная хрустящая корочка, тающая текстура и насыщенный мясной сок"
+        },
+        "устриц": {
+            "en_term": "fresh Fine de Claire oysters on crushed ice platter",
+            "visual_description": "platter of freshly shucked premium Fine de Claire oysters nestled on a bed of glistening crushed crystal ice, accompanied by fresh sliced Meyer lemon wedges, delicate shallot mignonette sauce, cold seawater brine glistening in sunlight",
+            "text_story": "отборные устрицы Фин де Клер на ледяном плато: свежайший морской бриз, минеральные ноты и подача с классическим луковым соусом миньонет"
+        },
+        "пицц": {
+            "en_term": "authentic wood-fired Neapolitan pizza",
+            "visual_description": "authentic wood-fired Neapolitan pizza with blistered leopard-spotted airy charred crust, molten creamy Fior di Latte mozzarella, vibrant red San Marzano tomato sauce, fresh fragrant green basil leaves, glistening drizzle of extra virgin olive oil",
+            "text_story": "неаполитанская пицца из дровяной печи: воздушные бортики с леопардовой корочкой, сыр фиор ди латте и томаты Сан-Марцано"
+        },
+        "суши": {
+            "en_term": "artisan premium sushi and nigiri platter",
+            "visual_description": "exquisite omakase sushi platter featuring glossy fresh Atlantic salmon nigiri, marbled bluefin otoro tuna, brushed with nikiri soy glaze, delicate pickled ginger flower, freshly grated wasabi on a slate black stone platter",
+            "text_story": "авторские суши и нигири с охлажденным диким лососем и мраморным тунцом блюфин: идеальный баланс теплого риса и свежайшей рыбы"
+        },
+        "бургер": {
+            "en_term": "gourmet smash burger on toasted brioche",
+            "visual_description": "mouthwatering gourmet double smash burger on a glossy toasted golden brioche bun, overflowing with melting aged cheddar cheese, crispy smoked bacon ribbons, caramelized shallot jam, crisp iceberg lettuce and house secret sauce dripping",
+            "text_story": "сочный авторский бургер на сливочной булочке бриошь: двойная котлета из мраморной говядины с хрустящей корочкой smash и выдержанным чеддером"
+        },
+
+        # =========================================================================
+        # 3. КОФЕЙНИ, БАРИСТА, ВЫПЕЧКА И ДЕСЕРТЫ
+        # =========================================================================
+        "латте": {
+            "en_term": "specialty latte art in handcrafted ceramic cup",
+            "visual_description": "specialty cafe latte with silky glossy microfoam latte art rosetta pouring in a heavy matte ceramic artisanal cup, contrasting rich golden-brown espresso crema ring, freshly roasted coffee beans scattered on a warm natural oak counter",
+            "text_story": "авторский латте на спешелти зерне свежей обжарки: шелковистая микропена, сбалансированный сливочно-ореховый вкус и безупречный латте-арт"
+        },
+        "капучино": {
+            "en_term": "specialty cappuccino with silky microfoam",
+            "visual_description": "velvety specialty cappuccino with thick glossy microfoam dome, delicate chocolate dusting swirl in a warm ceramic cup, steaming aroma in golden morning light",
+            "text_story": "классический капучино с плотной бархатистой пеной: идеальный баланс плотного эспрессо и натурального фермерского молока"
+        },
+        "фильтр": {
+            "en_term": "specialty V60 pour-over single-origin coffee",
+            "visual_description": "single-origin pour-over filter coffee brewed through a crystal V60 dripper into an elegant glass carafe, glowing amber translucence, delicate steam rising",
+            "text_story": "фильтр-кофе светлой обжарки сорта спешелти: раскрытие тонких дескрипторов бергамота, спелых ягод и жасмина"
+        },
+        "круассан": {
+            "en_term": "artisan flaky French butter croissant",
+            "visual_description": "freshly baked artisan French butter croissant with ultra-crisp golden honeycomb lamination crust, delicate butter flakes glistening, soft airy steaming interior cross-section",
+            "text_story": "настоящий французский круассан на новозеландском сливочном масле 82.5%: сотни тончайших слоев, хруст корочки и тающая сердцевина"
+        },
+        "чизкейк": {
+            "en_term": "Basque burnt San Sebastian cheesecake",
+            "visual_description": "slice of authentic San Sebastian Basque burnt cheesecake with deeply caramelized charred dark top, oozy creamy molten center gently collapsing on a handcrafted ceramic plate",
+            "text_story": "знаменитый баскский чизкейк Сан-Себастьян: карамелизованная обожженная корочка и нежнейший, почти жидкий сливочный центр"
+        },
+        "дубайский шоколад": {
+            "en_term": "Dubai Fix pistachio kataifi chocolate",
+            "visual_description": "thick artisanal milk chocolate bar broken open showing vibrant emerald pistachio cream layered with crisp golden toasted kataifi pastry threads",
+            "text_story": "хрустящее золотистое тесто катаифи, насыщенная натуральная фисташковая паста и премиальный молочный шоколад"
+        },
+        "франжипан": {
+            "en_term": "Frangipane almond cream pastry",
+            "visual_description": "golden layered puff pastry roll filled with rich velvety almond frangipane cream, topped with toasted caramelized sliced almond flakes and fine powdered sugar",
+            "text_story": "классический французский крем франжипан из тертого отборного миндаля, запеченный в хрустящем слоеном тесте"
+        },
+        "тирамису": {
+            "en_term": "classic Venetian artisanal Tiramisu",
+            "visual_description": "rustic glass dish of artisanal Italian Tiramisu, layered with espresso-soaked Savoiardi ladyfingers, velvety mascarpone cream and dusted with a generous cloud of dark Dutch cocoa powder",
+            "text_story": "традиционный венецианский тирамису: печенье савоярди, пропитанное крепким эспрессо с марсалой, и крем из свежего маскарпоне"
+        },
+
+        # =========================================================================
+        # 4. БЬЮТИ, КОСМЕТИКА, КРЕМЫ И ПОМАДЫ
+        # =========================================================================
+        "крем": {
+            "en_term": "luxury hydrating skincare cream in heavy frosted glass jar",
+            "visual_description": "luxurious heavy frosted glass skincare jar with a polished champagne-gold metallic screw cap, rich whipped velvety white cream texture slightly swirling inside, fresh glistening micro-droplets of water on the cool glass, displayed on a minimalist travertine stone podium",
+            "text_story": "насыщенный увлажняющий крем с шелковистой тающей текстурой, натуральными пептидами и гиалуроновой кислотой для глубокого восстановления и сияния кожи"
+        },
+        "сыворотк": {
+            "en_term": "luxury botanical facial serum in glass dropper bottle",
+            "visual_description": "amber glass apothecary serum bottle with a delicate glass dropper dispensing a single crystal-clear luminous serum droplet, soft diffused lighting, resting on a smooth natural river stone with delicate water ripples",
+            "text_story": "концентрированная сыворотка с легкой формулой: мгновенное проникновение в глубокие слои кожи, выравнивание тона и мощный антиоксидантный эффект"
+        },
+        "помад": {
+            "en_term": "ultra-luxury satin lipstick in fluted gold magnetic case",
+            "visual_description": "ultra-luxury satin lipstick in a heavy magnetic fluted gold case with a pristine sharp diagonal bullet tip, rich velvety pigmented texture with subtle dewy moisture sheen, accompanied by an artistic smooth pigment swatch on textured slate stone",
+            "text_story": "роскошная помада с сатиновым финишем: насыщенный стойкий пигмент, бархатное скольжение и ухаживающие растительные масла в составе"
+        },
+        "блеск для губ": {
+            "en_term": "high-shine plumping lip gloss / lip oil",
+            "visual_description": "crystal-clear luxury lip oil tube with thick acrylic walls, plush doe-foot applicator pulled out glistening with luminous reflective pink-peach glaze and micro-shimmer",
+            "text_story": "масло-блеск с зеркальным глянцевым эффектом: визуальный объем, комфортное увлажнение и нежный полупрозрачный оттенок без ощущения липкости"
+        },
+        "массаж": {
+            "en_term": "basalt hot stones SPA therapy",
+            "visual_description": "smooth polished volcanic black basalt massage stones glistening with aromatic botanical essential oils placed along spine",
+            "text_story": "прогретые базальтовые камни вулканического происхождения, глубоко прогревающие мышцы и снимающие стресс"
+        },
+
+        # =========================================================================
+        # 5. СТРОИТЕЛЬНЫЙ ИНСТРУМЕНТ И РЕМОНТ
         # =========================================================================
         "шуруповерт": {
             "en_term": "heavy-duty cordless brushless drill driver",
@@ -54,62 +190,42 @@ class VisualKnowledgeResearcher:
             "visual_description": "compact rugged 360-degree 3D self-leveling green beam laser level with impact-resistant rubber overmolded housing, glowing crisp emerald laser projection windows, mounted on a sleek aluminum micro-adjust tripod in a sunlit renovation space",
             "text_story": "самовыравнивающийся лазерный уровень с ярким зеленым лучом 360°: безупречная видимость разметки даже при ярком свете и точность до миллиметра"
         },
-        "нивелир": {
-            "en_term": "360-degree self-leveling green beam laser level",
-            "visual_description": "compact rugged 360-degree 3D self-leveling green beam laser level with impact-resistant rubber overmolded housing, glowing crisp emerald laser projection windows, mounted on a sleek aluminum micro-adjust tripod in a sunlit renovation space",
-            "text_story": "самовыравнивающийся лазерный уровень с ярким зеленым лучом 360°: безупречная видимость разметки даже при ярком свете и точность до миллиметра"
-        },
         "болгарк": {
             "en_term": "heavy-duty cordless angle grinder",
             "visual_description": "heavy-duty brushless angle grinder with quick-lock wheel nut, precision spark guard, textured slim ergonomic body and brushed metal gearbox housing, placed on a dark steel workbench",
             "text_story": "производительная углошлифовальная машина с плавным пуском, защитой от заклинивания диска и эргономичным хватом для уверенного реза металла и камня"
         },
-        "ушм": {
-            "en_term": "heavy-duty cordless angle grinder",
-            "visual_description": "heavy-duty brushless angle grinder with quick-lock wheel nut, precision spark guard, textured slim ergonomic body and brushed metal gearbox housing, placed on a dark steel workbench",
-            "text_story": "производительная углошлифовальная машина с плавным пуском, защитой от заклинивания диска и эргономичным хватом для уверенного реза металла и камня"
+
+        # =========================================================================
+        # 6. ЮВЕЛИРНЫЕ ИЗДЕЛИЯ И ЧАСЫ
+        # =========================================================================
+        "кольцо": {
+            "en_term": "platinum solitaire diamond engagement ring",
+            "visual_description": "exquisite platinum engagement ring featuring a flawless round brilliant-cut center diamond in a four-prong setting, fiery rainbow light refractions, pavé-set micro-diamonds along the band, resting on dark midnight velvet",
+            "text_story": "помолвочное кольцо из платины с бриллиантом безупречной огранки: завораживающая игра граней и непреходящий символ искренних чувств"
+        },
+        "часы": {
+            "en_term": "luxury Swiss automatic mechanical chronograph watch",
+            "visual_description": "luxury Swiss mechanical chronograph watch with polished stainless steel case, anti-reflective sapphire crystal, intricate guilloché textured sunburst dial, blued steel hands, exposed automatic movement balance wheel, genuine alligator leather strap",
+            "text_story": "механический хронограф со швейцарским калибром и сапфировым стеклом: статус, выверенная точность хода и классический часовой дизайн"
         },
 
         # =========================================================================
-        # 2. БЬЮТИ, КОСМЕТИКА, КРЕМЫ И УХОД ЗА КОЖЕЙ
+        # 7. ФЛОРИСТИКА И БУКЕТЫ
         # =========================================================================
-        "крем": {
-            "en_term": "luxury hydrating skincare cream in heavy frosted glass jar",
-            "visual_description": "luxurious heavy frosted glass skincare jar with a polished champagne-gold metallic screw cap, rich whipped velvety white cream texture slightly swirling inside, fresh glistening micro-droplets of water on the cool glass, displayed on a minimalist travertine stone podium",
-            "text_story": "насыщенный увлажняющий крем с шелковистой тающей текстурой, натуральными пептидами и гиалуроновой кислотой для глубокого восстановления и сияния кожи"
+        "букет": {
+            "en_term": "luxurious designer floral bouquet",
+            "visual_description": "lush designer floral bouquet of soft pink Sarah Bernhardt peonies, creamy French garden roses, ruffled white ranunculus and dusty silver dollar eucalyptus, wrapped in textured matte kraft paper with silk trailing ribbons, glistening morning mist drops",
+            "text_story": "авторский букет из пионов Сара Бернар, французских роз и эвкалипта: нежная палитра, пьянящий аромат и безупречная стойкость"
         },
-        "сыворотк": {
-            "en_term": "luxury botanical facial serum in glass dropper bottle",
-            "visual_description": "amber glass apothecary serum bottle with a delicate glass dropper dispensing a single crystal-clear luminous serum droplet, soft diffused lighting, resting on a smooth natural river stone with delicate water ripples",
-            "text_story": "концентрированная сыворотка с легкой формулой: мгновенное проникновение в глубокие слои кожи, выравнивание тона и мощный антиоксидантный эффект"
-        },
-        "флюид": {
-            "en_term": "lightweight radiant facial fluid dispenser",
-            "visual_description": "sleek minimalist matte ceramic dispenser bottle with metallic pump head dispensing a silky pearlescent fluid drop on a clean pastel marble surface",
-            "text_story": "невесомый флюид с деликатным сияющим финишем: увлажнение 24 часа без липкости и жирного блеска"
+        "пион": {
+            "en_term": "freshly bloomed Sarah Bernhardt peonies bouquet",
+            "visual_description": "freshly bloomed lush Sarah Bernhardt peonies with delicate layered tissue-thin petals, soft dewy pastel glow in natural morning light",
+            "text_story": "пышные пионы с тонким цветочным ароматом и воздушными лепестками: идеальный подарок для особенного настроения"
         },
 
         # =========================================================================
-        # 3. ДЕКОРАТИВНАЯ КОСМЕТИКА, ПОМАДЫ И МАКИЯЖ
-        # =========================================================================
-        "помад": {
-            "en_term": "ultra-luxury satin lipstick in fluted gold magnetic case",
-            "visual_description": "ultra-luxury satin lipstick in a heavy magnetic fluted gold case with a pristine sharp diagonal bullet tip, rich velvety pigmented texture with subtle dewy moisture sheen, accompanied by an artistic smooth pigment swatch on textured slate stone",
-            "text_story": "роскошная помада с сатиновым финишем: насыщенный стойкий пигмент, бархатное скольжение и ухаживающие растительные масла в составе"
-        },
-        "блеск для губ": {
-            "en_term": "high-shine plumping lip gloss / lip oil",
-            "visual_description": "crystal-clear luxury lip oil tube with thick acrylic walls, plush doe-foot applicator pulled out glistening with luminous reflective pink-peach glaze and micro-shimmer",
-            "text_story": "масло-блеск с зеркальным глянцевым эффектом: визуальный объем, комфортное увлажнение и нежный полупрозрачный оттенок без ощущения липкости"
-        },
-        "тинт": {
-            "en_term": "velvet gradient lip tint",
-            "visual_description": "frosted glass lip tint vial with soft-matte velvet texture, soft ombre rose pigment swatch demonstrating smooth airy blendability",
-            "text_story": "стойкий бархатный тинт с эффектом зацелованных губ: воздушная текстура и стойкость цвета в течение всего дня"
-        },
-
-        # =========================================================================
-        # 4. АВТОСПОРТ, ТЮНИНГ, ТУРБОНАДДУВ И JDM
+        # 8. АВТОСПОРТ, ТЮНИНГ И ДЕТЕЙЛИНГ
         # =========================================================================
         "gt2871": {
             "en_term": "Garrett GT2871R turbocharger",
@@ -121,19 +237,14 @@ class VisualKnowledgeResearcher:
             "visual_description": "high-performance Nissan SR20-DET red top turbocharged engine bay in a clean Silvia S13/S14 chassis, polished aluminum intake manifold, customized tubular turbo manifold with T25 flange, silicone coupler hoses, raw mechanical JDM beauty",
             "text_story": "легендарный японский турбомотор SR20-DET: идеальный баланс массы, прочности блока и потенциала для дрифта и кольца"
         },
-        "турбин": {
-            "en_term": "high-performance turbocharger",
-            "visual_description": "precision motorsport turbocharger with polished compressor housing, precision curved impeller blades, heavy-duty cast exhaust housing with manifold studs, braided fluid lines",
-            "text_story": "профессиональная система турбонаддува: мгновенный отклик на педаль газа и запас прочности при экстремальных нагрузках"
-        },
-        "койловер": {
-            "en_term": "adjustable motorsport coilover suspension",
-            "visual_description": "pair of anodized adjustable racing coilovers with stiff brightly colored springs, threaded damper body with height-locking rings, pillowball top mounts",
-            "text_story": "регулируемая винтовая подвеска: точная настройка клиренса, жесткости и угла схода-развала для идеального зацепа"
+        "детейлинг": {
+            "en_term": "flawless hydrophobic 9H ceramic coating car detailing",
+            "visual_description": "glossy mirror-finish car hood coated in 9H hydrophobic ceramic protection under workshop halo LED inspection lights, deep wet reflections, rolling spherical water beading droplets",
+            "text_story": "многоэтапная полировка кузова и нанесение нанокерамики 9H: глубокий зеркальный глянец, защита от сколов и мощный гидрофобный эффект"
         },
 
         # =========================================================================
-        # 5. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IOT
+        # 9. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IOT
         # =========================================================================
         "esp-32": {
             "en_term": "ESP32 30-pin Type-C development board",
@@ -155,14 +266,9 @@ class VisualKnowledgeResearcher:
             "visual_description": "authentic Arduino UNO R3 microcontroller board with classic vibrant royal blue matte PCB, gold-plated female header sockets, socketed ATmega328P DIP microchip, 16MHz silver crystal oscillator, standard USB port, red reset button, crisp white silkscreen pin labels, macro electronics workbench photography",
             "text_story": "классическая отладочная плата Arduino UNO R3 на микроконтроллере ATmega328P: надежный стандарт для быстрого прототипирования и обучения робототехнике"
         },
-        "raspberry pi": {
-            "en_term": "Raspberry Pi single-board computer",
-            "visual_description": "Raspberry Pi single-board computer with rich green PCB, silver Broadcom SoC processor with thermal paste pad, 40-pin GPIO header, micro-HDMI ports, USB 3.0 ports, Ethernet jack and USB-C power port",
-            "text_story": "полноценный одноплатный микрокомпьютер Raspberry Pi: высокая производительность в компактном форм-факторе для медиацентров, серверов и edge-ИИ"
-        },
 
         # =========================================================================
-        # 6. FASHION, ПЛЯЖ И ПРИВАТ
+        # 10. FASHION, ПЛЯЖ И ПРИВАТ
         # =========================================================================
         "микробикини": {
             "en_term": "micro-bikini",
@@ -188,33 +294,14 @@ class VisualKnowledgeResearcher:
             "en_term": "structured Victorian boned corset",
             "visual_description": "tailored satin corset with structured vertical boning channels, delicate lace trim and satin back ribbon lacing",
             "text_story": "скульптурирующий силуэт на гибких косточках с атласной шнуровкой и нежным кружевом"
-        },
-
-        # =========================================================================
-        # 7. КУЛИНАРИЯ, ДЕСЕРТЫ И РЕСТОРАНЫ
-        # =========================================================================
-        "дубайский шоколад": {
-            "en_term": "Dubai Fix pistachio kataifi chocolate",
-            "visual_description": "thick artisanal milk chocolate bar broken open showing vibrant emerald pistachio cream layered with crisp golden toasted kataifi pastry threads",
-            "text_story": "хрустящее золотистое тесто катаифи, насыщенная натуральная фисташковая паста и премиальный молочный шоколад"
-        },
-        "франжипан": {
-            "en_term": "Frangipane almond cream pastry",
-            "visual_description": "golden layered puff pastry roll filled with rich velvety almond frangipane cream, topped with toasted caramelized sliced almond flakes and fine powdered sugar",
-            "text_story": "классический французский крем франжипан из тертого отборного миндаля, запеченный в хрустящем слоеном тесте"
-        },
-        "горячие камни": {
-            "en_term": "basalt hot stones SPA therapy",
-            "visual_description": "smooth polished volcanic black basalt massage stones glistening with aromatic botanical essential oils placed along spine",
-            "text_story": "прогретые базальтовые камни вулканического происхождения, глубоко прогревающие мышцы и снимающие стресс"
         }
     }
 
     @classmethod
     async def research_visual_spec(cls, topic: str) -> Dict[str, str]:
         """
-        Ищет точную визуальную специфику для любого объекта, SKU, инструмента, крема или помады.
-        Сначала проверяет локальную базу, при необходимости делает запрос к поисковику.
+        Ищет точную визуальную специфику для любого объекта, SKU, инструмента, блюда или услуги.
+        Сначала проверяет локальную экспертную базу, при необходимости делает фоновый запрос к поисковику.
         """
         if not topic:
             return {}

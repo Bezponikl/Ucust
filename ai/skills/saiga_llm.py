@@ -560,7 +560,7 @@ class SaigaLLMSkill:
             }
 
         # 3.5. Недвижимость / Дизайн интерьера / Аренда
-        elif any(w in full_text_search for w in ["недвижим", "квартир", "дом", "риелтор", "жилье", "застройщик", "ипотек", "аренд", "интерьер", "жк"]):
+        elif any(w in full_text_search for w in ["недвижим", "квартир", "риелтор", "жилье", "застройщик", "ипотек", "аренд", "новостройк", "интерьер", "жк"]):
             from skills.photo_generator import CinematographyDirector
             lead = f"Пространство для вашей комфортной жизни от «{company_name}» 🏡"
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
@@ -577,8 +577,8 @@ class SaigaLLMSkill:
                 "hashtags": "#недвижимость #квартира #новостройки #интерьер #уют"
             }
 
-        # 3.6. Автобизнес / СТО / Детейлинг / Автосалоны
-        elif any(w in full_text_search for w in ["авто", "машин", "сто", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "тюнинг", "техосмотр"]) and "автоном" not in full_text_search:
+        # 3.6. Автобизнес / СТО / Детейлинг / Тюнинг / JDM
+        elif any(w in full_text_search for w in ["автомобил", "машин", "детейлинг", "автосервис", "шиномонтаж", "автомойк", "тюнинг", "техосмотр", "турбин", "sr20", "gt2871", "jdm"]) and "автоном" not in full_text_search:
             from skills.photo_generator import CinematographyDirector
             lead = f"Безупречный вид и надёжность вашего автомобиля с «{company_name}» 🚗"
             organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
@@ -587,44 +587,84 @@ class SaigaLLMSkill:
                 f"Ваш автомобиль заслуживает профессионального ухода и внимания к каждой детали.\n\n"
                 f"Современное диагностическое оборудование, премиальная автохимия и мастера с многолетним стажем гарантируют идеальный результат и безопасность на дороге.{comments_phrase}"
             )
-            cta = "Задавайте любые вопросы по обслуживанию в комментариях 👇 Ответим оперативно!" if has_comments else "Запишитесь на обслуживание или детейлинг прямо в личных сообщениях! 🔧",
+            cta = "Задавайте любые вопросы по обслуживанию в комментариях 👇 Ответим оперативно!" if has_comments else "Запишитесь на обслуживание или детейлинг прямо в личных сообщениях! 🔧"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Cinematic craft storytelling automotive photograph. A skilled detailing technician in black nitrile gloves gently running fingertips across the mirror-like polished hood of a sleek sports car, admiring the flawless deep reflection under soft halo LED workshop lights. Dramatic contrasts, crisp glossy reflections, pride in craftsmanship and perfectionism, photorealistic.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#авто #детейлинг #автосервис #автомобили #СТО"
             }
 
         # 3.7. Медицина / Стоматология / Здоровье
-        elif any(w in full_text_search for w in ["медицин", "стоматолог", "клиник", "врач", "здоровь", "зуб", "лечен", "диагностик", "анализ", "имплант"]):
+        elif any(w in full_text_search for w in ["медицин", "стоматолог", "клиник", "врач", "здоровь", "зуб", "лечен", "диагностик", "анализ", "имплант", "винир", "элайнер", "отбеливан"]):
+            from skills.photo_generator import CinematographyDirector
             lead = f"Забота о вашем здоровье и улыбке с «{company_name}» 🩺"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
-                f"Здоровье — главная ценность. В нашей клинике мы объединили доказательную медицину, передовые технологии и бережное отношение к каждому пациенту.\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
+                f"Здоровье и эстетика — главная ценность. В нашей клинике мы объединили доказательную медицину, передовые технологии и бережное отношение к каждому пациенту.\n\n"
                 f"Безболезненное лечение, прозрачные планы терапии и врачи с безупречной репутацией помогут вам чувствовать себя уверенно каждый день.{comments_phrase}"
             )
-            cta = "Оставьте вопросы врачу в комментариях или запишитесь на первичную консультацию в ЛС! 👩‍⚕️" if has_comments else "Запись на консультацию открыта в личных сообщениях. Берегите здоровье! 🩺",
+            cta = "Оставьте вопросы врачу в комментариях или запишитесь на первичную консультацию в ЛС! 👩‍⚕️" if has_comments else "Запись на консультацию открыта в личных сообщениях. Берегите здоровье! 🩺"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Heartwarming reassuring medical storytelling photograph. A caring doctor in a modern white coat having a warm, empathetic conversation with a smiling, relieved patient in a bright, modern consultation room with wood and plant accents. Soft natural window daylight, genuine feeling of trust, safety, relief and professional care, shallow depth of field.",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
                 "hashtags": "#медицина #здоровье #стоматология #клиника #красиваяулыбка"
             }
 
-        # 3.8. Строительство / Ремонт квартир / Отделка
-        elif any(w in full_text_search for w in ["ремонт", "строительств", "отделк", "дизайн", "бригад", "кровл", "фундамент", "монтаж", "фасад"]):
-            lead = f"Качественный ремонт и строительство без стресса от «{company_name}» 🔨"
+        # 3.8. Строительство / Инструмент / Ремонт квартир / Отделка
+        elif any(w in full_text_search for w in ["ремонт", "строительств", "отделк", "дизайн", "бригад", "инструмент", "перфоратор", "шуруповерт", "нивелир", "дрель", "болгарк"]):
+            from skills.photo_generator import CinematographyDirector
+            lead = f"Качественный ремонт и надежный инструмент от «{company_name}» 🔨"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
             body = (
-                f"{topic_clean}.{visual_phrase}\n\n"
+                f"{organic_story}{visual_phrase}\n\n"
                 f"Мы превращаем чертежи в готовое, тёплое и надёжное пространство для жизни.\n\n"
-                f"Работа строго по договору, фиксированная смета, соблюдение ГОСТов и поэтапный фотоотчёт на каждом шаге. Ремонт может быть спокойным и в удовольствие!{comments_phrase}"
+                f"Работа строго по договору, проверенное оборудование, соблюдение ГОСТов и поэтапный контроль на каждом шаге. Ремонт и строительство в удовольствие!{comments_phrase}"
             )
-            cta = "Хотите рассчитать предварительную стоимость вашего проекта? Напишите параметры в ЛС или в комментариях! 📐" if has_comments else "Пишите в личные сообщения для бесплатного расчёта сметы и выезда замерщика! 📐",
+            cta = "Хотите рассчитать предварительную стоимость вашего проекта? Напишите параметры в ЛС или в комментариях! 📐" if has_comments else "Пишите в личные сообщения для бесплатной консультации и подбора оборудования! 📐"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
-                "visual_prompt": "Inspiring architectural storytelling photograph. An architect and a proud homeowner standing together in a breathtaking newly finished open-plan living room with warm hardwood floors and designer lighting, looking at architectural blueprints with genuine smiles of satisfaction and pride. Warm afternoon sunlight, sense of accomplishment and creation.",
-                "hashtags": "#ремонт #строительство #дизайнинтерьера #ремонтквартир #стройка"
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
+                "hashtags": "#ремонт #строительство #инструмент #ремонтквартир #мастер"
+            }
+
+        # 3.9. Ювелирные изделия / Часы / Драгоценности
+        elif any(w in full_text_search for w in ["ювелир", "кольц", "бриллиант", "серьг", "золот", "платин", "часы", "хронограф"]):
+            from skills.photo_generator import CinematographyDirector
+            lead = f"Искусство роскоши и непреходящая классика: «{company_name}» 💎✨"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            body = (
+                f"{organic_story}{visual_phrase}\n\n"
+                f"Каждое изделие нашей коллекции создается с безупречным вниманием к пропорциям, чистоте камней и мастерству ручной огранки.\n\n"
+                f"Благородные металлы, игра граней и элегантный дизайн, который сохраняет свою ценность сквозь поколения.{comments_phrase}"
+            )
+            cta = "Какое украшение вам ближе — утонченная классика или смелый модерн? Напишите в комментариях! 💍👇" if has_comments else "Заглядывайте в наш каталог в личных сообщениях — подберем идеальное украшение! 💎"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
+                "hashtags": "#ювелирныеизделия #бриллианты #роскошь #кольцо #золото #украшения"
+            }
+
+        # 3.10. Флористика / Цветы / Подарочные букеты
+        elif any(w in full_text_search for w in ["букет", "цвет", "флорист", "пион", "роз", "ранункулюс", "гортензи", "тюльпан"]):
+            from skills.photo_generator import CinematographyDirector
+            lead = f"Дарите эмоции и свежесть вместе с «{company_name}» 🌸🌿"
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            body = (
+                f"{organic_story}{visual_phrase}\n\n"
+                f"Мы бережно отбираем самые свежие плантационные цветы, чтобы каждый букет радовал стойкостью и утонченной гармонией оттенков.\n\n"
+                f"Авторская сборка, эстетичная упаковка и бережная доставка точно ко времени для самых важных моментов.{comments_phrase}"
+            )
+            cta = "Какой сорт цветов ваш самый любимый? Делитесь в комментариях! 💐👇" if has_comments else "Оформляйте предзаказ на доставку свежих букетов прямо в личных сообщениях! 🌸✨"
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
+                "hashtags": "#цветы #букеты #флористика #доставкацветов #пионы #розы"
             }
 
         # 3.9. Образование / Онлайн-школы / Курсы

@@ -152,6 +152,46 @@ class VisualKnowledgeResearcher:
             "visual_description": "set of premium pleated brown parchment paper Panettone baking molds with elegant gold filigree patterns standing on a rustic baker's floured wooden table, alongside a carved wooden paskha pyramid mold, surrounded by fresh farm eggs and cinnamon sticks",
             "text_story": "жаропрочные формы для выпечки куличей и панеттоне из гофрированного пергамента с золотым тиснением и разборные пасочницы для творожной пасхи"
         },
+        "торт": {
+            "en_term": "gourmet artisanal multi-layer cake with cleanly cut slice",
+            "visual_description": "luxurious gourmet artisanal cake on a minimalist white porcelain plate, with a cleanly cut appetizing single slice placed beside it revealing moist rich sponge layers and creamy filling, dusted with shaved chocolate curls or fresh berry garnish, commercial dessert showcase",
+            "text_story": "авторский торт ручной работы: нежные пропитанные бисквитные коржи, воздушный сливочный крем и гармоничный баланс сладости"
+        },
+        "синнабон": {
+            "en_term": "warm fresh cinnamon roll with cream cheese frosting",
+            "visual_description": "warm freshly baked swirled cinnamon roll pastry overflowing with melting rich cream cheese vanilla glaze, glistening spiced caramelized cinnamon sugar spirals, soft steaming crumb",
+            "text_story": "ароматная булочка с корицей сорта макассар и щедрой шапкой тающего сливочного крема"
+        },
+        "эклер": {
+            "en_term": "gourmet French chocolate choux pastry eclairs",
+            "visual_description": "trio of elegant French choux pastry eclairs with mirror-like dark chocolate glaze, filled with luscious vanilla bean cream, garnished with delicate gold leaf flakes",
+            "text_story": "французские эклеры из заварного теста с шелковистым кремом дипломат и зеркальной шоколадной глазурью"
+        },
+        "макарон": {
+            "en_term": "delicate French almond macarons",
+            "visual_description": "stack of delicate pastel French almond macarons with ruffled feet (pied) and smooth glossy shells, sandwiched with rich velvety fruit ganache, on a marble tray",
+            "text_story": "настоящие французские макарон из тончайшей миндальной муки с сочными ягодными и шоколадными начинками"
+        },
+        "шаурм": {
+            "en_term": "crispy grilled artisan chicken shawarma wrap",
+            "visual_description": "crispy toasted golden lavash shawarma wrap cut in half with visible grill marks, overflowing with juicy marinated roasted chicken, crisp fresh cucumbers, ripe tomatoes, fresh herbs and garlic sauce",
+            "text_story": "сочная сытная шаурма в хрустящем лаваше с гриля: отборное мясо, свежие хрустящие овощи и фирменный чесночный соус"
+        },
+        "пицц": {
+            "en_term": "authentic Neapolitan wood-fired pizza with leopard crust",
+            "visual_description": "authentic wood-fired Neapolitan pizza with puffy charred leopard-spotted crust, bubbling melted buffalo mozzarella, San Marzano tomato sauce and fresh green basil leaves, stringy cheese pull slice being lifted",
+            "text_story": "римская и неаполитанская пицца из дровяной печи: воздушные бортики длительной ферментации, тянущаяся моцарелла и спелые томаты"
+        },
+        "ролл": {
+            "en_term": "premium Philadelphia salmon sushi roll",
+            "visual_description": "premium Philadelphia sushi roll wrapped with thick glistening fresh Atlantic salmon, stuffed with rich creamy cheese and crisp cucumber, garnished with flying fish roe on dark slate with wasabi and pickled ginger",
+            "text_story": "классическая Филадельфия с толстым слоем охлажденного лосося, нежным творожным сыром и идеально сваренным рисом"
+        },
+        "суши": {
+            "en_term": "artisan nigiri sushi assortment on ceramic plate",
+            "visual_description": "freshly prepared artisan nigiri sushi featuring glistening salmon and tuna cuts over seasoned vinegared rice, brush-applied soy glaze and freshly grated real wasabi",
+            "text_story": "аутентичные суши и нигири из свежайшей рыбы: чистый вкус моря и вековые традиции японской кухни"
+        },
 
         # =========================================================================
         # 4. БЬЮТИ, КОСМЕТИКА, КРЕМЫ И ПОМАДЫ

@@ -64,7 +64,10 @@ class CinematographyDirector:
         "bokeh_shallow": "Shallow depth of field (f/1.4), creamy bokeh background isolation",
         "low_angle_heroic": "Low-angle heroic perspective conveying confidence, scale and mastery",
         "tabletop_commercial": "Top-down / 45-degree angled tabletop commercial perspective with rich tactile textures",
-        "candid_eye_level": "Natural eye-level 35mm perspective, clean editorial commercial photography"
+        "candid_eye_level": "Natural eye-level 35mm perspective, clean editorial commercial photography",
+        "culinary_macro_eyelevel": "Eye-level 30-degree shallow depth of field (f/2.8) macro photography, highlighting vertical cylindrical form, side pleated paper casing, dripping glaze contours and crisp foreground focus with soft background bokeh",
+        "culinary_flatlay_topdown": "Strict top-down flatlay perspective (exact 90-degree overhead angle), pristine centered composition on minimalist ceramic plate showcasing decorative glaze details",
+        "culinary_45_slice": "Classic 45-degree angled commercial dessert showcase, featuring whole cake with an appetizing cleanly cut slice placed beside it revealing rich inner moist layers and fillings"
     }
 
     NICHE_EN_MAP = {
@@ -182,8 +185,23 @@ class CinematographyDirector:
                 "props": "fountain pen resting beside crisp signed legal agreement document on polished walnut table, sealed deal and peace of mind"
             }
 
-        # 1. Анализ сюжета и определение световой схемы
-        if "закат" in topic_lower or "пляж" in topic_lower or "вечер" in topic_lower:
+        # 1. Анализ сюжета, выбор ракурса и световой схемы
+        if any(w in topic_lower for w in ["вид сверху", "сверху", "flatlay", "флэтлей", "ракурс сверху"]):
+            light_key = "soft_diffused"
+            color_key = "warm_analogous"
+            comp_key = "symmetry"
+            persp_key = "culinary_flatlay_topdown"
+        elif any(w in topic_lower for w in ["торт", "пирог", "кусочек", "срез", "разрез", "начинк", "слои", "трюфель", "чизкейк"]):
+            light_key = "high_key"
+            color_key = "warm_analogous"
+            comp_key = "golden_spiral"
+            persp_key = "culinary_45_slice"
+        elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "панеттоне", "кекс", "капкейк"]):
+            light_key = "high_key"
+            color_key = "warm_analogous"
+            comp_key = "golden_spiral"
+            persp_key = "culinary_macro_eyelevel"
+        elif "закат" in topic_lower or "пляж" in topic_lower or "вечер" in topic_lower:
             light_key = "rim_backlight"
             color_key = "teal_orange"
             comp_key = "rule_of_thirds"
@@ -198,7 +216,7 @@ class CinematographyDirector:
             color_key = "warm_analogous"
             comp_key = "framing"
             persp_key = "bokeh_shallow"
-        elif any(w in topic_lower for w in ["десерт", "ролл", "выпечк", "кофе", "еда", "кулич", "огурец", "плата", "esp", "электроник", "микроконтроллер", "турбин", "инструмент", "ювелир", "кольц", "косметик", "крем"]):
+        elif any(w in topic_lower for w in ["десерт", "ролл", "выпечк", "кофе", "еда", "огурец", "плата", "esp", "электроник", "микроконтроллер", "турбин", "инструмент", "ювелир", "кольц", "косметик", "крем"]):
             light_key = "high_key"
             color_key = "warm_analogous"
             comp_key = "golden_spiral"
@@ -238,8 +256,14 @@ class CinematographyDirector:
         elif any(w in topic_lower for w in ["пасочниц", "форм"]):
             subject = "set of premium pleated brown cellulose Panettone and Easter Kulich paper baking molds with gold filigree and traditional carved wooden paskha pyramid mold on baker table"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["вид сверху", "flatlay", "флэтлей"]):
+            subject = "centered top-down flatlay of artisanal Easter Kulich on a minimalist warm ceramic plate, glossy pastel pink or snowy-white glaze dome garnished with freeze-dried strawberry crumbles and soft mini marshmallows"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["торт", "трюфель", "чизкейк", "кусочек", "разрез"]):
+            subject = "luxurious gourmet artisanal cake on a minimalist white porcelain plate, with a cleanly cut appetizing single slice placed beside it revealing moist rich sponge layers and creamy filling, dusted with shaved chocolate flakes, commercial dessert showcase"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "пасхальн", "освящен"]):
-            subject = "tall cylindrical golden-brown artisanal Easter Kulich brioche cake baked in a pleated brown parchment paper Panettone baking mold with subtle gold filigree, crowned with a thick snowy-white royal sugar glaze dripping naturally down the domed crust, artfully garnished with dried lavender petals, chopped green pistachios, candied orange peel and delicate sugar pearls"
+            subject = "tall cylindrical golden-brown artisanal Easter Kulich brioche cake baked in a pleated brown Panettone paper mold with floral print, crowned with a thick glossy white royal icing glaze, decorated with emerald green pistachio sponge moss crumble and pastel sugar candy eggs, eye-level macro depth with background pastries in creamy bokeh"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
             subject = "charming fluffy domestic tabby cat with expressive amber eyes resting peacefully in a warm sunbeam, relaxed paws, pure domestic happiness"

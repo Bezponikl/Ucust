@@ -67,6 +67,34 @@ class CinematographyDirector:
         "candid_eye_level": "Natural eye-level 35mm perspective, clean editorial commercial photography"
     }
 
+    NICHE_EN_MAP = {
+        "электроник": "electronics and embedded IoT hardware",
+        "it": "modern IT software and digital technology",
+        "кофейн": "craft specialty coffee shop",
+        "кофе": "specialty coffee and espresso bar",
+        "ресторан": "fine dining gourmet restaurant",
+        "пекарн": "artisan bakery and pastry shop",
+        "кондитерск": "pastry confectionery and dessert boutique",
+        "авто": "luxury automotive detailing and workshop",
+        "мебел": "high-end designer handcrafted furniture",
+        "стоматолог": "modern pristine dental clinic",
+        "медицин": "modern healthcare and wellness clinic",
+        "фитнес": "state-of-the-art loft fitness gym",
+        "спорт": "athletic sports and workout lifestyle",
+        "ремонт": "architectural interior renovation and design",
+        "недвижим": "luxury contemporary real estate",
+        "юриспруд": "prestigious corporate law firm",
+        "бьюти": "modern sunlit beauty and aesthetics salon",
+        "зоо": "cozy pet boutique and veterinary care",
+        "животн": "warm cozy pet lifestyle setting with beloved animals",
+        "кот": "warm cozy sunlit living room with charming playful domestic cats",
+        "собак": "vibrant outdoor park with joyful well-trained dogs",
+        "религи": "historic sacred cultural architecture with stained glass and candle glow",
+        "церков": "peaceful historic cathedral with serene architectural beauty",
+        "бизнес": "contemporary creative professional studio",
+        "услуг": "modern professional service workspace"
+    }
+
     @classmethod
     def compose_cinematic_prompt(
         cls,
@@ -79,6 +107,14 @@ class CinematographyDirector:
         с учетом психологии света, композиции и цвета.
         """
         topic_lower = topic.lower()
+        niche_lower = (niche or "").lower()
+
+        # Определение англоязычного контекста ниши
+        niche_en = "professional commercial environment"
+        for k, v in cls.NICHE_EN_MAP.items():
+            if k in niche_lower or k in topic_lower:
+                niche_en = v
+                break
 
         # 1. Анализ сюжета и определение световой схемы
         if "закат" in topic_lower or "пляж" in topic_lower or "вечер" in topic_lower:
@@ -96,7 +132,7 @@ class CinematographyDirector:
             color_key = "warm_analogous"
             comp_key = "framing"
             persp_key = "bokeh_shallow"
-        elif "десерт" in topic_lower or "ролл" in topic_lower or "выпечк" in topic_lower or "кофе" in topic_lower or "еда" in topic_lower or "плата" in topic_lower or "esp" in topic_lower or "электроник" in topic_lower or "микроконтроллер" in topic_lower or "турбин" in topic_lower or "инструмент" in topic_lower or "ювелир" in topic_lower or "кольц" in topic_lower or "косметик" in topic_lower or "крем" in topic_lower:
+        elif "десерт" in topic_lower or "ролл" in topic_lower or "выпечк" in topic_lower or "кофе" in topic_lower or "еда" in topic_lower or "кулич" in topic_lower or "огурец" in topic_lower or "плата" in topic_lower or "esp" in topic_lower or "электроник" in topic_lower or "микроконтроллер" in topic_lower or "турбин" in topic_lower or "инструмент" in topic_lower or "ювелир" in topic_lower or "кольц" in topic_lower or "косметик" in topic_lower or "крем" in topic_lower:
             light_key = "high_key"
             color_key = "warm_analogous"
             comp_key = "golden_spiral"
@@ -116,7 +152,7 @@ class CinematographyDirector:
         from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
-        # Динамическая сборка объекта с учетом точных физических спецификаций
+        # Динамическая сборка объекта с переводом сущностей на чистый английский
         if "массаж" in topic_lower or "камн" in topic_lower:
             subject = visual_spec.get("visual_description", "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening")
             environment = "peaceful luxury wellness SPA room, marble surface, soft warm candlelight and towels in soft focus"
@@ -129,17 +165,30 @@ class CinematographyDirector:
                 subject = f"captivating charismatic female model posing with poise and elegance, wearing {garment_desc}"
                 environment = "moody luxury penthouse lounge with soft neon ambient reflections, subtle velvet textures, cinematic depth"
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
-            subject = visual_spec.get("visual_description", f"extreme macro product photography of {topic}")
+            subject = visual_spec.get("visual_description", f"extreme macro product photography of compact ESP-32 microcontroller board")
             environment = "clean high-tech electronics engineering workbench, blue anti-static silicone soldering mat, precision tweezers and fine copper wires in soft background bokeh, tabletop macro focus"
+        elif "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
+            subject = "charming fluffy domestic tabby cat with expressive amber eyes resting peacefully on a warm wooden surface"
+            environment = "cozy sunlit living room with natural house plants, soft warm window sunlight in background bokeh"
+        elif "собак" in topic_lower or "щен" in topic_lower:
+            subject = "healthy energetic loyal dog with shining fur looking curiously at the camera"
+            environment = "bright sunlit green park with gentle golden hour sunbeams and lush grass"
+        elif "кулич" in topic_lower or "пасх" in topic_lower:
+            subject = "traditional artisanal glazed Easter brioche cake with delicate sugar icing, pastel sugar sprinkles and spring floral garnish"
+            environment = "rustic wooden table with natural linen napkin, warm soft window daylight"
+        elif "кофе" in topic_lower or "эфиопи" in topic_lower or "капучин" in topic_lower:
+            subject = "artisanal ceramic cup of creamy cappuccino with intricate latte art, fresh ripe peach slice and delicate white jasmine flowers on saucer"
+            environment = "cozy sunlit craft specialty coffee shop, warm rustic oak table"
         elif "крем" in topic_lower or "сыворотк" in topic_lower or "помад" in topic_lower or "блеск для губ" in topic_lower or "косметик" in topic_lower:
-            subject = visual_spec.get("visual_description", f"luxury commercial cosmetic product display of {topic}")
+            subject = visual_spec.get("visual_description", f"luxury commercial cosmetic product display")
             environment = "minimalist luxury travertine marble stone podium, delicate fresh water droplets, soft botanical accents in blurred background, clean studio aesthetic"
         elif "турбин" in topic_lower or "gt2871" in topic_lower or "койловер" in topic_lower or "перфоратор" in topic_lower or "шуруповерт" in topic_lower or "инструмент" in topic_lower:
-            subject = visual_spec.get("visual_description", f"precision tabletop commercial photograph of {topic}")
+            subject = visual_spec.get("visual_description", f"precision tabletop commercial photograph of professional engineering component")
             environment = "clean professional workshop table, cedar wood shavings and blueprint schematics in soft background bokeh, authentic craftsmanship"
         else:
-            subject = f"authentic candid commercial scene: {visual_spec.get('visual_description', topic)}"
-            environment = f"aesthetic contemporary {niche} setting, natural room depth"
+            raw_vis = visual_spec.get("visual_description")
+            subject = f"authentic candid commercial scene: {raw_vis}" if raw_vis and raw_vis != topic else f"authentic commercial scene representing {niche_en}"
+            environment = f"aesthetic contemporary {niche_en} setting, natural room depth"
 
         lighting = cls.LIGHTING_SCHEMES[light_key]
         color_scheme = cls.COLOR_HARMONIES[color_key]
@@ -148,13 +197,13 @@ class CinematographyDirector:
 
         colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
-        # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат
-        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "model", "woman", "man", "person", "barista", "doctor"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор"])
+        # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат/животных
+        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "model", "woman", "man", "person", "barista", "doctor"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
         
         texture_desc = "natural skin texture, authentic pores, genuine human expression" if is_human_scene else "tactile surface texture, crisp micro-details, pristine material finish, macro lens clarity"
 
         full_prompt = (
-            f"Authentic commercial photograph for {niche}. "
+            f"Authentic commercial photograph for {niche_en}. "
             f"Subject: {subject}. "
             f"Environment: {environment}. "
             f"{colors_str}"

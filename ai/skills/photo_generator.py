@@ -112,24 +112,31 @@ class CinematographyDirector:
             comp_key = "rule_of_thirds"
             persp_key = "candid_eye_level"
 
-        # 2. Динамическая трансляция объекта съемки
+        # 2. Интеллектуальный поиск точной спецификации одежды / объекта через VisualKnowledgeResearcher
+        from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
+        visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
+
+        # Динамическая сборка объекта с учетом точных физических спецификаций
         if "массаж" in topic_lower or "камн" in topic_lower:
-            subject = "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening"
+            subject = visual_spec.get("visual_description", "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening")
             environment = "peaceful luxury wellness SPA room, marble surface, soft warm candlelight and towels in soft focus"
-        elif ("девушк" in topic_lower or "модел" in topic_lower) and ("пляж" in topic_lower or "купальник" in topic_lower):
-            subject = "athletic graceful young woman on a scenic sandy beach wearing an elegant fashionable swimsuit"
-            environment = "breathtaking ocean shoreline, gentle waves in soft background bokeh, warm sea breeze"
-        elif "неон" in topic_lower or "бикини" in topic_lower or "приват" in topic_lower:
-            subject = "captivating charismatic model in aesthetic fashionable attire, striking artistic pose and silhouette"
-            environment = "moody luxury evening penthouse lounge with subtle velvet textures and atmospheric reflections"
+        elif "бикини" in topic_lower or "стринги" in topic_lower or "купальник" in topic_lower or "модел" in topic_lower:
+            garment_desc = visual_spec.get("visual_description", "elegant stylish minimalist swimwear")
+            if "пляж" in topic_lower or "закат" in topic_lower:
+                subject = f"athletic graceful young female model posing naturally, wearing {garment_desc}"
+                environment = "breathtaking golden hour ocean shoreline, gentle turquoise waves in soft background bokeh, warm sea breeze"
+            else:
+                subject = f"captivating charismatic female model posing with poise and elegance, wearing {garment_desc}"
+                environment = "moody luxury penthouse lounge with soft neon ambient reflections, subtle velvet textures, cinematic depth"
         elif "ролл" in topic_lower or "десерт" in topic_lower or "выпечк" in topic_lower:
-            subject = f"freshly baked artisan pastry ({topic}), golden caramelized flaky crust with powdered sugar dusting and rich mouthwatering filling"
+            food_desc = visual_spec.get("visual_description", f"freshly baked artisan pastry ({topic}), golden caramelized flaky crust")
+            subject = food_desc
             environment = "warm cozy bakery counter, rustic wooden tabletop, handcrafted artisanal ceramic plate"
         elif "коктейл" in topic_lower or "бокал" in topic_lower or "вино" in topic_lower:
             subject = "signature artisanal cocktail in crystal glass with delicate botanical garnish and ice crystals"
             environment = "sleek polished dark marble bar counter in an ambient luxury lounge"
         else:
-            subject = f"authentic candid commercial scene: {topic}"
+            subject = f"authentic candid commercial scene: {visual_spec.get('visual_description', topic)}"
             environment = f"aesthetic contemporary {niche} setting, natural room depth"
 
         lighting = cls.LIGHTING_SCHEMES[light_key]

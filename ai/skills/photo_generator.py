@@ -326,16 +326,13 @@ class PhotoGeneratorSkill:
         """
         if custom_prompt and len(custom_prompt.strip()) > 30 and not custom_prompt.startswith("Authentic candid photo of a small tech") and not custom_prompt.startswith("Cinematic emotional culinary"):
             positive_prompt = custom_prompt
-
-            colors_str = f"Natural subtle color accents: {', '.join(brand_colors)}. " if brand_colors else ""
-
-            positive_prompt = (
-                f"Authentic candid lifestyle photograph for {niche}. Subject: {subject}. "
-                f"Environment: {environment}. "
-                f"{colors_str}"
-                f"Lighting: {lighting}. "
-                f"Camera & Style: Cinematic 35mm film masterpiece, natural handheld eye-level angle, candid smartphone UGC photo, unedited Apple ProRAW look, emotional warmth, genuine social media aesthetic, authentic depth of field, real life texture, natural grain, photorealistic."
+        else:
+            cinematic_res = CinematographyDirector.compose_cinematic_prompt(
+                topic=topic,
+                niche=niche,
+                brand_colors=brand_colors
             )
+            positive_prompt = cinematic_res["prompt"]
 
         dimensions = self.ASPECT_RATIOS.get(aspect_ratio, self.ASPECT_RATIOS["1:1"])
 

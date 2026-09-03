@@ -100,8 +100,14 @@ class SaigaLLMSkill:
         # Если это уже связный готовый абзац с несколькими предложениями
         if len(topic.split()) > 15 and "." in topic:
             return topic.strip()
+
+        # 1. Задействуем базу знаний VisualKnowledgeResearcher
+        from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
+        spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
+        if spec and spec.get("text_story") and spec.get("text_story") != topic and len(spec.get("text_story", "")) > 10:
+            return spec["text_story"]
             
-        # Умная трансформация коротких тем и брифов в рекламную драматургию
+        # 2. Умная трансформация коротких тем и брифов в рекламную драматургию
         if "массаж" in topic_lower or "spa" in topic_lower or "камн" in topic_lower:
             return "Когда хочется замедлиться и вернуть телу естественную легкость, лучший выбор — глубокий релакс-массаж с органическими маслами и прогретыми базальтовыми камнями."
         elif ("девушк" in topic_lower or "модел" in topic_lower) and ("пляж" in topic_lower or "купальник" in topic_lower or "закат" in topic_lower):

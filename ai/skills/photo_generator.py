@@ -128,13 +128,15 @@ class CinematographyDirector:
             else:
                 subject = f"captivating charismatic female model posing with poise and elegance, wearing {garment_desc}"
                 environment = "moody luxury penthouse lounge with soft neon ambient reflections, subtle velvet textures, cinematic depth"
-        elif "ролл" in topic_lower or "десерт" in topic_lower or "выпечк" in topic_lower:
-            food_desc = visual_spec.get("visual_description", f"freshly baked artisan pastry ({topic}), golden caramelized flaky crust")
-            subject = food_desc
-            environment = "warm cozy bakery counter, rustic wooden tabletop, handcrafted artisanal ceramic plate"
-        elif "коктейл" in topic_lower or "бокал" in topic_lower or "вино" in topic_lower:
-            subject = "signature artisanal cocktail in crystal glass with delicate botanical garnish and ice crystals"
-            environment = "sleek polished dark marble bar counter in an ambient luxury lounge"
+        elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
+            subject = visual_spec.get("visual_description", f"extreme macro product photography of {topic}")
+            environment = "clean high-tech electronics engineering workbench, blue anti-static silicone soldering mat, precision tweezers and fine copper wires in soft background bokeh, tabletop macro focus"
+        elif "крем" in topic_lower or "сыворотк" in topic_lower or "помад" in topic_lower or "блеск для губ" in topic_lower or "косметик" in topic_lower:
+            subject = visual_spec.get("visual_description", f"luxury commercial cosmetic product display of {topic}")
+            environment = "minimalist luxury travertine marble stone podium, delicate fresh water droplets, soft botanical accents in blurred background, clean studio aesthetic"
+        elif "турбин" in topic_lower or "gt2871" in topic_lower or "койловер" in topic_lower or "перфоратор" in topic_lower or "шуруповерт" in topic_lower or "инструмент" in topic_lower:
+            subject = visual_spec.get("visual_description", f"precision tabletop commercial photograph of {topic}")
+            environment = "clean professional workshop table, cedar wood shavings and blueprint schematics in soft background bokeh, authentic craftsmanship"
         else:
             subject = f"authentic candid commercial scene: {visual_spec.get('visual_description', topic)}"
             environment = f"aesthetic contemporary {niche} setting, natural room depth"

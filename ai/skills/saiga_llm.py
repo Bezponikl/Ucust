@@ -735,12 +735,41 @@ class SaigaLLMSkill:
                 f"Защитите свои активы и оптимизируйте процессы с командой опытных экспертов.\n\n"
                 f"Глубокий анализ рисков, безупречное ведение отчётности и защита ваших интересов в любых инстанциях. Ваш бизнес под надёжным контролем 24/7.{comments_phrase}"
             )
-            cta = "Задайте свой вопрос юристу или бухгалтеру в комментариях 👇 Ответим конфиденциально в ЛС!" if has_comments else "Запишитесь на экспресс-аудит ваших документов в личных сообщениях! 💼",
+            cta = "Задайте свой вопрос юристу или бухгалтеру в комментариях 👇 Ответим конфиденциально в ЛС!" if has_comments else "Запишитесь на экспресс-аудит ваших документов в личных сообщениях! 💼"
             return {
                 "post_text": f"{lead}\n\n{body}\n\n{cta}",
                 "promo_code": f"{company_name.upper().replace(' ', '')}2026",
                 "visual_prompt": "Powerful reassuring corporate storytelling photograph. Two business partners firmly shaking hands across a sleek modern conference table at sunset after signing a crucial contract, genuine expressions of mutual respect and relief. Warm golden hour light reflecting off glass high-rise towers outside the panoramic window, feeling of security, success and trust.",
                 "hashtags": "#юрист #бухгалтерия #налоги #бизнес #консалтинг"
+            }
+
+        # 3.11. Электроника / Микроконтроллеры / IoT / Hardware / Робототехника
+        elif any(w in full_text_search for w in ["электроник", "плата", "esp32", "esp-32", "ардуино", "arduino", "микроконтроллер", "чип", "iot", "робототехник", "пайк", "датчик", "сенсор"]):
+            from skills.photo_generator import CinematographyDirector
+            leads = [
+                f"Инженерные решения и надёжная микроэлектроника от «{company_name}» ⚡🔌",
+                f"Проектирование умных устройств и IoT-автоматизация: «{company_name}» 💻🚀",
+                f"Стабильное железо для ваших смелых проектов от «{company_name}» 🛠️✨"
+            ]
+            organic_story = self._transform_brief_into_organic_story(topic_clean, niche)
+            bodies = [
+                f"{organic_story}{visual_phrase}\n\nНадёжная схемотехника и качественные компоненты — залог стабильной работы любых встраиваемых систем и IoT-устройств.\n\nПрямые поставки проверенных модулей, устойчивость к помехам и удобство подключения для разработчиков любого уровня.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nОт прототипа на макетной плате до готового промышленного контроллера: правильный выбор элементной базы экономит недели отладки.\n\nШирокие возможности беспроводной связи, гибкая периферия и надёжная работа 24/7.{comments_phrase}",
+                f"{organic_story}{visual_phrase}\n\nСоздавайте умные системы полива, датчики мониторинга и автоматизацию дома на проверенных компонентах.{comments_phrase}"
+            ]
+            ctas = [
+                "Какой проект собираете прямо сейчас: умный дом или робототехнику? Делитесь в комментариях! 💻👇" if has_comments else "Заказывайте оригинальные модули и платы в личных сообщениях с быстрой отправкой! ⚡📦",
+                "Нужна помощь в подборе платы или распиновке? Задавайте вопросы в комментариях! 🛠️👇",
+                "Оформляйте заказ компонентов для ваших проектов прямо в личных сообщениях! 🚀"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"],
+                "hashtags": "#электроника #esp32 #arduino #iot #diy #умныйдом #робототехника"
             }
 
         # 3.11. Туризм / Отели / Путешествия / Глэмпинги

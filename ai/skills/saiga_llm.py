@@ -266,8 +266,10 @@ class SaigaLLMSkill:
                             {"role": "system", "content": system_instruction},
                             {"role": "user", "content": f"Напиши лаконичный пост для компании «{company_name}» на тему: {topic}. Формула: {fw_name}, воронка: {hunt_name}."}
                         ],
-                        temperature=0.4,
-                        max_tokens=280
+                        temperature=0.7,
+                        top_p=0.9,
+                        presence_penalty=0.1,
+                        max_tokens=320
                     )
 
                 print("[SaigaSkill] ⏳ Инференс Saiga LLM (глубокий синтез с учетом RAG, лимит 90 сек)...")

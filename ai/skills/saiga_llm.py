@@ -270,10 +270,10 @@ class SaigaLLMSkill:
                         max_tokens=280
                     )
 
-                print("[SaigaSkill] ⏳ Инференс Saiga LLM (лимит 30 сек)...")
+                print("[SaigaSkill] ⏳ Инференс Saiga LLM (глубокий синтез с учетом RAG, лимит 90 сек)...")
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(_run_llm_inference)
-                    output = future.result(timeout=35.0)
+                    output = future.result(timeout=90.0)
 
                 generated_text = output["choices"][0]["message"]["content"].strip()
                 cleaned_text = self._sanitize_llm_post(generated_text, company_name)
@@ -289,7 +289,7 @@ class SaigaLLMSkill:
                         "hashtags": f"#{niche.replace(' ', '_')} #{company_name.replace(' ', '')} #качество #надежность"
                     }
             except concurrent.futures.TimeoutError:
-                print("[SaigaSkill] ⚠️ Таймаут генерации Saiga (>35 сек, модель BF16 перегружает VRAM). Мгновенный переход на экспертный движок...")
+                print("[SaigaSkill] ⚠️ Превышен лимит времени инференса Saiga (>90 сек). Мгновенный переход на экспертный движок...")
             except Exception as e:
                 print(f"[SaigaSkill] ⚠️ Ошибка инференса LLaMA: {e}. Переход на экспертный движок...")
 

@@ -741,18 +741,22 @@ class UnifiedOrchestrator:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {sql_e}")
 
             # 2. Семантический RAG-поиск и входной Pre-Flight контроль плотности данных (Data Richness Gate)
+            from skills.data_richness_engine import DataRichnessEngine, DRSTier
             rag_fact_context = None
+            drs_assessment = None
             data_richness_score = 0.20
             try:
                 rag_query_text = f"{prompt} {niche} {company_name}"
                 rag_ctx = await self.rag.query_async(rag_query_text)
                 if rag_ctx and (rag_ctx.has_sufficient_context or rag_ctx.formatted_context):
                     rag_fact_context = rag_ctx.formatted_context
-                    data_richness_score = min(1.0, round(len(rag_fact_context) / 400.0, 2))
-                    print(f"[UnifiedOrchestrator] 📚 RAG предоставил проверенный контекст ({len(rag_fact_context)} симв., Data Richness: {data_richness_score}) для темы: '{prompt}'")
+                    drs_assessment = DataRichnessEngine.evaluate_text(rag_fact_context, company_name=company_name)
+                    data_richness_score = drs_assessment.total_score / 100.0
+                    print(f"[UnifiedOrchestrator] 📚 RAG контекст: {len(rag_fact_context)} симв. | DRS Score: {drs_assessment.total_score}/100 ({drs_assessment.tier.value.upper()}) | {drs_assessment.recommendation}")
                 else:
-                    data_richness_score = 0.30 if len(prompt.split()) > 6 else 0.15
-                    print(f"[DataRichnessGate] ⚠️ Плотность данных RAG низкая ({data_richness_score}). Активирован режим Process & Founder Storytelling (защита от галлюцинаций).")
+                    drs_assessment = DataRichnessEngine.evaluate_text(prompt, company_name=company_name)
+                    data_richness_score = drs_assessment.total_score / 100.0
+                    print(f"[DataRichnessGate] ⚠️ Плотность данных RAG: {drs_assessment.total_score}/100 ({drs_assessment.tier.value.upper()}). {drs_assessment.recommendation}")
             except Exception as rag_err:
                 print(f"[UnifiedOrchestrator] ⚠️ RAG query error: {rag_err}")
             

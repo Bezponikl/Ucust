@@ -242,6 +242,17 @@ class DocumentCollector:
             ))
 
         if docs_to_ingest:
+            from skills.data_richness_engine import DataRichnessEngine
+            all_text = " ".join([d.text for d in docs_to_ingest])
+            drs_result = DataRichnessEngine.evaluate_text(all_text, company_name=company_name)
+            logger.info(f"[DocumentCollector] 🎯 Data Richness Score: {drs_result.total_score}/100 (Tier: {drs_result.tier.value.upper()}) | {drs_result.recommendation}")
+            
+            # Прикрепляем DRS метаданные к каждому документу
+            for doc in docs_to_ingest:
+                doc.metadata["data_richness_score"] = drs_result.total_score
+                doc.metadata["drs_tier"] = drs_result.tier.value
+                doc.metadata["allowed_frameworks"] = drs_result.allowed_frameworks
+
             indexed_count = await rag_pipeline.ingest_documents_async(docs_to_ingest)
             logger.info(f"[DocumentCollector] 📚 Успешно заиндексировано {indexed_count} чанков из {len(docs_to_ingest)} клиентских файлов в RAG для {company_name}.")
             return indexed_count

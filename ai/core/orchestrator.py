@@ -740,14 +740,25 @@ class UnifiedOrchestrator:
                 except Exception as sql_e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {sql_e}")
 
-            # 2. Семантический RAG-поиск и входной Pre-Flight контроль плотности данных (Data Richness Gate)
+            # 1.1 Pre-Flight Context Router (4-Квадрантная классификация, Bridge Mode и блокировка воронки)
+            from skills.context_router import ContextRouterSkill
+            router = ContextRouterSkill()
+            routing_directive = router.route_task(
+                topic=prompt,
+                company_name=company_name,
+                niche=niche,
+                user_data=user_data
+            )
+            tenant_id = routing_directive.tenant_id
+
+            # 2. Семантический RAG-поиск с Multi-Tenant изоляцией и Pre-Flight контроль DRS
             from skills.data_richness_engine import DataRichnessEngine, DRSTier
             rag_fact_context = None
             drs_assessment = None
             data_richness_score = 0.20
             try:
                 rag_query_text = f"{prompt} {niche} {company_name}"
-                rag_ctx = await self.rag.query_async(rag_query_text)
+                rag_ctx = await self.rag.query_async(rag_query_text, tenant_id=tenant_id)
                 if rag_ctx and (rag_ctx.has_sufficient_context or rag_ctx.formatted_context):
                     rag_fact_context = rag_ctx.formatted_context
                     drs_assessment = DataRichnessEngine.evaluate_text(rag_fact_context, company_name=company_name)
@@ -812,7 +823,8 @@ class UnifiedOrchestrator:
                 comments_enabled=bool(user_data.get("comments_enabled", False)),
                 brand_profile=brand_profile,
                 rag_context=rag_fact_context,
-                marketing_directive=marketing_bundle
+                marketing_directive=marketing_bundle,
+                routing=routing_directive
             )
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")
@@ -824,7 +836,7 @@ class UnifiedOrchestrator:
                 post_text = saiga.self_heal_text(post_text, error_msg or "")
                 
             critic = CriticMungerSkill(strictness=0.80)
-            critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche)
+            critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche, routing=routing_directive)
             
             MAX_HEALING_RETRIES = 2
             healing_attempts = 0
@@ -835,7 +847,7 @@ class UnifiedOrchestrator:
                 is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
                 if not is_valid:
                     post_text = saiga.self_heal_text(post_text, error_msg or "")
-                critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche)
+                critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche, routing=routing_directive)
 
             if not critic_res.get("passed"):
                 print(f"[CircuitBreaker] ⚠️ Достигнут лимит попыток самоисправления ({MAX_HEALING_RETRIES}). Применена безопасная нормализация текста.")

@@ -229,6 +229,7 @@ class SaigaLLMSkill:
         user_notes: Optional[str] = None,
         tone_override: Optional[str] = None,
         marketing_directive: Optional[Dict[str, Any]] = None,
+        routing: Optional[Any] = None,
         **kwargs
     ) -> dict:
         """
@@ -262,6 +263,21 @@ class SaigaLLMSkill:
                 rag_info = f"\nФАКТЫ ИЗ БАЗЫ ЗНАНИЙ БРЕНДА (RAG):\n{rag_context}\n(Строго опирайся на эти факты, цены, боли и УТП)" if rag_context else ""
                 mktg_info = f"\n{marketing_directive.get('full_marketing_prompt', '')}\n" if marketing_directive else ""
                 
+                routing_funnel_rules = ""
+                if routing and hasattr(routing, "text_directive"):
+                    td = routing.text_directive
+                    fl_val = td.funnel_lock.value if hasattr(td.funnel_lock, "value") else str(td.funnel_lock)
+                    am_val = td.allowed_metrics.value if hasattr(td.allowed_metrics, "value") else str(td.allowed_metrics)
+                    if fl_val == "TOFU_UNAWARE":
+                        routing_funnel_rules += (
+                            "\n7. ВОРОНКА TOFU (ОХВАТ И ЛАЙФСТАЙЛ): Никаких агрессивных продаж и дедлайнов. "
+                            "Запрещено выдумывать бизнес-метрики (ROI, KPI, % оптимизации бюджетов). "
+                            "Пиши живой человечный сторителлинг об атмосфере, вкусе, команде или процессе. "
+                            "Заверши теплым пожеланием или вопросом для комментариев."
+                        )
+                    if am_val == "consumer_only":
+                        routing_funnel_rules += "\n8. ОГРАНИЧЕНИЕ ЦИФР: Разрешены только бытовые цифры (цена, скидка, время в минутах). Запрещены абстрактные проценты оптимизации."
+
                 system_instruction = (
                     f"Ты — главный бренд-редактор и экспертный копирайтер компании «{company_name}» (Сфера бизнеса: {niche}, Город: {city}).\n"
                     f"Напиши профессиональную публикацию для социальных сетей на тему: «{topic}».\n\n"
@@ -276,6 +292,7 @@ class SaigaLLMSkill:
                     f"   - Спокойный и уважительный призыв к диалогу или заказу в личные сообщения.\n"
                     f"5. ТОНАЛЬНОСТЬ: Интеллигентный, спокойный, уверенный тон эксперта и основателя бренда.\n"
                     f"6. ОБЪЕМ И ЛАКОНИЧНОСТЬ: Целевой объем 400-600 символов (3 коротких содержательных абзаца без дефисных списков).\n"
+                    f"{routing_funnel_rules}\n"
                     f"{mktg_info}\n"
                     f"{rag_info}\n"
                     f"{visual_context or ''}{comments_info}"
@@ -304,7 +321,7 @@ class SaigaLLMSkill:
                 cleaned_text = self._sanitize_llm_post(generated_text, company_name)
                 
                 from skills.photo_generator import CinematographyDirector
-                vis_prompt = CinematographyDirector.compose_cinematic_prompt(topic, niche)["prompt"]
+                vis_prompt = CinematographyDirector.compose_cinematic_prompt(topic, niche, routing=routing)["prompt"]
                 
                 if len(cleaned_text) > 30:
                     return {
@@ -1273,6 +1290,21 @@ class SaigaLLMSkill:
         # Если загружена нейросеть
         if self._is_loaded and self._llm:
             try:
+                routing_funnel_rules = ""
+                if routing and hasattr(routing, "text_directive"):
+                    td = routing.text_directive
+                    fl_val = td.funnel_lock.value if hasattr(td.funnel_lock, "value") else str(td.funnel_lock)
+                    am_val = td.allowed_metrics.value if hasattr(td.allowed_metrics, "value") else str(td.allowed_metrics)
+                    if fl_val == "TOFU_UNAWARE":
+                        routing_funnel_rules += (
+                            "\n7. ВОРОНКА TOFU (ОХВАТ И ЛАЙФСТАЙЛ): Никаких агрессивных продаж и дедлайнов. "
+                            "Запрещено выдумывать бизнес-метрики (ROI, KPI, % оптимизации бюджетов). "
+                            "Пиши живой человечный сторителлинг об атмосфере, вкусе, команде или процессе. "
+                            "Заверши теплым пожеланием или вопросом для комментариев."
+                        )
+                    if am_val == "consumer_only":
+                        routing_funnel_rules += "\n8. ОГРАНИЧЕНИЕ ЦИФР: Разрешены только бытовые цифры (цена, скидка, время в минутах). Запрещены абстрактные проценты оптимизации."
+
                 system_instruction = (
                     "Ты — главный редактор. Твой черновик отклонил строгий критик. "
                     f"Замечания критика: {feedback}\n\n"

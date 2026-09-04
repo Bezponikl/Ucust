@@ -110,7 +110,8 @@ class CinematographyDirector:
         topic: str,
         niche: str = "бизнес",
         brand_colors: Optional[List[str]] = None,
-        variation_index: int = 0
+        variation_index: int = 0,
+        routing: Optional[Any] = None
     ) -> Dict[str, str]:
         """
         Генерирует высокохудожественный промпт для ComfyUI Realism 2.0
@@ -201,7 +202,13 @@ class CinematographyDirector:
                 env_pool = pool
                 break
 
-        if env_pool:
+        if routing and hasattr(routing, "visual_anchor") and routing.visual_anchor:
+            va = routing.visual_anchor
+            niche_universe = {
+                "setting": va.environment_preset.replace("_", " "),
+                "props": va.crossover_props or "authentic natural details"
+            }
+        elif env_pool:
             niche_universe = env_pool[var]
         else:
             default_variations = [
@@ -651,7 +658,9 @@ class PhotoGeneratorSkill:
                     filename = os.path.basename(file_path)
                     rendered_via_comfy = True
             else:
-                print("[PhotoGeneratorSkill] ⚠️ Сервер ComfyUI оффлайн (127.0.0.1:8188 недоступен). Используется встроенный брендовый баннер...")
+                print("[PhotoGeneratorSkill] ⚠️ Сервер ComfyUI оффлайн (127.0.0.1:8188 недоступен). Публикация будет выполнена без баннера.")
+        except Exception as e:
+            print(f"[PhotoGeneratorSkill] ⚠️ Ошибка вызова ComfyUI: {e}")
         # 2. Если ComfyUI не смог сгенерировать фото (оффлайн или ошибка) — НЕ создаем никаких 2D-баннеров!
         # Возвращаем статус no_image, чтобы пост вышел чистым текстом без искусственных картинок.
         if not rendered_via_comfy or not os.path.exists(file_path) or os.path.getsize(file_path) < 100:

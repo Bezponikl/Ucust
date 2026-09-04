@@ -859,8 +859,11 @@ class UnifiedOrchestrator:
                         attachments=user_data.get("attachments"),
                         custom_prompt=photo_prompt
                     )
-                    t_photo_duration = round(time.time() - t_photo_start, 2)
                     image_url = photo_res.get("image_url")
+                    if image_url:
+                        t_photo_duration = round(time.time() - t_photo_start, 2)
+                    else:
+                        t_photo_duration = None
                     photo_prompt = photo_res.get("positive_prompt") or photo_prompt
 
                     # Сохранение финального промпта фото в RAG (категория photo_generation_history)

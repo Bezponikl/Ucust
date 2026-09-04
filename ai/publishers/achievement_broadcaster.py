@@ -155,8 +155,9 @@ class AchievementBroadcaster:
         #ДеньФлага #Россия #триколор #праздник #UCust
         """
         t_text = timings.get("text_gen_seconds", 0.0) if timings else 0.0
-        t_photo = timings.get("photo_gen_seconds", 196.93) if timings and timings.get("photo_gen_seconds") is not None else 196.93
-        t_total = timings.get("total_seconds", 198.31) if timings and timings.get("total_seconds") is not None else round(t_text + t_photo, 2)
+        t_photo = timings.get("photo_gen_seconds") if timings else None
+        has_photo = bool(t_photo and t_photo > 0.05)
+        t_total = timings.get("total_seconds") if timings and timings.get("total_seconds") is not None else round(t_text + (t_photo or 0.0), 2)
 
         tg_url = os.getenv("UCUST_TELEGRAM_LINK", "https://t.me/UcustAi")
         max_url = os.getenv("UCUST_MAX_LINK", "https://max.ru/channel_UCust")
@@ -176,19 +177,23 @@ class AchievementBroadcaster:
             f'<a href="{twogis_url}">2GIS</a>'
         )
 
-        ht_str = hashtags.strip() if hashtags else "#ДеньФлага #Россия #триколор #праздник #UCust"
+        ht_str = hashtags.strip() if hashtags else "#UCust #ИИмаркетинг"
         if not ht_str.startswith("#"):
             ht_str = f"#{ht_str}"
 
-        return (
-            f"⏱️ Время генерации этого поста:\n"
-            f"• Текст + аудит качества: {t_text} сек\n"
-            f"• Фото-креатив: {t_photo} сек\n"
-            f"• Итого: {t_total} сек\n"
-            f"• Платформы: {plat_str}\n"
-            f"• Режим работы: 24/7 автономно\n"
-            f"{ht_str}"
-        )
+        lines = [
+            "⏱️ Время генерации этого поста:",
+            f"• Текст + аудит качества: {t_text} сек"
+        ]
+        if has_photo:
+            lines.append(f"• Фото-креатив: {t_photo} сек")
+        lines.extend([
+            f"• Итого: {t_total} сек",
+            f"• Платформы: {plat_str}",
+            "• Режим работы: 24/7 автономно",
+            ht_str
+        ])
+        return "\n".join(lines)
 
     def format_milestone_post(
         self,
@@ -271,14 +276,14 @@ class AchievementBroadcaster:
         else:
             metrics.append("Генерация текста + аудит качества: 1.12 сек")
             
-        # 2. Генерация фото-креатива (ТОЛЬКО если фото прикреплено к посту)
-        if has_photo or (photo_gen_seconds is not None and photo_gen_seconds > 0):
-            sec = round(photo_gen_seconds, 2) if photo_gen_seconds and photo_gen_seconds > 0.05 else 3.41
+        # 2. Генерация фото-креатива (ТОЛЬКО если фото реально прикреплено к посту)
+        if has_photo and photo_gen_seconds and photo_gen_seconds > 0.05:
+            sec = round(photo_gen_seconds, 2)
             metrics.append(f"Генерация фото-креатива: {sec} сек")
 
         # 3. UltraHD видео (ТОЛЬКО если видео прикреплено к посту)
-        if has_video or (video_gen_seconds is not None and video_gen_seconds > 0):
-            sec = round(video_gen_seconds, 2) if video_gen_seconds and video_gen_seconds > 0.05 else 75.0
+        if has_video and video_gen_seconds and video_gen_seconds > 0.05:
+            sec = round(video_gen_seconds, 2)
             metrics.append(f"UltraHD видео (Shorts/Reels): {sec} сек")
             
         # 4. Платформы (сокращены до кликабельных названий со ссылками)

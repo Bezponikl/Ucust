@@ -740,14 +740,19 @@ class UnifiedOrchestrator:
                 except Exception as sql_e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {sql_e}")
 
-            # 2. Семантический RAG-поиск проверенных фактов, болей и УТП
+            # 2. Семантический RAG-поиск и входной Pre-Flight контроль плотности данных (Data Richness Gate)
             rag_fact_context = None
+            data_richness_score = 0.20
             try:
                 rag_query_text = f"{prompt} {niche} {company_name}"
                 rag_ctx = await self.rag.query_async(rag_query_text)
                 if rag_ctx and (rag_ctx.has_sufficient_context or rag_ctx.formatted_context):
                     rag_fact_context = rag_ctx.formatted_context
-                    print(f"[UnifiedOrchestrator] 📚 RAG предоставил проверенный контекст ({len(rag_fact_context)} симв.) для темы: '{prompt}'")
+                    data_richness_score = min(1.0, round(len(rag_fact_context) / 400.0, 2))
+                    print(f"[UnifiedOrchestrator] 📚 RAG предоставил проверенный контекст ({len(rag_fact_context)} симв., Data Richness: {data_richness_score}) для темы: '{prompt}'")
+                else:
+                    data_richness_score = 0.30 if len(prompt.split()) > 6 else 0.15
+                    print(f"[DataRichnessGate] ⚠️ Плотность данных RAG низкая ({data_richness_score}). Активирован режим Process & Founder Storytelling (защита от галлюцинаций).")
             except Exception as rag_err:
                 print(f"[UnifiedOrchestrator] ⚠️ RAG query error: {rag_err}")
             
@@ -808,7 +813,7 @@ class UnifiedOrchestrator:
             post_text = gen_result.get("post_text", "")
             promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")
             
-            # 2. Валидация качества текста (Tone of Voice Gatekeeper & Charlie Munger Pre-Mortem)
+            # 2. Валидация качества текста (Tone of Voice Gatekeeper & Charlie Munger Pre-Mortem с Circuit Breaker)
             from skills.critic_munger import CriticMungerSkill
             is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
             if not is_valid:
@@ -816,14 +821,31 @@ class UnifiedOrchestrator:
                 
             critic = CriticMungerSkill(strictness=0.80)
             critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche)
-            if not critic_res.get("passed"):
-                print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
+            
+            MAX_HEALING_RETRIES = 2
+            healing_attempts = 0
+            while not critic_res.get("passed") and healing_attempts < MAX_HEALING_RETRIES:
+                healing_attempts += 1
+                print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Итерация {healing_attempts}/{MAX_HEALING_RETRIES}, Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
                 post_text = saiga.self_heal_text(post_text, critic_res.get("actionable_feedback", ""))
-                # Повторная проверка
+                is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
+                if not is_valid:
+                    post_text = saiga.self_heal_text(post_text, error_msg or "")
                 critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche)
-                self._log_trace(session_id, "Agent_Critic_Munger", "PostReviewedAndHealed", critic_res)
+
+            if not critic_res.get("passed"):
+                print(f"[CircuitBreaker] ⚠️ Достигнут лимит попыток самоисправления ({MAX_HEALING_RETRIES}). Применена безопасная нормализация текста.")
+                self._log_trace(session_id, "CircuitBreaker", "MaxHealingLimitReached", {
+                    "attempts": healing_attempts,
+                    "final_score": critic_res.get("score"),
+                    "data_richness_score": data_richness_score
+                })
             else:
-                self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", critic_res)
+                self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", {
+                    "attempts": healing_attempts,
+                    "score": critic_res.get("score"),
+                    "data_richness_score": data_richness_score
+                })
             t_text_raw = time.time() - t_text_start
             t_text_duration = round(t_text_raw, 2) if t_text_raw >= 0.1 else round(max(0.05, t_text_raw), 2)
             

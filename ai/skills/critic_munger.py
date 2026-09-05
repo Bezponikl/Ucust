@@ -99,8 +99,8 @@ class CriticMungerSkill:
                 has_absurd_b2b_blend = True
 
         # 3. Еда / Ресторан / Кофе
-        if any(w in (topic + " " + text_lower) for w in ["ресторан", "кофе", "раф", "еда", "ужин", "авторская кухня"]):
-            if any(w in text_lower for w in ["искусственн", "интеллект", "софт", "платформ", "it-технолог", "генерация изображений вашего"]):
+        if any(w in (topic + " " + text_lower) for w in ["ресторан", "кофе", "раф", "ужин", "авторская кухня", "блюдо", "кулинар", "гастроном", "десерт", "выпечк"]):
+            if any(w in text_lower for w in ["документооборот", "интеграция erp", "бухгалтерский аудит"]):
                 has_absurd_b2b_blend = True
 
         if has_absurd_b2b_blend:

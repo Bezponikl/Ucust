@@ -44,7 +44,12 @@ REQUIRED_CUSTOM_NODES: List[Dict[str, str]] = [
     {
         "name": "comfyui_controlnet_aux",
         "url": "https://github.com/Fannovel16/comfyui_controlnet_aux.git",
-        "desc": "Препроцессоры глубины и поз для брендбуков"
+        "desc": "Препроцессоры глубины и поз для брендбуков (Depth Anything v2, DWPose, MeshGraphormer)"
+    },
+    {
+        "name": "ComfyUI-Impact-Pack",
+        "url": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
+        "desc": "FaceDetailer и HandDetailer для локального восстановления анатомии"
     }
 ]
 
@@ -118,7 +123,28 @@ def install_comfyui_nodes(comfyui_dir: str = None, install_requirements: bool = 
             except Exception as e:
                 print(f"   ⚠️ Ошибка pip install для {name}: {e}")
 
-    print(f"\n✨ Все необходимые ноды для LTX-2.3 и SMM проверены и готовы к работе!\n")
+    # Загрузка весов YOLOv8 детекторов (Face & Hand Detailers)
+    bbox_models_dir = os.path.join(comfyui_dir, "models", "ultralytics", "bbox")
+    os.makedirs(bbox_models_dir, exist_ok=True)
+    models_to_download = [
+        ("face_yolov8m.pt", "https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt"),
+        ("hand_yolov8n.pt", "https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8n.pt"),
+        ("hand_yolov8s.pt", "https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt")
+    ]
+    for mname, murl in models_to_download:
+        mpath = os.path.join(bbox_models_dir, mname)
+        if not os.path.exists(mpath):
+            print(f"⏳ Скачивание детектора {mname} в {bbox_models_dir}...")
+            try:
+                import urllib.request
+                urllib.request.urlretrieve(murl, mpath)
+                print(f"   ✅ Детектор {mname} успешно загружен.")
+            except Exception as dl_e:
+                print(f"   ⚠️ Ошибка скачивания {mname}: {dl_e}")
+        else:
+            print(f"✅ Детектор [{mname}] готов к работе.")
+
+    print(f"\n✨ Все необходимые ноды и детекторы Impact Pack (Face/Hand) проверены и готовы к работе!\n")
 
 
 if __name__ == "__main__":

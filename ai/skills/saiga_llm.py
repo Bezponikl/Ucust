@@ -377,7 +377,7 @@ class SaigaLLMSkill:
                     "In the foreground at lower right, a focused professional in elegant silhouette stands by a massive panoramic floor-to-ceiling glass window, hand gently resting on the glass, looking up in awe and contemplation. "
                     "Outside and high above in the upper frame, a colossal, majestic Russian tricolor flag on a towering flagpole flutters grandly and dynamically in the strong wind against a breathtaking golden-amber sunset sky and dramatic clouds, commanding the scene with monumental scale and national pride. "
                     "Warm golden sunlight breaking through clouds, brilliant golden rim lighting outlining the silhouette, soft realistic reflections on glass. "
-                    "Cinematic 35mm film look, heroic low-angle composition, monumental scale, deep emotional resonance, photorealistic masterpiece."
+                    "Cinematic 35mm film look, heroic low-angle composition, monumental scale, deep emotional resonance, raw analog 35mm film texture."
                 )
             }
         elif any(w in topic_lower for w in ["новый год", "новогодн", "рождеств", "ёлка", "елка"]):
@@ -394,7 +394,7 @@ class SaigaLLMSkill:
                 "visual_prompt": (
                     "Heartwarming cinematic holiday storytelling photograph. "
                     "A cozy warm room in the evening: a person holds a steaming ceramic mug between both hands, looking out a frosted window at softly falling snowflakes and sparkling city streetlights. "
-                    "Soft golden bokeh from a Christmas tree glowing warmly in the room reflection, cozy knitted sweater texture, deep feeling of hope, warmth, comfort and wonder, photorealistic."
+                    "Soft golden bokeh from a Christmas tree glowing warmly in the room reflection, cozy knitted sweater texture, deep feeling of hope, warmth, comfort and wonder, raw 35mm film grain, ISO 800."
                 )
             }
         elif any(w in topic_lower for w in ["9 мая", "побед", "великая отечественная", "ветераны"]):
@@ -507,7 +507,7 @@ class SaigaLLMSkill:
                 "hashtags": f"#праздник #поздравление #{company_name.replace(' ', '')} #событие",
                 "visual_prompt": (
                     "Cinematic celebratory business photograph. "
-                    "Warm modern office workspace with sunlight, professional desk with laptop, coffee cup, and small festive decorative element, warm golden tones, shallow depth of field, photorealistic commercial photography."
+                    "Warm modern office workspace with sunlight, professional desk with laptop, coffee cup, and small festive decorative element, warm golden tones, shallow depth of field, 35mm film grain, analog depth."
                 )
             }
 
@@ -1010,12 +1010,6 @@ class SaigaLLMSkill:
         cta = f"Поделитесь вашим мнением в комментариях 👇 — мы открыты к диалогу и рады ответить на любые вопросы!" if has_comments else f"Ставьте реакции 🔥 и пишите нам в личные сообщения — мы всегда на связи!"
         visual_prompt = CinematographyDirector.compose_cinematic_prompt(topic_clean, niche)["prompt"]
         hashtags = f"#{niche.replace(' ', '_')} #бизнес #качество #новости"
-        visual_prompt = (
-            f"Cinematic emotional storytelling photograph for {niche}. "
-            f"Subject: a passionate dedicated professional in {niche} deeply engaged in their craft at a modern sunlit workstation, genuine focus, pride and mastery. "
-            f"Lighting: warm natural window daylight, soft golden highlights, realistic room depth. "
-            f"Style: authentic commercial storytelling photography, genuine human connection, shallow depth of field, real life texture, photorealistic."
-        )
 
         full_post = f"{lead}\n\n{body}\n\n{cta}"
         

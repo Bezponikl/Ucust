@@ -127,12 +127,20 @@ class CinematographyDirector:
         niche_lower = (niche or "").lower()
         var = variation_index % 4
 
-        # Определение англоязычного контекста ниши
-        niche_en = "professional commercial environment"
-        for k, v in cls.NICHE_EN_MAP.items():
-            if k in niche_lower or k in topic_lower:
-                niche_en = v
+        # Предотвращение Semantic Bleed: если в теме указана конкретная предметная область, она имеет наивысший приоритет
+        domain_priority = ["цвет", "флорист", "букет", "пион", "посуд", "фарфор", "керамик", "глинян", "гончар", "кофе", "пекарн", "десерт", "электроник", "плата", "кот", "собак", "детейлинг", "стоматолог", "недвижим", "it", "saas", "martech"]
+        effective_niche_key = None
+        for k in domain_priority:
+            if k in topic_lower:
+                effective_niche_key = k
                 break
+        if not effective_niche_key:
+            for k in domain_priority:
+                if k in niche_lower:
+                    effective_niche_key = k
+                    break
+
+        niche_en = cls.NICHE_EN_MAP.get(effective_niche_key, "professional commercial environment") if effective_niche_key else "professional commercial environment"
 
         # =========================================================================
         # ПИЛАР 1: АУТЕНТИЧНЫЙ МИР И СФЕРА ДЕЯТЕЛЬНОСТИ (Niche World-Building)
@@ -314,7 +322,10 @@ class CinematographyDirector:
         elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
             subject = "a young female florist in a natural linen apron holding a bouquet of pink peonies"
             environment = "Sunlit floral boutique, rustic wooden worktables, galvanized metal buckets"
-        elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд"]):
+        elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer"]) and any(w in topic_lower for w in ["кофе", "кружк", "чашк", "mug", "coffee", "стол", "ноутбук", "laptop", "office", "офис"]):
+            subject = "a focused male tech developer in a contemporary office looking at a laptop, holding a matte ceramic coffee mug"
+            environment = "Soft ambient office daylight"
+        elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд", "гончар", "глинян"]):
             subject = "an artisan holding a handcrafted bone porcelain cup in hands, distinct individual fingers, authentic tactile grip"
             environment = "Sunlit artisanal ceramic and tableware boutique, open oak display shelves"
         elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо", "разработчик", "инженер"]):
@@ -374,7 +385,7 @@ class CinematographyDirector:
         colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
         # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат/животных
-        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател", "фаундер", "model", "woman", "man", "person", "barista", "doctor", "founder", "florist", "artisan"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
+        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател", "фаундер", "разработчик", "программист", "инженер", "model", "woman", "man", "person", "barista", "doctor", "founder", "florist", "artisan", "developer", "engineer", "male", "female"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
         
         if is_human_scene:
             texture_desc = (

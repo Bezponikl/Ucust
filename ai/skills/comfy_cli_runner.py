@@ -375,18 +375,173 @@ class ComfyCLIRunner:
 
         return workflow_json
 
-    async def is_server_online(self) -> bool:
+    async def is_server_online(self, timeout: float = 3.0) -> bool:
         """
-        Checks if ComfyUI local server is online and responding at http://127.0.0.1:8188.
+        Проверяет доступность локального сервера ComfyUI (http://127.0.0.1:8188).
         """
         if httpx is None:
             return False
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 res = await client.get(f"{self.comfyui_url}/system_stats")
                 return res.status_code == 200
         except Exception:
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    res = await client.get(f"{self.comfyui_url}/")
+                    return res.status_code in {200, 302, 404}
+            except Exception:
+                return False
+
+    async def stop_server(self) -> bool:
+        """
+        Полное отключение ComfyUI сервера и освобождение порта 8188 и VRAM GPU.
+        """
+        print("[ComfyCLIRunner] 🛑 Остановка ComfyUI сервера (полное отключение)...")
+        logger.info("Stopping ComfyUI server on %s", self.comfyui_url)
+
+        # 1. Попытка мягкого прерывания задач через API
+        if httpx is not None:
+            try:
+                async with httpx.AsyncClient(timeout=2.0) as client:
+                    await client.post(f"{self.comfyui_url}/interrupt")
+            except Exception:
+                pass
+
+        # 2. Остановка на Linux / Unix сервере (/opt/ucust)
+        if sys.platform != "win32":
+            try:
+                import subprocess
+                subprocess.run("fuser -k 8188/tcp 2>/dev/null || true", shell=True, timeout=5)
+                subprocess.run("pkill -9 -f 'main.py.*8188' 2>/dev/null || true", shell=True, timeout=5)
+                subprocess.run("pkill -9 -f 'ComfyUI/main.py' 2>/dev/null || true", shell=True, timeout=5)
+                print("[ComfyCLIRunner] 🔌 Процессы ComfyUI на Linux успешно завершены.")
+            except Exception as e:
+                logger.warning("Error terminating ComfyUI processes on Linux: %s", e)
+        else:
+            # 3. Остановка на Windows
+            try:
+                import subprocess
+                out = subprocess.check_output('netstat -ano | findstr :8188', shell=True, text=True, errors='ignore')
+                for line in out.strip().splitlines():
+                    parts = line.strip().split()
+                    if len(parts) >= 5 and "LISTENING" in parts:
+                        pid = parts[-1]
+                        if pid.isdigit() and int(pid) > 0:
+                            subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
+                print("[ComfyCLIRunner] 🔌 Процессы ComfyUI на Windows успешно завершены.")
+            except Exception as e:
+                logger.warning("Error terminating ComfyUI processes on Windows: %s", e)
+
+        await asyncio.sleep(2.0)
+        return True
+
+    async def start_server(self, wait_timeout: float = 45.0) -> bool:
+        """
+        Полный запуск ComfyUI сервера и ожидание готовности к приему задач (до 45 сек).
+        """
+        print("[ComfyCLIRunner] 🚀 Запуск ComfyUI сервера...")
+        logger.info("Starting ComfyUI server...")
+
+        import subprocess
+
+        # Поиск директории ComfyUI
+        comfy_dir_candidates = [
+            "/opt/ucust/ComfyUI",
+            os.path.abspath(os.path.join(PROJECT_ROOT, "..", "ComfyUI")),
+            os.path.abspath(os.path.join(PROJECT_ROOT, "ComfyUI")),
+            "C:/Users/Metal/Documents/ComfyUI",
+            "C:/ComfyUI",
+            "/root/ComfyUI"
+        ]
+        comfy_dir = None
+        for cd in comfy_dir_candidates:
+            if os.path.isdir(cd) and os.path.exists(os.path.join(cd, "main.py")):
+                comfy_dir = cd
+                break
+
+        if not comfy_dir:
+            print("[ComfyCLIRunner] ⚠️ Директория ComfyUI с main.py не найдена. Проверьте путь установки.")
             return False
+
+        # Поиск исполняемого файла Python
+        python_candidates = [
+            "/opt/ucust/venv/bin/python",
+            "/opt/ucust/ai/venv/bin/python",
+            os.path.abspath(os.path.join(PROJECT_ROOT, "..", "venv", "bin", "python")),
+            sys.executable,
+            "python3",
+            "python"
+        ]
+        python_bin = None
+        for py in python_candidates:
+            if os.path.exists(py) and os.access(py, os.X_OK):
+                python_bin = py
+                break
+            elif py in {"python3", "python", sys.executable}:
+                python_bin = py
+                break
+
+        log_file = "/opt/ucust/comfyui.log" if os.path.exists("/opt/ucust") else os.path.join(comfy_dir, "comfy.log")
+
+        # Запуск фонового процесса
+        try:
+            if sys.platform != "win32":
+                start_sh = os.path.join(PROJECT_ROOT, "scripts", "start_comfyui.sh")
+                if os.path.exists(start_sh) and os.access(start_sh, os.X_OK):
+                    subprocess.Popen(["/bin/bash", start_sh], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                else:
+                    log_fd = open(log_file, "a", encoding="utf-8")
+                    subprocess.Popen(
+                        [python_bin, "main.py", "--listen", "0.0.0.0", "--port", "8188"],
+                        cwd=comfy_dir,
+                        stdout=log_fd,
+                        stderr=subprocess.STDOUT,
+                        start_new_session=True
+                    )
+            else:
+                log_fd = open(log_file, "a", encoding="utf-8")
+                subprocess.Popen(
+                    [python_bin, "main.py", "--listen", "127.0.0.1", "--port", "8188"],
+                    cwd=comfy_dir,
+                    stdout=log_fd,
+                    stderr=subprocess.STDOUT,
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP") else 0
+                )
+            print(f"[ComfyCLIRunner] ⚡ Процесс ComfyUI запущен (лог: {log_file}). Ожидание инициализации моделей...")
+        except Exception as start_err:
+            print(f"[ComfyCLIRunner] ⚠️ Ошибка при запуске ComfyUI: {start_err}")
+            return False
+
+        # Ожидание готовности сервера к приему запросов
+        start_time = asyncio.get_event_loop().time()
+        while asyncio.get_event_loop().time() - start_time < wait_timeout:
+            await asyncio.sleep(2.0)
+            if await self.is_server_online():
+                print(f"[ComfyCLIRunner] ✅ ComfyUI сервер успешно запущен и готов к работе ({self.comfyui_url})!")
+                return True
+
+        print(f"[ComfyCLIRunner] ⚠️ Сервер ComfyUI не ответил на пинг за {wait_timeout} сек.")
+        return False
+
+    async def restart_server(self, wait_timeout: float = 45.0) -> bool:
+        """
+        Выполняет полный цикл перезапуска: отключение (shutdown/kill) -> запуск -> верификация доступности.
+        """
+        print("[ComfyCLIRunner] 🔄 Запущен полный перезапуск ComfyUI сервера (Stop -> Start)...")
+        await self.stop_server()
+        return await self.start_server(wait_timeout=wait_timeout)
+
+    async def ensure_server_online(self, wait_timeout: float = 45.0) -> bool:
+        """
+        Проверяет подключение к ComfyUI перед генерацией.
+        Если соединение отсутствует — автоматически выполняет полное отключение и включение.
+        """
+        if await self.is_server_online():
+            return True
+
+        print("[ComfyCLIRunner] 🔌 Соединение с ComfyUI отсутствует (127.0.0.1:8188). Инициация автовосстановления...")
+        return await self.restart_server(wait_timeout=wait_timeout)
 
     def to_api_prompt(self, workflow_json: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -631,7 +786,7 @@ class ComfyCLIRunner:
         """
         Submits photo prompt graph to ComfyUI local API / CLI runner and returns generated image file paths.
         """
-        online = await self.is_server_online()
+        online = await self.ensure_server_online()
         use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
 
         uploaded_images = []

@@ -658,7 +658,7 @@ class PhotoGeneratorSkill:
         try:
             from skills.comfy_cli_runner import ComfyCLIRunner
             comfy_runner = ComfyCLIRunner(output_dir=self.output_dir)
-            if await comfy_runner.is_server_online():
+            if await comfy_runner.ensure_server_online():
                 has_images = bool(attachments and len(attachments) > 0)
                 mode_str = "Edit Mode (True) с апскейлом референсов" if has_images else "Generation Mode (False) с нуля из шума"
                 print(f"[PhotoGeneratorSkill] ⚡ ComfyUI (127.0.0.1:8188) онлайн — запуск Realism 2.0 воркфлоу ({mode_str})...")
@@ -675,7 +675,7 @@ class PhotoGeneratorSkill:
                     filename = os.path.basename(file_path)
                     rendered_via_comfy = True
             else:
-                print("[PhotoGeneratorSkill] ⚠️ Сервер ComfyUI оффлайн (127.0.0.1:8188 недоступен). Публикация будет выполнена без баннера.")
+                print("[PhotoGeneratorSkill] ⚠️ Сервер ComfyUI оффлайн даже после автоперезапуска (127.0.0.1:8188 недоступен). Публикация будет выполнена без баннера.")
         except Exception as e:
             print(f"[PhotoGeneratorSkill] ⚠️ Ошибка вызова ComfyUI: {e}")
         # 2. Если ComfyUI не смог сгенерировать фото (оффлайн или ошибка) — НЕ создаем никаких 2D-баннеров!

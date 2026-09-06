@@ -97,6 +97,15 @@ async def run_pipeline(
             else:
                 attachments.append({"url": img})
 
+    # 0. Pre-Flight Health Check: проверка и автоперезапуск ComfyUI при необходимости
+    try:
+        from skills.comfy_cli_runner import ComfyCLIRunner
+        runner = ComfyCLIRunner()
+        print("\n🔍 Проверка доступности ComfyUI перед генерацией...")
+        await runner.ensure_server_online()
+    except Exception as comfy_chk_err:
+        print(f"⚠️ Ошибка проверки ComfyUI: {comfy_chk_err}")
+
     # 1. Запуск Оркестратора (Сайга + Воронка Ханта + Критик Мангер + Валидация)
     orch = UnifiedOrchestrator()
     task_data = {

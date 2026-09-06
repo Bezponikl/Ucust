@@ -637,6 +637,10 @@ class ComfyCLIRunner:
                                                 }
                     else:
                         print(f"[PhotoGeneratorSkill] ⚠️ ComfyUI вернул ошибку ({response.status_code}): {response.text}")
+            except Exception as exc:
+                print(f"[PhotoGeneratorSkill] ⚠️ Ошибка при обращении к ComfyUI: {exc}")
+                logger.warning("ComfyUI execution exception: %s", exc)
+
         # Строгое правило: НИКАКИХ синтетических 2D-карточек и заглушек!
         # Если ComfyUI вернул ошибку или оффлайн — возвращаем no_image, чтобы пост вышел чистым текстом без фото.
         print("[PhotoGeneratorSkill] ℹ️ Фото не сгенерировано ComfyUI. Публикация будет выполнена строго без фото (чистый текст).")

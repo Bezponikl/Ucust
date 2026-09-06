@@ -122,10 +122,27 @@ class ComfyCLIRunner:
         """
         chosen_seed = seed if seed is not None else random.randint(100000, 999999999999)
         width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1152, 1152))
-        default_neg = (
-            negative_prompt
-            or "blurry, out of focus, soft edges, chromatic aberration, plastic skin, smooth waxy skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, oversaturated, perfect plastic skin, bad anatomy, deformed hands, low resolution artifacts, smudged textures"
+        # Определение типа сцены: твердотельная микроэлектроника vs люди/лайфстайл
+        prompt_lower = (photo_prompt or "").lower()
+        is_electronics = any(
+            w in prompt_lower for w in [
+                "плата", "микросхем", "микроконтроллер", "esp32", "esp-32",
+                "arduino", "ардуино", "pcb", "circuit board", "qfn", "fr4", "fr-4",
+                "чип", "пайк", "soldering", "паяльн"
+            ]
         )
+
+        if is_electronics and not negative_prompt:
+            default_neg = (
+                "spider legs, caterpillar legs, bent legs, thick fringe, cartoon legs, protruding bent pins from pcb edges, "
+                "legs on all four sides, curved pins, organic mesh, blurry, out of focus, soft edges, chromatic aberration, "
+                "low resolution artifacts, smudged textures, 3d render, cartoon, oversaturated"
+            )
+        else:
+            default_neg = (
+                negative_prompt
+                or "blurry, out of focus, soft edges, chromatic aberration, plastic skin, smooth waxy skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, oversaturated, perfect plastic skin, bad anatomy, deformed hands, low resolution artifacts, smudged textures"
+            )
 
         # Определение режима: True = Edit (есть референсы/исходники), False = Generate (с нуля из шума)
         is_edit = edit_mode if edit_mode is not None else bool(images and len(images) > 0)
@@ -139,16 +156,6 @@ class ComfyCLIRunner:
         img1 = img_names[0] if len(img_names) > 0 else "1.png"
         img2 = img_names[1] if len(img_names) > 1 else img1
         img3 = img_names[2] if len(img_names) > 2 else (img_names[1] if len(img_names) > 1 else img1)
-
-        # Определение типа сцены: твердотельная микроэлектроника vs люди/лайфстайл
-        prompt_lower = (photo_prompt or "").lower()
-        is_electronics = any(
-            w in prompt_lower for w in [
-                "плата", "микросхем", "микроконтроллер", "esp32", "esp-32",
-                "arduino", "ардуино", "pcb", "circuit board", "qfn", "fr4", "fr-4",
-                "чип", "пайк", "soldering", "паяльн"
-            ]
-        )
 
         # Case 1: Standard ComfyUI GUI export format with "nodes" array
         if isinstance(workflow_json, dict) and "nodes" in workflow_json:

@@ -169,7 +169,8 @@ class ComfyCLIRunner:
         else:
             default_neg = (
                 negative_prompt
-                or "computational photography blur, fake depth of field, synthetic bokeh, flat background, "
+                or "fused fingers, extra digits, missing fingers, malformed hands, fingers melting into objects, blurred hands, phantom fingers, mutated hands, "
+                "computational photography blur, fake depth of field, synthetic bokeh, flat background, "
                 "thick plastic hair, helmet hair, perfect grooming, CGI hair, hair clumps, stylized clay hair, "
                 "Unreal Engine 5, octane render, digital painting, video game protagonist, hero shot, flawless, 3D render, "
                 "airbrushed, plastic, smooth skin, overly retouched, wax, porcelain, perfect skin, "

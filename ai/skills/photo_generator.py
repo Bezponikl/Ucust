@@ -367,10 +367,18 @@ class CinematographyDirector:
         else:
             texture_desc = "extreme micro-details, tactile surface texture, crisp physical materials, razor-sharp focus, macro lens optical clarity"
 
+        is_full_body = any(w in topic_lower for w in ["полный рост", "во весь рост", "full body", "standing", "ростовой", "в полный рост"])
+        is_action_hands = any(w in topic_lower for w in ["держит", "руки", "пайк", "осциллограф", "инструмент", "holding", "hands", "soldering", "workbench"])
+
+        if is_action_hands:
+            perspective = "sharp focus on both face and hands, deep depth of field (f/5.6), anatomically correct hands with distinct clean individual fingers, razor-sharp focus on PCB components"
+        elif is_full_body:
+            perspective = "sharp full-body 35mm environmental perspective, crisp clothing fabric texture, clear facial features in wide frame"
+
         full_prompt = (
             f"Authentic commercial photograph for {niche_en}. "
             f"Subject: {subject}. "
-            f"Environment: {environment}, optical lens blur, anamorphic background bokeh, f/1.4 depth of field, subtle chromatic aberration. "
+            f"Environment: {environment}, optical lens blur, anamorphic background bokeh, subtle chromatic aberration. "
             f"{colors_str}"
             f"Lighting & Atmosphere: {lighting}. "
             f"Color Harmony: {color_scheme}. "
@@ -543,6 +551,7 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "fused fingers, extra digits, missing fingers, malformed hands, fingers melting into objects, blurred hands, phantom fingers, mutated hands, "
         "computational photography blur, fake depth of field, synthetic bokeh, flat background, "
         "thick plastic hair, helmet hair, perfect grooming, CGI hair, hair clumps, stylized clay hair, "
         "Unreal Engine 5, octane render, digital painting, video game protagonist, hero shot, flawless, 3D render, "

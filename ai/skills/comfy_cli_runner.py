@@ -122,8 +122,16 @@ class ComfyCLIRunner:
         """
         chosen_seed = seed if seed is not None else random.randint(100000, 999999999999)
         width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1152, 1152))
-        # Определение типа сцены: твердотельная микроэлектроника vs люди/лайфстайл
+        # Определение типа сцены: наличие людей vs животные/электроника/предметы
         prompt_lower = (photo_prompt or "").lower()
+        has_human = any(
+            w in prompt_lower for w in [
+                "человек", "девушк", "парен", "мужчин", "женщин", "портрет",
+                "лицо", "модел", "основател", "фаундер", "бариста", "врач", "доктор",
+                "man", "woman", "person", "human", "face", "portrait", "founder", "model"
+            ]
+        ) and not any(w in prompt_lower for w in ["кот", "кошк", "собак", "щенок", "пес", "плата", "esp32", "esp-32", "чип", "десерт", "кофе"])
+
         is_electronics = any(
             w in prompt_lower for w in [
                 "плата", "микросхем", "микроконтроллер", "esp32", "esp-32",
@@ -164,18 +172,18 @@ class ComfyCLIRunner:
                 node_type = node.get("type", "")
                 title = str(node.get("title", ""))
 
-                # 0. Dynamic LoRA bypass for non-human objects (Node 19: RealSkinFix)
+                # 0. Dynamic LoRA activation strictly for humans (Node 19: RealSkinFix)
                 if node_type in {"LoraLoaderBypassModelOnly", "LoraLoader"} or nid == 19:
                     if nid == 19 or "skin" in str(node.get("widgets_values", [])).lower():
-                        skin_strength = 0.0 if is_electronics else 0.95
+                        skin_strength = 0.95 if has_human else 0.0
                         if "widgets_values" in node and len(node["widgets_values"]) >= 2:
                             node["widgets_values"][1] = skin_strength
                         if "widgets_values_named" in node:
                             node["widgets_values_named"]["strength_model"] = skin_strength
-                        if is_electronics:
-                            node["mode"] = 2  # Bypassed
+                        if has_human:
+                            node["mode"] = 0  # Active for human skin
                         else:
-                            node["mode"] = 0  # Active
+                            node["mode"] = 2  # Bypassed for animals/objects
 
                 # 1. Mode: Edit Switch (Node 72 / PrimitiveBoolean)
                 if nid == 72 or node_type == "PrimitiveBoolean" or "Mode: Edit" in title or "Edit" in title:

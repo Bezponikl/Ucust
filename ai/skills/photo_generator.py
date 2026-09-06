@@ -286,8 +286,18 @@ class CinematographyDirector:
         from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
-        if any(w in niche_lower for w in ["martech", "маркетинг", "saas", "it", "ии"]) or any(w in topic_lower for w in ["martech", "маркетинг", "saas", "ии-платформ", "автоматизац", "генеративн", "нейросеть"]):
-            subject = "sleek modern workspace with an open ultra-thin laptop displaying a glowing clean AI marketing automation dashboard with real-time conversion growth graphs, creative preview cards, and automated campaign metrics in sharp focus"
+        # 1. Проверяем конкретные сущности из темы (Topic Subjects) ПЕРЕД общими нишами
+        if "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
+            subject = "macro eye-level commercial pet portrait of a gorgeous fluffy tabby cat with bright sharp amber eyes and crisp long white whiskers, resting comfortably on a wooden desk beside an open laptop displaying high-contrast blue analytics charts"
+            environment = "sunlit contemporary wooden desk, soft warm morning window daylight, crisp foreground focus with soft background office bokeh"
+        elif any(w in topic_lower for w in ["собак", "щенок", "щенк", "пес", "пёс"]):
+            subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо", "разработчик", "инженер"]):
+            subject = "authentic 85mm medium-close portrait of a confident young tech professional with genuine relaxed expression, sharp eyes looking into camera, natural skin texture and pores"
+            environment = "bright modern high-tech office workspace, large wall monitor with glowing analytics charts in soft background bokeh, natural studio lighting"
+        elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
+            subject = visual_spec.get("visual_description", "extreme macro tabletop product photography of genuine ESP-32 development board with straight rigid gold square male header pins, rectangular metal RF shield engraved with ESP-32 logo, matte black FR-4 PCB, copper circuit traces, USB Type-C port")
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "массаж" in topic_lower or "камн" in topic_lower:
             subject = visual_spec.get("visual_description", "serene relaxing hot stone back massage SPA treatment, smooth black basalt stones placed along spine, aromatic botanical oils glistening")
@@ -300,9 +310,6 @@ class CinematographyDirector:
             else:
                 subject = f"captivating charismatic female model posing with poise and elegance, wearing {garment_desc}"
                 environment = "moody luxury penthouse lounge with soft neon ambient reflections, subtle velvet textures, cinematic depth"
-        elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
-            subject = visual_spec.get("visual_description", "extreme macro tabletop product photography of genuine ESP-32 development board with straight rigid gold square male header pins, rectangular metal RF shield engraved with ESP-32 logo, matte black FR-4 PCB, copper circuit traces, USB Type-C port")
-            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["пасочниц", "формы для выпечки", "бумажные формы", "формочки для кулич"]):
             subject = "set of premium pleated brown cellulose Panettone and Easter Kulich paper baking molds with gold filigree and traditional carved wooden paskha pyramid mold on baker table"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
@@ -315,12 +322,6 @@ class CinematographyDirector:
         elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "пасхальн", "освящен"]):
             subject = "tall cylindrical golden-brown artisanal Easter Kulich brioche cake baked in a pleated brown Panettone paper mold with floral print, crowned with a thick glossy white royal icing glaze, decorated with emerald green pistachio sponge moss crumble and pastel sugar candy eggs, eye-level macro depth with background pastries in creamy bokeh"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
-            subject = "charming fluffy domestic tabby cat with expressive amber eyes resting peacefully in a warm sunbeam, relaxed paws, pure domestic happiness"
-            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif any(w in topic_lower for w in ["собак", "щенок", "щенк", "пес", "пёс"]):
-            subject = "healthy energetic loyal dog with shining fur looking curiously and happily at the camera"
-            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "кофе" in topic_lower or "эфиопи" in topic_lower or "капучин" in topic_lower:
             subject = "artisanal ceramic cup of creamy cappuccino with intricate latte art, fresh ripe peach slice and delicate white jasmine flowers on saucer, gentle rising steam"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
@@ -329,6 +330,9 @@ class CinematographyDirector:
             environment = "minimalist luxury travertine marble stone podium, delicate fresh water droplets, soft botanical accents in blurred background, clean studio aesthetic"
         elif "турбин" in topic_lower or "gt2871" in topic_lower or "койловер" in topic_lower or "перфоратор" in topic_lower or "шуруповерт" in topic_lower or "инструмент" in topic_lower:
             subject = visual_spec.get("visual_description", "precision tabletop commercial photograph of professional engineering component")
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in niche_lower for w in ["martech", "маркетинг", "saas", "it", "ии"]) or any(w in topic_lower for w in ["martech", "маркетинг", "saas", "ии-платформ", "автоматизац", "генеративн", "нейросеть"]):
+            subject = "sleek modern workspace with an open ultra-thin laptop displaying a glowing clean AI marketing automation dashboard with real-time conversion growth graphs, creative preview cards, and automated campaign metrics in sharp focus"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         else:
             raw_vis = visual_spec.get("visual_description")

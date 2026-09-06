@@ -228,7 +228,31 @@ class VisualKnowledgeResearcher:
         },
 
         # =========================================================================
-        # 5. СТРОИТЕЛЬНЫЙ ИНСТРУМЕНТ И РЕМОНТ
+        # 5. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IoT ПЛАТЫ
+        # =========================================================================
+        "esp32": {
+            "en_term": "genuine ESP-32 NodeMCU development board with straight gold pins",
+            "visual_description": "authentic ESP-32 development board lying horizontally at a natural 30-degree tabletop angle on a blue anti-static heat-resistant silicone soldering mat, matte black FR-4 fiberglass PCB with glossy gold solder pads and sharp copper routing traces, center rectangular silver nickel-plated RF shield engraved with crisp 'ESP-WROOM-32' text and Wi-Fi icon, two parallel straight rows of rigid 2.54mm gold-plated square male header pins, precision USB Type-C port, sharp macro lens focus with stainless steel curved tweezers and fine silver solder coil in soft background bokeh",
+            "text_story": "микроконтроллер ESP-32: двухъядерный процессор Xtensa 240 МГц, встроенный Wi-Fi/Bluetooth, позолоченные контактные площадки и надежная схемотехника для промышленной и DIY-автоматизации"
+        },
+        "esp-32": {
+            "en_term": "genuine ESP-32 development board with straight gold pins",
+            "visual_description": "authentic ESP-32 development board lying horizontally at a natural 30-degree tabletop angle on a blue anti-static heat-resistant silicone soldering mat, matte black FR-4 fiberglass PCB with glossy gold solder pads and sharp copper routing traces, center rectangular silver nickel-plated RF shield engraved with crisp 'ESP-WROOM-32' text and Wi-Fi icon, two parallel straight rows of rigid 2.54mm gold-plated square male header pins, precision USB Type-C port, sharp macro lens focus with stainless steel curved tweezers and fine silver solder coil in soft background bokeh",
+            "text_story": "микроконтроллер ESP-32: двухъядерный процессор Xtensa 240 МГц, встроенный Wi-Fi/Bluetooth, позолоченные контактные площадки и надежная схемотехника для промышленной и DIY-автоматизации"
+        },
+        "микроконтроллер": {
+            "en_term": "precision electronic microcontroller circuit board",
+            "visual_description": "precision electronic microcontroller development board resting at a natural 30-degree tabletop angle on a blue ESD silicone workstation mat, crisp copper routing traces, square QFN integrated circuit chip, straight rigid gold header pins, macro optical clarity",
+            "text_story": "высокоточный микроконтроллерный модуль для надежной промышленной автоматизации и интернета вещей (IoT)"
+        },
+        "плата": {
+            "en_term": "high-precision multi-layer electronic printed circuit board PCB",
+            "visual_description": "high-precision multi-layer electronic printed circuit board PCB with matte black solder mask, shiny immersion gold pads (ENIG), microscopic copper routing traces, surface-mount SMD components, studio macro tabletop lighting",
+            "text_story": "многослойная печатная плата с иммерсионным золочением контактов (ENIG) и высокой плотностью трассировки дорожек"
+        },
+
+        # =========================================================================
+        # 6. СТРОИТЕЛЬНЫЙ ИНСТРУМЕНТ И РЕМОНТ
         # =========================================================================
         "шуруповерт": {
             "en_term": "heavy-duty cordless brushless drill driver",

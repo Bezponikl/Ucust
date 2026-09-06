@@ -454,6 +454,25 @@ class VisualKnowledgeResearcher:
             "en_term": "adorable fluffy puppy with soft fur and curious bright eyes",
             "visual_description": "heartwarming close-up of an adorable fluffy puppy with ultra-soft downy fur coat, bright curious sparkling eyes, soft pink paws, natural soft lighting creating gentle depth and tangible fur texture",
             "text_story": "очаровательный пушистый щенок: мягкая детская шерстка, любопытный взгляд и естественное освещение"
+        },
+
+        # =========================================================================
+        # 13. ПОРТРЕТЫ ЛЮДЕЙ, ОСНОВАТЕЛЕЙ И МИКРОРЕЛЬЕФ КОЖИ
+        # =========================================================================
+        "основател": {
+            "en_term": "unretouched raw 85mm macro portrait of a tech founder with visible skin pores and directional Rembrandt light",
+            "visual_description": "authentic unretouched 85mm raw commercial portrait of a confident tech founder, visible skin pores, fine micro-details, delicate peach fuzz, subtle natural blemishes, uneven organic skin tone, realistic subsurface scattering, hard directional side Rembrandt lighting creating micro-shadows that reveal skin relief, sharp eyes with natural corneal catchlight, 35mm film grain, ISO 800, authentic analog photo, modern office background in soft creamy bokeh",
+            "text_story": "живой выразительный портрет основателя: естественная текстура кожи с порами, направленный свет Рембрандта и уверенный открытый взгляд"
+        },
+        "фаундер": {
+            "en_term": "unretouched raw 85mm macro portrait of a tech founder with visible skin pores and directional Rembrandt light",
+            "visual_description": "authentic unretouched 85mm raw commercial portrait of a confident tech founder, visible skin pores, fine micro-details, delicate peach fuzz, subtle natural blemishes, uneven organic skin tone, realistic subsurface scattering, hard directional side Rembrandt lighting creating micro-shadows that reveal skin relief, sharp eyes with natural corneal catchlight, 35mm film grain, ISO 800, authentic analog photo, modern office background in soft creamy bokeh",
+            "text_story": "живой выразительный портрет основателя: естественная текстура кожи с порами, направленный свет Рембрандта и уверенный открытый взгляд"
+        },
+        "портрет": {
+            "en_term": "unretouched 85mm raw macro portrait with visible skin pores, peach fuzz and Rembrandt lighting",
+            "visual_description": "unretouched 85mm raw commercial portrait with tangible skin pores, fine facial micro-details, peach fuzz, realistic subsurface scattering, subtle skin imperfections, directional side Rembrandt lighting defining facial structure and micro-contrast, 35mm analog film grain, ISO 800, authentic candid human expression",
+            "text_story": "аутентичный портрет крупным планом: естественный рельеф кожи с порами, направленный светотеневой рисунок и живая эмоция"
         }
     }
 

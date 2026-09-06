@@ -350,13 +350,19 @@ class CinematographyDirector:
         colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
         # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат/животных
-        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "model", "woman", "man", "person", "barista", "doctor"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
+        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател", "фаундер", "model", "woman", "man", "person", "barista", "doctor", "founder"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
         
-        texture_desc = (
-            "natural skin pores, authentic skin texture, sharp eyelashes, genuine human expression"
-            if is_human_scene
-            else "extreme micro-details, tactile surface texture, crisp physical materials, razor-sharp focus, macro lens optical clarity"
-        )
+        if is_human_scene:
+            texture_desc = (
+                "visible skin pores, micro-details, peach fuzz, subtle blemishes, uneven natural skin tone, "
+                "subsurface scattering, unretouched raw macro portrait, natural skin micro-wrinkles, "
+                "35mm film grain, analog photography, ISO 800, authentic human facial imperfections"
+            )
+            # При портретах людей используем направленный свет Рембрандта с микротенями для проявления пор
+            if light_key in {"high_key", "soft_diffused"}:
+                lighting = "dramatic Rembrandt directional side lighting with deep micro-shadows defining skin pores, high micro-contrast, crisp specular highlights on skin"
+        else:
+            texture_desc = "extreme micro-details, tactile surface texture, crisp physical materials, razor-sharp focus, macro lens optical clarity"
 
         full_prompt = (
             f"Authentic commercial photograph for {niche_en}. "

@@ -170,7 +170,10 @@ class ComfyCLIRunner:
         else:
             default_neg = (
                 negative_prompt
-                or "blurry, out of focus, soft edges, chromatic aberration, plastic skin, smooth waxy skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, oversaturated, perfect plastic skin, bad anatomy, deformed hands, low resolution artifacts, smudged textures"
+                or "airbrushed, plastic, smooth skin, overly retouched, CGI, 3D render, wax, porcelain, perfect skin, "
+                "wax figure, mannequin, doll skin, filtered, beauty filter, smooth waxy skin, flat lighting, "
+                "blurry, out of focus, soft edges, chromatic aberration, cartoon, anime, illustration, "
+                "overly smooth, fake lighting, oversaturated, bad anatomy, deformed hands, low resolution artifacts, smudged textures"
             )
 
         # Определение режима: True = Edit (есть референсы/исходники), False = Generate (с нуля из шума)

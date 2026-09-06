@@ -231,23 +231,23 @@ class VisualKnowledgeResearcher:
         # 5. ЭЛЕКТРОНИКА, МИКРОКОНТРОЛЛЕРЫ И IoT ПЛАТЫ
         # =========================================================================
         "esp32": {
-            "en_term": "slender compact rectangular ESP-32 DevKit microcontroller board",
-            "visual_description": "slender compact rectangular ESP-32 DevKit microcontroller development board (25mm by 50mm narrow form factor) lying flat at a 35-degree angled tabletop commercial perspective on a blue anti-static silicone soldering mat with grid lines, matte black FR-4 PCB with crisp immersion gold solder pads and microscopic copper routing traces, center rectangular brushed aluminum RF shield engraved with crisp 'ESP-WROOM-32' and Wi-Fi logo, two parallel straight outer rows of 15 rigid 2.54mm gold-plated square male header pins, bottom USB Type-C port and miniature tactile buttons, resting beside curved stainless steel ESD precision tweezers with soft laboratory bokeh",
+            "en_term": "thin FR-4 PCB ESP-32 DevKit microcontroller board with straight gold pins",
+            "visual_description": "authentic commercial macro photography of a thin 1.6mm matte black FR-4 PCB ESP-32 microcontroller development board resting at a top-down 45-degree angle on a solid blue silicone ESD soldering mat with small molded screw compartments, individual straight rigid gold square 2.54mm male header pins, crisp copper PCB routing traces at strict 45 and 90 degree angles, central rectangular brushed silver RF shield engraved with sharp laser-etched 'ESP-WROOM-32' text and Wi-Fi logo, background out-of-focus bright High-Key contemporary tech lab, bright diffuse studio lighting, crisp specular highlights on solder joints, 100-megapixel, razor-sharp focus, photorealistic",
             "text_story": "микроконтроллер ESP-32 DevKit: двухъядерный процессор Xtensa 240 МГц, встроенный Wi-Fi/Bluetooth, позолоченные контактные площадки и надежная схемотехника для промышленной и DIY-автоматизации"
         },
         "esp-32": {
-            "en_term": "slender compact rectangular ESP-32 DevKit microcontroller board",
-            "visual_description": "slender compact rectangular ESP-32 DevKit microcontroller development board (25mm by 50mm narrow form factor) lying flat at a 35-degree angled tabletop commercial perspective on a blue anti-static silicone soldering mat with grid lines, matte black FR-4 PCB with crisp immersion gold solder pads and microscopic copper routing traces, center rectangular brushed aluminum RF shield engraved with crisp 'ESP-WROOM-32' and Wi-Fi logo, two parallel straight outer rows of 15 rigid 2.54mm gold-plated square male header pins, bottom USB Type-C port and miniature tactile buttons, resting beside curved stainless steel ESD precision tweezers with soft laboratory bokeh",
+            "en_term": "thin FR-4 PCB ESP-32 DevKit microcontroller board with straight gold pins",
+            "visual_description": "authentic commercial macro photography of a thin 1.6mm matte black FR-4 PCB ESP-32 microcontroller development board resting at a top-down 45-degree angle on a solid blue silicone ESD soldering mat with small molded screw compartments, individual straight rigid gold square 2.54mm male header pins, crisp copper PCB routing traces at strict 45 and 90 degree angles, central rectangular brushed silver RF shield engraved with sharp laser-etched 'ESP-WROOM-32' text and Wi-Fi logo, background out-of-focus bright High-Key contemporary tech lab, bright diffuse studio lighting, crisp specular highlights on solder joints, 100-megapixel, razor-sharp focus, photorealistic",
             "text_story": "микроконтроллер ESP-32 DevKit: двухъядерный процессор Xtensa 240 МГц, встроенный Wi-Fi/Bluetooth, позолоченные контактные площадки и надежная схемотехника для промышленной и DIY-автоматизации"
         },
         "микроконтроллер": {
-            "en_term": "precision electronic microcontroller circuit board",
-            "visual_description": "precision electronic microcontroller development board resting at a natural 30-degree tabletop angle on a blue ESD silicone workstation mat, crisp copper routing traces, square QFN integrated circuit chip, straight rigid gold header pins, macro optical clarity",
+            "en_term": "thin electronic microcontroller development board",
+            "visual_description": "thin 1.6mm FR-4 circuit board resting at a top-down 45-degree angle on a solid blue silicone ESD soldering mat, individual straight rigid gold square header pins, crisp copper PCB routing traces at strict 45-degree angles, central square QFN microchip with sharp laser-etched text, bright High-Key studio lighting, crisp specular highlights",
             "text_story": "высокоточный микроконтроллерный модуль для надежной промышленной автоматизации и интернета вещей (IoT)"
         },
         "плата": {
-            "en_term": "high-precision multi-layer electronic printed circuit board PCB",
-            "visual_description": "high-precision multi-layer electronic printed circuit board PCB with matte black solder mask, shiny immersion gold pads (ENIG), microscopic copper routing traces, surface-mount SMD components, studio macro tabletop lighting",
+            "en_term": "thin multi-layer electronic printed circuit board PCB",
+            "visual_description": "thin 1.6mm multi-layer FR-4 electronic printed circuit board PCB with matte black solder mask, immersion gold pads (ENIG), microscopic copper routing traces at strict 45-degree angles, surface-mount SMD components, resting on blue ESD silicone mat, bright High-Key studio lighting",
             "text_story": "многослойная печатная плата с иммерсионным золочением контактов (ENIG) и высокой плотностью трассировки дорожек"
         },
 

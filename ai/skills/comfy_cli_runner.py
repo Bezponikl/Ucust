@@ -140,12 +140,35 @@ class ComfyCLIRunner:
         img2 = img_names[1] if len(img_names) > 1 else img1
         img3 = img_names[2] if len(img_names) > 2 else (img_names[1] if len(img_names) > 1 else img1)
 
+        # Определение типа сцены: твердотельная микроэлектроника vs люди/лайфстайл
+        prompt_lower = (photo_prompt or "").lower()
+        is_electronics = any(
+            w in prompt_lower for w in [
+                "плата", "микросхем", "микроконтроллер", "esp32", "esp-32",
+                "arduino", "ардуино", "pcb", "circuit board", "qfn", "fr4", "fr-4",
+                "чип", "пайк", "soldering", "паяльн"
+            ]
+        )
+
         # Case 1: Standard ComfyUI GUI export format with "nodes" array
         if isinstance(workflow_json, dict) and "nodes" in workflow_json:
             for node in workflow_json.get("nodes", []):
                 nid = node.get("id")
                 node_type = node.get("type", "")
                 title = str(node.get("title", ""))
+
+                # 0. Dynamic LoRA bypass for non-human objects (Node 19: RealSkinFix)
+                if node_type in {"LoraLoaderBypassModelOnly", "LoraLoader"} or nid == 19:
+                    if nid == 19 or "skin" in str(node.get("widgets_values", [])).lower():
+                        skin_strength = 0.0 if is_electronics else 0.95
+                        if "widgets_values" in node and len(node["widgets_values"]) >= 2:
+                            node["widgets_values"][1] = skin_strength
+                        if "widgets_values_named" in node:
+                            node["widgets_values_named"]["strength_model"] = skin_strength
+                        if is_electronics:
+                            node["mode"] = 2  # Bypassed
+                        else:
+                            node["mode"] = 0  # Active
 
                 # 1. Mode: Edit Switch (Node 72 / PrimitiveBoolean)
                 if nid == 72 or node_type == "PrimitiveBoolean" or "Mode: Edit" in title or "Edit" in title:
@@ -219,29 +242,30 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["height"] = target_h
 
                 # 5. Sampler & Seed (KSampler, ClownsharKSampler_Beta)
+                sampler_steps = 4 if is_electronics else 6
                 if node_type == "KSampler":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 1:
                         node["widgets_values"][0] = chosen_seed
                         if len(node["widgets_values"]) >= 4:
-                            node["widgets_values"][2] = 6 # steps = 6 for fine detail convergence
+                            node["widgets_values"][2] = sampler_steps
                         if len(node["widgets_values"]) >= 7 and not is_edit:
                             node["widgets_values"][6] = 1.0 # 100% генерация из шума
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
-                        node["widgets_values_named"]["steps"] = 6
+                        node["widgets_values_named"]["steps"] = sampler_steps
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
 
                 elif node_type == "ClownsharKSampler_Beta":
-                    # Lightning LoRA (Node 6) is designed for 4-8 steps and CFG 1.0. 6 steps gives superior micro-texture resolution.
+                    # Lightning LoRA (Node 6): 4 steps for hard-surface electronics, 6 steps for lifestyle
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
-                        node["widgets_values"][3] = 6       # steps = 6 for ultra-crisp micro-details
+                        node["widgets_values"][3] = sampler_steps
                         if not is_edit:
                             node["widgets_values"][5] = 1.0 # denoise = 1.0 for generation from noise
                         node["widgets_values"][6] = 1.0     # cfg = 1.0 for Lightning distillation
                         node["widgets_values"][7] = chosen_seed
                     if "widgets_values_named" in node:
-                        node["widgets_values_named"]["steps"] = 6
+                        node["widgets_values_named"]["steps"] = sampler_steps
                         node["widgets_values_named"]["cfg"] = 1.0
                         node["widgets_values_named"]["seed"] = chosen_seed
                         if not is_edit:

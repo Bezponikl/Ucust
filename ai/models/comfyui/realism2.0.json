@@ -6,7 +6,7 @@
   "nodes": [
     {
       "id": 1,
-      "type": "UNETLoader",
+      "type": "UnetLoaderGGUF",
       "pos": [
         -791.4577219311163,
         -284.0273827727669
@@ -29,22 +29,13 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "UNETLoader",
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
+        "Node name for S&R": "UnetLoaderGGUF"
       },
       "widgets_values": [
-        "qwen_image_2512_fp8_e4m3fn.safetensors",
-        "default"
+        "qwen-image-2512-BF16.gguf"
       ],
       "widgets_values_named": {
-        "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
-        "weight_dtype": "default"
+        "unet_name": "qwen-image-2512-BF16.gguf"
       }
     },
     {

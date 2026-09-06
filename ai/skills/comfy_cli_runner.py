@@ -169,7 +169,9 @@ class ComfyCLIRunner:
         else:
             default_neg = (
                 negative_prompt
-                or "airbrushed, plastic, smooth skin, overly retouched, CGI, 3D render, wax, porcelain, perfect skin, "
+                or "thick plastic hair, helmet hair, perfect grooming, CGI hair, hair clumps, stylized clay hair, "
+                "Unreal Engine 5, octane render, digital painting, video game protagonist, hero shot, flawless, 3D render, "
+                "airbrushed, plastic, smooth skin, overly retouched, wax, porcelain, perfect skin, "
                 "wax figure, mannequin, doll skin, filtered, beauty filter, smooth waxy skin, flat lighting, "
                 "blurry, out of focus, soft edges, chromatic aberration, cartoon, anime, illustration, "
                 "overly smooth, fake lighting, oversaturated, bad anatomy, deformed hands, low resolution artifacts, smudged textures"
@@ -291,7 +293,7 @@ class ComfyCLIRunner:
 
                 # 5. RES4LYF Sampler (ClownsharKSampler_Beta / KSampler)
                 sampler_steps = 30
-                sampler_cfg = 3.8 if has_human else 4.2
+                sampler_cfg = 2.8 if has_human else 4.2
                 sampler_scheduler = "simple"
                 if node_type == "KSampler":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 1:

@@ -320,7 +320,7 @@ class CinematographyDirector:
             subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
-            subject = "a young female florist wearing a cozy beige long-sleeve cotton shirt and a natural linen apron, holding a bouquet of pink peonies"
+            subject = "a young female florist wearing a loose white cotton t-shirt under a natural linen apron, holding a bouquet of pink peonies"
             environment = "Sunlit floral boutique, rustic wooden worktables, galvanized metal buckets"
         elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer"]) and any(w in topic_lower for w in ["кофе", "кружк", "чашк", "mug", "coffee", "стол", "ноутбук", "laptop", "office", "офис"]):
             subject = "a focused male tech developer wearing a casual dark shirt in a contemporary office looking at a laptop, holding a matte ceramic coffee mug"
@@ -400,11 +400,11 @@ class CinematographyDirector:
                 lighting_desc = lighting
 
             is_full_body = any(w in topic_lower for w in ["полный рост", "во весь рост", "full body", "standing", "ростовой", "в полный рост"])
-            is_action_hands = any(w in topic_lower for w in ["держит", "руки", "пайк", "осциллограф", "инструмент", "holding", "hands", "soldering", "workbench"])
+            is_action_hands = any(w in topic_lower or w in subject.lower() for w in ["держит", "руки", "пайк", "осциллограф", "инструмент", "букет", "пион", "чашк", "кружк", "holding", "hands", "soldering", "workbench", "bouquet", "cup", "mug"])
 
             optics_extra = ""
             if is_action_hands:
-                optics_extra = "distinct clean individual fingers, natural hand grip, "
+                optics_extra = "distinct clean separation between fingers and held objects, anatomically correct 5 fingers with clear knuckles, natural hand grasp, "
             elif is_full_body:
                 optics_extra = "sharp full-body frame, crisp clothing fabric texture, "
 
@@ -591,6 +591,7 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "(extra fingers, mutated joints, fused fingers:1.3), (deformed knuckles, missing phalanges, melting fingers, hand-object fusion:1.25), (stems penetrating through fingers, objects melting into hands:1.2), "
         "bare shoulders, sideboob, bare back, bare arms, naked under apron, open-back, halter top, cleavage, exposed skin, bare chest, shirtless, half-naked, unclothed, revealing clothing, deep neckline, bare midriff, lingerie, swimsuit, bikini, underwear, suggestive, erotic, "
         "100-megapixel Hasselblad, Hasselblad H6D, 8k resolution, 4k, photorealistic, clean editorial, commercial retouching, "
         "crisp specular highlights, artificial global color filter, golden ratio overlay, diagram overlay, "

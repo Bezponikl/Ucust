@@ -344,6 +344,30 @@ class ComfyCLIRunner:
                     if "widgets_values_named" in node and node["widgets_values_named"].get("device") == "cpu":
                         node["widgets_values_named"]["device"] = "default"
 
+                # 8. Impact Pack FaceDetailer & HandDetailer (Multi-bbox Detection & Edge Locks)
+                if "Detailer" in node_type or "FaceDetailer" in node_type or "HandDetailer" in node_type:
+                    if "widgets_values_named" in node:
+                        if "max_detect" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["max_detect"] = 4 # Detect all hands in frame
+                        if "bbox_threshold" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["bbox_threshold"] = 0.35
+                        if "feather" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["feather"] = 25
+                        if "denoise" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["denoise"] = 0.38
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 5:
+                        if "seed" in str(node.get("properties", {})).lower():
+                            pass
+
+                # 9. ControlNet Canny / Depth edge boundary locking
+                if "ControlNetApply" in node_type or "ControlNet" in node_type:
+                    if "widgets_values_named" in node:
+                        if "strength" in node["widgets_values_named"] and node["widgets_values_named"]["strength"] > 0.3:
+                            node["widgets_values_named"]["strength"] = 0.15 # Lightweight edge guard
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 2:
+                        if isinstance(node["widgets_values"][1], (int, float)) and node["widgets_values"][1] > 0.3:
+                            node["widgets_values"][1] = 0.15
+
             logger.info(
                 "Customized ComfyUI Realism 2.0 graph: edit_mode=%s, images=[%s, %s, %s], prompt='%s...', seed=%d, size=%dx%d",
                 is_edit, img1, img2, img3, photo_prompt[:40], chosen_seed, width, height
@@ -371,6 +395,28 @@ class ComfyCLIRunner:
 
                 if class_type in {"KSampler", "SamplerCustomAdvanced", "ClownsharKSampler_Beta", "RandomNoise"} and "seed" in inputs:
                     inputs["seed"] = chosen_seed
+
+                # HandDetailer / FaceDetailer Multi-Hand Detection & Denoise
+                if class_type in {"FaceDetailer", "HandDetailer", "DetailerForEach", "FaceDetailerPipe"}:
+                    if "max_detect" in inputs:
+                        inputs["max_detect"] = 4
+                    if "bbox_threshold" in inputs:
+                        inputs["bbox_threshold"] = 0.35
+                    if "feather" in inputs:
+                        inputs["feather"] = 25
+                    if "denoise" in inputs:
+                        inputs["denoise"] = 0.38
+                    if "guide_size" in inputs:
+                        inputs["guide_size"] = 1024
+                    if "max_size" in inputs:
+                        inputs["max_size"] = 1024
+                    if "seed" in inputs:
+                        inputs["seed"] = chosen_seed
+
+                # ControlNet edge locking
+                if "ControlNetApply" in class_type and "strength" in inputs:
+                    if float(inputs["strength"]) > 0.3:
+                        inputs["strength"] = 0.15
 
             logger.info("Customized ComfyUI API Photo graph with prompt='%s...', seed=%d", photo_prompt[:40], chosen_seed)
             return workflow_json

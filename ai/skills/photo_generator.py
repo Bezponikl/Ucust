@@ -348,7 +348,11 @@ class CinematographyDirector:
         # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат/животных
         is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "model", "woman", "man", "person", "barista", "doctor"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
         
-        texture_desc = "natural skin texture, authentic pores, genuine human expression" if is_human_scene else "tactile surface texture, crisp micro-details, pristine material finish, macro lens clarity"
+        texture_desc = (
+            "natural skin pores, authentic skin texture, sharp eyelashes, genuine human expression"
+            if is_human_scene
+            else "extreme micro-details, tactile surface texture, crisp physical materials, razor-sharp focus, macro lens optical clarity"
+        )
 
         full_prompt = (
             f"Authentic commercial photograph for {niche_en}. "
@@ -358,7 +362,7 @@ class CinematographyDirector:
             f"Lighting & Atmosphere: {lighting}. "
             f"Color Harmony: {color_scheme}. "
             f"Composition & Framing: {composition}. "
-            f"Perspective & Optics: {perspective}, 35mm film masterpiece, fine tactile detail, Hasselblad color science, uncompressed raw photo, {texture_desc}, tactile realism, natural grain, photorealistic."
+            f"Perspective & Optics: {perspective}, 100-megapixel Hasselblad H6D clarity, fine tactile detail, 8k resolution, micro-contrast, crisp specular highlights, uncompressed raw photo, {texture_desc}, tactile realism, photorealistic."
         )
 
         return {
@@ -388,10 +392,12 @@ class PhotoGeneratorSkill:
     """
 
     ASPECT_RATIOS = {
-        "1:1": (1024, 1024),
-        "4:5": (1080, 1350),
-        "16:9": (1280, 720),
-        "9:16": (720, 1280)
+        "1:1": (1152, 1152),
+        "4:5": (1024, 1280),
+        "16:9": (1344, 768),
+        "9:16": (768, 1344),
+        "3:4": (960, 1280),
+        "4:3": (1280, 960)
     }
 
     NICHE_PRESETS = {

@@ -44,12 +44,12 @@ class ComfyCLIRunner:
     """
 
     ASPECT_RATIO_MAP = {
-        "1:1": (1024, 1024),
+        "1:1": (1152, 1152),
         "4:5": (1024, 1280),
-        "16:9": (1280, 720),
-        "9:16": (720, 1280),
-        "3:4": (896, 1152),
-        "4:3": (1152, 896)
+        "16:9": (1344, 768),
+        "9:16": (768, 1344),
+        "3:4": (960, 1280),
+        "4:3": (1280, 960)
     }
 
     def __init__(
@@ -121,10 +121,10 @@ class ComfyCLIRunner:
         edit mode boolean (Node 72), and multi-image inputs (Nodes 55, 64, 65).
         """
         chosen_seed = seed if seed is not None else random.randint(100000, 999999999999)
-        width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
+        width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1152, 1152))
         default_neg = (
             negative_prompt
-            or "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands"
+            or "blurry, out of focus, soft edges, chromatic aberration, plastic skin, smooth waxy skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, overly smooth, fake lighting, oversaturated, perfect plastic skin, bad anatomy, deformed hands, low resolution artifacts, smudged textures"
         )
 
         # Определение режима: True = Edit (есть референсы/исходники), False = Generate (с нуля из шума)
@@ -215,23 +215,26 @@ class ComfyCLIRunner:
                 if node_type == "KSampler":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 1:
                         node["widgets_values"][0] = chosen_seed
+                        if len(node["widgets_values"]) >= 4:
+                            node["widgets_values"][2] = 6 # steps = 6 for fine detail convergence
                         if len(node["widgets_values"]) >= 7 and not is_edit:
                             node["widgets_values"][6] = 1.0 # 100% генерация из шума
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
+                        node["widgets_values_named"]["steps"] = 6
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
 
                 elif node_type == "ClownsharKSampler_Beta":
-                    # Lightning LoRA (Node 6) is designed for 4-8 steps and CFG 1.0
+                    # Lightning LoRA (Node 6) is designed for 4-8 steps and CFG 1.0. 6 steps gives superior micro-texture resolution.
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
-                        node["widgets_values"][3] = 4       # steps = 4 for Lightning 4-steps LoRA
+                        node["widgets_values"][3] = 6       # steps = 6 for ultra-crisp micro-details
                         if not is_edit:
                             node["widgets_values"][5] = 1.0 # denoise = 1.0 for generation from noise
                         node["widgets_values"][6] = 1.0     # cfg = 1.0 for Lightning distillation
                         node["widgets_values"][7] = chosen_seed
                     if "widgets_values_named" in node:
-                        node["widgets_values_named"]["steps"] = 4
+                        node["widgets_values_named"]["steps"] = 6
                         node["widgets_values_named"]["cfg"] = 1.0
                         node["widgets_values_named"]["seed"] = chosen_seed
                         if not is_edit:

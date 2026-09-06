@@ -29,45 +29,45 @@ class CinematographyDirector:
     """
 
     LIGHTING_SCHEMES = {
-        "low_key": "Low-Key lighting with deep velvet shadows and high emotional drama",
-        "high_key": "High-Key lighting with abundant soft luminous tones, airy and pristine",
-        "chiaroscuro": "Chiaroscuro lighting, intense Renaissance contrast between glowing highlights and deep shadow",
-        "silhouette": "Graceful dark silhouette against a radiant glowing background",
-        "gobo_shadows": "Gobo light casting soft atmospheric window blind and botanical shadow patterns",
-        "rim_backlight": "Golden hour Rim lighting / backlighting creating a glowing ethereal contour",
-        "rembrandt": "Rembrandt lighting with subtle luminous triangle highlight on cheekbone",
-        "paramount": "Paramount butterfly lighting defining facial cheekbones with elegant luxury",
-        "spotlight": "Atmospheric warm golden spotlight isolating the subject against dark ambient room",
-        "lens_flare": "Subtle warm lens flares and sunbeams, nostalgic indie film aesthetic",
+        "low_key": "Low-key natural directional light with deep ambient shadows",
+        "high_key": "Soft natural daylight illumination, airy ambient light",
+        "chiaroscuro": "Strong directional side lighting with deep natural shadows",
+        "silhouette": "Natural backlit contour against bright background",
+        "gobo_shadows": "Natural window shadow patterns across the scene",
+        "rim_backlight": "Natural backlighting contour and subtle rim glow",
+        "rembrandt": "Dramatic directional side lighting, deep micro-shadows",
+        "paramount": "Gentle overhead light defining facial planes",
+        "spotlight": "Warm direct task light illuminating the subject",
+        "lens_flare": "Subtle optical lens flare, organic light leak",
         "soft_diffused": "Soft diffused morning window daylight with gentle natural gradients"
     }
 
     COLOR_HARMONIES = {
-        "teal_orange": "Teal and Orange cinematic color harmony, warm golden subject tones separated from cool background",
-        "warm_analogous": "Warm analogous palette of honey, amber, terracotta and roasted gold",
-        "complementary": "Dynamic complementary color contrast creating vibrant visual energy",
-        "muted_editorial": "Refined desaturated muted color palette with timeless editorial sophistication",
-        "monochrome": "Timeless monochromatic tones emphasizing raw texture, geometry and emotion"
+        "teal_orange": "Natural daylight with subtle warm subject tones against cool ambient background",
+        "warm_analogous": "Natural warm daylight and organic earthy materials",
+        "complementary": "Natural color contrast between subject and background",
+        "muted_editorial": "Natural authentic color reproduction, un-graded RAW tones",
+        "monochrome": "Natural monochrome black and white analog film tones"
     }
 
     COMPOSITION_GEOMETRIES = {
-        "rule_of_thirds": "Rule of Thirds composition with key visual weight on dynamic power intersection points",
-        "symmetry": "Cinematic centered symmetrical framing with Wes Anderson precision and balance",
-        "leading_lines": "Dynamic leading lines guiding the viewer's eye seamlessly into the focal subject",
-        "framing": "Natural architectural framing through doorway, window arch or soft foliage",
-        "negative_space": "Expansive negative space creating a high-end minimalist, breathable composition",
-        "triangles": "Stable triangular geometry balancing masses and creating visual permanence",
-        "golden_spiral": "Harmonious golden ratio proportions naturally drawing viewer focus into the scene focal point"
+        "rule_of_thirds": "Rule of thirds framing with subject placed on natural focal points",
+        "symmetry": "Balanced centered framing",
+        "leading_lines": "Natural leading lines through the environment",
+        "framing": "Natural framing through environmental elements",
+        "negative_space": "Uncluttered composition with natural negative space",
+        "triangles": "Natural triangular arrangement of scene elements",
+        "golden_spiral": "Natural flowing compositional curve guiding the eye"
     }
 
     PERSPECTIVES = {
-        "bokeh_shallow": "Shallow depth of field (f/1.4), creamy bokeh background isolation",
-        "low_angle_heroic": "Low-angle heroic perspective conveying confidence, scale and mastery",
-        "tabletop_commercial": "Top-down / 45-degree angled tabletop commercial perspective with rich tactile textures",
-        "candid_eye_level": "Natural eye-level 35mm perspective, clean editorial commercial photography",
-        "culinary_macro_eyelevel": "Eye-level 30-degree shallow depth of field (f/2.8) macro photography, highlighting vertical cylindrical form, side pleated paper casing, dripping glaze contours and crisp foreground focus with soft background bokeh",
-        "culinary_flatlay_topdown": "Strict top-down flatlay perspective (exact 90-degree overhead angle), pristine centered composition on minimalist ceramic plate showcasing decorative glaze details",
-        "culinary_45_slice": "Classic 45-degree angled commercial dessert showcase, featuring whole cake with an appetizing cleanly cut slice placed beside it revealing rich inner moist layers and fillings"
+        "bokeh_shallow": "Shallow depth of field (f/1.4), anamorphic background bokeh",
+        "low_angle_heroic": "Slightly low-angle natural eye-level perspective",
+        "tabletop_commercial": "45-degree angle tabletop view with tactile material focus",
+        "candid_eye_level": "35mm lens, candid natural eye-level perspective",
+        "culinary_macro_eyelevel": "35mm close-up macro lens perspective, f/2.8 shallow depth of field",
+        "culinary_flatlay_topdown": "Direct top-down 90-degree overhead perspective",
+        "culinary_45_slice": "45-degree angled perspective with crisp focal depth"
     }
 
     NICHE_EN_MAP = {
@@ -312,13 +312,13 @@ class CinematographyDirector:
             subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
-            subject = "charming young female florist in natural linen apron arranging an artisan bespoke bouquet of fresh dewy pink peonies and eucalyptus, genuine warm smile, authentic real skin texture, gentle hands holding stems"
-            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+            subject = "a young female florist in a natural linen apron holding a bouquet of pink peonies"
+            environment = "Sunlit floral boutique, rustic wooden worktables, galvanized metal buckets"
         elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд"]):
-            subject = "focused aesthetic shop assistant or ceramic artisan holding a delicate handcrafted matte porcelain bowl in hands, authentic serene expression, refined tactile craftsmanship, crisp individual fingers"
-            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+            subject = "an artisan holding a handcrafted bone porcelain cup in hands, distinct individual fingers, authentic tactile grip"
+            environment = "Sunlit artisanal ceramic and tableware boutique, open oak display shelves"
         elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо", "разработчик", "инженер"]):
-            subject = "authentic 85mm medium-close portrait of a confident young tech professional with genuine relaxed expression, sharp eyes looking into camera, natural skin texture and pores"
+            subject = "a confident young tech professional with genuine relaxed expression, looking into camera"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
             subject = visual_spec.get("visual_description", "extreme macro tabletop product photography of genuine ESP-32 development board with straight rigid gold square male header pins, rectangular metal RF shield engraved with ESP-32 logo, matte black FR-4 PCB, copper circuit traces, USB Type-C port")
@@ -360,7 +360,7 @@ class CinematographyDirector:
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         else:
             raw_vis = visual_spec.get("visual_description")
-            subject = f"authentic candid commercial scene: {raw_vis}" if raw_vis and raw_vis != topic else f"authentic commercial scene representing {niche_en}"
+            subject = f"{raw_vis}" if raw_vis and raw_vis != topic else f"authentic commercial scene representing {niche_en}"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
 
         # =========================================================================
@@ -374,41 +374,46 @@ class CinematographyDirector:
         colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
         # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат/животных
-        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател", "фаундер", "model", "woman", "man", "person", "barista", "doctor", "founder"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
+        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател", "фаундер", "model", "woman", "man", "person", "barista", "doctor", "founder", "florist", "artisan"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
         
         if is_human_scene:
             texture_desc = (
-                "fine individual hair strands, messy hair, random flyaways, slightly unkempt, real hair physics, "
-                "subtle facial asymmetry, slightly uneven eye level, natural skin folds, authentic real human proportions, "
-                "candid amateur snapshot, everyday realism, uneven skin pigmentation, "
-                "(subsurface scattering, raw texture:1.2), (visible skin pores, micro-details:1.2), peach fuzz, subtle blemishes, "
-                "uneven natural skin tone, unretouched raw macro portrait, natural skin micro-wrinkles, "
-                "(35mm film grain, analog photography, ISO 800:1.15), authentic human facial imperfections"
+                "(subsurface scattering, raw texture:1.2), (visible skin pores:1.2), peach fuzz, subtle blemishes, "
+                "uneven natural skin tone, (35mm film grain, ISO 800:1.15), fine individual hair strands, "
+                "messy hair, slightly unkempt, subtle facial asymmetry, natural skin folds, everyday realism"
             )
-            # При портретах людей используем направленный свет Рембрандта с микротенями для проявления пор
-            if light_key in {"high_key", "soft_diffused"}:
-                lighting = "dramatic Rembrandt directional side lighting with deep micro-shadows defining skin pores, high micro-contrast, crisp specular highlights on skin"
+            # Направленный свет с глубокими микротенями для проявления текстуры
+            if light_key in {"high_key", "soft_diffused", "rembrandt"}:
+                lighting_desc = "Dramatic directional side lighting, deep micro-shadows"
+            else:
+                lighting_desc = lighting
+
+            is_full_body = any(w in topic_lower for w in ["полный рост", "во весь рост", "full body", "standing", "ростовой", "в полный рост"])
+            is_action_hands = any(w in topic_lower for w in ["держит", "руки", "пайк", "осциллограф", "инструмент", "holding", "hands", "soldering", "workbench"])
+
+            optics_extra = ""
+            if is_action_hands:
+                optics_extra = "distinct clean individual fingers, natural hand grip, "
+            elif is_full_body:
+                optics_extra = "sharp full-body frame, crisp clothing fabric texture, "
+
+            full_prompt = (
+                f"35mm analog photography, candid snapshot of {subject}. "
+                f"{environment}, anamorphic background bokeh. "
+                f"{lighting_desc}. {optics_extra}"
+                f"{texture_desc}."
+            )
         else:
-            texture_desc = "extreme micro-details, tactile surface texture, crisp physical materials, razor-sharp focus, macro lens optical clarity"
-
-        is_full_body = any(w in topic_lower for w in ["полный рост", "во весь рост", "full body", "standing", "ростовой", "в полный рост"])
-        is_action_hands = any(w in topic_lower for w in ["держит", "руки", "пайк", "осциллограф", "инструмент", "holding", "hands", "soldering", "workbench"])
-
-        if is_action_hands:
-            perspective = "sharp focus on both face and hands, deep depth of field (f/5.6), anatomically correct hands with distinct clean individual fingers, razor-sharp focus on PCB components"
-        elif is_full_body:
-            perspective = "sharp full-body 35mm environmental perspective, crisp clothing fabric texture, clear facial features in wide frame"
-
-        full_prompt = (
-            f"Authentic commercial photograph for {niche_en}. "
-            f"Subject: {subject}. "
-            f"Environment: {environment}, optical lens blur, anamorphic background bokeh, subtle chromatic aberration. "
-            f"{colors_str}"
-            f"Lighting & Atmosphere: {lighting}. "
-            f"Color Harmony: {color_scheme}. "
-            f"Composition & Framing: {composition}. "
-            f"Perspective & Optics: {perspective}, 100-megapixel Hasselblad H6D clarity, fine tactile detail, 8k resolution, micro-contrast, crisp specular highlights, uncompressed raw photo, {texture_desc}, tactile realism, photorealistic."
-        )
+            texture_desc = (
+                "tactile material texture, physical surface imperfections, natural reflections, "
+                "(35mm film grain, ISO 400:1.1), authentic analog depth"
+            )
+            full_prompt = (
+                f"35mm analog photography, candid snapshot of {subject}. "
+                f"{environment}, anamorphic background bokeh. "
+                f"{lighting}. "
+                f"{perspective}, {texture_desc}."
+            )
 
         return {
             "prompt": full_prompt,
@@ -575,11 +580,13 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "100-megapixel Hasselblad, Hasselblad H6D, 8k resolution, 4k, photorealistic, clean editorial, commercial retouching, "
+        "crisp specular highlights, artificial global color filter, golden ratio overlay, diagram overlay, "
         "fused fingers, extra digits, missing fingers, malformed hands, fingers melting into objects, blurred hands, phantom fingers, mutated hands, "
         "computational photography blur, fake depth of field, synthetic bokeh, flat background, "
         "thick plastic hair, helmet hair, perfect grooming, CGI hair, hair clumps, stylized clay hair, "
         "Unreal Engine 5, octane render, digital painting, video game protagonist, hero shot, flawless, 3D render, "
-        "airbrushed, plastic, smooth skin, overly retouched, wax, porcelain, perfect skin, "
+        "airbrushed, plastic, smooth skin, overly retouched, wax, porcelain skin, perfect skin, "
         "smartphone, phone screen, holding smartphone, camera UI, viewfinder, bezel, device mockup, "
         "spiral lines, golden spiral overlay, graphic circle lines, diagram, geometric curves, grid overlay, "
         "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, "

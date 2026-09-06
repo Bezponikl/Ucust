@@ -169,7 +169,8 @@ class ComfyCLIRunner:
         else:
             default_neg = (
                 negative_prompt
-                or "thick plastic hair, helmet hair, perfect grooming, CGI hair, hair clumps, stylized clay hair, "
+                or "computational photography blur, fake depth of field, synthetic bokeh, flat background, "
+                "thick plastic hair, helmet hair, perfect grooming, CGI hair, hair clumps, stylized clay hair, "
                 "Unreal Engine 5, octane render, digital painting, video game protagonist, hero shot, flawless, 3D render, "
                 "airbrushed, plastic, smooth skin, overly retouched, wax, porcelain, perfect skin, "
                 "wax figure, mannequin, doll skin, filtered, beauty filter, smooth waxy skin, flat lighting, "

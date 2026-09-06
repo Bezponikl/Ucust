@@ -320,16 +320,16 @@ class CinematographyDirector:
             subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
-            subject = "a young female florist in a natural linen apron holding a bouquet of pink peonies"
+            subject = "a young female florist wearing a casual modest cotton shirt under a natural linen apron, holding a bouquet of pink peonies"
             environment = "Sunlit floral boutique, rustic wooden worktables, galvanized metal buckets"
         elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer"]) and any(w in topic_lower for w in ["кофе", "кружк", "чашк", "mug", "coffee", "стол", "ноутбук", "laptop", "office", "офис"]):
-            subject = "a focused male tech developer in a contemporary office looking at a laptop, holding a matte ceramic coffee mug"
+            subject = "a focused male tech developer wearing a casual dark shirt in a contemporary office looking at a laptop, holding a matte ceramic coffee mug"
             environment = "Soft ambient office daylight"
         elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд", "гончар", "глинян"]):
-            subject = "an artisan holding a handcrafted bone porcelain cup in hands, distinct individual fingers, authentic tactile grip"
+            subject = "an artisan wearing a casual long-sleeved shirt under an apron, holding a handcrafted bone porcelain cup in hands, distinct individual fingers, authentic tactile grip"
             environment = "Sunlit artisanal ceramic and tableware boutique, open oak display shelves"
         elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо", "разработчик", "инженер"]):
-            subject = "a confident young tech professional with genuine relaxed expression, looking into camera"
+            subject = "a confident young tech professional wearing modest casual clothes with genuine relaxed expression, looking into camera"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
             subject = visual_spec.get("visual_description", "extreme macro tabletop product photography of genuine ESP-32 development board with straight rigid gold square male header pins, rectangular metal RF shield engraved with ESP-32 logo, matte black FR-4 PCB, copper circuit traces, USB Type-C port")
@@ -591,6 +591,7 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "bare shoulders, cleavage, exposed skin, bare chest, shirtless, half-naked, unclothed, revealing clothing, deep neckline, bare midriff, lingerie, swimsuit, bikini, underwear, suggestive, erotic, "
         "100-megapixel Hasselblad, Hasselblad H6D, 8k resolution, 4k, photorealistic, clean editorial, commercial retouching, "
         "crisp specular highlights, artificial global color filter, golden ratio overlay, diagram overlay, "
         "fused fingers, extra digits, missing fingers, malformed hands, fingers melting into objects, blurred hands, phantom fingers, mutated hands, "

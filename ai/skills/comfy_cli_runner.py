@@ -637,41 +637,16 @@ class ComfyCLIRunner:
                                                 }
                     else:
                         print(f"[PhotoGeneratorSkill] ⚠️ ComfyUI вернул ошибку ({response.status_code}): {response.text}")
-            except Exception as exc:
-                print(f"[PhotoGeneratorSkill] ⚠️ Ошибка ComfyUI: {exc}. Переключение на визуальный движок...")
-                logger.warning("ComfyUI execution error: %s. Falling back to local visual engine.", exc)
-
-        # Offline / Fallback mode: Generate high quality visual via PIL engine
-        photo_hash = f"qwen_photo_{os.urandom(4).hex()}"
-        photo_filename = f"{photo_hash}.jpg"
-        photo_path = os.path.join(self.output_dir, photo_filename)
-
-        try:
-            from skills.photo_generator import PhotoGeneratorSkill
-            pg = PhotoGeneratorSkill(output_dir=self.output_dir)
-            w, h = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1024, 1024))
-            display_title = raw_topic or photo_prompt
-            pg._render_realistic_smm_visual(
-                output_path=photo_path,
-                topic=display_title,
-                niche="SMM Commercial Visual",
-                width=w,
-                height=h,
-                company_name="UCust"
-            )
-            logger.info("Generated high-quality SMM photo visual at '%s'", photo_path)
-        except Exception as fallback_exc:
-            logger.error("Failed to render fallback photo: %s", fallback_exc)
-            with open(photo_path, "wb") as f:
-                f.write(b"MOCK_PHOTO_DATA_QWEN_IMAGE")
-
+        # Строгое правило: НИКАКИХ синтетических 2D-карточек и заглушек!
+        # Если ComfyUI вернул ошибку или оффлайн — возвращаем no_image, чтобы пост вышел чистым текстом без фото.
+        print("[PhotoGeneratorSkill] ℹ️ Фото не сгенерировано ComfyUI. Публикация будет выполнена строго без фото (чистый текст).")
         return {
-            "status": "success",
-            "photo_path": photo_path,
-            "file_path": photo_path,
-            "image_url": f"/output/photos/{photo_filename}",
-            "photo_url": f"/output/photos/{photo_filename}",
-            "media_url": f"{self.comfyui_url}/view?filename={photo_filename}",
+            "status": "no_image",
+            "photo_path": None,
+            "file_path": None,
+            "image_url": None,
+            "photo_url": None,
+            "media_url": None,
         }
 
     def _build_fallback_workflow(self, photo_prompt: str, seed: int) -> Dict[str, Any]:

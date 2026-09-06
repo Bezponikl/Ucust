@@ -57,13 +57,17 @@ class ComfyUILocalSkill:
         local_ppath = os.path.join(self.output_dir, f"qwen_photo_{prompt_id}.jpg")
 
         if not os.path.exists(local_ppath):
-            try:
-                with open(local_ppath, "wb") as f:
-                    f.write(b"MOCK_JPEG_HEADER_PHOTO")
-            except Exception:
-                pass
+            return {
+                "status": "no_image",
+                "photo_path": None,
+                "file_path": None,
+                "image_url": None,
+                "photo_url": None,
+                "media_url": None,
+            }
 
         return {
+            "status": "success",
             "photo_path": local_ppath,
             "file_path": local_ppath,
             "image_url": f"/output/photos/{os.path.basename(local_ppath)}",

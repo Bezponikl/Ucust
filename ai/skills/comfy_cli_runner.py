@@ -476,6 +476,44 @@ class ComfyCLIRunner:
                 "inputs": inputs
             }
 
+        # 3. Аппаратная детализация лица (FaceDetailer из Impact Pack)
+        if has_human:
+            face_detector_model = "bbox/face_yolov8m.pt"
+            api_prompt["90"] = {
+                "class_type": "UltralyticsDetectorProvider",
+                "inputs": {
+                    "model_name": face_detector_model
+                }
+            }
+            api_prompt["91"] = {
+                "class_type": "FaceDetailer",
+                "inputs": {
+                    "image": ["48", 0],
+                    "model": ["24", 0] if "24" in api_prompt else ["1", 0],
+                    "clip": ["2", 0],
+                    "vae": ["3", 0],
+                    "guide_size": 512,
+                    "guide_size_for": True,
+                    "max_size": 1024,
+                    "seed": random.randint(100000, 999999999),
+                    "steps": 15,
+                    "cfg": 3.0,
+                    "sampler_name": "euler",
+                    "scheduler": "simple",
+                    "denoise": 0.30,
+                    "feather": 5,
+                    "noise_mask": True,
+                    "force_inpaint": True,
+                    "bbox_detector": ["90", 0],
+                    "positive": ["62", 0] if "62" in api_prompt else ["60", 0],
+                    "negative": ["63", 0] if "63" in api_prompt else ["61", 0],
+                    "wildcard_opt": "",
+                    "cycle": 1
+                }
+            }
+            if "21" in api_prompt and "inputs" in api_prompt["21"]:
+                api_prompt["21"]["inputs"]["images"] = ["91", 0]
+
         return api_prompt
 
     async def upload_attachment(self, att: Any, client: Optional[Any] = None) -> str:

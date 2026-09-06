@@ -129,9 +129,17 @@ async def run_pipeline(
     photo_local_path = None
     if photo_url:
         fname = os.path.basename(photo_url)
-        cand_path = os.path.join(os.path.dirname(__file__), "..", "output", "photos", fname)
-        if os.path.exists(cand_path):
-            photo_local_path = cand_path
+        cand_dirs = [
+            os.path.join(os.path.dirname(__file__), "..", "output", "photos"),
+            "/opt/ucust/ai/output/photos",
+            "/opt/ucust/ComfyUI/output",
+            "output/photos"
+        ]
+        for cdir in cand_dirs:
+            p = os.path.join(cdir, fname)
+            if os.path.exists(p) and os.path.getsize(p) > 1000:
+                photo_local_path = os.path.abspath(p)
+                break
 
     timings = result.get("timings", {})
     text_sec = timings.get("text_gen_seconds")

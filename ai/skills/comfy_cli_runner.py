@@ -477,12 +477,37 @@ class ComfyCLIRunner:
             }
 
         # 3. Аппаратная детализация лица (FaceDetailer из Impact Pack)
+        # 3. Аппаратная детализация лица (FaceDetailer из Impact Pack) с оптическим затуханием ГРИП
         if has_human:
             face_detector_model = "bbox/face_yolov8m.pt"
             api_prompt["90"] = {
                 "class_type": "UltralyticsDetectorProvider",
                 "inputs": {
                     "model_name": face_detector_model
+                }
+            }
+            # Изолированный позитивный промпт для лица с мягким фокусом и пленочным зерном
+            face_pos_prompt = (
+                "(extreme macro eye detail, visible sclera red micro-capillaries, detailed iris striations:1.2), "
+                "natural soft optical focus falloff, shallow depth of field, 35mm film grain, ISO 800, subtle organic skin pores, unretouched real human skin"
+            )
+            # Изолированный негативный промпт для защиты от перешарпа (Clarity/HDR) и софтбоксов
+            face_neg_prompt = (
+                "HDR, oversharpened, clarity slider, excessive contrast, unsharp mask, crunchy texture, halo artifacts, "
+                "studio ring light, perfectly round catchlight, symmetrical eye reflections, doll eyes, cataracts, plastic sclera"
+            )
+            api_prompt["92"] = {
+                "class_type": "TextEncodeQwenImageEditPlus",
+                "inputs": {
+                    "prompt": face_pos_prompt,
+                    "clip": ["2", 0]
+                }
+            }
+            api_prompt["93"] = {
+                "class_type": "TextEncodeQwenImageEditPlus",
+                "inputs": {
+                    "prompt": face_neg_prompt,
+                    "clip": ["2", 0]
                 }
             }
             api_prompt["91"] = {
@@ -496,17 +521,17 @@ class ComfyCLIRunner:
                     "guide_size_for": True,
                     "max_size": 1024,
                     "seed": random.randint(100000, 999999999),
-                    "steps": 15,
-                    "cfg": 3.0,
+                    "steps": 12,
+                    "cfg": 2.8,
                     "sampler_name": "euler",
                     "scheduler": "simple",
-                    "denoise": 0.30,
-                    "feather": 5,
+                    "denoise": 0.22,
+                    "feather": 20,
                     "noise_mask": True,
                     "force_inpaint": True,
                     "bbox_detector": ["90", 0],
-                    "positive": ["62", 0] if "62" in api_prompt else ["60", 0],
-                    "negative": ["63", 0] if "63" in api_prompt else ["61", 0],
+                    "positive": ["92", 0],
+                    "negative": ["93", 0],
                     "wildcard_opt": "",
                     "cycle": 1
                 }

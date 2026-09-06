@@ -1184,17 +1184,7 @@ class SaigaLLMSkill:
             "tone": tone
         }
 
-    def self_heal_text(self, raw_text: str, feedback_log: str) -> str:
-        """
-        Автономный цикл самоисправления: принимает текст, забракованный Gatekeeper,
-        исправляет конкретные ошибки и удаляет стоп-слова без участия человека.
-        """
-        print(f"[SaigaSkill] 🔄 Запуск самоисправления текста на основе фидбека: '{feedback_log}'...")
-        time.sleep(1)
-        healed_text = raw_text.replace("—", "-")
-        for stop_word in ["безумно", "невероятно", "потрясающе", "волшебный", "сказочный", "от всей души", "мы гордимся"]:
-            healed_text = healed_text.replace(stop_word, "").replace("  ", " ")
-        return healed_text
+    # (self_heal_text defined below with full LLM and routing support)
         
     def generate_storyboard(self, profile: dict, scenes_count: int) -> list:
         """
@@ -1280,7 +1270,7 @@ class SaigaLLMSkill:
             
         return storyboard
 
-    def self_heal_text(self, text: str, feedback: str) -> str:
+    def self_heal_text(self, text: str, feedback: str, routing: Optional[Any] = None) -> str:
         """
         Самоисправление и полировка текста на основе обратной связи от Агента-Критика.
         Добавляет конкретику, сильный хук, цифры и четкий призыв к действию (CTA).

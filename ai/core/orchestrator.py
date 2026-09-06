@@ -833,7 +833,7 @@ class UnifiedOrchestrator:
             from skills.critic_munger import CriticMungerSkill
             is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
             if not is_valid:
-                post_text = saiga.self_heal_text(post_text, error_msg or "")
+                post_text = saiga.self_heal_text(post_text, error_msg or "", routing=routing_directive)
                 
             critic = CriticMungerSkill(strictness=0.80)
             critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche, routing=routing_directive)
@@ -843,10 +843,10 @@ class UnifiedOrchestrator:
             while not critic_res.get("passed") and healing_attempts < MAX_HEALING_RETRIES:
                 healing_attempts += 1
                 print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Итерация {healing_attempts}/{MAX_HEALING_RETRIES}, Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
-                post_text = saiga.self_heal_text(post_text, critic_res.get("actionable_feedback", ""))
+                post_text = saiga.self_heal_text(post_text, critic_res.get("actionable_feedback", ""), routing=routing_directive)
                 is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
                 if not is_valid:
-                    post_text = saiga.self_heal_text(post_text, error_msg or "")
+                    post_text = saiga.self_heal_text(post_text, error_msg or "", routing=routing_directive)
                 critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche, routing=routing_directive)
 
             if not critic_res.get("passed"):

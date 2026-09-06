@@ -204,12 +204,19 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["height"] = height
 
                 if node_type == "ImageScale":
+                    if nid == 82:
+                        target_w = int(width * 1.5)
+                        target_h = int(height * 1.5)
+                    else:
+                        target_w = width
+                        target_h = height
+
                     if "widgets_values" in node and len(node["widgets_values"]) >= 3:
-                        node["widgets_values"][1] = width
-                        node["widgets_values"][2] = height
+                        node["widgets_values"][1] = target_w
+                        node["widgets_values"][2] = target_h
                     if "widgets_values_named" in node:
-                        node["widgets_values_named"]["width"] = width
-                        node["widgets_values_named"]["height"] = height
+                        node["widgets_values_named"]["width"] = target_w
+                        node["widgets_values_named"]["height"] = target_h
 
                 # 5. Sampler & Seed (KSampler, ClownsharKSampler_Beta)
                 if node_type == "KSampler":

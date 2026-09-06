@@ -533,25 +533,25 @@ def generate_pitch_deck_pdf():
             Paragraph("Мгновенный (1 мс). Отсечение B2B-оксюморонов до вызова нейросетей", s_table_cell)
         ],
         [
-            Paragraph("<b>Сайга LLM (Llama-3-8B Q5_K_M)</b>", s_table_cell),
-            Paragraph("🎮 <b>GPU</b> (CUDA VRAM)", s_table_cell),
-            Paragraph("4.5–5.5 ГБ VRAM", s_table_cell),
-            Paragraph("Высокий. Генерация текста за 1.5–2 сек (30–50 токенов/сек)", s_table_cell)
+            Paragraph("<b>Сайга LLM (Saiga NeMo 12B BF16)</b>", s_table_cell),
+            Paragraph("🎮 <b>GPU</b> (CUDA BF16 VRAM)", s_table_cell),
+            Paragraph("22.8 ГБ VRAM (на A100 / 48GB)", s_table_cell),
+            Paragraph("Высокий. Генерация авторского текста без компромиссов в слоге (35–50 токенов/сек)", s_table_cell)
         ],
         [
-            Paragraph("<b>ComfyUI (Realism 2.0 Engine)</b>", s_table_cell),
-            Paragraph("🎮 <b>GPU</b> (Tensor Cores)", s_table_cell),
-            Paragraph("8.0–12.0 ГБ VRAM", s_table_cell),
-            Paragraph("Максимальный. Последовательный рендеринг фото за 3–5 сек", s_table_cell)
+            Paragraph("<b>ComfyUI (Qwen-Image BF16 + Realism 2.0)</b>", s_table_cell),
+            Paragraph("🎮 <b>GPU</b> (Tensor Cores BF16)", s_table_cell),
+            Paragraph("38.1 ГБ VRAM (DiT + VAE + LoRA)", s_table_cell),
+            Paragraph("Максимальный. Рендеринг 4-step Lightning фотореалистичного кадра за 3–5 сек", s_table_cell)
         ],
         [
             Paragraph("<b>Moondream2 VLM (Зрение)</b>", s_table_cell),
             Paragraph("🔄 <b>GPU / CPU Fallback</b>", s_table_cell),
-            Paragraph("1.5 ГБ VRAM / 30 МБ RAM", s_table_cell),
+            Paragraph("3.5 ГБ VRAM / RAM Fallback", s_table_cell),
             Paragraph("При наплыве очереди автоматически уступает VRAM под ComfyUI", s_table_cell)
         ]
     ]
-    t_hw = Table(hw_data, colWidths=[6.5 * cm, 5.0 * cm, 5.0 * cm, 10.0 * cm])
+    t_hw = Table(hw_data, colWidths=[6.8 * cm, 4.8 * cm, 5.2 * cm, 9.7 * cm])
     t_hw.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1E3A8A")),
         ('BACKGROUND', (0, 1), (-1, 3), colors.HexColor("#F8FAFC")),
@@ -566,9 +566,10 @@ def generate_pitch_deck_pdf():
     story.append(Spacer(1, 0.4 * cm))
 
     story.append(Paragraph(
-        "<b>Принцип Time-Division Multiplexing:</b> Сайга и ComfyUI не борются за видеопамять одновременно. "
-        "Сайга генерирует текст за 1.5 сек $\\rightarrow$ память очищается $\\rightarrow$ ComfyUI рендерит фото за 3 сек. "
-        "Это позволяет запускать всю экосистему даже на одной доступной видеокарте (уровня RTX 3060/4060).",
+        "<b>Enterprise & High-Load балансировка:</b> В Enterprise-конфигурации (Tesla A100 80GB / RTX 48GB) система использует неквантованные модели "
+        "<b>saiga_nemo_12b.BF16.gguf</b> (22.8 ГБ) и <b>qwen-image-2512-BF16.gguf</b> (38.1 ГБ), которые полностью помещаются в HBM2e память. "
+        "На серверах с 24–48 ГБ VRAM интеллектуальный шедулер использует Time-Division Multiplexing: Сайга генерирует текст за 1.5 сек $\\rightarrow$ "
+        "память очищается $\\rightarrow$ ComfyUI рендерит фото за 3 сек, гарантируя нулевые задержки при пиковом наплыве.",
         s_body
     ))
     story.append(PageBreak())

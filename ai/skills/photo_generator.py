@@ -320,7 +320,7 @@ class CinematographyDirector:
             subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
-            subject = "a young female florist wearing a casual modest cotton shirt under a natural linen apron, holding a bouquet of pink peonies"
+            subject = "a young female florist wearing a cozy beige long-sleeve cotton shirt and a natural linen apron, holding a bouquet of pink peonies"
             environment = "Sunlit floral boutique, rustic wooden worktables, galvanized metal buckets"
         elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer"]) and any(w in topic_lower for w in ["кофе", "кружк", "чашк", "mug", "coffee", "стол", "ноутбук", "laptop", "office", "офис"]):
             subject = "a focused male tech developer wearing a casual dark shirt in a contemporary office looking at a laptop, holding a matte ceramic coffee mug"
@@ -591,7 +591,7 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
-        "bare shoulders, cleavage, exposed skin, bare chest, shirtless, half-naked, unclothed, revealing clothing, deep neckline, bare midriff, lingerie, swimsuit, bikini, underwear, suggestive, erotic, "
+        "bare shoulders, sideboob, bare back, bare arms, naked under apron, open-back, halter top, cleavage, exposed skin, bare chest, shirtless, half-naked, unclothed, revealing clothing, deep neckline, bare midriff, lingerie, swimsuit, bikini, underwear, suggestive, erotic, "
         "100-megapixel Hasselblad, Hasselblad H6D, 8k resolution, 4k, photorealistic, clean editorial, commercial retouching, "
         "crisp specular highlights, artificial global color filter, golden ratio overlay, diagram overlay, "
         "fused fingers, extra digits, missing fingers, malformed hands, fingers melting into objects, blurred hands, phantom fingers, mutated hands, "

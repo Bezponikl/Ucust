@@ -100,6 +100,12 @@ class CinematographyDirector:
         "собак": "vibrant outdoor park with joyful well-trained dogs",
         "религи": "historic sacred cultural architecture with stained glass and candle glow",
         "церков": "peaceful historic cathedral with serene architectural beauty",
+        "цвет": "charming Parisian floral boutique and botanical atelier",
+        "флорист": "artisan floral design studio and botanical boutique",
+        "букет": "luxury artisan flower atelier with fresh dewy blooms",
+        "посуд": "high-end artisanal ceramic, fine porcelain and tableware boutique",
+        "фарфор": "luxury fine porcelain, bone china and handcrafted ceramic salon",
+        "керамик": "artisan pottery and handcrafted ceramic studio",
         "бизнес": "contemporary creative professional studio",
         "услуг": "modern professional service workspace"
     }
@@ -192,6 +198,18 @@ class CinematographyDirector:
                 {"setting": "contemporary luxury kitchen and dining area with monolithic quartz island and designer pendant lights", "props": "fresh fruit bowl, sunbeams piercing the room, elite architectural lifestyle"},
                 {"setting": "airy sunlit master bedroom with herringbone oak flooring and sheer linen curtains fluttering in breeze", "props": "crisp white bedding, warm morning sunlight, serene sanctuary"},
                 {"setting": "panoramic sunset terrace lounge with comfortable designer armchairs overlooking vibrant city lights", "props": "warm twilight sky, ambient recessed deck lighting, prestige and triumph"}
+            ],
+            "цвет": [
+                {"setting": "sunlit Parisian floral boutique with rustic wooden worktables and arched European windows", "props": "fresh dewy pink peonies, eucalyptus stems, galvanized metal flower buckets, garden shears and ribbon rolls in soft focus"},
+                {"setting": "charming botanical flower shop with cascading lush green foliage and sunbeams streaming through glass", "props": "delicate ranunculus bouquet in kraft paper wrap, water droplets on petals, artisan terracotta pots"},
+                {"setting": "modern minimalist floral atelier with concrete surfaces and clean glass vases", "props": "exquisite white hydrangeas and garden roses, soft natural window daylight, botanical elegance"},
+                {"setting": "cozy warm flower boutique counter at morning golden hour", "props": "vibrant fresh-cut seasonal flowers, organic twine spools, rustic wooden counter with rich tactile grain"}
+            ],
+            "посуд": [
+                {"setting": "elegant sunlit artisanal ceramic and tableware boutique with warm open oak display shelves", "props": "handcrafted matte ceramic bowls, delicate bone porcelain plates, organic textured earthenware in soft warm ambient light"},
+                {"setting": "minimalist Scandinavian tableware showroom with travertine stone pedestals", "props": "fine porcelain tea set with subtle glaze cracks, linen tablecloth in soft bokeh, timeless craftsmanship"},
+                {"setting": "warm luxury porcelain gallery with soft directional gallery spotlights", "props": "exquisite bone china teacups, glazed ceramic vases, elegant refined lifestyle aesthetic"},
+                {"setting": "charming European artisan tableware boutique counter with natural morning daylight", "props": "stacked handcrafted ceramic dinnerware, wooden serving spoons, pure tactile authenticity"}
             ]
         }
 

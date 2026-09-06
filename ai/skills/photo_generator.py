@@ -308,12 +308,18 @@ class CinematographyDirector:
         if "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
             subject = "macro eye-level commercial pet portrait of a gorgeous fluffy tabby cat with bright sharp amber eyes and crisp long white whiskers, resting comfortably on a wooden desk beside an open laptop displaying high-contrast blue analytics charts"
             environment = "sunlit contemporary wooden desk, soft warm morning window daylight, crisp foreground focus with soft background office bokeh"
-        elif any(w in topic_lower for w in ["собак", "щенок", "щенк", "пес", "пёс"]):
+        elif any(w in topic_lower for w in ["собак", "щенок", "щенк"]) or any(re.search(rf'\b{w}\b', topic_lower) for w in ["пес", "пёс", "dog", "puppy"]):
             subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
+            subject = "charming young female florist in natural linen apron arranging an artisan bespoke bouquet of fresh dewy pink peonies and eucalyptus, genuine warm smile, authentic real skin texture, gentle hands holding stems"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд"]):
+            subject = "focused aesthetic shop assistant or ceramic artisan holding a delicate handcrafted matte porcelain bowl in hands, authentic serene expression, refined tactile craftsmanship, crisp individual fingers"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо", "разработчик", "инженер"]):
             subject = "authentic 85mm medium-close portrait of a confident young tech professional with genuine relaxed expression, sharp eyes looking into camera, natural skin texture and pores"
-            environment = "bright modern high-tech office workspace, large wall monitor with glowing analytics charts in soft background bokeh, natural studio lighting"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
             subject = visual_spec.get("visual_description", "extreme macro tabletop product photography of genuine ESP-32 development board with straight rigid gold square male header pins, rectangular metal RF shield engraved with ESP-32 logo, matte black FR-4 PCB, copper circuit traces, USB Type-C port")
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"

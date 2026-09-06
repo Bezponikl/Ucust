@@ -354,9 +354,10 @@ class CinematographyDirector:
         
         if is_human_scene:
             texture_desc = (
-                "visible skin pores, micro-details, peach fuzz, subtle blemishes, uneven natural skin tone, "
-                "subsurface scattering, unretouched raw macro portrait, natural skin micro-wrinkles, "
-                "35mm film grain, analog photography, ISO 800, authentic human facial imperfections"
+                "subtle facial asymmetry, slightly uneven eye level, natural skin folds, authentic real human proportions, "
+                "(subsurface scattering, raw texture:1.2), (visible skin pores, micro-details:1.2), peach fuzz, subtle blemishes, "
+                "uneven natural skin tone, unretouched raw macro portrait, natural skin micro-wrinkles, "
+                "(35mm film grain, analog photography, ISO 800:1.15), authentic human facial imperfections"
             )
             # При портретах людей используем направленный свет Рембрандта с микротенями для проявления пор
             if light_key in {"high_key", "soft_diffused"}:

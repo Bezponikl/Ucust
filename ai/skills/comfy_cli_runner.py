@@ -292,7 +292,8 @@ class ComfyCLIRunner:
 
                 # 5. Sampler & Seed (KSampler, ClownsharKSampler_Beta)
                 sampler_steps = 28 if use_high_fidelity else (4 if is_electronics else 6)
-                sampler_cfg = 4.0 if use_high_fidelity else 1.0
+                # Для человеческой кожи держим CFG 3.4, чтобы не пережигать микроконтраст; для плат/текста - 4.0
+                sampler_cfg = 3.4 if has_human else (4.0 if use_high_fidelity else 1.0)
                 sampler_scheduler = "simple"
                 if node_type == "KSampler":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 1:
@@ -395,8 +396,9 @@ class ComfyCLIRunner:
         if not isinstance(workflow_json, dict) or "nodes" not in workflow_json:
             return workflow_json
 
-        # Determine if edit mode is active
+        # Determine if edit mode is active and if human skin LoRA is active
         is_edit = False
+        has_human = False
         for node in workflow_json.get("nodes", []):
             nid = node.get("id")
             if nid == 72 or node.get("type") == "PrimitiveBoolean" or "Mode: Edit" in str(node.get("title", "")):
@@ -404,6 +406,8 @@ class ComfyCLIRunner:
                     is_edit = bool(node["widgets_values"][0])
                 elif "widgets_values_named" in node and "value" in node["widgets_values_named"]:
                     is_edit = bool(node["widgets_values_named"]["value"])
+            if (nid == 19 or "skin" in str(node.get("widgets_values", [])).lower()) and node.get("mode") == 0:
+                has_human = True
 
         # 1. Build link map: link_id -> [from_node_id_str, from_slot_idx]
         links_map = {}
@@ -423,6 +427,10 @@ class ComfyCLIRunner:
                 # If link comes from Image Comparer (Node 68), bypass it directly to VAEDecode (Node 53)!
                 if from_node == "68" or from_node == 68:
                     from_node, from_slot = "53", 0  # VAEDecode output image
+
+                # Для портретов людей: исключаем 4x-UltraSharp (81/82), забираем чистый VAE декод (48) с пленочным зерном и порами!
+                if has_human and (from_node == "82" or from_node == "81"):
+                    from_node, from_slot = "48", 0  # VAEDecodeTiled output image
 
                 links_map[link_id] = [from_node, from_slot]
 

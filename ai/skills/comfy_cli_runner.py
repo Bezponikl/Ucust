@@ -122,7 +122,7 @@ class ComfyCLIRunner:
         """
         chosen_seed = seed if seed is not None else random.randint(100000, 999999999999)
         width, height = self.ASPECT_RATIO_MAP.get(aspect_ratio, (1152, 1152))
-        # Определение типа сцены: наличие людей vs животные/электроника/предметы
+        # Определение типа сцены: наличие людей vs животные/электроника/экраны
         prompt_lower = (photo_prompt or "").lower()
         has_human = any(
             w in prompt_lower for w in [
@@ -130,7 +130,22 @@ class ComfyCLIRunner:
                 "лицо", "модел", "основател", "фаундер", "бариста", "врач", "доктор",
                 "man", "woman", "person", "human", "face", "portrait", "founder", "model"
             ]
-        ) and not any(w in prompt_lower for w in ["кот", "кошк", "собак", "щенок", "пес", "плата", "esp32", "esp-32", "чип", "десерт", "кофе"])
+        ) and not any(w in prompt_lower for w in ["плата", "esp32", "esp-32", "чип"])
+
+        has_animal = any(
+            w in prompt_lower for w in [
+                "кот", "кошк", "котен", "котенок", "котейк", "собак", "щенок", "пес", "пёс",
+                "животн", "шерст", "мех", "cat", "dog", "puppy", "kitten", "fur", "animal", "pet"
+            ]
+        )
+
+        has_screen_or_ui = any(
+            w in prompt_lower for w in [
+                "монитор", "экран", "дисплей", "ноутбук", "график", "чарт", "дашборд",
+                "интерфейс", "текст", "код", "таблиц", "объявлен", "вывеск",
+                "monitor", "screen", "display", "laptop", "chart", "dashboard", "ui", "code", "typography", "signboard"
+            ]
+        )
 
         is_electronics = any(
             w in prompt_lower for w in [
@@ -139,6 +154,12 @@ class ComfyCLIRunner:
                 "чип", "пайк", "soldering", "паяльн"
             ]
         )
+
+        # Режим высокой детализации (High-Fidelity Master Mode):
+        # Если в сцене присутствуют конфликтующие текстуры (шерсть, экраны с графиками, микроэлектроника)
+        # отключаем Lightning LoRA для чистой базовой диффузии на 28 шагах с CFG 4.0.
+        is_complex_scene = bool(has_animal or has_screen_or_ui or is_electronics or (has_human and (has_animal or has_screen_or_ui)))
+        use_high_fidelity = is_complex_scene
 
         if is_electronics and not negative_prompt:
             default_neg = (
@@ -172,7 +193,17 @@ class ComfyCLIRunner:
                 node_type = node.get("type", "")
                 title = str(node.get("title", ""))
 
-                # 0. Dynamic LoRA activation strictly for humans (Node 19: RealSkinFix)
+                # 0a. Dynamic Lightning LoRA control (Node 6)
+                if node_type in {"LoraLoaderBypassModelOnly", "LoraLoader"} or nid == 6:
+                    if nid == 6 or "lightning" in str(node.get("widgets_values", [])).lower():
+                        lightning_strength = 0.0 if use_high_fidelity else 1.0
+                        if "widgets_values" in node and len(node["widgets_values"]) >= 2:
+                            node["widgets_values"][1] = lightning_strength
+                        if "widgets_values_named" in node:
+                            node["widgets_values_named"]["strength_model"] = lightning_strength
+                        node["mode"] = 2 if use_high_fidelity else 0
+
+                # 0b. Dynamic Skin LoRA activation strictly for humans (Node 19: RealSkinFix)
                 if node_type in {"LoraLoaderBypassModelOnly", "LoraLoader"} or nid == 19:
                     if nid == 19 or "skin" in str(node.get("widgets_values", [])).lower():
                         skin_strength = 0.95 if has_human else 0.0
@@ -183,7 +214,7 @@ class ComfyCLIRunner:
                         if has_human:
                             node["mode"] = 0  # Active for human skin
                         else:
-                            node["mode"] = 2  # Bypassed for animals/objects
+                            node["mode"] = 2  # Bypassed for animals/objects/monitors
 
                 # 1. Mode: Edit Switch (Node 72 / PrimitiveBoolean)
                 if nid == 72 or node_type == "PrimitiveBoolean" or "Mode: Edit" in title or "Edit" in title:
@@ -257,32 +288,39 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["height"] = target_h
 
                 # 5. Sampler & Seed (KSampler, ClownsharKSampler_Beta)
-                sampler_steps = 4 if is_electronics else 6
+                sampler_steps = 28 if use_high_fidelity else (4 if is_electronics else 6)
+                sampler_cfg = 4.0 if use_high_fidelity else 1.0
+                sampler_scheduler = "simple"
                 if node_type == "KSampler":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 1:
                         node["widgets_values"][0] = chosen_seed
                         if len(node["widgets_values"]) >= 4:
                             node["widgets_values"][2] = sampler_steps
+                            node["widgets_values"][3] = sampler_cfg
                         if len(node["widgets_values"]) >= 7 and not is_edit:
                             node["widgets_values"][6] = 1.0 # 100% генерация из шума
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
                         node["widgets_values_named"]["steps"] = sampler_steps
+                        node["widgets_values_named"]["cfg"] = sampler_cfg
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
 
                 elif node_type == "ClownsharKSampler_Beta":
-                    # Lightning LoRA (Node 6): 4 steps for hard-surface electronics, 6 steps for lifestyle
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
+                        node["widgets_values"][1] = "linear/euler" if not use_high_fidelity else "euler"
+                        node["widgets_values"][2] = sampler_scheduler
                         node["widgets_values"][3] = sampler_steps
                         if not is_edit:
                             node["widgets_values"][5] = 1.0 # denoise = 1.0 for generation from noise
-                        node["widgets_values"][6] = 1.0     # cfg = 1.0 for Lightning distillation
+                        node["widgets_values"][6] = sampler_cfg
                         node["widgets_values"][7] = chosen_seed
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["steps"] = sampler_steps
-                        node["widgets_values_named"]["cfg"] = 1.0
+                        node["widgets_values_named"]["cfg"] = sampler_cfg
                         node["widgets_values_named"]["seed"] = chosen_seed
+                        node["widgets_values_named"]["sampler_name"] = "linear/euler" if not use_high_fidelity else "euler"
+                        node["widgets_values_named"]["scheduler"] = sampler_scheduler
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
 

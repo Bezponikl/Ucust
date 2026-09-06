@@ -408,15 +408,52 @@ class VisualKnowledgeResearcher:
             "visual_description": "minimalist tanning bikini with strapless bandeau top and ultra-low coverage bottoms designed to minimize tan lines, high-grade quick-dry matte lycra",
             "text_story": "модель бандо без бретелей для ровного бронзового загара из быстросохнущей матовой лайкры"
         },
-        "кимоно": {
-            "en_term": "Mulberry silk kimono robe",
-            "visual_description": "flowing luxurious Mulberry silk kimono robe with smooth lustrous sheen, elegant wide sleeves and delicate golden embroidery accents",
-            "text_story": "струящийся натуральный шелк малбери, изысканный блеск и свободный силуэт для моментов домашней роскоши"
+        # =========================================================================
+        # 11. ДИСПЛЕИ, ГРАФИКИ, МОНИТОРЫ И ДАШБОРДЫ
+        # =========================================================================
+        "монитор": {
+            "en_term": "ultra-sharp 4K OLED monitor showing financial candlestick chart and glowing UI dashboard",
+            "visual_description": "ultra-sharp matte anti-glare 4K OLED computer monitor display cleanly rendering vibrant emerald-green and crimson-red financial candlestick chart graphs, crisp micro-thin vector grid lines, readable monospace UI typography, elegant code editor dashboard with syntax highlighting, subtle ambient edge-lit glow reflecting on natural desk surface, zero motion blur, anti-aliased clean lines",
+            "text_story": "высокоточный 4K OLED монитор с антибликовым покрытием: кристально резкие графики, читаемый моноширинный код и детализированная векторная аналитика"
         },
-        "корсет": {
-            "en_term": "structured Victorian boned corset",
-            "visual_description": "tailored satin corset with structured vertical boning channels, delicate lace trim and satin back ribbon lacing",
-            "text_story": "скульптурирующий силуэт на гибких косточках с атласной шнуровкой и нежным кружевом"
+        "график": {
+            "en_term": "high-resolution financial analytics candlestick chart and vector dashboard on screen",
+            "visual_description": "crisp glowing financial analytics dashboard on a modern frameless OLED screen, precise candlestick chart bars with thin wicks and moving average curve lines, sharp numbers and clean legible percentages, subtle dark-mode UI with high contrast, extreme optical clarity",
+            "text_story": "интерактивный аналитический дашборд: четкие графики японских свечей, индикаторы волатильности и читаемая финансовая инфографика"
+        },
+        "дашборд": {
+            "en_term": "modern SaaS analytics dashboard with charts and clean typography on screen",
+            "visual_description": "sleek modern dark-mode SaaS product dashboard on a laptop display, showing real-time line charts, conversion metrics, circular progress rings and clean legible typography, realistic screen pixel grid under macro lens, soft reflections",
+            "text_story": "современный аналитический интерфейс с интерактивными графиками, метриками конверсии и безупречной типографикой"
+        },
+        "экран": {
+            "en_term": "sharp anti-reflective OLED display with crisp UI graphics",
+            "visual_description": "sharp anti-reflective OLED display screen displaying high-contrast vector charts and crisp typography, natural ambient light reflections on the glass, zero blurring or color bleeding",
+            "text_story": "четкий OLED-дисплей с глубоким черным цветом, высокой контрастностью и точной передачей тонких линий"
+        },
+
+        # =========================================================================
+        # 12. ЖИВОТНЫЕ, ШЕРСТЬ И МАКРО-ДЕТАЛИЗАЦИЯ
+        # =========================================================================
+        "кот": {
+            "en_term": "fluffy domestic tabby cat with intense amber eyes in macro detail",
+            "visual_description": "extreme close-up macro portrait of a fluffy domestic tabby cat with silky individual fur strands, sharp delicate white whiskers, intense luminous amber-gold eyes with lifelike corneal catchlights and intricate iris striations, soft pink nose with authentic leather-like texture, warm natural daylight rim-lighting highlighting the fur edge",
+            "text_story": "пушистый полосатый кот с янтарными глазами: кристальная четкость каждого волоска шерсти, живой блеск в глазах и естественная текстура"
+        },
+        "кошк": {
+            "en_term": "fluffy domestic cat with intense amber eyes in macro detail",
+            "visual_description": "extreme close-up macro portrait of a fluffy domestic cat with silky individual fur strands, sharp delicate white whiskers, intense luminous eyes with lifelike corneal catchlights, soft textured nose, warm natural daylight rim-lighting highlighting the fur edge",
+            "text_story": "пушистая кошка с выразительным взглядом: тончайшая прорисовка шерсти, вибриссов и естественного света"
+        },
+        "собак": {
+            "en_term": "expressive dog with glossy fur coat and warm soulful eyes in macro portrait",
+            "visual_description": "close-up macro portrait of an expressive healthy dog with glossy layered fur texture, wet glistening dark nose with authentic pebbled skin pattern, soulful warm brown eyes with bright specular catchlight, natural outdoor daylight, shallow depth of field with sharp focused eyes",
+            "text_story": "портрет собаки с живыми глазами: шелковистая шерсть с естественным блеском, влажный нос и теплая глубина взгляда"
+        },
+        "щенок": {
+            "en_term": "adorable fluffy puppy with soft fur and curious bright eyes",
+            "visual_description": "heartwarming close-up of an adorable fluffy puppy with ultra-soft downy fur coat, bright curious sparkling eyes, soft pink paws, natural soft lighting creating gentle depth and tangible fur texture",
+            "text_story": "очаровательный пушистый щенок: мягкая детская шерстка, любопытный взгляд и естественное освещение"
         }
     }
 

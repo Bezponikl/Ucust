@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.security_service.service.UserServiceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-26T23:57:42.177Z" hostname="THUNDEROBOT911" time="0.015">
+  <properties/>
+  <testcase name="processOAuthPostLogin_whenNewUser_createsUserIdentityAndPublishesEvent()" classname="com.n4d3sh1k4.security_service.service.UserServiceTest" time="0.006"/>
+  <testcase name="processOAuthPostLogin_whenNameBlank_usesEmailPrefixAsFirstName()" classname="com.n4d3sh1k4.security_service.service.UserServiceTest" time="0.002"/>
+  <testcase name="processOAuthPostLogin_whenEmailAlreadyExists_throwsOAuthEmailAlreadyExists()" classname="com.n4d3sh1k4.security_service.service.UserServiceTest" time="0.003"/>
+  <testcase name="processOAuthPostLogin_whenIdentityExists_returnsExistingUser()" classname="com.n4d3sh1k4.security_service.service.UserServiceTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

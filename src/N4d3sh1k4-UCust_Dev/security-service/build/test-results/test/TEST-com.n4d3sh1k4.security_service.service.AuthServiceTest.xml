@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.security_service.service.AuthServiceTest" tests="43" skipped="0" failures="0" errors="0" timestamp="2026-08-26T23:57:40.998Z" hostname="THUNDEROBOT911" time="0.629">
+  <properties/>
+  <testcase name="resendConfirmToken_whenCooldownPassed_createsNewTokenAndPublishesEvent()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.4"/>
+  <testcase name="resetPassword_whenValid_updatesPasswordAndRevokesTokens()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.011"/>
+  <testcase name="linkSocialAccount_whenIdentityMissing_savesIdentityAndReturnsTokens()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.013"/>
+  <testcase name="initiateEmailChange_createsTokenAndPublishesOutbox()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.006"/>
+  <testcase name="setNewEmail_whenValid_setsEmailAndCodeAndPublishes()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.006"/>
+  <testcase name="resendConfirmToken_whenNoExistingToken_createsTokenAndPublishesEvent()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="resetPassword_whenTokenExpired_deletesTokenAndThrows()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.009"/>
+  <testcase name="logoutUser_whenRefreshTokenNull_throwsContentNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="createPasswordResetToken_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="confirmEmailChange_whenNewEmailNotSet_throwsInvalidState()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="linkSocialAccount_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="confirmEmailChange_whenTokenExpired_deletesTokenAndThrows()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="registerUser_whenEmailAlreadyExists_throwsUserAlreadyExists()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.01"/>
+  <testcase name="loginUser_whenLockedAndLockTimeInFuture_throwsTooManyRequests()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="resendConfirmToken_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="resetPassword_whenTokenNotFound_throwsTokenNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="registerUser_createsUserVerificationTokenAndPublishesEvents()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.018"/>
+  <testcase name="resendConfirmToken_whenTooSoon_throwsTooManyRequests()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="activateUser_whenTokenValid_enablesUserAndPublishesOutbox()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.007"/>
+  <testcase name="activateUser_whenTokenNotFound_throwsTokenNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="confirmEmailChange_whenValid_updatesEmailAndPublishes()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="loginUser_whenUserNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="logoutUser_whenTokenBelongsToUser_deletesToken()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.008"/>
+  <testcase name="setNewEmail_whenEmailAlreadyInUse_throwsEmailExists()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.005"/>
+  <testcase name="resendConfirmToken_whenExistingTokenHasNullCreatedAt_throwsTokenCreation()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="refreshToken_whenValid_returnsNewTokensWithRememberMePreserved()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="logoutUser_whenTokenBelongsToAnotherUser_doesNotDelete()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="activateUser_whenTokenExpired_deletesTokenAndThrows()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="initiateEmailChange_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="linkSocialAccount_whenIdentityExists_doesNotSaveAgain()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="loginUser_whenLockExpired_unlocksAccountAndSucceeds()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.007"/>
+  <testcase name="setNewEmail_whenTokenExpired_deletesTokenAndThrows()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="logoutUser_whenTokenNotFound_stillReturnsCleanCookie()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="refreshToken_whenTokenNotFound_throwsTokenNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.002"/>
+  <testcase name="refreshToken_whenTokenExpired_deletesTokenAndThrows()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.002"/>
+  <testcase name="loginUser_whenValidCredentials_returnsTokensAndPublishesLoginEvent()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="createPasswordResetToken_whenTooSoon_throwsTooManyRequests()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="initiateEmailChange_whenPasswordInvalid_throwsInvalidPassword()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="createPasswordResetToken_createsTokenAndPublishesEvent()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="confirmEmailChange_whenCodeInvalid_throwsInvalidCode()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="confirmEmailChange_whenTokenNotFound_throwsTokenNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.004"/>
+  <testcase name="setNewEmail_whenTokenNotFound_throwsTokenNotFound()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <testcase name="resendConfirmToken_whenUserAlreadyEnabled_throwsUserAlreadyActivated()" classname="com.n4d3sh1k4.security_service.service.AuthServiceTest" time="0.003"/>
+  <system-out><![CDATA[2026-08-27T02:57:41.326+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Resent confirmation token to: user@example.com
+2026-08-27T02:57:41.421+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Successfully linked YANDEX identity to user user@example.com
+2026-08-27T02:57:41.428+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Email change initiated for user user@example.com
+2026-08-27T02:57:41.434+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : New email new@example.com set for change, code sent
+2026-08-27T02:57:41.440+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Resent confirmation token to: user@example.com
+2026-08-27T02:57:41.527+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : User user@example.com successfully activated
+2026-08-27T02:57:41.537+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Email changed for user 12d8e8ae-e9db-4f7c-abc3-2baa45f3b9da
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.user_service.service.UserEventListenerTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-26T22:13:28.128Z" hostname="THUNDEROBOT911" time="0.009">
+  <properties/>
+  <testcase name="handleUserCreated_whenNewProfile_savesWithAllFields()" classname="com.n4d3sh1k4.user_service.service.UserEventListenerTest" time="0.006"/>
+  <testcase name="handleUserCreated_whenProfileExists_skipsSave()" classname="com.n4d3sh1k4.user_service.service.UserEventListenerTest" time="0.002"/>
+  <system-out><![CDATA[2026-08-27T01:13:28.131+03:00  INFO 33944 --- [user-service] [    Test worker] c.n.u.service.UserEventListener          : Received event for user creation: ID=550e8400-e29b-41d4-a716-446655440000, Username=Олег Иванов
+2026-08-27T01:13:28.134+03:00  INFO 33944 --- [user-service] [    Test worker] c.n.u.service.UserEventListener          : Successfully created profile for user: Олег, Иванов
+2026-08-27T01:13:28.137+03:00  INFO 33944 --- [user-service] [    Test worker] c.n.u.service.UserEventListener          : Received event for user creation: ID=550e8400-e29b-41d4-a716-446655440000, Username=Олег Иванов
+2026-08-27T01:13:28.138+03:00  WARN 33944 --- [user-service] [    Test worker] c.n.u.service.UserEventListener          : Profile already exists for user ID: 550e8400-e29b-41d4-a716-446655440000. Skipping.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

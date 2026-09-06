@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - AuthServiceTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>AuthServiceTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.n4d3sh1k4.security_service.service.html">com.n4d3sh1k4.security_service.service</a> &gt; AuthServiceTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">43</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.615s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">activateUser_whenTokenExpired_deletesTokenAndThrows()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">activateUser_whenTokenNotFound_throwsTokenNotFound()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">activateUser_whenTokenValid_enablesUserAndPublishesOutbox()</td>
+<td class="success">0.007s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">confirmEmailChange_whenCodeInvalid_throwsInvalidCode()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">confirmEmailChange_whenNewEmailNotSet_throwsInvalidState()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">confirmEmailChange_whenTokenExpired_deletesTokenAndThrows()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">confirmEmailChange_whenTokenNotFound_throwsTokenNotFound()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">confirmEmailChange_whenValid_updatesEmailAndPublishes()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">createPasswordResetToken_createsTokenAndPublishesEvent()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">createPasswordResetToken_whenTooSoon_throwsTooManyRequests()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">createPasswordResetToken_whenUserNotFound_throwsUserNotFound()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">initiateEmailChange_createsTokenAndPublishesOutbox()</td>
+<td class="success">0.006s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">initiateEmailChange_whenPasswordInvalid_throwsInvalidPassword()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">initiateEmailChange_whenUserNotFound_throwsUserNotFound()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">linkSocialAccount_whenIdentityExists_doesNotSaveAgain()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">linkSocialAccount_whenIdentityMissing_savesIdentityAndReturnsTokens()</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">linkSocialAccount_whenUserNotFound_throwsUserNotFound()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">loginUser_whenLockExpired_unlocksAccountAndSucceeds()</td>
+<td class="success">0.007s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">loginUser_whenLockedAndLockTimeInFuture_throwsTooManyRequests()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">loginUser_whenUserNotFound_throwsContentNotFound()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">loginUser_whenValidCredentials_returnsTokensAndPublishesLoginEvent()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">logoutUser_whenRefreshTokenNull_throwsContentNotFound()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">logoutUser_whenTokenBelongsToAnotherUser_doesNotDelete()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">logoutUser_whenTokenBelongsToUser_deletesToken()</td>
+<td class="success">0.008s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">logoutUser_whenTokenNotFound_stillReturnsCleanCookie()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">refreshToken_whenTokenExpired_deletesTokenAndThrows()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">refreshToken_whenTokenNotFound_throwsTokenNotFound()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">refreshToken_whenValid_returnsNewTokensWithRememberMePreserved()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">registerUser_createsUserVerificationTokenAndPublishesEvents()</td>
+<td class="success">0.018s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">registerUser_whenEmailAlreadyExists_throwsUserAlreadyExists()</td>
+<td class="success">0.010s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resendConfirmToken_whenCooldownPassed_createsNewTokenAndPublishesEvent()</td>
+<td class="success">0.400s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resendConfirmToken_whenExistingTokenHasNullCreatedAt_throwsTokenCreation()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resendConfirmToken_whenNoExistingToken_createsTokenAndPublishesEvent()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resendConfirmToken_whenTooSoon_throwsTooManyRequests()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resendConfirmToken_whenUserAlreadyEnabled_throwsUserAlreadyActivated()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resendConfirmToken_whenUserNotFound_throwsUserNotFound()</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resetPassword_whenTokenExpired_deletesTokenAndThrows()</td>
+<td class="success">0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resetPassword_whenTokenNotFound_throwsTokenNotFound()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">resetPassword_whenValid_updatesPasswordAndRevokesTokens()</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">setNewEmail_whenEmailAlreadyInUse_throwsEmailExists()</td>
+<td class="success">0.005s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">setNewEmail_whenTokenExpired_deletesTokenAndThrows()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">setNewEmail_whenTokenNotFound_throwsTokenNotFound()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">setNewEmail_whenValid_setsEmailAndCodeAndPublishes()</td>
+<td class="success">0.006s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2026-08-27T02:57:41.326+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Resent confirmation token to: user@example.com
+2026-08-27T02:57:41.421+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Successfully linked YANDEX identity to user user@example.com
+2026-08-27T02:57:41.428+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Email change initiated for user user@example.com
+2026-08-27T02:57:41.434+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : New email new@example.com set for change, code sent
+2026-08-27T02:57:41.440+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Resent confirmation token to: user@example.com
+2026-08-27T02:57:41.527+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : User user@example.com successfully activated
+2026-08-27T02:57:41.537+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.AuthService                : Email changed for user 12d8e8ae-e9db-4f7c-abc3-2baa45f3b9da
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.0.0</a> at 27 авг. 2026 г., 02:57:42</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.business_service.service.ProjectServiceTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-08-26T22:13:14.926Z" hostname="THUNDEROBOT911" time="0.449">
+  <properties/>
+  <testcase name="getAllByOwner_returnsList()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.372"/>
+  <testcase name="create_persistsProjectAndPublishesEvent()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.012"/>
+  <testcase name="uploadLogo_whenNotImage_throwsInvalidFileType()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.008"/>
+  <testcase name="uploadLogo_uploadsAndReturnsPath()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.006"/>
+  <testcase name="getById_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.003"/>
+  <testcase name="uploadLogo_whenOctetStreamButRealImage_passesValidation()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.003"/>
+  <testcase name="uploadLogo_whenProjectNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.003"/>
+  <testcase name="update_updatesEntityAndReturnsResponse()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.004"/>
+  <testcase name="uploadLogo_whenExistingLogo_deletesOldOne()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.005"/>
+  <testcase name="delete_whenExists_deletesById()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.003"/>
+  <testcase name="delete_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.003"/>
+  <testcase name="getById_whenFound_returnsResponse()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.003"/>
+  <testcase name="uploadLogo_whenFileTooLarge_throwsFileTooLarge()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.011"/>
+  <testcase name="update_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.business_service.service.ProjectServiceTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

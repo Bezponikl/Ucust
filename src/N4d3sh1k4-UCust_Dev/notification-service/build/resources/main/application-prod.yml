@@ -1,0 +1,16 @@
+spring:
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: service-user
+    password: servicepassword
+    virtual-host: universal-host
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2.0
+          max-interval: 10s

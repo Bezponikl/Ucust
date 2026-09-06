@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-08-26T20:59:21.237Z" hostname="THUNDEROBOT911" time="0.021">
+  <properties/>
+  <testcase name="getPostsByProject_whenEmpty_returnsEmptyList()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.004"/>
+  <testcase name="confirmPost_whenExists_setsConfirmedAndSaves()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.003"/>
+  <testcase name="publishPost_whenExists_setsPublishedAndTimestamp()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.002"/>
+  <testcase name="confirmPost_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.002"/>
+  <testcase name="publishPost_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.002"/>
+  <testcase name="getPostById_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.002"/>
+  <testcase name="getPostById_whenExists_returnsResponse()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.001"/>
+  <testcase name="getPostsByProject_mapsToResponses()" classname="com.n4d3sh1k4.generative_orchestration_service.service.GenerationServiceTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

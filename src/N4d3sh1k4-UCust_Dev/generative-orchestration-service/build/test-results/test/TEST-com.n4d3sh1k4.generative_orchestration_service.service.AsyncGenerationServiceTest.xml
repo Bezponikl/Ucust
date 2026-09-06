@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-08-26T20:59:10.723Z" hostname="THUNDEROBOT911" time="1.369">
+  <properties/>
+  <testcase name="submitAsync_whenAiSucceeds_marksTaskProcessing()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="1.305"/>
+  <testcase name="checkTask_whenCompleted_createsPostsAndMarksCompleted()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.01"/>
+  <testcase name="submitAsync_whenAiThrows_marksTaskFailed()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.011"/>
+  <testcase name="submitAsync_MANUAL_withPrompt_succeeds()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.006"/>
+  <testcase name="checkTask_whenFailed_withoutMetadata_setsDefaultError()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.004"/>
+  <testcase name="checkTask_whenFailed_setsErrorFromMetadata()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.005"/>
+  <testcase name="submitAsync_MANUAL_withoutPrompt_throwsValidation()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.008"/>
+  <testcase name="checkTask_whenNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.004"/>
+  <testcase name="checkTask_whenNotProcessing_skipsAiCall()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.003"/>
+  <testcase name="submitAsync_AUTO_missingFields_throwsValidation()" classname="com.n4d3sh1k4.generative_orchestration_service.service.AsyncGenerationServiceTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\Vusez\.gradle\caches\modules-2\files-2.1\net.bytebuddy\byte-buddy-agent\1.18.10\9426d28828bdcdf42666bb7a68c468279ea78f59\byte-buddy-agent-1.18.10.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-26T20:59:19.747Z" hostname="THUNDEROBOT911" time="0.02">
+  <properties/>
+  <testcase name="contextLoads()" classname="com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplicationTests" time="0.02"/>
+  <system-out><![CDATA[23:59:12.251 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplicationTests]: GenerativeOrchestrationServiceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+23:59:12.393 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplication for test class com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplicationTests
+23:59:12.510 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplicationTests]: GenerativeOrchestrationServiceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+23:59:12.512 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplication for test class com.n4d3sh1k4.generative_orchestration_service.GenerativeOrchestrationServiceApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.0)
+
+2026-08-26T23:59:13.012+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] tiveOrchestrationServiceApplicationTests : Starting GenerativeOrchestrationServiceApplicationTests using Java 25.0.1 with PID 132 (started by Vusez in D:\Projects\IdeaProjects\N4d3sh1k4-UCust_Dev\generative-orchestration-service)
+2026-08-26T23:59:13.015+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] tiveOrchestrationServiceApplicationTests : No active profile set, falling back to 1 default profile: "default"
+2026-08-26T23:59:14.325+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-26T23:59:14.424+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 78 ms. Found 3 JPA repository interfaces.
+2026-08-26T23:59:15.198+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-26T23:59:15.282+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.1.Final
+2026-08-26T23:59:15.679+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-26T23:59:15.720+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-26T23:59:15.992+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=ETA_DBUSER
+2026-08-26T23:59:15.995+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-26T23:59:16.024+03:00  WARN 132 --- [generative-orchestration-service] [    Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-26T23:59:16.055+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:testdb]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: TESTDB/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-26T23:59:17.199+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+Hibernate: create table generation_tasks (id uuid not null, count integer not null, created_at timestamp(6) with time zone not null, error_message TEXT, external_task_id varchar(255), generation_mode enum ('AUTO','MANUAL') not null, project_id uuid not null, prompt TEXT, result_post_id uuid, status enum ('COMPLETED','FAILED','PENDING','PROCESSING') not null, updated_at timestamp(6) with time zone, user_id uuid not null, primary key (id))
+Hibernate: create table post_statistics (id uuid not null, comments integer, impressions integer, likes integer, platform varchar(255), post_id uuid not null, shares integer, primary key (id))
+Hibernate: create table posts (id uuid not null, content_type enum ('ANNOUNCEMENT','EDUCATIONAL','ENTERTAINMENT','NEWS','OTHER','PROMOTIONAL','REVIEW','TIPS'), created_at timestamp(6) with time zone not null, generation_mode enum ('AUTO','MANUAL') not null, hashtags varchar(255), image_url varchar(255), project_id uuid not null, published_at timestamp(6) with time zone, scheduled_at timestamp(6) with time zone, status enum ('CONFIRMED','DRAFT','PUBLISHED','REJECTED','SCHEDULED') not null, target_platforms varchar(255), text TEXT, user_id uuid not null, primary key (id))
+2026-08-26T23:59:17.292+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-26T23:59:17.463+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-26T23:59:18.228+03:00  WARN 132 --- [generative-orchestration-service] [    Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-26T23:59:18.423+03:00  WARN 132 --- [generative-orchestration-service] [    Test worker] .s.a.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: c5efe3cf-b6fb-4404-9a1a-d320b2ce4a19
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-08-26T23:59:18.437+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-08-26T23:59:19.673+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [127.0.0.1:5680]
+2026-08-26T23:59:19.684+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] o.s.a.r.l.SimpleMessageListenerContainer : Broker not available; cannot force queue declarations during start: java.net.ConnectException: Connection refused: getsockopt
+2026-08-26T23:59:19.695+03:00  INFO 132 --- [generative-orchestration-service] [ntContainer#0-1] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [127.0.0.1:5680]
+2026-08-26T23:59:19.702+03:00 ERROR 132 --- [generative-orchestration-service] [ntContainer#0-1] o.s.a.r.l.SimpleMessageListenerContainer : Failed to check/redeclare auto-delete queue(s).
+
+org.springframework.amqp.AmqpConnectException: java.net.ConnectException: Connection refused: getsockopt
+	at org.springframework.amqp.rabbit.support.RabbitExceptionTranslator.convertRabbitAccessException(RabbitExceptionTranslator.java:60) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.connection.AbstractConnectionFactory.createBareConnection(AbstractConnectionFactory.java:629) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.connection.CachingConnectionFactory.createConnection(CachingConnectionFactory.java:746) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.connection.ConnectionFactoryUtils.createConnection(ConnectionFactoryUtils.java:256) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.core.RabbitTemplate.doExecute(RabbitTemplate.java:2239) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.core.RabbitTemplate.execute(RabbitTemplate.java:2211) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.core.RabbitTemplate.execute(RabbitTemplate.java:2191) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.core.RabbitAdmin.getQueueInfo(RabbitAdmin.java:472) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.core.RabbitAdmin.getQueueProperties(RabbitAdmin.java:456) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.attemptDeclarations(AbstractMessageListenerContainer.java:1972) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.redeclareElementsIfNecessary(AbstractMessageListenerContainer.java:1935) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.initialize(SimpleMessageListenerContainer.java:1602) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1400) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:639) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:543) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:594) ~[na:na]
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:284) ~[na:na]
+	at java.base/java.net.Socket.connect(Socket.java:659) ~[na:na]
+	at com.rabbitmq.client.impl.SocketFrameHandlerFactory.create(SocketFrameHandlerFactory.java:61) ~[amqp-client-5.30.0.jar:5.30.0]
+	at com.rabbitmq.client.ConnectionFactory.newConnection(ConnectionFactory.java:1355) ~[amqp-client-5.30.0.jar:5.30.0]
+	at com.rabbitmq.client.ConnectionFactory.newConnection(ConnectionFactory.java:1297) ~[amqp-client-5.30.0.jar:5.30.0]
+	at org.springframework.amqp.rabbit.connection.AbstractConnectionFactory.connectAddresses(AbstractConnectionFactory.java:676) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.connection.AbstractConnectionFactory.connect(AbstractConnectionFactory.java:644) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	at org.springframework.amqp.rabbit.connection.AbstractConnectionFactory.createBareConnection(AbstractConnectionFactory.java:590) ~[spring-rabbit-4.1.0.jar:4.1.0]
+	... 12 common frames omitted
+
+2026-08-26T23:59:19.710+03:00  INFO 132 --- [generative-orchestration-service] [ntContainer#0-1] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [127.0.0.1:5680]
+2026-08-26T23:59:19.728+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] tiveOrchestrationServiceApplicationTests : Started GenerativeOrchestrationServiceApplicationTests in 7.123 seconds (process running for 10.271)
+2026-08-26T23:59:19.733+03:00  WARN 132 --- [generative-orchestration-service] [    Test worker] o.s.core.events.SpringDocAppInitializer  : SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-08-26T23:59:19.733+03:00  WARN 132 --- [generative-orchestration-service] [    Test worker] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

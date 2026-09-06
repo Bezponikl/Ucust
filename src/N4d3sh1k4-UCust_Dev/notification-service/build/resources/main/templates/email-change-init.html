@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head><meta charset="UTF-8"><title>Смена почты</title></head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#F8FAFC">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px">
+<table class="main-card" style="background:#fff;border-top:4px solid #00A3E0;border-radius:8px;max-width:560px;width:100%" cellpadding="0" cellspacing="0">
+<tr><td style="padding:48px 40px;color:#334155">
+<h2 style="margin:0 0 16px;color:#0F172A">Запрос на смену email</h2>
+<p style="margin:0 0 12px">Вы запросили смену email для вашего аккаунта.</p>
+<p style="margin:0 0 12px">Ваш токен для продолжения:</p>
+<div style="background:#F1F5F9;border-radius:6px;padding:16px;margin:16px 0;text-align:center;font-size:18px;font-weight:600;letter-spacing:1px;color:#0F172A" th:text="${token}">token</div>
+<p style="margin:0 0 12px">Если это были не вы — проигнорируйте это письмо.</p>
+<p style="margin:0;color:#94A3B8;font-size:13px">С уважением, команда UCust</p>
+</td></tr></table>
+</td></tr></table>
+</body>
+</html>

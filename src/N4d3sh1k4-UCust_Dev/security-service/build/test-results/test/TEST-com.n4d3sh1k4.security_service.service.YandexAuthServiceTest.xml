@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.security_service.service.YandexAuthServiceTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-08-26T23:57:42.193Z" hostname="THUNDEROBOT911" time="0.21">
+  <properties/>
+  <testcase name="authenticateMobile_fetchesUserInfoProcessesOAuthAndReturnsTokens()" classname="com.n4d3sh1k4.security_service.service.YandexAuthServiceTest" time="0.21"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

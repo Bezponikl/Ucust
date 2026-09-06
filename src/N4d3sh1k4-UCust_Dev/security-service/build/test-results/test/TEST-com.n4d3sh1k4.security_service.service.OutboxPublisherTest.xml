@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.security_service.service.OutboxPublisherTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-26T23:57:41.757Z" hostname="THUNDEROBOT911" time="0.312">
+  <properties/>
+  <testcase name="publish_whenSerializationFails_throwsError()" classname="com.n4d3sh1k4.security_service.service.OutboxPublisherTest" time="0.308"/>
+  <testcase name="publish_serializesAndStoresOutboxRecord()" classname="com.n4d3sh1k4.security_service.service.OutboxPublisherTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,92 @@
+package com.n4d3sh1k4.business_service.mapper;
+
+import com.n4d3sh1k4.business_service.domain.model.project.Project;
+import com.n4d3sh1k4.business_service.domain.model.project.support.BusinessHours;
+import com.n4d3sh1k4.business_service.domain.model.project.support.Industry;
+import com.n4d3sh1k4.business_service.domain.model.project.support.SocialLinks;
+import com.n4d3sh1k4.business_service.domain.model.project.support.ToneOfVoice;
+import com.n4d3sh1k4.business_service.dto.ProjectRequest;
+import com.n4d3sh1k4.business_service.dto.ProjectResponse;
+import java.util.UUID;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = "org.mapstruct.ap.MappingProcessor",
+    date = "2026-04-10T15:09:06+0300",
+    comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-9.4.1.jar, environment: Java 25.0.1 (Eclipse Adoptium)"
+)
+@Component
+public class ProjectMapperImpl extends ProjectMapper {
+
+    @Override
+    public ProjectResponse toResponse(Project entity) {
+        if ( entity == null ) {
+            return null;
+        }
+
+        String logoUrl = null;
+        UUID id = null;
+        String name = null;
+        Industry industry = null;
+        String city = null;
+        String description = null;
+        String targetAudience = null;
+        ToneOfVoice toneOfVoice = null;
+        SocialLinks socialLinks = null;
+        BusinessHours businessHours = null;
+        UUID ownerId = null;
+
+        logoUrl = toFullUrl( entity.getLogoUrl() );
+        id = entity.getId();
+        name = entity.getName();
+        industry = entity.getIndustry();
+        city = entity.getCity();
+        description = entity.getDescription();
+        targetAudience = entity.getTargetAudience();
+        toneOfVoice = entity.getToneOfVoice();
+        socialLinks = entity.getSocialLinks();
+        businessHours = entity.getBusinessHours();
+        ownerId = entity.getOwnerId();
+
+        ProjectResponse projectResponse = new ProjectResponse( id, name, industry, city, description, targetAudience, toneOfVoice, socialLinks, businessHours, ownerId, logoUrl );
+
+        return projectResponse;
+    }
+
+    @Override
+    public Project toEntity(ProjectRequest dto) {
+        if ( dto == null ) {
+            return null;
+        }
+
+        Project project = new Project();
+
+        project.setName( dto.name() );
+        project.setIndustry( dto.industry() );
+        project.setCity( dto.city() );
+        project.setDescription( dto.description() );
+        project.setTargetAudience( dto.targetAudience() );
+        project.setToneOfVoice( dto.toneOfVoice() );
+        project.setSocialLinks( dto.socialLinks() );
+        project.setBusinessHours( dto.businessHours() );
+
+        return project;
+    }
+
+    @Override
+    public void updateEntity(ProjectRequest dto, Project entity) {
+        if ( dto == null ) {
+            return;
+        }
+
+        entity.setName( dto.name() );
+        entity.setIndustry( dto.industry() );
+        entity.setCity( dto.city() );
+        entity.setDescription( dto.description() );
+        entity.setTargetAudience( dto.targetAudience() );
+        entity.setToneOfVoice( dto.toneOfVoice() );
+        entity.setSocialLinks( dto.socialLinks() );
+        entity.setBusinessHours( dto.businessHours() );
+    }
+}

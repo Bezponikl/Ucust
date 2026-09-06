@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.security_service.service.BanServiceTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-08-26T23:57:41.628Z" hostname="THUNDEROBOT911" time="0.126">
+  <properties/>
+  <testcase name="unban_whenAlreadyInactive_throwsBanAlreadyInactive()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.082"/>
+  <testcase name="unban_whenActive_deactivatesAndSaves()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.002"/>
+  <testcase name="unbanAllActiveByUser_delegatesToRepository()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.001"/>
+  <testcase name="isUserBanned_whenActiveBanNotExpired_returnsTrue()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.002"/>
+  <testcase name="isUserBanned_whenActiveBanExpired_deactivatesAndReturnsFalse()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.002"/>
+  <testcase name="unban_whenBanNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.001"/>
+  <testcase name="createBan_whenUserNotFound_throwsContentNotFound()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.001"/>
+  <testcase name="isUserBanned_whenNoBan_returnsFalse()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.001"/>
+  <testcase name="getActiveBanByUser_whenPresent_returnsResponse()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.002"/>
+  <testcase name="getActiveBanByUser_whenAbsent_returnsNull()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.001"/>
+  <testcase name="getAllActiveBans_mapsAllBans()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.012"/>
+  <testcase name="createBan_whenValid_savesBanAndReturnsResponse()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.004"/>
+  <testcase name="getUserBans_mapsAllBans()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.003"/>
+  <testcase name="createBan_whenActiveBanExists_throwsBanAlreadyActive()" classname="com.n4d3sh1k4.security_service.service.BanServiceTest" time="0.003"/>
+  <system-out><![CDATA[2026-08-27T02:57:41.712+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.security_service.service.BanService  : Ban 8d60e125-500e-4125-888f-8c689ae71e67 for user user@example.com deactivated
+2026-08-27T02:57:41.715+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.security_service.service.BanService  : All active bans deactivated for user 6122cbd2-5970-4ff4-ae87-325ea6bf2f40
+2026-08-27T02:57:41.746+03:00  WARN 4512 --- [security-service] [    Test worker] c.n.security_service.service.BanService  : User user@example.com banned by admin f7bde740-2360-417c-b16d-53e66c36b2f0. Reason: Нарушение правил
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

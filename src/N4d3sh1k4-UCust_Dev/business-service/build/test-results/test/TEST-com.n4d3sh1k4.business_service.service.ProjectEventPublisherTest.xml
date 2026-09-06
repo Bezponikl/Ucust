@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.business_service.service.ProjectEventPublisherTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-26T22:13:14.630Z" hostname="THUNDEROBOT911" time="0.294">
+  <properties/>
+  <testcase name="projectCreated_publishesEvent()" classname="com.n4d3sh1k4.business_service.service.ProjectEventPublisherTest" time="0.29"/>
+  <testcase name="projectCreated_whenRabbitFails_swallowsException()" classname="com.n4d3sh1k4.business_service.service.ProjectEventPublisherTest" time="0.004"/>
+  <system-out><![CDATA[2026-08-27T01:13:14.924+03:00 ERROR 16776 --- [business-service] [    Test worker] c.n.b.service.ProjectEventPublisher      : Failed to publish project.created event for project 11111111-1111-1111-1111-111111111111: connection refused
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

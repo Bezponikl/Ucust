@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.business_service.service.MinioServiceTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-08-26T22:13:14.246Z" hostname="THUNDEROBOT911" time="0.379">
+  <properties/>
+  <testcase name="downloadFile_returnsInputStream()" classname="com.n4d3sh1k4.business_service.service.MinioServiceTest" time="0.346"/>
+  <testcase name="deleteFile_whenMinioThrows_throwsRuntime()" classname="com.n4d3sh1k4.business_service.service.MinioServiceTest" time="0.008"/>
+  <testcase name="downloadFile_whenMinioThrows_throwsRuntime()" classname="com.n4d3sh1k4.business_service.service.MinioServiceTest" time="0.004"/>
+  <testcase name="uploadFile_whenMinioThrows_throwsRuntime()" classname="com.n4d3sh1k4.business_service.service.MinioServiceTest" time="0.007"/>
+  <testcase name="deleteFile_deletes()" classname="com.n4d3sh1k4.business_service.service.MinioServiceTest" time="0.004"/>
+  <testcase name="uploadFile_returnsPath()" classname="com.n4d3sh1k4.business_service.service.MinioServiceTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.user_service.service.ProfileServiceTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-08-26T22:13:27.709Z" hostname="THUNDEROBOT911" time="0.418">
+  <properties/>
+  <testcase name="uploadAvatar_whenContentTypeNull_throwsInvalidFileType()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.355"/>
+  <testcase name="uploadAvatar_whenFileTooLarge_throwsFileTooLarge()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.008"/>
+  <testcase name="uploadAvatar_whenNoOldAvatar_doesNotDelete()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.011"/>
+  <testcase name="uploadAvatar_whenOctetStreamButRealImage_passesValidation()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.005"/>
+  <testcase name="uploadAvatar_whenHasOldAvatar_deletesOldAndUploadsNew()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.006"/>
+  <testcase name="getProfile_whenUserFound_returnsMappedResponse()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.006"/>
+  <testcase name="getProfile_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.004"/>
+  <testcase name="uploadAvatar_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.003"/>
+  <testcase name="update_whenUserNotFound_throwsUserNotFound()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.004"/>
+  <testcase name="uploadAvatar_whenNotAnImage_throwsInvalidFileType()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.004"/>
+  <testcase name="update_whenUserFound_updatesEntityAndReturnsResponse()" classname="com.n4d3sh1k4.user_service.service.ProfileServiceTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

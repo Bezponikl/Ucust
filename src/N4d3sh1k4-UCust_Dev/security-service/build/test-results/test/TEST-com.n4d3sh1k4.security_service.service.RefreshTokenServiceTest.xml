@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.security_service.service.RefreshTokenServiceTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-08-26T23:57:42.070Z" hostname="THUNDEROBOT911" time="0.105">
+  <properties/>
+  <testcase name="deleteByUser_delegatesToRepository()" classname="com.n4d3sh1k4.security_service.service.RefreshTokenServiceTest" time="0.096"/>
+  <testcase name="deleteByToken_delegatesToRepository()" classname="com.n4d3sh1k4.security_service.service.RefreshTokenServiceTest" time="0.001"/>
+  <testcase name="createRefreshToken_withoutRememberMe_createsOneDayToken()" classname="com.n4d3sh1k4.security_service.service.RefreshTokenServiceTest" time="0.002"/>
+  <testcase name="findByToken_delegatesToRepository()" classname="com.n4d3sh1k4.security_service.service.RefreshTokenServiceTest" time="0.003"/>
+  <testcase name="createRefreshToken_withRememberMe_createsThirtyDayToken()" classname="com.n4d3sh1k4.security_service.service.RefreshTokenServiceTest" time="0.002"/>
+  <system-out><![CDATA[2026-08-27T02:57:42.165+03:00  INFO 4512 --- [security-service] [    Test worker] c.n.s.service.RefreshTokenService        : All refresh tokens for user ID d9b46258-7a64-4b79-aceb-ab686f2e699e have been revoked
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

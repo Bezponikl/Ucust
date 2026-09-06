@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.n4d3sh1k4.generative_orchestration_service.listener.ProjectEventHandlerTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-26T20:59:21.226Z" hostname="THUNDEROBOT911" time="0.01">
+  <properties/>
+  <testcase name="handleProjectCreated_whenPostCountNegative_usesDefaultFive()" classname="com.n4d3sh1k4.generative_orchestration_service.listener.ProjectEventHandlerTest" time="0.005"/>
+  <testcase name="handleProjectCreated_whenPostCountZero_usesDefaultFive()" classname="com.n4d3sh1k4.generative_orchestration_service.listener.ProjectEventHandlerTest" time="0.003"/>
+  <testcase name="handleProjectCreated_buildsRequestAndSubmits()" classname="com.n4d3sh1k4.generative_orchestration_service.listener.ProjectEventHandlerTest" time="0.002"/>
+  <system-out><![CDATA[2026-08-26T23:59:21.228+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] c.n.g.listener.ProjectEventHandler       : Received project.created event for project 22222222-2222-2222-2222-222222222222
+2026-08-26T23:59:21.233+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] c.n.g.listener.ProjectEventHandler       : Received project.created event for project 22222222-2222-2222-2222-222222222222
+2026-08-26T23:59:21.235+03:00  INFO 132 --- [generative-orchestration-service] [    Test worker] c.n.g.listener.ProjectEventHandler       : Received project.created event for project 22222222-2222-2222-2222-222222222222
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

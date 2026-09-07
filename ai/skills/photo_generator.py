@@ -29,31 +29,31 @@ class CinematographyDirector:
     """
 
     LIGHTING_SCHEMES = {
-        "low_key": "Low-key natural directional light with deep ambient shadows",
-        "high_key": "Soft natural daylight illumination, airy ambient light",
-        "chiaroscuro": "Strong directional side lighting with deep natural shadows",
-        "silhouette": "Natural backlit contour against bright background",
-        "gobo_shadows": "Natural window shadow patterns across the scene",
-        "rim_backlight": "Natural backlighting contour and subtle rim glow",
-        "rembrandt": "Dramatic directional side lighting, deep micro-shadows",
-        "paramount": "Gentle overhead light defining facial planes",
-        "spotlight": "Warm direct task light illuminating the subject",
-        "lens_flare": "Subtle optical lens flare, organic light leak",
-        "soft_diffused": "Soft diffused morning window daylight with gentle natural gradients",
-        "dual_office": "Subtle dual lighting with a warm 3000K matte black desk lamp glow contrasting with cool 5500K natural daylight from office windows",
-        "overcast_diffused": "Soft diffused natural daylight under an overcast sky, gentle even wrap with no harsh specular highlights",
-        "warm_pendant": "Hanging pendant filament lamps casting a soft warm ambient glow, rich environmental depth",
-        "hard_chiaroscuro": "Strong single directional warm key light casting deep dramatic chiaroscuro shadows with high contrast falloff",
-        "golden_hour_rim": "Warm directional golden hour glow casting gentle rim light along hair and shoulders with creamy atmospheric bokeh",
-        "editorial_studio": "Single directional studio key light from upper-left with deep shadow falloff, high-contrast micro-textures"
+        "low_key": "Low-key directional moody light with natural deep shadows and high contrast, dark ambient background, dramatic light falloff",
+        "high_key": "Natural daylight illumination with directional sunbeams and deep defined micro-shadows, stark contrast",
+        "chiaroscuro": "Strong directional key side lighting casting deep chiaroscuro shadows, high contrast falloff, un-lifted rich dark shadows",
+        "silhouette": "Natural backlit contour against bright background, deep rich blacks",
+        "gobo_shadows": "Natural window shadow patterns across the scene with crisp shadow edges and deep contrast",
+        "rim_backlight": "Strong directional backlighting contour with stark contrast and un-lifted deep shadows",
+        "rembrandt": "Dramatic strong directional side light, Rembrandt lighting with deep micro-shadows, stark contrast and dramatic light falloff",
+        "paramount": "Directional overhead light defining facial planes with deep chin and cheek micro-shadows",
+        "spotlight": "Warm direct task light illuminating the subject with dramatic light falloff into darkness",
+        "lens_flare": "Subtle optical lens flare, organic light leak with deep contrast preservation",
+        "soft_diffused": "Directional morning window daylight with natural shadow falloff and deep micro-shadows",
+        "dual_office": "Subtle dual lighting with a warm 3000K key lamp glow on subject contrasting with cool 5500K ambient daylight from background windows, stark light falloff",
+        "overcast_diffused": "Directional daylight with rich micro-contrast and deep shadows, authentic outdoor depth",
+        "warm_pendant": "Hanging pendant filament lamp casting strong directional warm key light with deep ambient shadows and dramatic falloff",
+        "hard_chiaroscuro": "Strong single directional warm key light casting deep dramatic chiaroscuro shadows with stark contrast falloff and rich blacks",
+        "golden_hour_rim": "Warm directional golden hour key light casting dramatic rim light and deep contrasted shadows",
+        "editorial_studio": "Single directional key light from upper-left with deep shadow falloff, stark contrast, un-lifted micro-shadows"
     }
 
     COLOR_HARMONIES = {
-        "teal_orange": "Natural daylight with subtle warm subject tones against cool ambient background",
-        "warm_analogous": "Natural warm daylight and organic earthy materials",
-        "complementary": "Natural color contrast between subject and background",
-        "muted_editorial": "Natural authentic color reproduction, un-graded RAW tones",
-        "monochrome": "Natural monochrome black and white analog film tones"
+        "teal_orange": "warm foreground key lighting contrasting with subtle cool background ambient light, complementary color temperature separation",
+        "warm_analogous": "warm directional key light with deep organic shadows, subtle cool ambient air in background",
+        "complementary": "warm foreground subject lighting contrasting with cool background ambient tones",
+        "muted_editorial": "natural authentic color reproduction, stark contrast between warm key highlights and cool shadowed background",
+        "monochrome": "natural monochrome analog film tones with deep rich blacks and high contrast"
     }
 
     COMPOSITION_GEOMETRIES = {
@@ -67,19 +67,19 @@ class CinematographyDirector:
     }
 
     PERSPECTIVES = {
-        "bokeh_shallow": "Shallow depth of field (f/1.4), anamorphic background bokeh",
-        "low_angle_heroic": "Slightly low-angle natural eye-level perspective",
-        "tabletop_commercial": "45-degree angle tabletop view with tactile material focus",
-        "candid_eye_level": "35mm lens, candid natural eye-level perspective",
-        "culinary_macro_eyelevel": "35mm close-up macro lens perspective, f/2.8 shallow depth of field",
-        "culinary_flatlay_topdown": "Direct top-down 90-degree overhead perspective",
-        "culinary_45_slice": "45-degree angled perspective with crisp focal depth",
-        "oversized_hero": "Centered medium shot framing an oversized overflowing basket in front of torso, sharp macro focus on textures and petals",
-        "candid_counter": "Medium eye-level shot, candid transactional interaction across a speckled counter with POS touch register",
-        "layered_artisan_table": "Layered multi-tiered tabletop display, deep foreground arrangement with rustic wooden cutting boards, linen cloth, and chalk price tags",
-        "contemplative_profile": "Medium close-up profile shot, subject leaning thoughtfully, shallow depth of field with creamy bokeh",
-        "active_desk_focus": "Slightly elevated side-angle desk perspective, subject leaning forward typing intently, foreground notebooks and coffee cup",
-        "macro_nail_close_up": "Tight macro close-up lens, f/2.8 shallow depth of field, razor-sharp focus on nail plate curvature and neat cuticles, creamy background bokeh"
+        "bokeh_shallow": "smooth progressive focal falloff, authentic optical lens blur, f/1.2 depth of field, blurred object in extreme foreground creating layered 3D depth, creamy natural background falloff",
+        "low_angle_heroic": "slightly low-angle perspective, smooth progressive optical focal falloff, f/1.2 lens blur",
+        "tabletop_commercial": "45-degree angle tabletop view, smooth progressive optical focal falloff, f/1.4 lens blur, blurred foreground edge framing the subject",
+        "candid_eye_level": "35mm prime lens, authentic progressive optical lens blur, f/1.2 depth of field, layered foreground-to-background spatial depth",
+        "culinary_macro_eyelevel": "35mm close-up macro lens, f/1.2 smooth optical focal falloff, blurred object in extreme foreground framing the subject, creamy layered background bokeh",
+        "culinary_flatlay_topdown": "direct top-down 90-degree overhead perspective with rich micro-shadows and depth",
+        "culinary_45_slice": "45-degree angled perspective with smooth optical focal falloff, f/1.4 depth of field, tactile foreground depth",
+        "oversized_hero": "centered medium shot framing hero subject, f/1.2 smooth progressive focal falloff, blurred foreground bokeh",
+        "candid_counter": "medium eye-level shot, candid interaction across counter, progressive optical lens blur with depth",
+        "layered_artisan_table": "layered multi-tiered display, blurred object in extreme foreground, tack-sharp subject, creamy background falloff",
+        "contemplative_profile": "medium close-up profile shot, smooth progressive focal falloff, f/1.2 depth of field with creamy bokeh",
+        "active_desk_focus": "elevated side-angle desk perspective, blurred foreground coffee cup edge creating layered depth, f/1.2 optical falloff",
+        "macro_nail_close_up": "tight macro lens, smooth progressive optical focal falloff, f/1.4 shallow depth of field, blurred foreground fabric edge creating physical layered depth, creamy atmospheric background falloff"
     }
 
     NICHE_EN_MAP = {
@@ -659,10 +659,17 @@ class CinematographyDirector:
             elif is_full_body:
                 optics_extra = "sharp full-body frame, crisp clothing fabric texture, "
 
+            depth_atmosphere = (
+                "smooth progressive optical focal falloff, authentic f/1.2 optical lens blur, "
+                "soft blurred object in extreme foreground creating layered 3D depth, "
+                "volumetric lighting, subtle atmospheric haze, floating dust particles, cinematic atmosphere, "
+                "warm foreground key lighting contrasting with subtle cool background ambient light, "
+                "strong directional side light, Rembrandt lighting, deep micro-shadows, stark contrast, dramatic light falloff"
+            )
+
             full_prompt = (
                 f"35mm analog photography, candid snapshot of {subject}. "
-                f"{environment}, anamorphic background bokeh. "
-                f"{lighting_desc}. {optics_extra}"
+                f"{environment}, {depth_atmosphere}, {optics_extra}"
                 f"{texture_desc}."
             )
         else:
@@ -670,11 +677,17 @@ class CinematographyDirector:
                 "tactile material texture, physical surface imperfections, natural reflections, "
                 "(35mm film grain, ISO 400:1.1), authentic analog depth"
             )
+            depth_atmosphere = (
+                "smooth progressive optical focal falloff, authentic optical lens blur, f/1.2 depth of field, "
+                "soft blurred object in extreme foreground creating layered 3D spatial depth, "
+                "volumetric lighting, subtle atmospheric haze, floating dust particles, cinematic atmosphere, "
+                "warm foreground key lighting contrasting with subtle cool background ambient light, "
+                "strong directional side lighting, deep chiaroscuro micro-shadows, stark contrast, dramatic light falloff"
+            )
             full_prompt = (
                 f"35mm analog photography, candid snapshot of {subject}. "
-                f"{environment}, anamorphic background bokeh. "
-                f"{lighting}. "
-                f"{perspective}, {texture_desc}."
+                f"{environment}, {depth_atmosphere}, "
+                f"{lighting}. {perspective}, {texture_desc}."
             )
 
         return {
@@ -842,6 +855,9 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "(flat lighting, HDR, softbox, even illumination, lifted shadows, studio fill light:1.35), "
+        "(tone mapping, washed out blacks, washed out shadows, aggressive shadow recovery:1.3), "
+        "(fake chroma key blur, abrupt cut-and-paste background, cardboard cutout look, computational fake blur:1.3), "
         "(extra fingers, mutated joints, fused fingers:1.3), (deformed knuckles, missing phalanges, melting fingers, hand-object fusion:1.25), (stems penetrating through fingers, objects melting into hands:1.2), "
         "bare shoulders, sideboob, bare back, bare arms, naked under apron, open-back, halter top, cleavage, exposed skin, bare chest, shirtless, half-naked, unclothed, revealing clothing, deep neckline, bare midriff, lingerie, swimsuit, bikini, underwear, suggestive, erotic, "
         "100-megapixel Hasselblad, Hasselblad H6D, 8k resolution, 4k, photorealistic, clean editorial, commercial retouching, "

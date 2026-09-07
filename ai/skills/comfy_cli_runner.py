@@ -293,28 +293,35 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["width"] = target_w
                         node["widgets_values_named"]["height"] = target_h
 
-                # 5. RES4LYF Sampler (ClownsharKSampler_Beta / KSampler)
+                # 5. RES4LYF & Anti-CGI Sampler (ClownsharKSampler_Beta / KSampler / SDE Samplers)
                 sampler_steps = 30
-                sampler_cfg = 2.8 if has_human else 4.2
-                sampler_scheduler = "simple"
+                sampler_cfg = 3.2 if has_human else 3.8
+                # Переключение на SDE-семплирование и SGM Uniform / Beta для ликвидации пластикового "мультяшного" света
+                sampler_name = "dpmpp_3m_sde"
+                sampler_scheduler = "sgm_uniform"
+
                 if node_type == "KSampler":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 1:
                         node["widgets_values"][0] = chosen_seed
-                        if len(node["widgets_values"]) >= 4:
+                        if len(node["widgets_values"]) >= 6:
                             node["widgets_values"][2] = sampler_steps
                             node["widgets_values"][3] = sampler_cfg
+                            node["widgets_values"][4] = sampler_name
+                            node["widgets_values"][5] = sampler_scheduler
                         if len(node["widgets_values"]) >= 7 and not is_edit:
                             node["widgets_values"][6] = 1.0 # 100% генерация из шума
                     if "widgets_values_named" in node:
                         node["widgets_values_named"]["seed"] = chosen_seed
                         node["widgets_values_named"]["steps"] = sampler_steps
                         node["widgets_values_named"]["cfg"] = sampler_cfg
+                        node["widgets_values_named"]["sampler_name"] = sampler_name
+                        node["widgets_values_named"]["scheduler"] = sampler_scheduler
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
 
                 elif node_type == "ClownsharKSampler_Beta":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
-                        node["widgets_values"][1] = "euler"
+                        node["widgets_values"][1] = sampler_name
                         node["widgets_values"][2] = sampler_scheduler
                         node["widgets_values"][3] = sampler_steps
                         if not is_edit:
@@ -325,10 +332,33 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["steps"] = sampler_steps
                         node["widgets_values_named"]["cfg"] = sampler_cfg
                         node["widgets_values_named"]["seed"] = chosen_seed
-                        node["widgets_values_named"]["sampler_name"] = "euler"
+                        node["widgets_values_named"]["sampler_name"] = sampler_name
                         node["widgets_values_named"]["scheduler"] = sampler_scheduler
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
+
+                # 5b. FreeU (V2) - Разделение низких и высоких частот (физическое дробление бликов и хайлайтов)
+                if node_type in {"FreeU", "FreeU_V2", "FreeUAdvanced"}:
+                    if "widgets_values" in node and len(node["widgets_values"]) >= 4:
+                        node["widgets_values"][0] = 1.1  # b1: low-freq weight (базовый свет)
+                        node["widgets_values"][1] = 1.2  # b2
+                        node["widgets_values"][2] = 0.9  # s1: high-freq weight (микрорельеф)
+                        node["widgets_values"][3] = 0.2  # s2
+                    if "widgets_values_named" in node:
+                        node["widgets_values_named"]["b1"] = 1.1
+                        node["widgets_values_named"]["b2"] = 1.2
+                        node["widgets_values_named"]["s1"] = 0.9
+                        node["widgets_values_named"]["s2"] = 0.2
+
+                # 5c. Dynamic Thresholding (Mimic CFG) - Срез пересветов и гашение CGI-глянца
+                if "DynamicThresholding" in node_type or "RescaleCFG" in node_type:
+                    if "widgets_values_named" in node:
+                        if "mimic_cfg" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["mimic_cfg"] = 7.0
+                        if "threshold_percentile" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["threshold_percentile"] = 0.995
+                        if "mode" in node["widgets_values_named"]:
+                            node["widgets_values_named"]["mode"] = "HalfCosine"
 
                 # 6. UNET & Memory Optimization
                 if node_type == "UNETLoader":
@@ -393,8 +423,23 @@ class ComfyCLIRunner:
                     inputs["width"] = width
                     inputs["height"] = height
 
-                if class_type in {"KSampler", "SamplerCustomAdvanced", "ClownsharKSampler_Beta", "RandomNoise"} and "seed" in inputs:
-                    inputs["seed"] = chosen_seed
+                if class_type in {"KSampler", "SamplerCustomAdvanced", "ClownsharKSampler_Beta", "RandomNoise"}:
+                    if "seed" in inputs:
+                        inputs["seed"] = chosen_seed
+                    if "sampler_name" in inputs:
+                        inputs["sampler_name"] = "dpmpp_3m_sde"
+                    if "scheduler" in inputs:
+                        inputs["scheduler"] = "sgm_uniform"
+
+                if class_type in {"FreeU", "FreeU_V2", "FreeUAdvanced"}:
+                    inputs["b1"] = 1.1
+                    inputs["b2"] = 1.2
+                    inputs["s1"] = 0.9
+                    inputs["s2"] = 0.2
+
+                if "DynamicThresholding" in class_type or "RescaleCFG" in class_type:
+                    inputs["mimic_cfg"] = 7.0
+                    inputs["threshold_percentile"] = 0.995
 
                 # HandDetailer / FaceDetailer Multi-Hand Detection & Denoise
                 if class_type in {"FaceDetailer", "HandDetailer", "DetailerForEach", "FaceDetailerPipe"}:

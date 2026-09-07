@@ -1,0 +1,4 @@
+rootProject.name = "generative-orchestration-service"
+
+include ':common'
+project(':common').projectDir = new File('../common')

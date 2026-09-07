@@ -25,17 +25,22 @@ spring:
         initial-interval: 1000ms
         max-attempts: 3
   mail:
-    host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+    host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:a9f3052b45461a}
-    password: ${MAIL_PASSWORD:ae4e25c063dcb8}
+    username: ${MAIL_USERNAME:vusezet@gmail.com}
+    password: ${MAIL_PASSWORD:buio dngq nkkm otfx}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+          ssl:
+            enable: ${MAIL_SSL:false}
           localhost: localhost
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 email:
   support: ${SUPPORT_EMAIL:support@ucust.com}
 

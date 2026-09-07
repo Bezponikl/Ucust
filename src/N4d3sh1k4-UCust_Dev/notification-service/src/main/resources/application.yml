@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: notification-service
+  cloud:
+    config:
+      enabled: false
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5680
+    username: ${RABBITMQ_USER:service-user}
+    password: ${RABBITMQ_PASS:servicepassword}
+    virtual-host: universal-host
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2.0
+          max-interval: 10s
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    from: ${MAIL_FROM:${MAIL_USERNAME:vusezet@gmail.com}}
+    username: ${MAIL_USERNAME:vusezet@gmail.com}
+    password: ${MAIL_PASSWORD:buio dngq nkkm otfx}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            enable: ${MAIL_SSL:false}
+          localhost: localhost
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+email:
+  support: ${SUPPORT_EMAIL:support@ucust.com}
+
+url:
+  frontend: ${FRONTEND_URL:http://localhost:3000}
+
+server:
+  port: 8103

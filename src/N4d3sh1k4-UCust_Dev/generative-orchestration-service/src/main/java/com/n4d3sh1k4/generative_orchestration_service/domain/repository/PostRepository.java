@@ -1,0 +1,14 @@
+package com.n4d3sh1k4.generative_orchestration_service.domain.repository;
+
+import com.n4d3sh1k4.generative_orchestration_service.domain.model.content.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface PostRepository extends JpaRepository<Post, UUID> {
+    List<Post> findByProjectIdOrderByCreatedAtDesc(UUID projectId);
+    List<Post> findByProjectIdAndStatusOrderByCreatedAtDesc(UUID projectId, String status);
+}

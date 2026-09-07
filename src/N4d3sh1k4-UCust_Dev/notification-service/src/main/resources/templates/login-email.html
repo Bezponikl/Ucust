@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Новый вход в аккаунт</title>
+    <style>
+        body {
+            margin: 0; padding: 0; width: 100% !important;
+            -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;
+            background-color: #F8FAFC;
+        }
+        img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        table { border-collapse: collapse !important; }
+
+        .main-card {
+            background-color: #ffffff;
+            border-top: 4px solid #00A3E0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .content-cell {
+            padding: 48px 40px;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .info-block {
+            background-color: #EFF6FF;
+            border-left: 4px solid #3B82F6;
+            padding: 20px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+
+        .info-row {
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: #64748B;
+            font-weight: 500;
+            display: inline-block;
+            width: 120px;
+        }
+
+        .info-value {
+            color: #1E293B;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        @media only screen and (max-width: 620px) {
+            .wrapper-table {
+                width: 100% !important;
+            }
+            .main-card {
+                width: 95% !important;
+                border-radius: 4px !important;
+            }
+            .content-cell {
+                padding: 32px 20px !important;
+            }
+            .mobile-center {
+                text-align: center !important;
+            }
+            .mobile-center img {
+                margin: 0 auto !important;
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #0F172A !important; }
+            .main-card { background-color: #1E293B !important; }
+            h1 { color: #F8FAFC !important; }
+            p { color: #CBD5E1 !important; }
+            .info-block { background-color: #1E3A5F !important; border-left-color: #60A5FA !important; }
+            .info-label { color: #94A3B8 !important; }
+            .info-value { color: #E2E8F0 !important; }
+            .content-cell { color: #CBD5E1 !important; }
+        }
+    </style>
+</head>
+<body>
+    <center>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; padding: 20px 0;">
+            <tr>
+                <td align="center">
+
+                    <table class="main-card wrapper-table" role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="width: 600px; max-width: 600px;">
+                        <tr>
+                            <td class="content-cell" align="left">
+
+                                <div style="margin-bottom: 32px;" class="mobile-center">
+                                    <img src="https://i.imgur.com/huFpdnM.png" alt="Ucust" width="110" style="display: block; border: 0;">
+                                </div>
+
+                                <h1 style="font-size: 22px; color: #1E293B; margin: 0 0 16px 0; font-weight: 700;">
+                                    Новый вход в аккаунт
+                                </h1>
+
+                                <p style="font-size: 16px; margin: 0 0 16px 0;">
+                                    Здравствуйте! Был выполнен вход в ваш аккаунт <strong>UCust</strong>.
+                                </p>
+
+                                <p style="font-size: 15px; margin: 0 0 24px 0; color: #64748B;">
+                                    Если это были вы, можете проигнорировать это письмо. Если нет — рекомендуем сменить пароль.
+                                </p>
+
+                                <div class="info-block">
+                                    <p style="font-size: 14px; color: #1E40AF; margin: 0 0 12px 0; font-weight: 600;">
+                                        Детали входа
+                                    </p>
+
+                                    <div class="info-row">
+                                        <span class="info-label">Аккаунт:</span>
+                                        <span class="info-value" th:text="${email}">user@example.com</span>
+                                    </div>
+
+                                    <div class="info-row">
+                                        <span class="info-label">Дата и время:</span>
+                                        <span class="info-value" th:text="${#temporals.format(loginDate, 'dd.MM.yyyy HH:mm:ss')}">12.07.2026 14:30:00</span>
+                                    </div>
+
+                                    <div class="info-row">
+                                        <span class="info-label">IP-адрес:</span>
+                                        <span class="info-value" th:text="${ipAddress}">192.168.1.1</span>
+                                    </div>
+
+                                    <div class="info-row">
+                                        <span class="info-label">Устройство:</span>
+                                        <span class="info-value" th:text="${userAgent}" style="font-size: 12px; word-break: break-word;">Mozilla/5.0...</span>
+                                    </div>
+                                </div>
+
+                                <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 0 0 24px 0;">
+
+                                <p style="font-size: 14px; color: #475569; margin: 0 0 8px 0;">
+                                    Нужна помощь? Свяжитесь с нами:
+                                    <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}" style="color: #00A3E0; text-decoration: none; font-weight: 500;">support@ucust.com</a>
+                                </p>
+
+                                <p style="font-size: 15px; font-weight: 700; color: #1E293B; margin: 0;">
+                                    С уважением,<br>Команда UCust
+                                </p>
+
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table class="wrapper-table" role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="margin-top: 24px;">
+                        <tr>
+                            <td align="center" style="font-size: 12px; color: #94A3B8; padding: 0 20px;">
+                                © 2026 UCust Platform. Это системное уведомление.
+                            </td>
+                        </tr>
+                    </table>
+
+                </td>
+            </tr>
+        </table>
+    </center>
+</body>
+</html>

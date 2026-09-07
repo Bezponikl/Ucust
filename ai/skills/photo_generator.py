@@ -205,10 +205,16 @@ class CinematographyDirector:
                 {"setting": "festive spring celebration table by an arched stone window overlooking morning sky", "props": "natural terracotta dishware, dried floral accents, peaceful reverent warmth"}
             ],
             "животные": [
-                {"setting": "warm sunlit Scandinavian-style home living room, natural herringbone hardwood floor, soft textured woven throw blanket", "props": "healthy potted indoor monstera plant, delicate dust motes floating in golden afternoon window sunbeams, pure domestic peaceful haven"},
-                {"setting": "cozy sun-drenched window bench nook with plush velvet cushions and natural linen curtains", "props": "soft natural morning breeze, indoor ficus tree in background bokeh, serene relaxation"},
-                {"setting": "modern minimalist sunlit loft patio with warm wooden deck and terracotta planters", "props": "morning sunlight puddles, gentle peaceful garden view in soft focus"},
-                {"setting": "rustic country cottage fireside rug with warm amber glow", "props": "textured knitted wool blanket, cozy crackling warmth, ultimate comfort and security"}
+                {"setting": "cozy sunlit living room with natural herringbone hardwood floor and soft textured cream knit throw blanket", "props": "delicate dust motes floating in golden afternoon sunbeams, pure domestic comfort"},
+                {"setting": "warm sun-drenched living room window nook with natural linen curtains", "props": "soft woven blanket, indoor green plants in background bokeh, peaceful relaxation"},
+                {"setting": "modern minimalist living space with light oak flooring and warm rug", "props": "afternoon sunlight patches, serene cozy home haven"},
+                {"setting": "warm rustic living room with fireplace hearth", "props": "textured knitted wool blanket, cozy crackling warmth, ultimate comfort"}
+            ],
+            "зоо": [
+                {"setting": "cozy sunlit living room with natural herringbone hardwood floor and soft textured cream knit throw blanket", "props": "delicate dust motes floating in golden afternoon sunbeams, pure domestic comfort"},
+                {"setting": "warm sun-drenched living room window nook with natural linen curtains", "props": "soft woven blanket, indoor green plants in background bokeh, peaceful relaxation"},
+                {"setting": "modern minimalist living space with light oak flooring and warm rug", "props": "afternoon sunlight patches, serene cozy home haven"},
+                {"setting": "warm rustic living room with fireplace hearth", "props": "textured knitted wool blanket, cozy crackling warmth, ultimate comfort"}
             ],
             "кофейня": [
                 {"setting": "sunlit rustic specialty craft coffee shop, polished vintage oak counter, soft morning street view in background bokeh", "props": "artisan ceramic cup, delicate rising fragrant steam, roasted coffee bean jar, warm brass accents"},
@@ -277,16 +283,16 @@ class CinematographyDirector:
                 {"setting": "sunlit specialty gourmet market counter with glass display cases", "props": "freshly packaged artisan goods, chalkboard menu board, warm inviting light"}
             ],
             "бьюти": [
-                {"setting": "urban outdoor park with gray cobblestone walkway scattered with golden autumn leaves in late afternoon golden hour", "props": "ornate wrought-iron wooden bench, sparse golden trees and warm glowing streetlights in creamy background bokeh"},
-                {"setting": "scenic nature overlook with mature tree trunk and rugged bark at sunset golden hour", "props": "cozy cream ribbed knit sweater, thick earthy plaid scarf, panoramic warm skyline in dreamy bokeh"},
-                {"setting": "editorial studio portrait setting against a solid matte dark background", "props": "textured black leather biker jacket with silver snaps, layered interlocking silver chain necklaces, high-contrast single key light"},
-                {"setting": "intimate atmospheric vintage room with warm orange lamp light casting dramatic long shadows", "props": "worn denim armchair with frayed texture, muted rose tones, cinematic chiaroscuro mood"}
+                {"setting": "modern sunlit beauty salon with warm travertine surfaces and fresh botanical accents", "props": "soft indirect lighting, clean mirrors, luxurious calm atmosphere"},
+                {"setting": "cozy aesthetic studio with warm neutral beige background bokeh", "props": "textured cream chunky-knit fabric, delicate dried botanicals, soft ambient glow"},
+                {"setting": "chic minimalist aesthetic salon with soft daylight", "props": "warm oak table, delicate linen cloth, refined modern elegance"},
+                {"setting": "editorial studio setting with dramatic key lighting and deep shadow falloff", "props": "warm amber ambient accents, high-contrast textures, rich depth"}
             ],
             "маникюр": [
                 {"setting": "cozy aesthetic nail studio with textured cream chunky-knit fabric in foreground", "props": "delicate dried autumn maple leaves, soft neutral beige background bokeh"},
-                {"setting": "warm ambient coffee lounge with soft circular golden bokeh lights", "props": "glossy ceramic coffee cup with intricate white latte art, warm intimate glow"},
-                {"setting": "minimalist luxury nail bar with warm oak surface and soft diffused daylight", "props": "ribbed maroon knit sweater sleeve cuff, rich tactile textures"},
-                {"setting": "chic modern beauty salon with soft indirect lighting", "props": "natural linen cloth, scattered burnt orange autumn leaves, elegant seasonal ambiance"}
+                {"setting": "warm ambient studio lounge with soft circular golden bokeh lights", "props": "warm ceramic cup, soft textured knitwear, warm intimate glow"},
+                {"setting": "minimalist luxury nail bar with warm oak surface and soft diffused daylight", "props": "ribbed knit sweater sleeve cuff, rich tactile textures"},
+                {"setting": "chic modern beauty salon with soft indirect lighting", "props": "natural linen cloth, delicate seasonal accents, elegant ambiance"}
             ]
         }
 
@@ -308,8 +314,8 @@ class CinematographyDirector:
         else:
             default_variations = [
                 {"setting": f"aesthetic contemporary {niche_en} setting", "props": "tactile authentic materials and natural atmospheric depth"},
-                {"setting": f"bright minimalist sunlit {niche_en} environment with marble and warm wood accents", "props": "clean architectural lines, fresh botanical touches, soft natural lighting"},
-                {"setting": f"warm luxury {niche_en} studio with soft evening ambient glow and rich textures", "props": "subtle velvet and brass details, sophisticated modern depth"},
+                {"setting": f"bright minimalist sunlit {niche_en} environment with warm wood accents", "props": "clean architectural lines, fresh botanical touches, soft natural lighting"},
+                {"setting": f"warm atmospheric {niche_en} studio with soft evening ambient glow and rich textures", "props": "subtle textured details, sophisticated depth"},
                 {"setting": f"spacious Scandinavian loft {niche_en} with expansive windows and golden daylight", "props": "organic textures, breathable negative space, effortless elegance"}
             ]
             niche_universe = default_variations[var]
@@ -659,12 +665,30 @@ class CinematographyDirector:
             elif is_full_body:
                 optics_extra = "sharp full-body frame, crisp clothing fabric texture, "
 
+            # Физический материализованный якорь переднего плана
+            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кот", "кошк", "котен", "питомц", "puppy", "dog", "cat"]):
+                foreground_anchor = "(blurred yarn ball in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
+                foreground_anchor = "(blurred edge of ceramic mug and chunky knitwear in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["кофе", "капучин", "латте", "эспрессо", "круассан", "coffee", "cappuccino", "croissant"]):
+                foreground_anchor = "(blurred edge of rustic oak table in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["стейк", "рибай", "шеф", "повар", "мясо", "steak", "ribeye", "кулинар"]):
+                foreground_anchor = "(blurred edge of rustic cutting board and wine glass in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer"]):
+                foreground_anchor = "(blurred edge of mechanical keyboard and ceramic mug in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
+                foreground_anchor = "(blurred dewy flower petal and twine in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["плата", "esp32", "пайк", "электроник"]):
+                foreground_anchor = "(blurred precision tweezers and wire spool in extreme foreground:1.2)"
+            else:
+                foreground_anchor = "(blurred edge of wooden table in extreme foreground:1.2)"
+
             depth_atmosphere = (
-                "smooth progressive optical focal falloff, authentic f/1.2 optical lens blur, "
-                "soft blurred object in extreme foreground creating layered 3D depth, "
+                f"{foreground_anchor}, "
+                "smooth progressive focal falloff, f/1.2 depth of field, anamorphic bokeh, "
                 "volumetric lighting, subtle atmospheric haze, floating dust particles, cinematic atmosphere, "
                 "warm foreground key lighting contrasting with subtle cool background ambient light, "
-                "strong directional side light, Rembrandt lighting, deep micro-shadows, stark contrast, dramatic light falloff"
+                "strong directional side light, Rembrandt lighting, deep micro-shadows, dramatic light falloff"
             )
 
             full_prompt = (
@@ -677,12 +701,30 @@ class CinematographyDirector:
                 "tactile material texture, physical surface imperfections, natural reflections, "
                 "(35mm film grain, ISO 400:1.1), authentic analog depth"
             )
+            # Физический материализованный якорь переднего плана
+            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кот", "кошк", "котен", "питомц", "puppy", "dog", "cat"]):
+                foreground_anchor = "(blurred yarn ball in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
+                foreground_anchor = "(blurred edge of ceramic mug and chunky knitwear in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["кофе", "капучин", "латте", "эспрессо", "круассан", "coffee", "cappuccino", "croissant"]):
+                foreground_anchor = "(blurred edge of rustic oak table in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["стейк", "рибай", "шеф", "повар", "мясо", "steak", "ribeye", "кулинар"]):
+                foreground_anchor = "(blurred edge of rustic cutting board and wine glass in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer"]):
+                foreground_anchor = "(blurred edge of mechanical keyboard and ceramic mug in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
+                foreground_anchor = "(blurred dewy flower petal and twine in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["плата", "esp32", "пайк", "электроник"]):
+                foreground_anchor = "(blurred precision tweezers and wire spool in extreme foreground:1.2)"
+            else:
+                foreground_anchor = "(blurred edge of wooden table in extreme foreground:1.2)"
+
             depth_atmosphere = (
-                "smooth progressive optical focal falloff, authentic optical lens blur, f/1.2 depth of field, "
-                "soft blurred object in extreme foreground creating layered 3D spatial depth, "
+                f"{foreground_anchor}, "
+                "smooth progressive focal falloff, f/1.2 depth of field, anamorphic bokeh, "
                 "volumetric lighting, subtle atmospheric haze, floating dust particles, cinematic atmosphere, "
                 "warm foreground key lighting contrasting with subtle cool background ambient light, "
-                "strong directional side lighting, deep chiaroscuro micro-shadows, stark contrast, dramatic light falloff"
+                "strong directional side lighting, deep chiaroscuro micro-shadows, dramatic light falloff"
             )
             full_prompt = (
                 f"35mm analog photography, candid snapshot of {subject}. "

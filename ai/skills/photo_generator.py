@@ -410,8 +410,21 @@ class CinematographyDirector:
             else:
                 subject = dog_archetypes[var % len(dog_archetypes)]
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн", "цветы", "далии", "гортензи"]):
-            subject = "a florist holding a massive, overflowing woven wicker basket centered in frame with palms supporting the base, filled with dense fresh blooms, pink peonies, magenta dahlias and cascading green foliage"
+        elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "разнообрази", "однообрази", "авторский букет", "композици", "цветочн", "цветы", "далии", "гортензи"]):
+            florist_archetypes = [
+                "a passionate female florist in a natural beige linen apron holding a lavish, rich multi-flower designer bouquet combining fluffy soft-pink Sarah Bernhardt peonies, creamy French garden roses, ruffled white ranunculus, magenta dahlias, and cascading dusty silver-dollar eucalyptus sprigs, beautifully wrapped in layered textured matte craft paper with silk trailing ribbons",
+                "a focused artisan florist in a linen apron standing at a rustic wooden workbench, hands gently trimming and assembling a stunning diverse floral arrangement of open peonies, spray roses, and aromatic eucalyptus stems, with vintage brass shears, rolls of pastel twine, and fresh dewy flower petals scattered on the table",
+                "a cheerful florist holding a massive, overflowing woven wicker basket centered in frame with palms supporting the base, packed with diverse fresh blooms, layered pink peonies, white hydrangeas, magenta dahlias, chamomile, and lush eucalyptus foliage",
+                "an exquisite bespoke multi-flower artisan bouquet featuring a rich variety of lush pink peonies, David Austin peach roses, white lisianthus, and fragrant silver eucalyptus leaves in a heavy fluted glass vase on a weathered oak table in soft morning sunbeams"
+            ]
+            if any(w in topic_lower for w in ["разнообрази", "однообрази", "авторск", "эвкалипт", "композици"]):
+                subject = florist_archetypes[0] if var % 2 == 0 else florist_archetypes[1]
+            elif any(w in topic_lower for w in ["корзин", "basket"]):
+                subject = florist_archetypes[2]
+            elif any(w in topic_lower for w in ["ваз", "натюрморт", "на столе"]):
+                subject = florist_archetypes[3]
+            else:
+                subject = florist_archetypes[var % len(florist_archetypes)]
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["шеф", "повар", "кулинар", "кухня", "стейк", "мясо", "chef", "culinary"]):
             subject = "a focused male chef wearing a simple white short-sleeved t-shirt beneath a textured dark apron, gripping a chef's knife slicing through deep-red meat on a rustic wooden board, Rembrandt chiaroscuro"

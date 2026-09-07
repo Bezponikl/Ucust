@@ -39,7 +39,13 @@ class CinematographyDirector:
         "paramount": "Gentle overhead light defining facial planes",
         "spotlight": "Warm direct task light illuminating the subject",
         "lens_flare": "Subtle optical lens flare, organic light leak",
-        "soft_diffused": "Soft diffused morning window daylight with gentle natural gradients"
+        "soft_diffused": "Soft diffused morning window daylight with gentle natural gradients",
+        "dual_office": "Subtle dual lighting with a warm 3000K matte black desk lamp glow contrasting with cool 5500K natural daylight from office windows",
+        "overcast_diffused": "Soft diffused natural daylight under an overcast sky, gentle even wrap with no harsh specular highlights",
+        "warm_pendant": "Hanging pendant filament lamps casting a soft warm ambient glow, rich environmental depth",
+        "hard_chiaroscuro": "Strong single directional warm key light casting deep dramatic chiaroscuro shadows with high contrast falloff",
+        "golden_hour_rim": "Warm directional golden hour glow casting gentle rim light along hair and shoulders with creamy atmospheric bokeh",
+        "editorial_studio": "Single directional studio key light from upper-left with deep shadow falloff, high-contrast micro-textures"
     }
 
     COLOR_HARMONIES = {
@@ -67,7 +73,12 @@ class CinematographyDirector:
         "candid_eye_level": "35mm lens, candid natural eye-level perspective",
         "culinary_macro_eyelevel": "35mm close-up macro lens perspective, f/2.8 shallow depth of field",
         "culinary_flatlay_topdown": "Direct top-down 90-degree overhead perspective",
-        "culinary_45_slice": "45-degree angled perspective with crisp focal depth"
+        "culinary_45_slice": "45-degree angled perspective with crisp focal depth",
+        "oversized_hero": "Centered medium shot framing an oversized overflowing basket in front of torso, sharp macro focus on textures and petals",
+        "candid_counter": "Medium eye-level shot, candid transactional interaction across a speckled counter with POS touch register",
+        "layered_artisan_table": "Layered multi-tiered tabletop display, deep foreground arrangement with rustic wooden cutting boards, linen cloth, and chalk price tags",
+        "contemplative_profile": "Medium close-up profile shot, subject leaning thoughtfully, shallow depth of field with creamy bokeh",
+        "active_desk_focus": "Slightly elevated side-angle desk perspective, subject leaning forward typing intently, foreground notebooks and coffee cup"
     }
 
     NICHE_EN_MAP = {
@@ -154,10 +165,10 @@ class CinematographyDirector:
                 {"setting": "bright creative IT workspace with warm ambient pendant lighting and whiteboards", "props": "ergonomic workstation, high-tech SaaS dashboards, breakthrough clarity and success"}
             ],
             "it": [
-                {"setting": "modern high-tech software engineering office with floor-to-ceiling glass windows and natural daylight", "props": "clean minimalist desk with ultra-thin laptop showing AI code and metrics, contemporary tech atmosphere"},
-                {"setting": "innovative AI technology hub with sleek architectural design and soft ambient illumination", "props": "cutting-edge digital workstation, data analytics visualizations, focused creativity"},
-                {"setting": "sunlit Scandinavian style tech coworking space with lush green indoor plants and wooden tables", "props": "sleek laptop, warm natural morning daylight, inspiring productivity"},
-                {"setting": "panoramic rooftop tech terrace with view of modern city skyscrapers at golden hour", "props": "tablet showing cloud software growth, futuristic optimism and mastery"}
+                {"setting": "modern high-tech software engineering office with polished wooden desk and black gooseneck desk lamp casting a warm focused pool of light", "props": "sleek silver laptop, stack of black notebooks with silver pen, smartphone beside printed charts, white ceramic coffee mug, natural daylight from glass partitions in background"},
+                {"setting": "contemporary tech office corner, warm beige fabric floor lamp casting soft ambient shadows against beige wall", "props": "black laptop, smartphone on wooden table, deep contemplation atmosphere"},
+                {"setting": "executive analytical workstation with ergonomic black mesh chair", "props": "large curved monitor displaying glowing orange and white dynamic data charts, warm circular desk lamp creating dramatic ambient glow"},
+                {"setting": "dimly lit late-night corporate tech office with floor-to-ceiling glass windows", "props": "silver laptop on desk, whiteboard with handwritten charts and sticky notes in soft background, cool blue-gray ambient tones"}
             ],
             "религия": [
                 {"setting": "majestic historic cathedral interior with towering stone arches, golden gilded altar details, soft sunbeams filtering through ancient stained glass windows", "props": "glowing beeswax candles in soft chiaroscuro, natural linen cloth, delicate incense haze, tranquil sacred stillness"},
@@ -178,10 +189,10 @@ class CinematographyDirector:
                 {"setting": "warm atmospheric coffee roastery studio with burlap coffee sacks and glowing pendant lights", "props": "vintage brass coffee scale, roasted beans scattering, rich tactile aroma"}
             ],
             "пекарня": [
+                {"setting": "traditional European rustic market stall covered by cream-colored canvas awning, brick building and open field in background under overcast sky", "props": "draped deep green cloth, abundant display of artisanal cheese wheels with white rinds, crumbly wedges, ripe red tomatoes in baskets, wooden crates overflowing with crusty sourdough baguettes"},
+                {"setting": "cozy artisan food hall market stall with rustic exposed wooden beams and warm pendant lights", "props": "wooden cutting boards with artisanal cheeses, glass jars of honey and fruit preserves with handwritten labels, fresh chives, linen runner, small chalkboard price tags"},
                 {"setting": "artisan French pastry boutique, warm marble countertop with scattered fine flour dust and toasted almond flakes", "props": "flaky golden crust, fresh spring berry garnish, vintage baker's wooden paddle in soft focus"},
-                {"setting": "sun-drenched rustic bakery table with natural raw linen and woven wicker bread baskets", "props": "delicate rising warm oven steam, rustic wheat sheaves, wholesome golden crust texture"},
-                {"setting": "modern high-end confectionery showcase counter with crystal-clear glass and soft warm backlighting", "props": "gourmet dessert pedestal, fresh mint leaves, edible gold leaf accents"},
-                {"setting": "bright minimalist patisserie kitchen with pristine stainless steel and white marble surfaces", "props": "precision pastry tools, glistening mirror glaze drips, culinary perfection"}
+                {"setting": "dimly lit professional gourmet restaurant kitchen with dark wooden shelves of wine bottles", "props": "chef knife with black handle slicing deep-red meat on rustic wooden board, stack of clean white ceramic plates, stainless steel pot in Rembrandt chiaroscuro"}
             ],
             "электроника": [
                 {"setting": "clean high-tech electronics engineering laboratory, professional blue anti-static silicone soldering mat", "props": "precision tweezers, fine copper circuit traces, gold-plated header pins, micro-components in crisp macro focus"},
@@ -208,16 +219,28 @@ class CinematographyDirector:
                 {"setting": "panoramic sunset terrace lounge with comfortable designer armchairs overlooking vibrant city lights", "props": "warm twilight sky, ambient recessed deck lighting, prestige and triumph"}
             ],
             "цвет": [
+                {"setting": "entrance of a modern flower boutique with weathered red brick wall, textured white mortar, and dark wooden doorway", "props": "massive overflowing wicker basket packed with pink peonies, magenta dahlias, peach carnations, baby's breath, cascading green foliage, wet reflective concrete pavement"},
+                {"setting": "picturesque cobblestone street corner with historic architecture in soft overcast daylight", "props": "large natural wicker basket overflowing with crisp white daisies and lush green foliage, beige trench coat and boots aesthetic"},
                 {"setting": "sunlit Parisian floral boutique with rustic wooden worktables and arched European windows", "props": "fresh dewy pink peonies, eucalyptus stems, galvanized metal flower buckets, garden shears and ribbon rolls in soft focus"},
-                {"setting": "charming botanical flower shop with cascading lush green foliage and sunbeams streaming through glass", "props": "delicate ranunculus bouquet in kraft paper wrap, water droplets on petals, artisan terracotta pots"},
-                {"setting": "modern minimalist floral atelier with concrete surfaces and clean glass vases", "props": "exquisite white hydrangeas and garden roses, soft natural window daylight, botanical elegance"},
-                {"setting": "cozy warm flower boutique counter at morning golden hour", "props": "vibrant fresh-cut seasonal flowers, organic twine spools, rustic wooden counter with rich tactile grain"}
+                {"setting": "modern minimalist floral atelier with concrete surfaces and clean glass vases", "props": "exquisite white hydrangeas and garden roses, soft natural window daylight, botanical elegance"}
             ],
             "посуд": [
                 {"setting": "elegant sunlit artisanal ceramic and tableware boutique with warm open oak display shelves", "props": "handcrafted matte ceramic bowls, delicate bone porcelain plates, organic textured earthenware in soft warm ambient light"},
                 {"setting": "minimalist Scandinavian tableware showroom with travertine stone pedestals", "props": "fine porcelain tea set with subtle glaze cracks, linen tablecloth in soft bokeh, timeless craftsmanship"},
                 {"setting": "warm luxury porcelain gallery with soft directional gallery spotlights", "props": "exquisite bone china teacups, glazed ceramic vases, elegant refined lifestyle aesthetic"},
                 {"setting": "charming European artisan tableware boutique counter with natural morning daylight", "props": "stacked handcrafted ceramic dinnerware, wooden serving spoons, pure tactile authenticity"}
+            ],
+            "ритейл": [
+                {"setting": "modern cozy specialty grocery store with exposed brick wall, black metal shelving and hanging pendant filament bulbs", "props": "dark speckled granite checkout counter, touchscreen POS register, snacks in neat packaging, small potted green plant in metallic pot"},
+                {"setting": "contemporary boutique checkout area with warm wooden accents and soft overhead spotlighting", "props": "branded canvas tote bag, organic snack packages on counter, friendly service atmosphere"},
+                {"setting": "artisan concept store with warm oak display tables and minimalist signage", "props": "handcrafted goods with minimalist labels, receipt printer, warm inviting customer experience"},
+                {"setting": "sunlit specialty gourmet market counter with glass display cases", "props": "freshly packaged artisan goods, chalkboard menu board, warm inviting light"}
+            ],
+            "бьюти": [
+                {"setting": "urban outdoor park with gray cobblestone walkway scattered with golden autumn leaves in late afternoon golden hour", "props": "ornate wrought-iron wooden bench, sparse golden trees and warm glowing streetlights in creamy background bokeh"},
+                {"setting": "scenic nature overlook with mature tree trunk and rugged bark at sunset golden hour", "props": "cozy cream ribbed knit sweater, thick earthy plaid scarf, panoramic warm skyline in dreamy bokeh"},
+                {"setting": "editorial studio portrait setting against a solid matte dark background", "props": "textured black leather biker jacket with silver snaps, layered interlocking silver chain necklaces, high-contrast single key light"},
+                {"setting": "intimate atmospheric vintage room with warm orange lamp light casting dramatic long shadows", "props": "worn denim armchair with frayed texture, muted rose tones, cinematic chiaroscuro mood"}
             ]
         }
 
@@ -319,17 +342,38 @@ class CinematographyDirector:
         elif any(w in topic_lower for w in ["собак", "щенок", "щенк"]) or any(re.search(rf'\b{w}\b', topic_lower) for w in ["пес", "пёс", "dog", "puppy"]):
             subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн"]):
-            subject = "a young female florist wearing a loose white cotton t-shirt under a natural linen apron, holding a bouquet of pink peonies"
-            environment = "Sunlit floral boutique, rustic wooden worktables, galvanized metal buckets"
-        elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer"]) and any(w in topic_lower for w in ["кофе", "кружк", "чашк", "mug", "coffee", "стол", "ноутбук", "laptop", "office", "офис"]):
-            subject = "a focused male tech developer wearing a casual dark shirt in a contemporary office looking at a laptop, holding a matte ceramic coffee mug"
-            environment = "Soft ambient office daylight"
+        elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн", "цветы", "далии", "гортензи"]):
+            subject = "a florist holding a massive, overflowing woven wicker basket centered in frame with palms supporting the base, filled with dense fresh blooms, pink peonies, magenta dahlias and cascading green foliage"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["шеф", "повар", "кулинар", "кухня", "стейк", "мясо", "chef", "culinary"]):
+            subject = "a focused male chef wearing a simple white short-sleeved t-shirt beneath a textured dark apron, gripping a chef's knife slicing through deep-red meat on a rustic wooden board, Rembrandt chiaroscuro"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["сыр", "сыроварн", "фермер", "рынок", "ярмарк", "сырные"]):
+            subject = "a cheerful artisan seller wearing a beige knitted sweater and dark apron behind a rustic stall display of soft-ripened cheese wheels with white rinds, crumbly wedges, and crusty sourdough baguettes"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["касса", "магазин", "ритейл", "покупк", "продукты", "супермаркет"]):
+            subject = "a friendly cashier in a black short-sleeved shirt and apron operating a black touchscreen POS cash register across a dark speckled counter, candid store interaction"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer", "кодер", "аналитик"]) or any(w in niche_lower for w in ["it", "saas", "martech", "ии"]):
+            it_archetypes = [
+                "a focused young man with neat beard wearing a denim jacket over a plain white t-shirt, typing intently on a sleek silver laptop under a warm desk lamp",
+                "a contemplative tech specialist in clear glasses with right hand curled at chin in deep thought, seated at wooden table with black laptop under warm floor lamp",
+                "a professional data analyst in dark charcoal sweater seated in ergonomic mesh chair, looking at large curved monitor with glowing data graphs",
+                "a dedicated engineer in light blue button-up shirt with rolled sleeves at office desk, hand resting on forehead in deep focus, laptop with whiteboard in background"
+            ]
+            subject = it_archetypes[var]
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["свитер", "осень", "парк", "уют", "скамейк", "autumn", "knitwear", "cozy"]):
+            subject = "a young woman in an oversized cream cable-knit sweater and straight-leg denim jeans, sitting casually on a weathered wooden park bench with scattered autumn leaves in golden hour"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["кожанк", "косух", "рок", "байкер", "тату", "biker", "leather jacket"]):
+            subject = "a charismatic young woman in a textured black leather biker jacket with silver snaps and interlocking chain necklaces, candid expressive face, solid matte dark background"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд", "гончар", "глинян"]):
             subject = "an artisan wearing a casual long-sleeved shirt under an apron, holding a handcrafted bone porcelain cup in hands, distinct individual fingers, authentic tactile grip"
             environment = "Sunlit artisanal ceramic and tableware boutique, open oak display shelves"
-        elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо", "разработчик", "инженер"]):
-            subject = "a confident young tech professional wearing modest casual clothes with genuine relaxed expression, looking into camera"
+        elif any(w in topic_lower for w in ["человек", "основател", "фаундер", "девушк", "парен", "мужчин", "женщин", "портрет", "лицо"]):
+            subject = "a confident young professional wearing modest casual clothes with genuine relaxed expression, looking into camera"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif "плата" in topic_lower or "esp32" in topic_lower or "esp-32" in topic_lower or "ардуино" in topic_lower or "arduino" in topic_lower or "микроконтроллер" in topic_lower or "чип" in topic_lower:
             subject = visual_spec.get("visual_description", "extreme macro tabletop product photography of genuine ESP-32 development board with straight rigid gold square male header pins, rectangular metal RF shield engraved with ESP-32 logo, matte black FR-4 PCB, copper circuit traces, USB Type-C port")

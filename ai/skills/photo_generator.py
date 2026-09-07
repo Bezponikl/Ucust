@@ -142,7 +142,14 @@ class CinematographyDirector:
         var = variation_index % 4
 
         # Предотвращение Semantic Bleed: если в теме указана конкретная предметная область, она имеет наивысший приоритет
-        domain_priority = ["маникюр", "ногти", "гель-лак", "цвет", "флорист", "букет", "пион", "посуд", "фарфор", "керамик", "глинян", "гончар", "кофе", "пекарн", "десерт", "электроник", "плата", "кот", "собак", "детейлинг", "стоматолог", "недвижим", "it", "saas", "martech"]
+        domain_priority = [
+            "маникюр", "ногти", "гель-лак", "постер", "плакат", "вывеск", "типографик", "билборд",
+            "цвет", "флорист", "букет", "пион", "посуд", "фарфор", "керамик", "глинян", "гончар",
+            "кофе", "пекарн", "десерт", "торт", "синнабон", "булочк", "печень", "шоколад",
+            "электроник", "плата", "кот", "кошк", "котик", "котен", "собак", "щенок", "щенк",
+            "корги", "шпиц", "померан", "сиба", "хаски", "овчарк", "детейлинг", "стоматолог",
+            "недвижим", "балкон", "блокнот", "конспект", "постель", "it", "saas", "martech"
+        ]
         effective_niche_key = None
         for k in domain_priority:
             if k in topic_lower:
@@ -196,6 +203,18 @@ class CinematographyDirector:
                 {"setting": "cozy artisan food hall market stall with rustic exposed wooden beams and warm pendant lights", "props": "wooden cutting boards with artisanal cheeses, glass jars of honey and fruit preserves with handwritten labels, fresh chives, linen runner, small chalkboard price tags"},
                 {"setting": "artisan French pastry boutique, warm marble countertop with scattered fine flour dust and toasted almond flakes", "props": "flaky golden crust, fresh spring berry garnish, vintage baker's wooden paddle in soft focus"},
                 {"setting": "dimly lit professional gourmet restaurant kitchen with dark wooden shelves of wine bottles", "props": "chef knife with black handle slicing deep-red meat on rustic wooden board, stack of clean white ceramic plates, stainless steel pot in Rembrandt chiaroscuro"}
+            ],
+            "десерт": [
+                {"setting": "artisan pastry workshop with dark slate slab and rustic wooden accents", "props": "glossy molten chocolate ganache cascading over layered cake, ripe halved strawberries, fine dark chocolate curls"},
+                {"setting": "rustic bakery table covered with textured frayed beige linen runner", "props": "golden-brown cinnamon rolls on circular wooden board, whole dark star anise pods, whole cinnamon sticks, powdered sugar dusting"},
+                {"setting": "cozy gourmet bakery packaging counter with natural kraft paper and brown ribbon", "props": "gourmet cookie gift box with crinkled parchment paper, assorted chocolate chunk and walnut cookies"},
+                {"setting": "weathered wooden table with rich natural grain and knots", "props": "circular bark-edged wooden serving board, freshly baked chocolate chip cookies, steaming ceramic mug of hot coffee with delicate vapor curls"}
+            ],
+            "постер": [
+                {"setting": "modern urban interior with weathered red brick wall and natural mortar lines", "props": "minimalist dark framed poster with sharp dark-gray typography on white, warm overhead spotlight, natural wood door trim"},
+                {"setting": "classical architectural gallery arcade with stone arches and high vaulted ceiling", "props": "hanging circular illuminated lightbox sign with warm golden backlighting, classical stone pillars"},
+                {"setting": "corner street facade of a multi-story contemporary concrete and glass building", "props": "massive architectural outdoor billboard, clean sky background, bold high-contrast graphic branding"},
+                {"setting": "industrial modern loft staircase with dark steel risers and steps", "props": "crisp white typography stenciled on metal steps, directional side lighting, tactile raw steel texture"}
             ],
             "электроника": [
                 {"setting": "clean high-tech electronics engineering laboratory, professional blue anti-static silicone soldering mat", "props": "precision tweezers, fine copper circuit traces, gold-plated header pins, micro-components in crisp macro focus"},
@@ -350,11 +369,46 @@ class CinematographyDirector:
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
         # 1. Проверяем конкретные сущности из темы (Topic Subjects) ПЕРЕД общими нишами
-        if "кот" in topic_lower or "кошк" in topic_lower or "котик" in topic_lower:
-            subject = "macro eye-level commercial pet portrait of a gorgeous fluffy tabby cat with bright sharp amber eyes and crisp long white whiskers, resting comfortably on a wooden desk beside an open laptop displaying high-contrast blue analytics charts"
-            environment = "sunlit contemporary wooden desk, soft warm morning window daylight, crisp foreground focus with soft background office bokeh"
-        elif any(w in topic_lower for w in ["собак", "щенок", "щенк"]) or any(re.search(rf'\b{w}\b', topic_lower) for w in ["пес", "пёс", "dog", "puppy"]):
-            subject = "healthy energetic loyal dog with sharp shining fur, clear expressive eyes and joyful expression, macro pet photography"
+        if any(w in topic_lower for w in ["кот", "кошк", "котик", "котен", "котён", "cat", "kitten"]):
+            cat_archetypes = [
+                "macro eye-level pet portrait of an adorable ginger tabby kitten with vibrant orange stripes and luminous blue-green eyes, stretching playfully in a warm diagonal sunbeam across a rustic wooden floor",
+                "high-angle top-down macro shot of a tiny fluffy gray and white kitten lying curled on a soft ivory knit blanket, gazing directly up at the camera with wide curious amber eyes",
+                "sleek black cat with glossy midnight fur and striking golden-yellow eyes, nestled comfortably on a cozy cream-toned textured fleece blanket in warm ambient lighting",
+                "charming fluffy black cat with luminous emerald eyes, sitting on a wooden desk with a tiny pink tongue peeking out in a playful blep expression beside soft warm lamplight",
+                "macro eye-level commercial pet portrait of a gorgeous fluffy domestic tabby cat with bright sharp amber eyes and long white whiskers, resting comfortably on a wooden desk beside an open laptop displaying clean analytics charts"
+            ]
+            if any(w in topic_lower for w in ["черн", "black"]):
+                subject = cat_archetypes[2] if var % 2 == 0 else cat_archetypes[3]
+            elif any(w in topic_lower for w in ["рыж", "ginger", "orange"]):
+                subject = cat_archetypes[0]
+            elif any(w in topic_lower for w in ["сер", "gray", "grey", "бел", "white"]):
+                subject = cat_archetypes[1]
+            else:
+                subject = cat_archetypes[var % len(cat_archetypes)]
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["собак", "щенок", "щенк", "корги", "шпиц", "померан", "сиба", "хаски", "овчарк"]) or any(re.search(rf'\b{w}\b', topic_lower) for w in ["пес", "пёс", "dog", "puppy"]):
+            dog_archetypes = [
+                "a fluffy, golden-furred puppy with soft long light golden fur, sitting upright on a textured beige carpet, gazing with large expressive round dark eyes and head tilted curiously to the right",
+                "an adorable Welsh Corgi with golden and white fur, upright rounded ears, and joyful face, sitting happily on a wooden floor in bright morning sunlight",
+                "a fluffy cream-colored Pomeranian puppy sitting on a soft woven rug, playfully raising one front paw in the air with delicate black paw pads visible and a cheerful pant",
+                "a neat red Shiba Inu with alert triangular ears and bright dark eyes, standing on light oak hardwood floor in golden afternoon light, looking into the lens with keen curiosity",
+                "a striking Siberian Husky with piercing ice-blue eyes and thick silver-gray coat, seated in a car passenger seat looking out the window with an astonished, wide-eyed curious expression",
+                "a loyal German Shepherd with rich black and tan coat, resting peacefully on lush green grass in soft golden hour light with alert intelligent gaze"
+            ]
+            if any(w in topic_lower for w in ["корги", "corgi"]):
+                subject = dog_archetypes[1]
+            elif any(w in topic_lower for w in ["померан", "шпиц", "pomeranian", "spitz"]):
+                subject = dog_archetypes[2]
+            elif any(w in topic_lower for w in ["сиба", "shiba"]):
+                subject = dog_archetypes[3]
+            elif any(w in topic_lower for w in ["хаски", "husky"]):
+                subject = dog_archetypes[4]
+            elif any(w in topic_lower for w in ["овчарк", "shepherd"]):
+                subject = dog_archetypes[5]
+            elif any(w in topic_lower for w in ["щенок", "щенк", "puppy"]):
+                subject = dog_archetypes[0]
+            else:
+                subject = dog_archetypes[var % len(dog_archetypes)]
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["флорист", "девушка-флорист", "букет", "пион", "эвкалипт", "цветочн", "цветы", "далии", "гортензи"]):
             subject = "a florist holding a massive, overflowing woven wicker basket centered in frame with palms supporting the base, filled with dense fresh blooms, pink peonies, magenta dahlias and cascading green foliage"
@@ -367,6 +421,45 @@ class CinematographyDirector:
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["касса", "магазин", "ритейл", "покупк", "продукты", "супермаркет"]):
             subject = "a friendly cashier in a black short-sleeved shirt and apron operating a black touchscreen POS cash register across a dark speckled counter, candid store interaction"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["синнабон", "булочк", "кориц", "cinnamon", "rolls", "roll"]):
+            subject = "three golden-brown artisan cinnamon rolls with perfectly spiraled glossy surfaces dusted generously with fine powdered sugar on a rustic circular wooden cutting board, accompanied by dark brown whole star anise pods, whole cinnamon sticks, and scattered brown sugar crystals, with a small creamy glaze bowl in background"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["печень", "печеньк", "кукис", "cookie", "cookies"]):
+            cookie_archetypes = [
+                "a generous pile of freshly baked golden-brown chocolate chip cookies with melted dark chocolate chunks on a rustic circular wooden serving board with rough natural bark edge, beside a steaming ceramic mug of coffee emitting delicate wisps of steam",
+                "a rustic kraft paper gift box lined with crinkled parchment paper, filled with an assortment of freshly baked gourmet cookies studded with melted dark chocolate chunks and chopped walnuts, tied with natural jute twine",
+                "macro eye-level shot of freshly baked chewy cookies on a marble pastry counter, with chocolate chips glistening and scattered cocoa nibs in soft focus",
+                "an artisan baker's tray with warm freshly baked chocolate chunk cookies resting on a textured linen cloth with soft morning window light"
+            ]
+            subject = cookie_archetypes[var % len(cookie_archetypes)]
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["торт", "ганаш", "шоколадн", "чизкейк", "пирог", "срез", "разрез", "начинк", "cake", "ganache"]):
+            cake_archetypes = [
+                "a decadent multi-layered chocolate fudge cake with dark chocolate sponge and rich cream, thick glossy molten chocolate ganache being poured over the top cascading down the sides in luscious drips, crowned with fresh ripe strawberries and shaved chocolate curls on a dark slate board",
+                "luxurious gourmet artisanal cake on a minimalist white porcelain plate, with a cleanly cut appetizing single slice placed beside it revealing moist rich sponge layers and creamy filling, dusted with shaved chocolate flakes, commercial dessert showcase",
+                "a delicate layered berry mousse cake garnished with fresh raspberries, blueberries and mint leaves, on a vintage ceramic stand in soft morning window light",
+                "a velvety Basque cheesecake with a caramelized golden-brown top, set on a rustic wooden board with a dollop of cream and blackberry coulis"
+            ]
+            subject = cake_archetypes[var % len(cake_archetypes)]
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["балкон", "ночн", "небоскреб", "высотк", "сити", "balcony", "cityscape", "night city"]):
+            subject = "a person seated on a modern high-rise balcony with a glass railing, hands typing on an open silver laptop displaying code lines, overlooking a sprawling illuminated nocturnal city skyline with glowing skyscrapers and street traffic bokeh below"
+            environment = "modern evening balcony overlooking illuminated high-rise metropolis, cool night sky with warm glowing building windows"
+        elif any(w in topic_lower for w in ["постель", "кровать", "одеял", "простын", "bed", "bedroom", "sheets", "linen"]):
+            subject = "an open sleek silver laptop resting on rumpled cream-colored linen bedsheets beside a ceramic mug of hot tea and an open paperback book, bathed in soft golden morning sunlight streaming through sheer curtains"
+            environment = "cozy sunlit bedroom with natural linen textures, morning sunbeams, peaceful relaxing atmosphere"
+        elif any(w in topic_lower for w in ["блокнот", "конспект", "тетрадь", "учеб", "студент", "flatlay desk", "канцеляр"]):
+            subject = "a neat top-down flatlay of a wooden study desk featuring an open spiral notebook with crisp handwritten ink notes and diagrams, a pair of classic tortoiseshell round glasses, a matte ceramic coffee cup with latte art, and a small potted green succulent"
+            environment = "sunlit organized study workspace, natural oak desk surface, soft morning daylight, crisp educational aesthetic"
+        elif any(w in topic_lower for w in ["постер", "плакат", "вывеск", "баннер", "билборд", "типографик", "надпись", "лайтбокс", "poster", "lightbox", "billboard", "signage"]):
+            ooh_archetypes = [
+                "a sleek minimalist framed poster mounted on a textured red-brown brick wall with visible mortar lines, featuring bold clean dark-gray typography against a crisp white background, with soft diffused overhead spotlighting and a light beige wooden door trim on the side",
+                "an illuminated minimalist circular black metal lightbox sign hanging from a classical arched stone ceiling arcade, with warm golden backlighting highlighting subtle architectural stone textures",
+                "a large clean architectural billboard mounted on the corner facade of a modern multi-story concrete and glass building against a clear blue sky, showing high-contrast minimalist graphic design",
+                "bold motivational typography stenciled in crisp white paint across dark metallic industrial staircase risers, leading upward with dramatic directional side lighting and tactile metal textures"
+            ]
+            subject = ooh_archetypes[var % len(ooh_archetypes)]
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["разработчик", "программист", "инженер", "developer", "tech developer", "кодер", "аналитик"]) or any(w in niche_lower for w in ["it", "saas", "martech", "ии"]):
             it_archetypes = [
@@ -418,9 +511,6 @@ class CinematographyDirector:
         elif any(w in topic_lower for w in ["вид сверху", "flatlay", "флэтлей"]):
             subject = "centered top-down flatlay of artisanal Easter Kulich on a minimalist warm ceramic plate, glossy pastel pink or snowy-white glaze dome garnished with freeze-dried strawberry crumbles and soft mini marshmallows"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif any(w in topic_lower for w in ["торт", "трюфель", "чизкейк", "кусочек", "разрез"]):
-            subject = "luxurious gourmet artisanal cake on a minimalist white porcelain plate, with a cleanly cut appetizing single slice placed beside it revealing moist rich sponge layers and creamy filling, dusted with shaved chocolate flakes, commercial dessert showcase"
-            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["кулич", "пасх", "куличи", "пасхальн", "освящен"]):
             subject = "tall cylindrical golden-brown artisanal Easter Kulich brioche cake baked in a pleated brown Panettone paper mold with floral print, crowned with a thick glossy white royal icing glaze, decorated with emerald green pistachio sponge moss crumble and pastel sugar candy eggs, eye-level macro depth with background pastries in creamy bokeh"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
@@ -452,7 +542,21 @@ class CinematographyDirector:
         colors_str = f"Brand palette accents: {', '.join(brand_colors)}. " if brand_colors else ""
 
         # Дифференцируем текстурные дескрипторы: кожа для людей, фактура материала для предметов/еды/плат/животных
-        is_human_scene = any(w in topic_lower or w in subject.lower() for w in ["человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет", "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател", "фаундер", "разработчик", "программист", "инженер", "model", "woman", "man", "person", "barista", "doctor", "founder", "florist", "artisan", "developer", "engineer", "male", "female"]) and not any(w in topic_lower for w in ["плата", "esp32", "esp-32", "arduino", "чип", "десерт", "стейк", "турбин", "перфоратор", "кот", "кошк", "собак"])
+        non_human_terms = [
+            "плата", "esp32", "esp-32", "arduino", "чип", "десерт", "торт", "синнабон", "булочк",
+            "печень", "ролл", "выпечк", "стейк", "турбин", "перфоратор", "кот", "кошк", "котик",
+            "котен", "собак", "щенок", "щенк", "корги", "шпиц", "померан", "сиба", "хаски",
+            "овчарк", "постер", "плакат", "вывеск", "типографик", "билборд", "флэтлей", "flatlay",
+            "блокнот", "конспект", "тетрадь"
+        ]
+        is_human_scene = (
+            any(w in topic_lower or w in subject.lower() for w in [
+                "человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет",
+                "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател",
+                "фаундер", "разработчик", "программист", "инженер", "model", "woman", "man",
+                "person", "barista", "doctor", "founder", "florist", "developer", "engineer", "male", "female"
+            ]) and not any(w in topic_lower or w in subject.lower() for w in non_human_terms)
+        )
         
         if is_human_scene:
             texture_desc = (

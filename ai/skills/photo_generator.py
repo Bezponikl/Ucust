@@ -78,7 +78,8 @@ class CinematographyDirector:
         "candid_counter": "Medium eye-level shot, candid transactional interaction across a speckled counter with POS touch register",
         "layered_artisan_table": "Layered multi-tiered tabletop display, deep foreground arrangement with rustic wooden cutting boards, linen cloth, and chalk price tags",
         "contemplative_profile": "Medium close-up profile shot, subject leaning thoughtfully, shallow depth of field with creamy bokeh",
-        "active_desk_focus": "Slightly elevated side-angle desk perspective, subject leaning forward typing intently, foreground notebooks and coffee cup"
+        "active_desk_focus": "Slightly elevated side-angle desk perspective, subject leaning forward typing intently, foreground notebooks and coffee cup",
+        "macro_nail_close_up": "Tight macro close-up lens, f/2.8 shallow depth of field, razor-sharp focus on nail plate curvature and neat cuticles, creamy background bokeh"
     }
 
     NICHE_EN_MAP = {
@@ -117,6 +118,8 @@ class CinematographyDirector:
         "посуд": "high-end artisanal ceramic, fine porcelain and tableware boutique",
         "фарфор": "luxury fine porcelain, bone china and handcrafted ceramic salon",
         "керамик": "artisan pottery and handcrafted ceramic studio",
+        "маникюр": "luxury nail art and aesthetic manicure salon",
+        "ногти": "high-end nail design and aesthetic manicure studio",
         "бизнес": "contemporary creative professional studio",
         "услуг": "modern professional service workspace"
     }
@@ -139,7 +142,7 @@ class CinematographyDirector:
         var = variation_index % 4
 
         # Предотвращение Semantic Bleed: если в теме указана конкретная предметная область, она имеет наивысший приоритет
-        domain_priority = ["цвет", "флорист", "букет", "пион", "посуд", "фарфор", "керамик", "глинян", "гончар", "кофе", "пекарн", "десерт", "электроник", "плата", "кот", "собак", "детейлинг", "стоматолог", "недвижим", "it", "saas", "martech"]
+        domain_priority = ["маникюр", "ногти", "гель-лак", "цвет", "флорист", "букет", "пион", "посуд", "фарфор", "керамик", "глинян", "гончар", "кофе", "пекарн", "десерт", "электроник", "плата", "кот", "собак", "детейлинг", "стоматолог", "недвижим", "it", "saas", "martech"]
         effective_niche_key = None
         for k in domain_priority:
             if k in topic_lower:
@@ -241,6 +244,12 @@ class CinematographyDirector:
                 {"setting": "scenic nature overlook with mature tree trunk and rugged bark at sunset golden hour", "props": "cozy cream ribbed knit sweater, thick earthy plaid scarf, panoramic warm skyline in dreamy bokeh"},
                 {"setting": "editorial studio portrait setting against a solid matte dark background", "props": "textured black leather biker jacket with silver snaps, layered interlocking silver chain necklaces, high-contrast single key light"},
                 {"setting": "intimate atmospheric vintage room with warm orange lamp light casting dramatic long shadows", "props": "worn denim armchair with frayed texture, muted rose tones, cinematic chiaroscuro mood"}
+            ],
+            "маникюр": [
+                {"setting": "cozy aesthetic nail studio with textured cream chunky-knit fabric in foreground", "props": "delicate dried autumn maple leaves, soft neutral beige background bokeh"},
+                {"setting": "warm ambient coffee lounge with soft circular golden bokeh lights", "props": "glossy ceramic coffee cup with intricate white latte art, warm intimate glow"},
+                {"setting": "minimalist luxury nail bar with warm oak surface and soft diffused daylight", "props": "ribbed maroon knit sweater sleeve cuff, rich tactile textures"},
+                {"setting": "chic modern beauty salon with soft indirect lighting", "props": "natural linen cloth, scattered burnt orange autumn leaves, elegant seasonal ambiance"}
             ]
         }
 
@@ -312,6 +321,11 @@ class CinematographyDirector:
             color_key = "muted_editorial" if var % 2 == 0 else "teal_orange"
             comp_key = comp_rotation[var]
             persp_key = "candid_eye_level" if var % 2 == 0 else "bokeh_shallow"
+        elif any(w in topic_lower for w in ["маникюр", "ногти", "гель-лак", "ногот", "nail", "manicure", "педикюр"]):
+            light_key = "soft_diffused" if var % 2 == 0 else "warm_pendant"
+            color_key = "warm_analogous"
+            comp_key = "rule_of_thirds"
+            persp_key = "macro_nail_close_up"
         elif any(w in topic_lower for w in ["десерт", "ролл", "выпечк", "кофе", "еда", "огурец", "плата", "esp", "электроник", "микроконтроллер", "турбин", "инструмент", "ювелир", "кольц", "косметик", "крем"]):
             light_key = lighting_rotation[var]
             color_key = color_rotation[var]
@@ -368,6 +382,15 @@ class CinematographyDirector:
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["кожанк", "косух", "рок", "байкер", "тату", "biker", "leather jacket"]):
             subject = "a charismatic young woman in a textured black leather biker jacket with silver snaps and interlocking chain necklaces, candid expressive face, solid matte dark background"
+            environment = f"{niche_universe['setting']}, {niche_universe['props']}"
+        elif any(w in topic_lower for w in ["маникюр", "ногти", "гель-лак", "ногот", "nail", "manicure", "педикюр"]):
+            nail_archetypes = [
+                "macro close-up of a slender hand with modern squared-off almond nails in matte deep navy blue adorned with delicate stylized orange maple leaf nail art, resting gently against a plush neutral knit fabric",
+                "macro shot of elegant hands with long almond-shaped nails in a smooth matte gradient ombre transitioning from deep burgundy to warm terracotta, gently cradling a glossy orange ceramic coffee cup with latte leaf foam art",
+                "pair of slender fair-skinned hands in relaxed overlapping pose resting on a cream-colored chunky-knit sweater, showcasing nails with shimmering copper-amber magnetic finish and delicate autumn leaf decals",
+                "close-up of a woman's hand with almond-shaped nails painted in rich chocolate brown and matte off-white with fine burnt-orange maple leaf brushwork, fingers elegantly curled over warm wooden table"
+            ]
+            subject = nail_archetypes[var]
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
         elif any(w in topic_lower for w in ["посуд", "фарфор", "керамик", "чаш", "блюд", "гончар", "глинян"]):
             subject = "an artisan wearing a casual long-sleeved shirt under an apron, holding a handcrafted bone porcelain cup in hands, distinct individual fingers, authentic tactile grip"
@@ -444,10 +467,12 @@ class CinematographyDirector:
                 lighting_desc = lighting
 
             is_full_body = any(w in topic_lower for w in ["полный рост", "во весь рост", "full body", "standing", "ростовой", "в полный рост"])
-            is_action_hands = any(w in topic_lower or w in subject.lower() for w in ["держит", "руки", "пайк", "осциллограф", "инструмент", "букет", "пион", "чашк", "кружк", "holding", "hands", "soldering", "workbench", "bouquet", "cup", "mug"])
+            is_action_hands = any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "nail", "manicure", "держит", "руки", "пайк", "осциллограф", "инструмент", "букет", "пион", "чашк", "кружк", "holding", "hands", "soldering", "workbench", "bouquet", "cup", "mug"])
 
             optics_extra = ""
-            if is_action_hands:
+            if any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "nail", "manicure", "ногот"]):
+                optics_extra = "distinct anatomically correct 5 slender fingers with neat natural cuticles, perfectly shaped smooth nail plates, clean separation between fingers, "
+            elif is_action_hands:
                 optics_extra = "distinct clean separation between fingers and held objects, anatomically correct 5 fingers with clear knuckles, natural hand grasp, "
             elif is_full_body:
                 optics_extra = "sharp full-body frame, crisp clothing fabric texture, "

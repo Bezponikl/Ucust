@@ -676,6 +676,8 @@ class CinematographyDirector:
                 foreground_anchor = "(blurred edge of rustic cutting board and wine glass in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer"]):
                 foreground_anchor = "(blurred edge of mechanical keyboard and ceramic mug in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["десерт", "торт", "мусс", "пирожн", "чизкейк", "выпечк", "синнабон", "dessert", "pastry", "cake"]):
+                foreground_anchor = "(blurred vintage dessert fork and linen napkin in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
                 foreground_anchor = "(blurred dewy flower petal and twine in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["плата", "esp32", "пайк", "электроник"]):
@@ -712,6 +714,8 @@ class CinematographyDirector:
                 foreground_anchor = "(blurred edge of rustic cutting board and wine glass in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer"]):
                 foreground_anchor = "(blurred edge of mechanical keyboard and ceramic mug in extreme foreground:1.2)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["десерт", "торт", "мусс", "пирожн", "чизкейк", "выпечк", "синнабон", "dessert", "pastry", "cake"]):
+                foreground_anchor = "(blurred vintage dessert fork and linen napkin in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
                 foreground_anchor = "(blurred dewy flower petal and twine in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["плата", "esp32", "пайк", "электроник"]):

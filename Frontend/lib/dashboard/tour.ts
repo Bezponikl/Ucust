@@ -41,7 +41,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "help",
     title: "Подсказки всегда здесь",
-    text: "Нажмите на «?», чтобы пройти тур ещё раз или открыть поддержку.",
+    text: "Откройте меню профиля — там «Как работает платформа» и поддержка.",
   },
 ];
 
@@ -68,7 +68,7 @@ export function setTourState(state: TourState): void {
   }
 }
 
-/** Событие для запуска тура из любого места (кнопка «?» в топбаре). */
+/** Событие для запуска тура из любого места (пункт в меню профиля). */
 export const TOUR_EVENT = "uc:tour-start";
 
 export function startTour(): void {

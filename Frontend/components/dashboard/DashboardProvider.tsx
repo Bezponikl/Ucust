@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { DashboardData } from "@/lib/dashboard/types";
 import { getDashboardData } from "@/lib/dashboard/mock";
-import { loadOnboarding } from "@/lib/onboarding/storage";
+import { loadWorkspace } from "@/lib/dashboard/source";
 
 const BG_STORAGE_KEY = "uc_bg";
 const SURFACE_STORAGE_KEY = "uc_surface";
@@ -15,6 +15,10 @@ interface Ctx {
   hydrated: boolean;
   /** Есть ли созданный проект («мозг бренда» из онбординга). false — сразу после регистрации. */
   hasProject: boolean;
+  /** id проекта на бэке — с ним работают разделы контента, генерации и настроек бизнеса. */
+  projectId: string | null;
+  /** Перечитать проект с сервера: после правок в настройках бизнеса. */
+  reloadWorkspace: () => Promise<void>;
   /** Скрывает топбар и мобильную нижнюю навигацию (полноэкранные страницы вроде открытого чата) */
   mobileChromeHidden: boolean;
   setMobileChromeHidden: (hidden: boolean) => void;
@@ -32,17 +36,23 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [hasProject, setHasProject] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [mobileChromeHidden, setMobileChromeHidden] = useState(false);
   const [background, setBackgroundState] = useState<string | null>(null);
-  const [surfaceStyle, setSurfaceStyleState] = useState<SurfaceStyle>("solid");
+  // По умолчанию «жидкое стекло»: на сплошной заливке карточки сливались с фоном.
+  const [surfaceStyle, setSurfaceStyleState] = useState<SurfaceStyle>("glass");
 
-  // Профиль доступен только в sessionStorage (клиент) — собираем данные после монтирования.
+  const applyWorkspace = useCallback(async () => {
+    const ws = await loadWorkspace();
+    setData(getDashboardData(ws.profile));
+    setHasProject(ws.hasProject);
+    setProjectId(ws.projectId);
+  }, []);
+
+  // Профиль приходит с сервера либо из sessionStorage — решает loadWorkspace.
   useEffect(() => {
-    const saved = loadOnboarding();
     /* eslint-disable react-hooks/set-state-in-effect */
-    setData(getDashboardData(saved?.profile ?? null));
-    setHasProject(saved?.profile != null);
-    setHydrated(true);
+    void applyWorkspace().then(() => setHydrated(true));
     try {
       const savedBg = localStorage.getItem(BG_STORAGE_KEY);
       if (savedBg) setBackgroundState(savedBg);
@@ -50,7 +60,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       if (savedSurface === "glass" || savedSurface === "solid") setSurfaceStyleState(savedSurface);
     } catch {}
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [applyWorkspace]);
 
   const setBackground = (v: string | null) => {
     setBackgroundState(v);
@@ -73,6 +83,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         data,
         hydrated,
         hasProject,
+        projectId,
+        reloadWorkspace: applyWorkspace,
         mobileChromeHidden,
         setMobileChromeHidden,
         background,

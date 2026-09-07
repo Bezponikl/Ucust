@@ -1,5 +1,6 @@
 import type { ChannelId } from "@/lib/channels";
 import type { IconName } from "@/lib/icons/solar";
+import { fmtPeriod } from "@/lib/dashboard/date";
 
 export type PromoStatus = "active" | "scheduled" | "finished";
 
@@ -12,7 +13,9 @@ export interface Promo {
   description: string;
   type: PromoType;
   status: PromoStatus;
-  period: string;
+  /** Начало и конец действия, ISO `YYYY-MM-DD`. Подпись периода считается из них. */
+  start: string;
+  end: string;
   channels: ChannelId[];
   metricLabel: string;
   metricValue: string;
@@ -95,7 +98,8 @@ export const PROMOS: Promo[] = [
     description: "Все напитки по будням с 15:00 до 17:00",
     type: "discount",
     status: "active",
-    period: "1 фев — 28 фев",
+    start: "2026-02-01",
+    end: "2026-02-28",
     channels: ["vk", "telegram"],
     metricLabel: "Использований за неделю",
     metricValue: "248",
@@ -112,7 +116,8 @@ export const PROMOS: Promo[] = [
     description: "При покупке любого напитка — второй бесплатно по выходным",
     type: "gift",
     status: "active",
-    period: "5 фев — 20 фев",
+    start: "2026-02-05",
+    end: "2026-02-20",
     channels: ["vk"],
     metricLabel: "Использований",
     metricValue: "132",
@@ -128,7 +133,8 @@ export const PROMOS: Promo[] = [
     description: "Праздничное меню, угощения и розыгрыш сертификатов",
     type: "event",
     status: "scheduled",
-    period: "1 мар — 3 мар",
+    start: "2026-03-01",
+    end: "2026-03-03",
     channels: ["vk", "telegram", "instagram"],
     metricLabel: "Использований",
     metricValue: "—",
@@ -142,7 +148,8 @@ export const PROMOS: Promo[] = [
     description: "Скидка на любой напиток навынос по промокоду — весь март",
     type: "code",
     status: "scheduled",
-    period: "1 мар — 31 мар",
+    start: "2026-03-01",
+    end: "2026-03-31",
     channels: ["telegram", "max"],
     metricLabel: "Использований",
     metricValue: "—",
@@ -156,7 +163,8 @@ export const PROMOS: Promo[] = [
     description: "Сезонное предложение к праздникам",
     type: "discount",
     status: "finished",
-    period: "20 дек — 10 янв",
+    start: "2025-12-20",
+    end: "2026-01-10",
     channels: ["vk", "telegram"],
     metricLabel: "Использований за акцию",
     metricValue: "1 024",
@@ -167,6 +175,9 @@ export const PROMOS: Promo[] = [
     stats: { views: 41200, clicks: 3860, daily: [64, 88, 121, 143, 156, 172, 148, 132] },
   },
 ];
+
+/** Подпись периода акции — «1 фев — 28 фев». */
+export const promoPeriod = (p: Pick<Promo, "start" | "end">) => fmtPeriod(p.start, p.end);
 
 export function promoCounts(list: Promo[] = PROMOS) {
   return {

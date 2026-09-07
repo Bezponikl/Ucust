@@ -33,7 +33,7 @@ export default function DashboardSidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex h-full flex-col border-r border-border/40 ${surfaceStyle === "glass" ? "bg-card/60 dark:bg-card/40 backdrop-blur-xl" : "bg-card"} transition-[width] duration-200 shrink-0 ${w}`}
+      className={`hidden lg:flex h-full flex-col border-r border-border/40 ${surfaceStyle === "glass" ? "bg-card/80 dark:bg-card/62 backdrop-blur-2xl" : "bg-card"} transition-[width] duration-200 shrink-0 ${w}`}
       style={{ minWidth: collapsed ? 56 : 288 }}
     >
       {/* Логотип + проект */}
@@ -82,23 +82,21 @@ export default function DashboardSidebar() {
           }
 
           return (
-            <div key={item.href}>
-              <Link
-                href={item.href}
-                data-tour={item.tourId}
-                aria-current={active && !item.children ? "page" : undefined}
-                title={collapsed ? item.label : undefined}
-                className={`flex min-h-11 items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-brand/10 text-brand"
-                    : "text-ink-muted hover:bg-surface-soft hover:text-ink"
-                } ${collapsed ? "justify-center" : ""}`}
-              >
-                <Icon name={item.icon} size={20} aria-hidden="true" className="shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-
-            </div>
+            <Link
+              key={item.href}
+              href={item.href}
+              data-tour={item.tourId}
+              aria-current={active ? "page" : undefined}
+              title={collapsed ? item.label : undefined}
+              className={`flex min-h-11 items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors ${
+                active
+                  ? "bg-brand/10 text-brand"
+                  : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+              } ${collapsed ? "justify-center" : ""}`}
+            >
+              <Icon name={item.icon} size={20} aria-hidden="true" className="shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
           );
         })}
       </nav>
@@ -108,18 +106,18 @@ export default function DashboardSidebar() {
         {hasProject ? (
           <Link
             href="/dashboard/business"
-            title={collapsed ? "Настройки проекта" : undefined}
+            title={collapsed ? "Настройки бизнеса" : undefined}
             className={`flex min-h-11 items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink ${
               collapsed ? "justify-center" : ""
             }`}
           >
             <Icon name="settings" size={20} aria-hidden="true" className="shrink-0" />
-            {!collapsed && <span className="truncate">Настройки проекта</span>}
+            {!collapsed && <span className="truncate">Настройки бизнеса</span>}
           </Link>
         ) : (
           <span
             aria-disabled="true"
-            title={collapsed ? `Настройки проекта — ${LOCKED_HINT}` : LOCKED_HINT}
+            title={collapsed ? `Настройки бизнеса — ${LOCKED_HINT}` : LOCKED_HINT}
             className={`flex min-h-11 cursor-not-allowed items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-ink-muted/45 ${
               collapsed ? "justify-center" : ""
             }`}
@@ -127,7 +125,7 @@ export default function DashboardSidebar() {
             <Icon name="settings" size={20} aria-hidden="true" className="shrink-0" />
             {!collapsed && (
               <>
-                <span className="truncate">Настройки проекта</span>
+                <span className="truncate">Настройки бизнеса</span>
                 <Icon name="lock" size={14} aria-hidden="true" className="ml-auto shrink-0" />
               </>
             )}

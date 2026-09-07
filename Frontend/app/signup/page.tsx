@@ -1,25 +1,46 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
+import FormError from "@/components/auth/FormError";
 import Checkbox from "@/components/ui/Checkbox";
 import PasswordInput from "@/components/ui/PasswordInput";
+import { register } from "@/lib/api/auth";
+import { toMessage } from "@/lib/api/errors";
 
 const inputClass =
   "rounded-full border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const email = new FormData(e.currentTarget).get("email");
+    const data = new FormData(e.currentTarget);
+    const email = String(data.get("email") ?? "");
     try {
-      if (typeof email === "string") sessionStorage.setItem("uc_signup_email", email);
+      sessionStorage.setItem("uc_signup_email", email);
     } catch {}
-    router.push("/signup/verify-email");
+
+    setPending(true);
+    setError(null);
+    try {
+      await register({
+        firstName: String(data.get("firstName") ?? ""),
+        lastName: String(data.get("lastName") ?? ""),
+        email,
+        password: String(data.get("password") ?? ""),
+        confirmPassword: String(data.get("confirmPassword") ?? ""),
+      });
+      router.push("/signup/verify-email");
+    } catch (err) {
+      setError(toMessage(err));
+      setPending(false);
+    }
   };
 
   return (
@@ -35,12 +56,26 @@ export default function SignupPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">Имя</span>
-            <input type="text" required placeholder="Иван" className={inputClass} />
+            <input
+              name="firstName"
+              type="text"
+              required
+              autoComplete="given-name"
+              placeholder="Иван"
+              className={inputClass}
+            />
           </label>
 
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">Фамилия</span>
-            <input type="text" required placeholder="Иванов" className={inputClass} />
+            <input
+              name="lastName"
+              type="text"
+              required
+              autoComplete="family-name"
+              placeholder="Иванов"
+              className={inputClass}
+            />
           </label>
         </div>
 
@@ -66,12 +101,17 @@ export default function SignupPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">Пароль</span>
-            <PasswordInput required placeholder="••••••••" />
+            <PasswordInput name="password" required autoComplete="new-password" placeholder="••••••••" />
           </label>
 
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">Повторите пароль</span>
-            <PasswordInput required placeholder="••••••••" />
+            <PasswordInput
+              name="confirmPassword"
+              required
+              autoComplete="new-password"
+              placeholder="••••••••"
+            />
           </label>
         </div>
 
@@ -88,11 +128,14 @@ export default function SignupPage() {
           </span>
         </label>
 
+        <FormError>{error}</FormError>
+
         <button
           type="submit"
-          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold"
+          disabled={pending}
+          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Зарегистрироваться
+          {pending ? "Создаём аккаунт…" : "Зарегистрироваться"}
         </button>
 
         <Link

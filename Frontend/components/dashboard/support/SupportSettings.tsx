@@ -5,8 +5,82 @@ import Icon from "@/components/ui/Icon";
 import { SettingsCard, SelectField, TextArea } from "@/components/dashboard/settings/primitives";
 import { SUPPORT_FAQ, SUPPORT_TICKETS, SUPPORT_CONTACTS, type SupportTicket } from "@/lib/dashboard/support";
 import { toast } from "@/lib/toast";
+import { toMessage } from "@/lib/api/errors";
+import { hello, whoAmI } from "@/lib/api/status";
+import type { StatusMeResponse } from "@/lib/api/types";
 
 const SUBJECTS = ["Технический вопрос", "Вопрос по оплате", "Другое"];
+
+/**
+ * Диагностика связи с сервером. Живёт в поддержке не случайно: когда что-то не
+ * работает, первый вопрос — доходит ли вообще запрос и кем нас видит сервер.
+ * Ответ можно приложить к обращению, не переспрашивая пользователя.
+ */
+function ConnectionCheck() {
+  const [state, setState] = useState<"idle" | "checking" | "ok" | "failed">("idle");
+  const [me, setMe] = useState<StatusMeResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const check = async () => {
+    setState("checking");
+    setError(null);
+    try {
+      await hello();
+      setMe(await whoAmI());
+      setState("ok");
+    } catch (err) {
+      setMe(null);
+      setError(toMessage(err));
+      setState("failed");
+    }
+  };
+
+  return (
+    <SettingsCard title="Связь с сервером" desc="Проверка, что запросы доходят и сессия жива">
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={check}
+          disabled={state === "checking"}
+          className="btn-glass inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Icon name="shield" size={16} aria-hidden="true" />
+          {state === "checking" ? "Проверяем…" : "Проверить связь"}
+        </button>
+
+        <p aria-live="polite" className="text-sm">
+          {state === "ok" && (
+            <span className="inline-flex items-center gap-1.5 text-success">
+              <Icon name="check" size={15} aria-hidden="true" /> Сервер отвечает
+            </span>
+          )}
+          {state === "failed" && (
+            <span className="inline-flex items-center gap-1.5 text-red-500">
+              <Icon name="close" size={15} aria-hidden="true" /> {error}
+            </span>
+          )}
+        </p>
+      </div>
+
+      {me && (
+        <dl className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-border bg-surface-soft px-4 py-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs text-ink-muted">Пользователь</dt>
+            <dd className="truncate font-medium text-ink">{me.userId}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-ink-muted">Роли</dt>
+            <dd className="truncate font-medium text-ink">{me.roles?.join(", ") || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-ink-muted">Источник</dt>
+            <dd className="truncate font-medium text-ink">{me.source}</dd>
+          </div>
+        </dl>
+      )}
+    </SettingsCard>
+  );
+}
 
 function FaqRow({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -98,6 +172,8 @@ export default function SupportSettings() {
           </button>
         </div>
       </SettingsCard>
+
+      <ConnectionCheck />
 
       <SettingsCard title="Частые вопросы">
         {SUPPORT_FAQ.map((item) => (

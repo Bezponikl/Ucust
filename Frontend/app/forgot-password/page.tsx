@@ -1,9 +1,11 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
+import FormError from "@/components/auth/FormError";
+import { forgotPassword } from "@/lib/api/auth";
 
 const inputClass =
   "rounded-full border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card";
@@ -11,12 +13,24 @@ const inputClass =
 export default function ForgotPasswordPage() {
   const router = useRouter();
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const email = new FormData(e.currentTarget).get("email");
+    const email = String(new FormData(e.currentTarget).get("email") ?? "");
     try {
-      if (typeof email === "string") sessionStorage.setItem("uc_reset_email", email);
+      sessionStorage.setItem("uc_reset_email", email);
     } catch {}
+
+    setPending(true);
+    setError(null);
+    try {
+      await forgotPassword(email);
+    } catch {
+      // Намеренно не показываем разницу между «адрес найден» и «не найден»:
+      // иначе форма превращается в проверку существования аккаунтов.
+    }
     router.push("/forgot-password/check-email");
   };
 
@@ -42,11 +56,14 @@ export default function ForgotPasswordPage() {
           />
         </label>
 
+        <FormError>{error}</FormError>
+
         <button
           type="submit"
-          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold"
+          disabled={pending}
+          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Отправить ссылку
+          {pending ? "Отправляем…" : "Отправить ссылку"}
         </button>
 
         <Link

@@ -1,6 +1,6 @@
 // АВТОГЕНЕРАЦИЯ — не редактировать вручную. Источник: scripts/gen-icons.mjs (набор Solar).
 // Пересобрать: node scripts/gen-icons.mjs
-export type IconName = "arrow-right" | "arrow-left" | "arrow-up" | "chevron-down" | "chevron-left" | "chevron-right" | "menu" | "close" | "check" | "check-bold" | "sparkles" | "sparkles-bold" | "sliders" | "help" | "sun" | "moon" | "dashboard" | "calendar" | "trending" | "mail" | "shield" | "heart" | "image-plus" | "logout" | "monitor" | "trash" | "camera" | "file-text" | "gift" | "megaphone" | "plus" | "bell" | "star" | "star-bold" | "bar-chart" | "scale" | "settings" | "eye" | "user-plus" | "message" | "send" | "edit" | "link" | "upload" | "grid" | "calendar-check" | "calendar-plus" | "clapperboard" | "clock" | "play" | "refresh" | "image" | "brain" | "mail-check" | "card" | "receipt" | "phone" | "emoji" | "lock" | "search" | "copy" | "list" | "sort" | "crop";
+export type IconName = "arrow-right" | "arrow-left" | "arrow-up" | "chevron-down" | "chevron-left" | "chevron-right" | "menu" | "close" | "check" | "check-bold" | "sparkles" | "sparkles-bold" | "sliders" | "help" | "sun" | "moon" | "dashboard" | "calendar" | "trending" | "mail" | "shield" | "heart" | "image-plus" | "logout" | "monitor" | "trash" | "camera" | "file-text" | "gift" | "megaphone" | "plus" | "bell" | "star" | "star-bold" | "bar-chart" | "scale" | "settings" | "eye" | "user-plus" | "message" | "send" | "edit" | "link" | "upload" | "grid" | "calendar-check" | "calendar-plus" | "clapperboard" | "clock" | "play" | "refresh" | "image" | "brain" | "mail-check" | "card" | "receipt" | "phone" | "emoji" | "lock" | "search" | "copy" | "list" | "sort" | "crop" | "chart-line" | "chart-bar" | "external" | "globe" | "buildings";
 
 export const ICONS: Record<IconName, { body: string; w: number; h: number }> = {
   "arrow-right": {
@@ -320,6 +320,31 @@ export const ICONS: Record<IconName, { body: string; w: number; h: number }> = {
   },
   "crop": {
     "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path stroke-linecap=\"round\" d=\"M22 19h-9c-3.771 0-5.657 0-6.828-1.172S5 14.771 5 11V2\"/><path stroke-linecap=\"round\" d=\"M8 5h3c3.771 0 5.657 0 6.828 1.172S19 9.229 19 13v3M2 5h3m14 14v3\"/><path d=\"M8.5 11.5c0-1.414 0-2.121.44-2.56c.439-.44 1.146-.44 2.56-.44h1c1.414 0 2.121 0 2.56.44c.44.439.44 1.146.44 2.56v1c0 1.414 0 2.121-.44 2.56c-.439.44-1.146.44-2.56.44h-1c-1.414 0-2.121 0-2.56-.44c-.44-.439-.44-1.146-.44-2.56z\"/></g>",
+    "w": 24,
+    "h": 24
+  },
+  "chart-line": {
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path stroke-linecap=\"round\" d=\"M22 10.5V12c0 4.714 0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2h1.5\"/><path stroke-linecap=\"round\" d=\"m7 14l1.797-2.156c.712-.855 1.068-1.282 1.536-1.282c.469 0 .825.427 1.537 1.282l.26.312c.712.855 1.068 1.282 1.537 1.282s.824-.427 1.536-1.282L17 10\"/><circle cx=\"19\" cy=\"5\" r=\"3\"/></g>",
+    "w": 24,
+    "h": 24
+  },
+  "chart-bar": {
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3 22h18\"/><path d=\"M3 11c0-.943 0-1.414.293-1.707S4.057 9 5 9s1.414 0 1.707.293S7 10.057 7 11v6c0 .943 0 1.414-.293 1.707S5.943 19 5 19s-1.414 0-1.707-.293S3 17.943 3 17zm7-4c0-.943 0-1.414.293-1.707S11.057 5 12 5s1.414 0 1.707.293S14 6.057 14 7v10c0 .943 0 1.414-.293 1.707S12.943 19 12 19s-1.414 0-1.707-.293S10 17.943 10 17zm7-3c0-.943 0-1.414.293-1.707S18.057 2 19 2s1.414 0 1.707.293S21 3.057 21 4v13c0 .943 0 1.414-.293 1.707S19.943 19 19 19s-1.414 0-1.707-.293S17 17.943 17 17z\"/></g>",
+    "w": 24,
+    "h": 24
+  },
+  "external": {
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"><path stroke-linejoin=\"round\" d=\"m21 3l-9 9m0 0h5.344M12 12V6.656\"/><path d=\"M22 12c0 4.714 0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2\"/></g>",
+    "w": 24,
+    "h": 24
+  },
+  "globe": {
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M22 12a10 10 0 1 1-20.001 0A10 10 0 0 1 22 12Z\"/><path d=\"M16 12c0 1.313-.104 2.614-.305 3.827c-.2 1.213-.495 2.315-.867 3.244c-.371.929-.812 1.665-1.297 2.168c-.486.502-1.006.761-1.531.761s-1.045-.259-1.53-.761c-.486-.503-.927-1.24-1.298-2.168c-.372-.929-.667-2.03-.868-3.244A23.6 23.6 0 0 1 8 12c0-1.313.103-2.614.304-3.827s.496-2.315.868-3.244c.371-.929.812-1.665 1.297-2.168C10.955 2.26 11.475 2 12 2s1.045.259 1.53.761c.486.503.927 1.24 1.298 2.168c.372.929.667 2.03.867 3.244C15.897 9.386 16 10.687 16 12Z\"/><path stroke-linecap=\"round\" d=\"M2 12h20\"/></g>",
+    "w": 24,
+    "h": 24
+  },
+  "buildings": {
+    "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path stroke-linecap=\"round\" d=\"M22 22H2\"/><path d=\"M17 22V6c0-1.886 0-2.828-.586-3.414S14.886 2 13 2h-2c-1.886 0-2.828 0-3.414.586S7 4.114 7 6v16m14 0V11.5c0-1.405 0-2.107-.337-2.611a2 2 0 0 0-.552-.552C19.607 8 18.904 8 17.5 8M3 22V11.5c0-1.405 0-2.107.337-2.611a2 2 0 0 1 .552-.552C4.393 8 5.096 8 6.5 8\"/><path stroke-linecap=\"round\" d=\"M12 22v-3M10 5h4m-4 3h4m-4 3h4m-4 3h4\"/></g>",
     "w": 24,
     "h": 24
   }

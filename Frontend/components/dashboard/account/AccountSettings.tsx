@@ -4,8 +4,13 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
 import Icon from "@/components/ui/Icon";
 import { SettingsCard, Field, Toggle, SaveButton } from "@/components/dashboard/settings/primitives";
+import ChangeEmailModal from "@/components/dashboard/account/ChangeEmailModal";
 import ModalShell from "@/components/ModalShell";
 import { toast } from "@/lib/toast";
+import { toMessage } from "@/lib/api/errors";
+import { updateMe, uploadAvatar } from "@/lib/api/users";
+import { normalizePhone, validateProfileFields } from "@/lib/api/profileFields";
+import { useSession } from "@/lib/session/SessionProvider";
 
 const SESSIONS = [
   { device: "Samsung Galaxy A23", os: "Android 10.10.1", city: "Минск, Беларусь", time: "07:09", current: true },
@@ -13,6 +18,7 @@ const SESSIONS = [
 ];
 
 export default function AccountSettings() {
+  const { user, reload } = useSession();
   const [firstName, setFirstName] = useState("Анна");
   const [lastName, setLastName] = useState("Иванова");
   const [middleName, setMiddleName] = useState(""); // отчество — опционально
@@ -21,6 +27,8 @@ export default function AccountSettings() {
   const [phone, setPhone] = useState("+7 900 000-00-00");
   const [avatar, setAvatar] = useState<string | undefined>();
   const [twoFa, setTwoFa] = useState(false);
+  // Почта меняется не через updateMe, а отдельной цепочкой из трёх шагов бэка.
+  const [emailFlowOpen, setEmailFlowOpen] = useState(false);
 
   // Смена пароля
   const [currentPw, setCurrentPw] = useState("");
@@ -36,13 +44,64 @@ export default function AccountSettings() {
     setPwDone(true);
   };
 
+  // С настоящим бэком поля заполняются данными аккаунта, а не демо-значениями.
+  useEffect(() => {
+    if (!user) return;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setFirstName(user.firstName ?? "");
+    setLastName(user.lastName ?? "");
+    setEmail(user.email ?? "");
+    setPhone(user.phone ?? "");
+    setRole(user.position ?? "");
+    if (user.fullAvatarUrl) setAvatar(user.fullAvatarUrl);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [user]);
+
+  const saveProfile = async () => {
+    // Правила бэка проверяем до отправки: иначе пользователь получит сухой 400.
+    const normalizedPhone = normalizePhone(phone);
+    const problem = validateProfileFields({ firstName, lastName, phone: normalizedPhone });
+    if (problem) {
+      toast(problem);
+      return;
+    }
+
+    try {
+      await updateMe({
+        firstName,
+        lastName,
+        phone: normalizedPhone || undefined,
+        position: role || undefined,
+      });
+      await reload();
+    } catch (err) {
+      toast(toMessage(err));
+    }
+  };
+
   const avatarInput = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
-  const onAvatar = (e: ChangeEvent<HTMLInputElement>) => {
+  const onAvatar = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) { const u = URL.createObjectURL(f); urls.current.push(u); setAvatar(u); }
     e.target.value = "";
+    if (!f) return;
+
+    // Показываем выбранный файл сразу, не дожидаясь ответа сервера.
+    const u = URL.createObjectURL(f);
+    urls.current.push(u);
+    setAvatar(u);
+
+    if (f.size > 10 * 1024 * 1024) {
+      toast("Файл больше 10 МБ — сервер его не примет");
+      return;
+    }
+    try {
+      await uploadAvatar(f);
+      await reload();
+    } catch (err) {
+      toast(toMessage(err));
+    }
   };
 
   // Имя = Фамилия Имя [Отчество] — отчество только если заполнено
@@ -79,10 +138,19 @@ export default function AccountSettings() {
           <Field label="Имя" value={firstName} onChange={setFirstName} />
           <Field label="Отчество" hint="(не обязательно)" value={middleName} onChange={setMiddleName} placeholder="Отчество" />
           <Field label="Должность" value={role} onChange={setRole} />
-          <Field label="Email" type="email" value={email} onChange={setEmail} />
+          <div>
+            <Field label="Email" type="email" editable={false} value={email} onChange={setEmail} />
+            <button
+              type="button"
+              onClick={() => setEmailFlowOpen(true)}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:text-brand-hover"
+            >
+              <Icon name="edit" size={14} aria-hidden="true" /> Сменить почту
+            </button>
+          </div>
           <Field label="Телефон" value={phone} onChange={setPhone} />
         </div>
-        <div className="mt-5"><SaveButton /></div>
+        <div className="mt-5"><SaveButton onSave={saveProfile} /></div>
       </SettingsCard>
 
       {/* Безопасность */}
@@ -122,6 +190,13 @@ export default function AccountSettings() {
           </div>
         </div>
       </SettingsCard>
+
+      <ChangeEmailModal
+        open={emailFlowOpen}
+        currentEmail={email}
+        onClose={() => setEmailFlowOpen(false)}
+        onChanged={() => void reload()}
+      />
 
       {/* Успешная смена пароля */}
       <ModalShell open={pwDone} onClose={() => setPwDone(false)} labelledBy="pw-success-title">

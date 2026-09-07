@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { CHANNELS } from "@/lib/channels";
 import { businessFromOnboarding, CATEGORIES, EMPTY_BUSINESS, type BusinessProfile } from "@/lib/dashboard/businesses";
@@ -10,39 +11,118 @@ import { SettingsCard, Field, TextArea, SelectField, SaveButton } from "@/compon
 import TimeInput from "@/components/ui/TimeInput";
 import ModalShell from "@/components/ModalShell";
 import { toast } from "@/lib/toast";
+import { toMessage } from "@/lib/api/errors";
+import { businessToProjectPatch, projectToBusiness } from "@/lib/api/mapBusiness";
+import { deleteProject, getProject, updateProject, uploadLogo } from "@/lib/api/projects";
+import type { ProjectResponse } from "@/lib/api/types";
+import { useDashboard } from "@/components/dashboard/DashboardProvider";
 
 const WEEK = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 export default function BusinessSettings() {
-  // Профиль лежит в sessionStorage — читаем после монтирования, как остальной дашборд
+  const router = useRouter();
+  const { projectId, reloadWorkspace } = useDashboard();
   const [b, setB] = useState<BusinessProfile>(EMPTY_BUSINESS);
+  /** Ответ бэка целиком: при сохранении из него берутся поля, которых нет на экране. */
+  const [project, setProject] = useState<ProjectResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Пока проекта на бэке нет, показываем то, что осталось от онбординга.
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    setB(businessFromOnboarding(loadOnboarding()) ?? EMPTY_BUSINESS);
+    if (!projectId) {
+      setB(businessFromOnboarding(loadOnboarding()) ?? EMPTY_BUSINESS);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    void getProject(projectId)
+      .then((p) => {
+        if (cancelled) return;
+        setProject(p);
+        setB(projectToBusiness(p));
+      })
+      .catch((err) => {
+        if (!cancelled) toast(toMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [projectId]);
 
   const logoInput = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
   const set = <K extends keyof BusinessProfile>(k: K, v: BusinessProfile[K]) => setB((p) => ({ ...p, [k]: v }));
-  const onLogo = (e: ChangeEvent<HTMLInputElement>) => {
+
+  const onLogo = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) { const u = URL.createObjectURL(f); urls.current.push(u); set("logo", u); }
     e.target.value = "";
+    if (!f) return;
+
+    // Показываем выбранный файл сразу, не дожидаясь ответа сервера.
+    const u = URL.createObjectURL(f);
+    urls.current.push(u);
+    set("logo", u);
+
+    if (!projectId) return;
+    try {
+      const url = await uploadLogo(projectId, f);
+      if (url) set("logo", url);
+      await reloadWorkspace();
+    } catch (err) {
+      toast(toMessage(err));
+    }
   };
+
   const toggleDay = (d: number) => set("daysOff", b.daysOff.includes(d) ? b.daysOff.filter((x) => x !== d) : [...b.daysOff, d]);
   const toggleSocial = (id: string) => set("socials", b.socials.map((s) => s.id === id ? { ...s, connected: !s.connected } : s));
 
+  const save = async () => {
+    if (!projectId) {
+      toast("Сначала создайте проект — данные пока некуда сохранить");
+      return;
+    }
+    try {
+      const updated = await updateProject(projectId, businessToProjectPatch(b, project));
+      setProject(updated);
+      setB(projectToBusiness(updated));
+      await reloadWorkspace();
+    } catch (err) {
+      toast(toMessage(err));
+    }
+  };
+
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const doDelete = () => { setConfirmDelete(false); toast("Бизнес удалён"); };
+  const doDelete = async () => {
+    setConfirmDelete(false);
+    if (!projectId) {
+      toast("Бизнес удалён");
+      return;
+    }
+    try {
+      await deleteProject(projectId);
+      await reloadWorkspace();
+      toast("Бизнес удалён");
+      router.push("/dashboard");
+    } catch (err) {
+      toast(toMessage(err));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-bold text-ink sm:text-2xl">Профиль бизнеса</h1>
-        <p className="mt-0.5 text-sm text-ink-muted">Данные бизнеса и подключённые каналы</p>
+        <p className="mt-0.5 text-sm text-ink-muted" aria-live="polite">
+          {loading ? "Загружаем данные проекта…" : "Данные бизнеса и подключённые каналы"}
+        </p>
       </div>
 
       {/* Шапка: лого + название — без карточки */}
@@ -143,7 +223,7 @@ export default function BusinessSettings() {
 
       {/* Действия */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <SaveButton />
+        <SaveButton onSave={() => void save()} />
         <button type="button" onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-2 self-start rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-500/10">
           <Icon name="trash" size={16} aria-hidden="true" /> Удалить бизнес
         </button>

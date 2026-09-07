@@ -16,6 +16,10 @@ import { DateField } from "@/components/dashboard/content/EditorControls";
 import TimeInput from "@/components/ui/TimeInput";
 import { fmtDayMonth, isoOffset } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
+import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import { toMessage } from "@/lib/api/errors";
+import { confirmPost, generateAsync, publishPost, pollTask } from "@/lib/api/orchestration";
+import { isTaskFailed, isTaskFinished, taskPostId, taskText } from "@/lib/api/mapGeneration";
 
 type Format = "post" | "video";
 type ImgSource = "none" | "upload" | "ai";
@@ -172,8 +176,11 @@ function MediaEditor({ media, onChange, onGenerate, onUpload, onRemove }: { medi
 
 export default function CreateView() {
   const router = useRouter();
+  const { projectId } = useDashboard();
 
   const [mode, setMode] = useState<Mode>("create");
+  /** id поста на бэке — появляется, когда текст пришёл от сервиса генерации. */
+  const [serverPostId, setServerPostId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [settingsShown, setSettingsShown] = useState(false);
   const [format, setFormat] = useState<Format>("post");
@@ -228,24 +235,74 @@ export default function CreateView() {
     return media.kind === "image" ? media : { kind: "none" };
   };
 
+  /** Показ готового результата — общий хвост для сервера и запасного варианта. */
+  const finishGeneration = (body: string, postId: string | null) => {
+    if (timer.current) clearInterval(timer.current);
+    setText(body);
+    setHashtags(deriveHashtags(topic));
+    setMedia(resolveMedia());
+    setServerPostId(postId);
+    setMode("edit");
+  };
+
   const runGeneration = () => {
     if (!canCreate) return;
     setMode("generating");
     setDoneSteps(0);
+    setServerPostId(null);
+
+    // Шаги слева — это прогресс для человека: сервис отдаёт только статус задачи,
+    // поэтому лента шагов продолжает идти, пока ждём ответ.
     let done = 0;
     timer.current = setInterval(() => {
       done += 1;
       setDoneSteps(done);
-      if (done >= aiSteps.length) {
-        if (timer.current) clearInterval(timer.current);
-        setTimeout(() => {
-          setText(generateBody(topic, format, photos.items.length));
-          setHashtags(deriveHashtags(topic));
-          setMedia(resolveMedia());
-          setMode("edit");
-        }, 460);
-      }
+      if (done >= aiSteps.length && timer.current) clearInterval(timer.current);
     }, 520);
+
+    const fallback = (note?: string) => {
+      if (note) toast(note);
+      // Ждём, пока лента шагов доиграет, — иначе результат появляется рывком.
+      setTimeout(() => finishGeneration(generateBody(topic, format, photos.items.length), null), 460);
+    };
+
+    if (!projectId) {
+      fallback();
+      return;
+    }
+
+    void (async () => {
+      try {
+        // mode бэк принимает как enum, значения контракт не раскрывает —
+        // отправляем формат публикации в его же терминах.
+        const { taskId } = await generateAsync({
+          projectId,
+          mode: format.toUpperCase(),
+          count: 1,
+          prompt: topic.trim() || undefined,
+        });
+
+        const task = await pollTask(taskId, {
+          isDone: isTaskFinished,
+          intervalMs: 2000,
+          timeoutMs: 120_000,
+        });
+
+        if (isTaskFailed(task)) {
+          fallback("Сервис генерации вернул ошибку — показан черновик");
+          return;
+        }
+
+        const body = taskText(task);
+        if (!body) {
+          fallback("Сервис генерации не прислал текст — показан черновик");
+          return;
+        }
+        finishGeneration(body, taskPostId(task));
+      } catch (err) {
+        fallback(toMessage(err));
+      }
+    })();
   };
 
   const runTextAi = (key: string) => {
@@ -258,6 +315,24 @@ export default function CreateView() {
 
   const publish = () => setPublishMode("publish");
   const schedule = () => setPublishMode("schedule");
+
+  /**
+   * Отправка публикации. Пост, рождённый сервисом генерации, сначала
+   * подтверждается — так бэк отличает принятый текст от черновика, — и только
+   * «опубликовать сейчас» отправляет его в соцсети.
+   */
+  const submitPublication = async (kind: "publish" | "schedule"): Promise<boolean> => {
+    if (!serverPostId) return true; // черновик собран локально — отправлять нечего
+
+    try {
+      await confirmPost(serverPostId);
+      if (kind === "publish") await publishPost(serverPostId);
+      return true;
+    } catch (err) {
+      toast(toMessage(err));
+      return false;
+    }
+  };
   const draft = () => { toast("Сохранено в черновики"); router.push("/dashboard/content"); };
   const startNew = () => { setMode("create"); setTopic(""); setSettingsShown(false); setText(""); setHashtags([]); setMedia({ kind: "none" }); photos.clear(); };
 
@@ -485,6 +560,7 @@ export default function CreateView() {
       </div>
 
       <PublishFlow mode={publishMode} channels={channels} onChange={setChannels}
+        onSubmit={submitPublication}
         onClose={() => setPublishMode(null)}
         onDone={() => { setPublishMode(null); router.push("/dashboard/content"); }}
         onNewPost={() => { setPublishMode(null); startNew(); }} />
@@ -517,12 +593,15 @@ function ChannelCard({ id, on, onToggle }: { id: ChannelId; on: boolean; onToggl
   );
 }
 
-function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost }: {
+function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onSubmit }: {
   mode: null | "publish" | "schedule"; channels: ChannelId[]; onChange: (v: ChannelId[]) => void;
   onClose: () => void; onDone: () => void; onNewPost: () => void;
+  /** Отправка на бэк. false — не получилось, экран «готово» показывать нельзя. */
+  onSubmit: (kind: "publish" | "schedule") => Promise<boolean>;
 }) {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<"form" | "done">("form");
+  const [busy, setBusy] = useState(false);
   const [date, setDate] = useState(isoOffset(1));
   const [time, setTime] = useState("12:00");
   useEffect(() => setMounted(true), []);
@@ -586,10 +665,18 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost }: {
 
             <div className="flex items-center gap-2 border-t border-border p-4">
               <button type="button" onClick={onClose} className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-medium text-ink-muted transition hover:text-ink">Отмена</button>
-              <button type="button" onClick={() => setStep("done")} disabled={chosen.length === 0}
+              <button
+                type="button"
+                onClick={async () => {
+                  setBusy(true);
+                  const ok = await onSubmit(isSchedule ? "schedule" : "publish");
+                  setBusy(false);
+                  if (ok) setStep("done");
+                }}
+                disabled={chosen.length === 0 || busy}
                 className="btn-glass-blue ml-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50">
                 <Icon name={isSchedule ? "calendar-plus" : "send"} size={16} aria-hidden="true" />
-                {isSchedule ? "Запланировать" : "Опубликовать сейчас"}
+                {busy ? "Отправляем…" : isSchedule ? "Запланировать" : "Опубликовать сейчас"}
               </button>
             </div>
           </>

@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import Icon from "./ui/Icon";
 import { useAuthModal } from "./AuthModalProvider";
-import ThemeToggle from "./ThemeToggle";
 
 const NAV_LINKS = [
   { href: "#how-it-works", label: "Как работает", id: "how-it-works" },
@@ -87,7 +86,6 @@ export default function Navbar() {
           </ul>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <ThemeToggle className="mr-1" />
             <button
               type="button"
               onClick={openLogin}
@@ -101,7 +99,6 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-1.5 lg:hidden">
-            <ThemeToggle />
             <button
               type="button"
               aria-label={open ? "Закрыть меню" : "Открыть меню"}

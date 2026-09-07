@@ -19,6 +19,8 @@ import {
 } from "@/lib/dashboard/content";
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import { listProjectPosts } from "@/lib/api/orchestration";
+import { toDashboardPost } from "@/lib/api/mapGeneration";
 import { menuSurfaceClass } from "@/lib/dashboard/surface";
 
 const DAYS_PER_WEEK = 7;
@@ -495,7 +497,9 @@ function FeedGrid({ byDay, onOpen, passes }: { byDay: Map<number, Post[]>; onOpe
 }
 
 export default function ContentView() {
-  const { surfaceStyle } = useDashboard();
+  const { surfaceStyle, projectId } = useDashboard();
+  /** Посты проекта с бэка. null — сервис не ответил, показываем демо-план. */
+  const [serverPosts, setServerPosts] = useState<Post[] | null>(null);
   const [view, setView] = useState<ViewId>("grid");
   const [focusedDay, setFocusedDay] = useState<number | null>(null);
   const [flashDay, setFlashDay] = useState<number | null>(null);
@@ -505,7 +509,23 @@ export default function ContentView() {
   const [chans, setChans] = useState<ChannelId[]>(CHANNEL_ORDER);
   const [types, setTypes] = useState<PostType[]>(POST_TYPE_ORDER);
   const [status, setStatus] = useState<"all" | PostStatus>("all");
-  const byDay = postsByDay();
+  const byDay = postsByDay(serverPosts ?? undefined);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    void listProjectPosts(projectId)
+      .then((list) => {
+        // Пустой ответ — не повод стирать демо-план: у нового проекта постов ещё нет.
+        if (!cancelled && list.length > 0) setServerPosts(list.map(toDashboardPost));
+      })
+      .catch(() => {
+        /* сервис генерации не отвечает — остаёмся на демо-плане */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   const toggleChan = (id: ChannelId) =>
     setChans((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));

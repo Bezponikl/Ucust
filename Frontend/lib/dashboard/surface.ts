@@ -5,14 +5,14 @@ import type { SurfaceStyle } from "@/components/dashboard/DashboardProvider";
  * Solid: непрозрачная карточка (как сейчас). Glass: полупрозрачная, в тон окнам/сайдбару.
  */
 export function menuSurfaceClass(surfaceStyle: SurfaceStyle): string {
-  return surfaceStyle === "glass" ? "bg-card/78 dark:bg-card/55 backdrop-blur-xl" : "bg-card";
+  return surfaceStyle === "glass" ? "bg-card/90 dark:bg-card/75 backdrop-blur-2xl" : "bg-card";
 }
 
 /**
  * Классы заливки для больших модальных окон (пост, день календаря, подтверждения).
  */
 export function modalSurfaceClass(surfaceStyle: SurfaceStyle): string {
-  return surfaceStyle === "glass" ? "bg-card/85 dark:bg-card/70 backdrop-blur-2xl" : "bg-card";
+  return surfaceStyle === "glass" ? "bg-card/92 dark:bg-card/80 backdrop-blur-2xl" : "bg-card";
 }
 
 /**

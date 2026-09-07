@@ -1,7 +1,7 @@
 "use client";
 
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
-import { Field, TextArea, TextInput } from "@/components/onboarding/Field";
+import { Field, TextInput } from "@/components/onboarding/Field";
 
 export default function StepBusinessName() {
   const { input, updateInput } = useOnboarding();
@@ -10,7 +10,7 @@ export default function StepBusinessName() {
       <header>
         <h1 className="text-2xl font-bold text-ink sm:text-3xl">Как называется ваш бизнес?</h1>
         <p className="mt-2 text-sm text-ink-muted sm:text-base">
-          Укажите название и краткое описание — это поможет системе лучше понять ваш бизнес
+          С него начнём — остальное соберём на следующих шагах
         </p>
       </header>
       <Field label="Название">
@@ -18,13 +18,6 @@ export default function StepBusinessName() {
           value={input.name}
           onChange={(e) => updateInput({ name: e.target.value })}
           placeholder="Например: Кофейня Аромат"
-        />
-      </Field>
-      <Field label="Чем занимается ваш бизнес? (необязательно)">
-        <TextArea
-          value={input.description}
-          onChange={(e) => updateInput({ description: e.target.value })}
-          placeholder="Кратко опишите, что вы делаете и для кого"
         />
       </Field>
     </div>

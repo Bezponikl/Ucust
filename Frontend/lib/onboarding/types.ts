@@ -4,7 +4,6 @@ export type AboutMode = "link" | "manual";
 
 export interface WizardInput {
   name: string;
-  description: string;
   aboutMode: AboutMode;
   link: string;
   activity: string;
@@ -45,7 +44,6 @@ export interface BrandProfile {
 
 export const EMPTY_INPUT: WizardInput = {
   name: "",
-  description: "",
   aboutMode: "link",
   link: "",
   activity: "",

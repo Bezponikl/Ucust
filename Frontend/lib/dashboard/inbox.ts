@@ -110,3 +110,37 @@ export function inboxCounts() {
     review: byKind("review"),
   };
 }
+
+/**
+ * Переписка, которую ИИ обязан учесть при составлении ответа.
+ * Для отзыва или комментария это одно обращение, для чата — вся история.
+ */
+export function threadContext(item: InboxItem): ChatMessage[] {
+  return item.thread ?? [{ from: "them", text: item.text, time: item.time }];
+}
+
+/**
+ * Черновик ответа по ВСЕЙ переписке, а не по одной последней реплике.
+ *
+ * Раньше автоответ смотрел только на `item.text` — последнее сообщение — и
+ * поэтому терял то, о чём уже договорились выше: здоровался заново и повторял
+ * уже данные ответы. Здесь на вход идёт весь диалог; `used` — сколько сообщений
+ * учтено, это же число показываем в интерфейсе.
+ *
+ * Это шов под реальный вызов сервиса: туда уйдёт `threadContext(item)` целиком.
+ */
+export function buildAiDraft(item: InboxItem): { text: string; used: number } {
+  const ctx = threadContext(item);
+  const used = ctx.length;
+
+  // Continuity: если мы уже отвечали в этом диалоге, второе приветствие лишнее.
+  const weReplied = ctx.some((m) => m.from === "me");
+  if (!weReplied) return { text: item.aiDraft, used };
+
+  const withoutGreeting = item.aiDraft.replace(
+    /^(Здравствуйте|Добрый день|Привет)[,!]?\s*[^,!]*[,!]?\s*/iu,
+    "",
+  );
+  const body = withoutGreeting.charAt(0).toUpperCase() + withoutGreeting.slice(1);
+  return { text: body || item.aiDraft, used };
+}

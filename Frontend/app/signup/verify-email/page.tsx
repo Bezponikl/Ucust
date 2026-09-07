@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
+import FormError from "@/components/auth/FormError";
 import Icon from "@/components/ui/Icon";
-
-const AUTO_REDIRECT_SECONDS = 3;
+import { resendConfirmation } from "@/lib/api/auth";
+import { toMessage } from "@/lib/api/errors";
+import { toast } from "@/lib/toast";
 
 export default function VerifyEmailPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [secondsLeft, setSecondsLeft] = useState(AUTO_REDIRECT_SECONDS);
-  const redirected = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -20,21 +20,22 @@ export default function VerifyEmailPage() {
     } catch {}
   }, []);
 
-  const goToConfirm = () => {
-    if (redirected.current) return;
-    redirected.current = true;
-    router.push("/signup/confirm");
-  };
-
-  useEffect(() => {
-    if (secondsLeft <= 0) {
-      goToConfirm();
+  const handleResend = async () => {
+    if (!email) {
+      setError("Не удалось определить адрес — вернитесь и введите его заново");
       return;
     }
-    const timeout = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondsLeft]);
+    setPending(true);
+    setError(null);
+    try {
+      await resendConfirmation(email);
+      toast("Письмо отправлено ещё раз");
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <AuthPageChrome>
@@ -45,18 +46,30 @@ export default function VerifyEmailPage() {
 
         <h1 className="mt-5 text-2xl font-bold text-ink sm:text-[1.75rem]">Проверьте почту</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-          Мы отправили ссылку для подтверждения{email ? ` на ${email}` : ""}. Откроем её
-          автоматически через {secondsLeft} с.
+          Мы отправили ссылку для подтверждения{email ? ` на ${email}` : ""}. Перейдите по ней,
+          чтобы активировать аккаунт — письмо может идти пару минут.
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={goToConfirm}
-        className="btn-glass-blue mt-6 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold"
-      >
-        Открыть письмо сейчас
-      </button>
+      <div className="mt-6 flex flex-col gap-3">
+        <FormError>{error}</FormError>
+
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={pending}
+          className="btn-glass-blue inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending ? "Отправляем…" : "Отправить письмо ещё раз"}
+        </button>
+
+        <Link
+          href="/login"
+          className="inline-flex w-full items-center justify-center rounded-full border border-border px-6 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-soft"
+        >
+          Я подтвердил — войти
+        </Link>
+      </div>
 
       <Link
         href="/signup"

@@ -68,11 +68,19 @@ function FeatureCard({
   );
 }
 
+/* Пауза между автопрокрутками карусели. */
+const AUTOPLAY_MS = 4000;
+
 export default function Features() {
   const trackRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
+  const [page, setPage] = useState(0);
+  // Автопрокрутка замирает, пока пользователь сам взаимодействует с каруселью:
+  // курсор внутри, фокус с клавиатуры, палец на треке.
+  const [held, setHeld] = useState(false);
+  const [inView, setInView] = useState(false);
   // Мобилка (одна карточка на экране): пауза неактивных + рестарт при переключении.
   // Анимируем ТОЛЬКО реально видимые на экране карточки — остальные на паузе.
   // Иначе на десктопе крутятся все 6 сцен разом и это лагает. root = вьюпорт,
@@ -109,6 +117,18 @@ export default function Features() {
     return () => io.disconnect();
   }, []);
 
+  // Сама карусель едет только когда секция на экране — иначе это фоновая работа впустую.
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.35 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   // Замеры лэйаута батчим в rAF: иначе каждый scroll-эвент во время плавной
   // прокрутки форсит reflow (это и давало подфриз на первом нажатии стрелки).
   const update = useCallback(() => {
@@ -118,6 +138,9 @@ export default function Features() {
       if (!el) return;
       setCanPrev(el.scrollLeft > 8);
       setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+      const card = el.querySelector<HTMLElement>("[data-card]");
+      const step = card ? card.offsetWidth + 20 : el.clientWidth * 0.8;
+      setPage(step > 0 ? Math.round(el.scrollLeft / step) : 0);
     });
   }, []);
 
@@ -134,13 +157,40 @@ export default function Features() {
     };
   }, [update]);
 
-  const scrollByCard = (dir: 1 | -1) => {
+  const scrollByCard = useCallback((dir: 1 | -1) => {
     const el = trackRef.current;
     if (!el) return;
     const card = el.querySelector<HTMLElement>("[data-card]");
     const step = card ? card.offsetWidth + 20 : el.clientWidth * 0.8;
     el.scrollBy({ left: dir * step, behavior: "smooth" });
-  };
+  }, []);
+
+  const scrollToCard = useCallback((i: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>("[data-card]");
+    const step = card ? card.offsetWidth + 20 : el.clientWidth * 0.8;
+    el.scrollTo({ left: i * step, behavior: "smooth" });
+  }, []);
+
+  // Автопрокрутка: раз в 4 с сдвигаем на карточку, с конца возвращаемся в начало.
+  // prefers-reduced-motion читаем в эффекте, а не в рендере — иначе гидрация
+  // разъезжается между сервером и клиентом.
+  useEffect(() => {
+    if (held || !inView) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => {
+      const el = trackRef.current;
+      if (!el) return;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+      if (atEnd) el.scrollTo({ left: 0, behavior: "smooth" });
+      else scrollByCard(1);
+    }, AUTOPLAY_MS);
+    return () => window.clearInterval(id);
+  }, [held, inView, scrollByCard]);
+
+  const hold = () => setHeld(true);
+  const release = () => setHeld(false);
 
   return (
     <section id="features">
@@ -156,6 +206,13 @@ export default function Features() {
 
         <div
           ref={trackRef}
+          onMouseEnter={hold}
+          onMouseLeave={release}
+          onFocusCapture={hold}
+          onBlurCapture={release}
+          onPointerDown={hold}
+          onPointerUp={release}
+          onPointerCancel={release}
           className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 sm:mt-14"
         >
           {FEATURES.map((feature, i) => (
@@ -169,25 +226,56 @@ export default function Features() {
           ))}
         </div>
 
-        <div className="mt-7 flex justify-end gap-3">
-          <button
-            type="button"
-            aria-label="Предыдущие карточки"
-            onClick={() => scrollByCard(-1)}
-            disabled={!canPrev}
-            className="btn-glass flex h-12 w-12 items-center justify-center"
-          >
-            <Icon name="chevron-left" size={20} />
-          </button>
-          <button
-            type="button"
-            aria-label="Следующие карточки"
-            onClick={() => scrollByCard(1)}
-            disabled={!canNext}
-            className="btn-glass flex h-12 w-12 items-center justify-center"
-          >
-            <Icon name="chevron-right" size={20} />
-          </button>
+        {/* Точки — основная навигация (работает и на тач-экранах), стрелки — вспомогательная. */}
+        <div className="mt-7 flex items-center justify-between gap-4">
+          <div className="flex flex-1 items-center justify-center gap-1 sm:justify-start sm:gap-2">
+            {FEATURES.map((feature, i) => (
+              <button
+                key={feature.id}
+                type="button"
+                aria-label={`Показать: ${feature.title}`}
+                aria-current={i === page}
+                onClick={() => {
+                  hold();
+                  scrollToCard(i);
+                }}
+                className="group flex h-11 w-7 items-center justify-center"
+              >
+                <span
+                  className={`block h-2 rounded-full transition-all duration-300 ${
+                    i === page ? "w-6 bg-brand" : "w-2 bg-ink/25 group-hover:bg-ink/45"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+
+          <div className="flex shrink-0 gap-3">
+            <button
+              type="button"
+              aria-label="Предыдущие карточки"
+              onClick={() => {
+                hold();
+                scrollByCard(-1);
+              }}
+              disabled={!canPrev}
+              className="btn-glass flex h-12 w-12 items-center justify-center"
+            >
+              <Icon name="chevron-left" size={20} />
+            </button>
+            <button
+              type="button"
+              aria-label="Следующие карточки"
+              onClick={() => {
+                hold();
+                scrollByCard(1);
+              }}
+              disabled={!canNext}
+              className="btn-glass flex h-12 w-12 items-center justify-center"
+            >
+              <Icon name="chevron-right" size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -7,7 +7,7 @@ import { pickPreset } from "./presets";
  * меняется только тело этой функции, сигнатура остаётся.
  */
 export function analyzeBusiness(input: WizardInput): Promise<BrandProfile> {
-  const text = [input.name, input.description, input.activity, input.difference, input.link].join(" ");
+  const text = [input.name, input.activity, input.difference, input.link].join(" ");
   const preset = pickPreset(text);
   const name = input.name.trim() || "Ваш бизнес";
   return new Promise((resolve) => {

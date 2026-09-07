@@ -40,9 +40,10 @@ export const POSTS: Post[] = [
   { id: "p27", day: 27, title: "Анонс новинок", excerpt: "Скоро в меню: сезонные десерты и авторские напитки. Не пропустите анонс.", image: "/content/interior.jpg", channels: ["vk", "telegram"], status: "scheduled", type: "post", time: "11:30" },
 ];
 
-export function postsByDay(): Map<number, Post[]> {
+/** Без аргумента — демо-план витрины; со списком — посты проекта с бэка. */
+export function postsByDay(list: Post[] = POSTS): Map<number, Post[]> {
   const map = new Map<number, Post[]>();
-  for (const p of POSTS) {
+  for (const p of list) {
     const arr = map.get(p.day) ?? [];
     arr.push(p);
     map.set(p.day, arr);

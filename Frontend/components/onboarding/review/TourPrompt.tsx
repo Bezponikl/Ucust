@@ -5,7 +5,7 @@ import Icon from "@/components/ui/Icon";
 import { setTourState } from "@/lib/dashboard/tour";
 
 /**
- * Финальный шаг онбординга: спрашиваем, провести ли по интерфейсу.
+ * Финальный шаг онбординга: спрашиваем, показать ли, как работает платформа.
  * Ответ пишем в uc_tour — дашборд запускает подсказки только при «pending».
  */
 export default function TourPrompt({
@@ -60,7 +60,7 @@ export default function TourPrompt({
             onClick={() => choose(true)}
             className="btn-glass-blue inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold"
           >
-            <Icon name="sparkles" size={16} aria-hidden="true" /> Провести по интерфейсу
+            <Icon name="sparkles" size={16} aria-hidden="true" /> Как работает платформа
           </button>
           <button
             type="button"
@@ -73,7 +73,7 @@ export default function TourPrompt({
 
         <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-ink-muted">
           <Icon name="help" size={13} aria-hidden="true" />
-          Подсказки всегда можно вернуть кнопкой «?» в шапке кабинета
+          Подсказки всегда можно вернуть в меню профиля
         </p>
       </div>
     </div>

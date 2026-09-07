@@ -22,13 +22,18 @@ export interface BusinessProfile {
   socials: SocialLink[];
 }
 
+/**
+ * Список повторяет отрасли бэка (Industry) один в один: иначе выбранная сфера
+ * не доедет до проекта. Перевод в enum — в lib/api/mapBusiness.ts.
+ */
 export const CATEGORIES = [
-  "Кофейня / кафе",
-  "Ресторан",
-  "Розничный магазин",
+  "Кафе и рестораны",
   "Салон красоты",
+  "Розничный магазин",
   "Услуги",
-  "Онлайн-магазин",
+  "Образование",
+  "Фитнес и спорт",
+  "Медицина",
   "Другое",
 ];
 
@@ -63,7 +68,7 @@ export function businessFromOnboarding(state: OnboardingState | null): BusinessP
     name: profile.name || input?.name || "",
     category: profile.field || CATEGORIES[0],
     site: input?.link ?? "",
-    description: profile.positioning || input?.description || "",
+    description: profile.positioning || input?.difference || input?.activity || "",
     socials: socials(input?.socials ?? []),
   };
 }

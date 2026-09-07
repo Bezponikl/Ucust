@@ -11,7 +11,7 @@ export default function DashboardBottomNav() {
   const { mobileChromeHidden, surfaceStyle, hasProject } = useDashboard();
   const surfaceClass =
     surfaceStyle === "glass"
-      ? "border-white/10 bg-card/70 ring-1 ring-white/5 backdrop-blur-xl"
+      ? "border-white/20 bg-card/88 ring-1 ring-white/10 backdrop-blur-2xl dark:bg-card/78"
       : "border-border bg-card";
   return (
     <nav className={`fixed inset-x-3 bottom-[calc(0.6rem+env(safe-area-inset-bottom))] z-40 items-stretch gap-1 rounded-[24px] border p-1.5 shadow-lift lg:hidden ${surfaceClass} ${mobileChromeHidden ? "hidden" : "flex"}`}>

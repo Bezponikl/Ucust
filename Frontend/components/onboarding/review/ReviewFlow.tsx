@@ -13,12 +13,35 @@ import SectionSwot from "./SectionSwot";
 import SectionServices from "./SectionServices";
 import SectionGoals from "./SectionGoals";
 import TourPrompt from "./TourPrompt";
+import { createProject } from "@/lib/api/projects";
+import { toProjectRequest } from "@/lib/api/mapProfile";
+import { toMessage } from "@/lib/api/errors";
+import { toast } from "@/lib/toast";
 
 export default function ReviewFlow() {
   const router = useRouter();
-  const { profile, hydrated } = useOnboarding();
+  const { input, profile, hydrated } = useOnboarding();
   const [section, setSection] = useState(0);
   const [askTour, setAskTour] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // С настоящим бэком профиль перестаёт быть черновиком во вкладке и уезжает
+  // в business-service: иначе результат онбординга терялся бы при перезагрузке.
+  const finish = async () => {
+    if (!profile) {
+      setAskTour(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      await createProject(toProjectRequest(input, profile));
+      setAskTour(true);
+    } catch (err) {
+      toast(toMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Редиректим только после гидрации из sessionStorage — иначе на прямой загрузке
   // /review профиль ещё null и нас бы выкинуло на визард до восстановления состояния.
@@ -66,10 +89,12 @@ export default function ReviewFlow() {
             ) : (
               <button
                 type="button"
-                onClick={() => setAskTour(true)}
-                className="btn-glass-blue inline-flex flex-1 items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold sm:flex-none sm:min-w-64"
+                onClick={finish}
+                disabled={saving}
+                className="btn-glass-blue inline-flex flex-1 items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:min-w-64"
               >
-                <Icon name="check-bold" size={16} aria-hidden="true" /> Всё верно — в кабинет
+                <Icon name="check-bold" size={16} aria-hidden="true" />
+                {saving ? "Сохраняем профиль…" : "Всё верно — в кабинет"}
               </button>
             )}
             <span className="ml-auto hidden text-xs text-ink-muted sm:block">

@@ -1,15 +1,11 @@
 import type { IconName } from "@/lib/icons/solar";
 
-export interface NavChild {
-  href: string;
-  label: string;
-}
-
+// Навигация плоская: подпунктов нет. Раздел с единственным ребёнком
+// («Контент» → «Все публикации») — лишний клик, поэтому ведём сразу в раздел.
 export interface NavItem {
   href: string;
   label: string;
   icon: IconName;
-  children?: NavChild[];
   /** Якорь для интерактивных подсказок, см. lib/dashboard/tour.ts */
   tourId?: string;
 }

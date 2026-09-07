@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Icon from "@/components/ui/Icon";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export default function OnboardingTopBar() {
   return (
@@ -26,7 +25,6 @@ export default function OnboardingTopBar() {
         />
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
-        <ThemeToggle />
         <button
           type="button"
           aria-label="Уведомления"

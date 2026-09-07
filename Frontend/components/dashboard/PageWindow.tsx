@@ -13,7 +13,7 @@ export default function PageWindow({ children }: { children: ReactNode }) {
   const { surfaceStyle } = useDashboard();
   const surfaceClass =
     surfaceStyle === "glass"
-      ? "lg:bg-card/78 lg:dark:bg-card/55 lg:backdrop-blur-xl"
+      ? "lg:bg-card/85 lg:dark:bg-card/65 lg:backdrop-blur-2xl lg:ring-1 lg:ring-inset lg:ring-white/25 lg:dark:ring-white/10"
       : "lg:bg-card";
 
   return (

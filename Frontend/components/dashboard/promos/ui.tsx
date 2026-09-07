@@ -5,6 +5,7 @@ import Icon from "@/components/ui/Icon";
 import type { IconName } from "@/lib/icons/solar";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { menuSurfaceClass } from "@/lib/dashboard/surface";
+import { dropClass, useDropDirection } from "@/lib/useDropDirection";
 
 /** Закрытие по клику вне и по Escape. */
 export function useDismiss<T extends HTMLElement>(open: boolean, close: () => void) {
@@ -107,6 +108,7 @@ export function FilterSelect<T extends string>({
   const { surfaceStyle } = useDashboard();
   const [open, setOpen] = useState(false);
   const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
+  const dir = useDropDirection(open, ref, 240);
   const current = options.find((o) => o.id === value);
 
   return (
@@ -134,7 +136,7 @@ export function FilterSelect<T extends string>({
       {open && (
         <div
           role="listbox"
-          className={`uc-pop-in absolute right-0 top-full z-40 mt-2 w-52 overflow-hidden rounded-2xl border border-border/70 p-1.5 shadow-lift ${menuSurfaceClass(surfaceStyle)}`}
+          className={`uc-pop-in absolute right-0 z-40 w-52 overflow-hidden rounded-2xl border border-border/70 p-1.5 shadow-lift ${dropClass(dir)} ${menuSurfaceClass(surfaceStyle)}`}
         >
           {options.map((o) => (
             <button

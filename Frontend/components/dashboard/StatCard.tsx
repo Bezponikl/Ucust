@@ -85,6 +85,7 @@ export default function StatCard({
   deltaTone = "success",
   hint,
   hintTone = "muted",
+  tooltip,
   sparkline,
   href,
 }: {
@@ -97,6 +98,8 @@ export default function StatCard({
   deltaTone?: DeltaTone;
   hint?: string;
   hintTone?: "muted" | "warning";
+  /** Пояснение к показателю: что именно посчитано. Всплывает по наведению. */
+  tooltip?: string;
   sparkline?: number[];
   /** Если задан — карточка ведёт в подробный отчёт. */
   href?: string;
@@ -115,6 +118,16 @@ export default function StatCard({
         </span>
         <span className="flex min-w-0 items-center gap-1">
           <span className="truncate text-xs font-medium text-ink-muted">{label}</span>
+          {tooltip && (
+            <span
+              role="img"
+              aria-label={tooltip}
+              title={tooltip}
+              className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-border text-[0.5625rem] font-bold leading-none text-ink-muted"
+            >
+              ?
+            </span>
+          )}
           {href && (
             <Icon
               name="chevron-right"

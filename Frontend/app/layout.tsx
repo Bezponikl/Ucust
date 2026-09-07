@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import AuthModalProvider from "@/components/AuthModalProvider";
 import ScrollTop from "@/components/ScrollTop";
+import { SessionProvider } from "@/lib/session/SessionProvider";
 import "./globals.css";
 
-// Ставим тему до первой отрисовки, чтобы не было вспышки светлой темы
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
+// Тема идёт за системной настройкой устройства — ручного переключателя нет.
+// Класс ставим до первой отрисовки (иначе вспышка светлой темы) и подписываемся
+// на смену системной темы, чтобы страница переключалась без перезагрузки.
+// Старый ключ localStorage чистим: иначе у тех, кто раньше переключал вручную,
+// осталась бы залипшая тема поверх системной.
+const themeScript = `(function(){try{localStorage.removeItem('theme')}catch(e){}try{var m=window.matchMedia('(prefers-color-scheme: dark)');var a=function(d){document.documentElement.classList.toggle('dark',d)};a(m.matches);var h=function(e){a(e.matches)};if(m.addEventListener)m.addEventListener('change',h);else m.addListener(h)}catch(e){}})();`;
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -46,7 +51,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen overflow-x-clip bg-canvas text-ink antialiased">
-        <AuthModalProvider>{children}</AuthModalProvider>
+        <SessionProvider>
+          <AuthModalProvider>{children}</AuthModalProvider>
+        </SessionProvider>
         <ScrollTop />
       </body>
     </html>

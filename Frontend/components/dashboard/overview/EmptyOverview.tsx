@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import type { IconName } from "@/lib/icons/solar";
-import { seedDemoProject } from "@/lib/onboarding/demo";
 
 const STEPS: { icon: IconName; title: string; text: string }[] = [
   { icon: "brain",     title: "Профиль бизнеса", text: "Расскажите о деле своими словами — ИИ соберёт «мозг бренда»" },
@@ -43,13 +42,6 @@ function GhostPanel({ title, icon, hint }: { title: string; icon: IconName; hint
 export default function EmptyOverview() {
   const router = useRouter();
 
-  // Демо-профиль лежит в sessionStorage, его читают провайдеры при монтировании —
-  // поэтому не router.push, а полная перезагрузка страницы.
-  const showDemo = () => {
-    seedDemoProject();
-    window.location.assign("/dashboard");
-  };
-
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       {/* Приглашение — единственный акцент на экране */}
@@ -78,13 +70,6 @@ export default function EmptyOverview() {
                 className="btn-glass-blue inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold"
               >
                 <Icon name="plus" size={16} aria-hidden="true" /> Создать профиль проекта
-              </button>
-              <button
-                type="button"
-                onClick={showDemo}
-                className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-medium text-ink-muted transition hover:text-ink"
-              >
-                <Icon name="eye" size={15} aria-hidden="true" /> Посмотреть на демо-проекте
               </button>
             </div>
           </div>

@@ -12,6 +12,8 @@ import { dayToIso, fmtDayMonth } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import type { PostStatus } from "@/lib/dashboard/types";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import { toMessage } from "@/lib/api/errors";
+import { confirmPost, publishPost } from "@/lib/api/orchestration";
 import FeedPreview, { type PreviewMedia } from "./FeedPreview";
 import {
   ActionMenu,
@@ -42,7 +44,7 @@ const STATUS_OPTIONS: SelectOption<PostStatus>[] = [
 
 type Media = PreviewMedia;
 
-export default function PostEditView({ post }: { post: Post }) {
+export default function PostEditView({ post, serverId }: { post: Post; serverId?: string }) {
   const router = useRouter();
   const { data } = useDashboard();
   const brand = data?.businessName ?? "Ваш бизнес";
@@ -59,6 +61,7 @@ export default function PostEditView({ post }: { post: Post }) {
   const [tags, setTags] = useState<string[]>(["кофейня", "утро", "эспрессо"]);
 
   const [busy, setBusy] = useState<null | "text" | "image">(null);
+  const [publishing, setPublishing] = useState(false);
   const [saved, setSaved] = useState(true);
   const [addingTag, setAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -124,7 +127,30 @@ export default function PostEditView({ post }: { post: Post }) {
     setSaved(true);
     toast("Изменения сохранены");
   };
-  const publish = () => { toast("Публикация отправлена"); router.push("/dashboard/content"); };
+  /**
+   * У поста, живущего на бэке, публикация идёт в два шага: сначала подтверждение
+   * (текст принят человеком), затем отправка в соцсети. Демо-посты витрины
+   * проходят этот путь только на экране.
+   */
+  const publish = async () => {
+    if (!serverId) {
+      toast("Публикация отправлена");
+      router.push("/dashboard/content");
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      await confirmPost(serverId);
+      await publishPost(serverId);
+      toast("Публикация отправлена");
+      router.push("/dashboard/content");
+    } catch (err) {
+      toast(toMessage(err));
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   return (
     <div className="flex flex-col">
@@ -167,10 +193,12 @@ export default function PostEditView({ post }: { post: Post }) {
           </button>
           <button
             type="button"
-            onClick={publish}
-            className="btn-glass-blue inline-flex items-center gap-2 px-4 py-2 text-[0.8125rem] font-semibold sm:px-5 sm:text-sm"
+            onClick={() => void publish()}
+            disabled={publishing}
+            className="btn-glass-blue inline-flex items-center gap-2 px-4 py-2 text-[0.8125rem] font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:px-5 sm:text-sm"
           >
-            <Icon name="send" size={15} aria-hidden="true" /> Опубликовать
+            <Icon name="send" size={15} aria-hidden="true" />
+            {publishing ? "Публикуем…" : "Опубликовать"}
           </button>
         </div>
       </header>

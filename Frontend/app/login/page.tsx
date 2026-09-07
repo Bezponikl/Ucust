@@ -1,19 +1,53 @@
 "use client";
 
+import { useEffect, useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
+import FormError from "@/components/auth/FormError";
 import Checkbox from "@/components/ui/Checkbox";
 import PasswordInput from "@/components/ui/PasswordInput";
-import { seedDemoProject } from "@/lib/onboarding/demo";
+import { toMessage } from "@/lib/api/errors";
+import { authorizeUrl, oauthErrorMessage } from "@/lib/api/oauth";
+import { useSession } from "@/lib/session/SessionProvider";
+
+const inputClass =
+  "rounded-full border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn } = useSession();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const enterDashboard = () => {
-    seedDemoProject();
-    router.push("/dashboard");
+  // Вход через соцсеть возвращает сюда с кодом ошибки, если что-то не сложилось.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("error");
+    const message = oauthErrorMessage(code);
+    if (!message) return;
+    setError(message);
+    window.history.replaceState(null, "", "/login");
+  }, []);
+
+  const startYandex = () => {
+    // Полноценный переход, а не fetch: дальше идёт цепочка редиректов Яндекса.
+    window.location.href = authorizeUrl("yandex");
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const data = new FormData(e.currentTarget);
+    setPending(true);
+    setError(null);
+    try {
+      await signIn(String(data.get("email") ?? ""), String(data.get("password") ?? ""));
+      router.push("/dashboard");
+    } catch (err) {
+      setError(toMessage(err));
+      setPending(false);
+    }
   };
 
   return (
@@ -25,31 +59,27 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <form
-        className="mt-7 flex flex-col gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          enterDashboard();
-        }}
-      >
+      <form className="mt-7 flex flex-col gap-4" onSubmit={handleSubmit}>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Email</span>
           <input
+            name="email"
             type="email"
             required
+            autoComplete="email"
             placeholder="you@example.com"
-            className="rounded-full border border-border bg-surface-soft px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand focus:bg-card"
+            className={inputClass}
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Пароль</span>
-          <PasswordInput required placeholder="••••••••" />
+          <PasswordInput name="password" required autoComplete="current-password" placeholder="••••••••" />
         </label>
 
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 text-ink-muted">
-            <Checkbox />
+            <Checkbox name="rememberMe" />
             Запомнить меня
           </label>
           <button
@@ -61,11 +91,14 @@ export default function LoginPage() {
           </button>
         </div>
 
+        <FormError>{error}</FormError>
+
         <button
           type="submit"
-          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold"
+          disabled={pending}
+          className="btn-glass-blue mt-1 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Войти
+          {pending ? "Входим…" : "Войти"}
         </button>
 
         <Link
@@ -85,23 +118,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center gap-4">
         <button
           type="button"
-          onClick={enterDashboard}
-          aria-label="Войти через VK"
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-soft transition-all hover:bg-card dark:hover:bg-white/5"
-        >
-          <Image
-            src="/vk.png"
-            alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8 shrink-0 object-contain"
-            aria-hidden="true"
-          />
-        </button>
-
-        <button
-          type="button"
-          onClick={enterDashboard}
+          onClick={startYandex}
           aria-label="Войти через Яндекс"
           className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-soft transition-all hover:bg-card dark:hover:bg-white/5"
         >

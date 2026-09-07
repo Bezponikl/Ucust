@@ -77,6 +77,12 @@ const MAP = {
   list: "list-linear",
   sort: "sort-vertical-linear",
   crop: "crop-linear",
+  // Переключатель вида графика в аналитике и карточки конкурентов
+  "chart-line": "graph-new-linear",
+  "chart-bar": "chart-2-linear",
+  external: "square-top-up-linear",
+  globe: "global-linear",
+  buildings: "buildings-2-linear",
 };
 
 const out = {};

@@ -3,7 +3,8 @@
 import Icon from "@/components/ui/Icon";
 import type { IconName } from "@/lib/icons/solar";
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
-import { Field, TextArea, TextInput } from "@/components/onboarding/Field";
+import { Field, TextInput } from "@/components/onboarding/Field";
+import FileUpload from "@/components/onboarding/FileUpload";
 import type { AboutMode } from "@/lib/onboarding/types";
 
 export default function StepAbout() {
@@ -35,17 +36,23 @@ export default function StepAbout() {
         {tab("link", "По ссылке", "link")}
         {tab("manual", "Вручную", "file-text")}
       </div>
+      {/* Документы бизнеса заменяют поле «описание»: прайс или презентация
+          рассказывают о бизнесе точнее, чем абзац в текстареа. Нужны в обоих
+          сценариях — и когда есть ссылка, и когда заполняют вручную. */}
       {input.aboutMode === "link" ? (
-        <Field
-          label="Ссылка на сайт или соцсеть"
-          hint="Можно указать ссылку на сайт, группу ВКонтакте, страницу в Instagram или Telegram-канал"
-        >
-          <TextInput
-            value={input.link}
-            onChange={(e) => updateInput({ link: e.target.value })}
-            placeholder="https://example.com или ссылка на VK/Instagram"
-          />
-        </Field>
+        <div className="flex flex-col gap-5">
+          <Field
+            label="Ссылка на сайт или соцсеть"
+            hint="Можно указать ссылку на сайт, группу ВКонтакте, страницу в Instagram или Telegram-канал"
+          >
+            <TextInput
+              value={input.link}
+              onChange={(e) => updateInput({ link: e.target.value })}
+              placeholder="https://example.com или ссылка на VK/Instagram"
+            />
+          </Field>
+          <FileUpload />
+        </div>
       ) : (
         <div className="flex flex-col gap-5">
           <Field label="Чем занимается бизнес">
@@ -55,13 +62,7 @@ export default function StepAbout() {
               placeholder="Например: кофейня, салон красоты, юридические услуги"
             />
           </Field>
-          <Field label="Коротко о бизнесе (необязательно)">
-            <TextArea
-              value={input.difference}
-              onChange={(e) => updateInput({ difference: e.target.value })}
-              placeholder="Что предлагаете и чем полезны клиентам"
-            />
-          </Field>
+          <FileUpload />
         </div>
       )}
     </div>

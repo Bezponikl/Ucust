@@ -1017,9 +1017,9 @@ class PhotoGeneratorSkill:
             style=style,
             variation_index=variation_index
         )
-        if custom_prompt:
+        if custom_prompt and len(custom_prompt.strip()) > 30:
             prompt_data["positive_prompt"] = custom_prompt
-            print(f"[PhotoGeneratorSkill] 🎯 Использован контекстный промпт от Копирайтера:\n  👉 {custom_prompt}\n")
+            print(f"[PhotoGeneratorSkill] 🎯 Использован пользовательский кастомный промпт:\n  👉 {custom_prompt}\n")
 
         photo_id = f"photo_{uuid.uuid4().hex[:10]}"
         filename = f"{photo_id}.jpg"

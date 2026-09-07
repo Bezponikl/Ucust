@@ -866,20 +866,8 @@ class UnifiedOrchestrator:
             t_text_duration = round(t_text_raw, 2) if t_text_raw >= 0.1 else round(max(0.05, t_text_raw), 2)
             
             # 3. Формирование коммерческого фото-промпта в связке с текстом поста
-            custom_visual_prompt = gen_result.get("visual_prompt")
-            if not custom_visual_prompt:
-                director = AdvancedVisualDirector(brand_images=[])
-                prompt_kw = moondream_analysis.get("prompt_keywords") if moondream_analysis else ""
-                visual_kw_str = f" Visual details: {prompt_kw}." if prompt_kw else ""
-                visual_prompt_data = director.create_photorealistic_prompt(
-                    topic=f"{prompt}.{visual_kw_str}",
-                    niche=niche,
-                    aspect_ratio=aspect_ratio,
-                    brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
-                )
-                photo_prompt = visual_prompt_data.get("positive_prompt")
-            else:
-                photo_prompt = custom_visual_prompt
+            variation_index = int(user_data.get("variation_index", 0))
+            custom_visual_prompt = user_data.get("custom_prompt") or user_data.get("positive_prompt")
 
             # 4. Генерация SMM Фотографии
             image_url = None
@@ -895,14 +883,15 @@ class UnifiedOrchestrator:
                         company_name=company_name,
                         brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None),
                         attachments=user_data.get("attachments"),
-                        custom_prompt=photo_prompt
+                        custom_prompt=custom_visual_prompt,
+                        variation_index=variation_index
                     )
                     image_url = photo_res.get("image_url")
                     if image_url:
                         t_photo_duration = round(time.time() - t_photo_start, 2)
                     else:
                         t_photo_duration = None
-                    photo_prompt = photo_res.get("positive_prompt") or photo_prompt
+                    photo_prompt = photo_res.get("positive_prompt") or ""
 
                     # Сохранение финального промпта фото в RAG (категория photo_generation_history)
                     if photo_prompt:

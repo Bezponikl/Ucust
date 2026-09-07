@@ -266,27 +266,40 @@ def main():
     parser.add_argument("--tier", type=str, default="BUSINESS", choices=["START", "BUSINESS", "ENTERPRISE", "CUSTOM"], help="Тариф медиа-оснащения")
     parser.add_argument("--aspect-ratio", "--ratio", type=str, default="1:1", choices=["1:1", "4:5", "9:16", "16:9", "3:4", "4:3"], help="Формат соотношения сторон фото")
     parser.add_argument("--variation-index", "--variation", "-v", type=int, default=0, help="Номер вариации ракурса/интерьера при перегенерации (0, 1, 2, 3...)")
+    parser.add_argument("--batch-variations", "--count", "-n", type=int, default=None, help="Сгенерировать N вариаций подряд (например, --batch-variations 3)")
+    parser.add_argument("--variations", nargs="+", type=int, default=None, help="Список конкретных номеров вариаций (например, --variations 0 1 2)")
     parser.add_argument("--images", "--files", "-i", "-f", nargs="+", default=None, help="Пути к локальным файлам/фото или URL вложений для анализа Vision (Moondream) и генерации (ComfyUI)")
     parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
     parser.add_argument("--no-publish", action="store_true", help="Не отправлять в Telegram, только вывести в консоль")
 
     args = parser.parse_args()
 
-    asyncio.run(run_pipeline(
-        topic=args.prompt,
-        company_name=args.company,
-        niche=args.niche,
-        tone=args.tone,
-        stage=args.stage,
-        framework=args.framework,
-        trigger=args.trigger,
-        tier=args.tier,
-        aspect_ratio=args.aspect_ratio,
-        variation_index=args.variation_index,
-        images=args.images,
-        channel=args.channel,
-        auto_publish=not args.no_publish
-    ))
+    variations_to_run = [args.variation_index]
+    if args.batch_variations and args.batch_variations > 0:
+        variations_to_run = list(range(args.batch_variations))
+    elif args.variations:
+        variations_to_run = args.variations
+
+    for idx, v_idx in enumerate(variations_to_run, 1):
+        if len(variations_to_run) > 1:
+            print(f"\n{'='*60}")
+            print(f"🎬 [ПАКЕТНЫЙ ЗАПУСК] Генерация вариации #{v_idx} ({idx}/{len(variations_to_run)})")
+            print(f"{'='*60}\n")
+        asyncio.run(run_pipeline(
+            topic=args.prompt,
+            company_name=args.company,
+            niche=args.niche,
+            tone=args.tone,
+            stage=args.stage,
+            framework=args.framework,
+            trigger=args.trigger,
+            tier=args.tier,
+            aspect_ratio=args.aspect_ratio,
+            variation_index=v_idx,
+            images=args.images,
+            channel=args.channel,
+            auto_publish=not args.no_publish
+        ))
 
 if __name__ == "__main__":
     main()

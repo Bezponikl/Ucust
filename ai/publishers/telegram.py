@@ -43,23 +43,82 @@ class TelegramPublisher(BasePublisher):
     async def _publish_via_bot_api(
         self, 
         text: str, 
-        media_path: Optional[str] = None,
+        media_path: Optional[Union[str, List[str]]] = None,
         reply_markup: Optional[Dict[str, Any]] = None,
-        link_preview_options: Optional[Dict[str, Any]] = None
+        link_preview_options: Optional[Dict[str, Any]] = None,
+        as_collage: bool = False
     ) -> bool:
-        """Быстрая прямая публикация через официальный Telegram HTTP Bot API с поддержкой кнопок и HTML."""
+        """
+        Умная публикация через Telegram HTTP Bot API:
+        1. Если 1 фото -> sendPhoto с текстом в caption и кнопками (100% ширина).
+        2. Если >= 2 фото -> sendMediaGroup (Единый пост-альбом) с полным текстом в подписи первого фото (100% ширина).
+        3. Если без медиа -> sendMessage с текстом и кнопками.
+        """
         import httpx
         import json
         url = f"https://api.telegram.org/bot{self.bot_token}"
+        
+        # Нормализация списка медиафайлов
+        media_list: List[str] = []
+        if isinstance(media_path, list):
+            media_list = [p for p in media_path if isinstance(p, str) and os.path.exists(p)]
+        elif isinstance(media_path, str) and os.path.exists(media_path):
+            media_list = [media_path]
+
         try:
-            async with httpx.AsyncClient(timeout=8.0) as http_client:
-                if media_path and os.path.exists(media_path):
-                    with open(media_path, "rb") as f:
+            async with httpx.AsyncClient(timeout=25.0) as http_client:
+                # -------------------------------------------------------------
+                # Сценарий 1: Мульти-фото альбом (2 и более фото)
+                # -------------------------------------------------------------
+                if len(media_list) >= 2 and not as_collage:
+                    media_items = []
+                    files_to_send = {}
+                    for idx, m_path in enumerate(media_list):
+                        attach_key = f"photo_{idx}"
+                        item = {"type": "photo", "media": f"attach://{attach_key}"}
+                        if idx == 0:
+                            # Ограничиваем подпись до 1024 символов Telegram
+                            item["caption"] = text[:1024]
+                            item["parse_mode"] = "HTML"
+                        media_items.append(item)
+                        files_to_send[attach_key] = open(m_path, "rb")
+
+                    try:
+                        data = {"chat_id": self.target_channel, "media": json.dumps(media_items)}
+                        resp = await http_client.post(f"{url}/sendMediaGroup", data=data, files=files_to_send)
+                    finally:
+                        for f in files_to_send.values():
+                            f.close()
+
+                    if resp.status_code == 200:
+                        logger.info(f"[TelegramPublisher] ✅ Альбом ({len(media_list)} фото) успешно опубликован в {self.target_channel}")
+                        return True
+                    else:
+                        logger.warning(f"[TelegramPublisher] ⚠️ Ошибка sendMediaGroup: {resp.text}")
+
+                # -------------------------------------------------------------
+                # Сценарий 2: Одиночное фото (или коллаж)
+                # -------------------------------------------------------------
+                elif len(media_list) == 1 or (len(media_list) >= 2 and as_collage):
+                    photo_to_send = media_list[0]
+                    with open(photo_to_send, "rb") as f:
                         files = {"photo": f}
-                        data: Dict[str, Any] = {"chat_id": self.target_channel, "caption": text, "parse_mode": "HTML"}
+                        data: Dict[str, Any] = {
+                            "chat_id": self.target_channel, 
+                            "caption": text[:1024], 
+                            "parse_mode": "HTML"
+                        }
                         if reply_markup:
                             data["reply_markup"] = json.dumps(reply_markup)
                         resp = await http_client.post(f"{url}/sendPhoto", data=data, files=files)
+
+                    if resp.status_code == 200:
+                        logger.info(f"[TelegramPublisher] ✅ Фото-пост с кнопками успешно опубликован в {self.target_channel}")
+                        return True
+
+                # -------------------------------------------------------------
+                # Сценарий 3: Чистый текст (без медиа)
+                # -------------------------------------------------------------
                 else:
                     json_data: Dict[str, Any] = {"chat_id": self.target_channel, "text": text, "parse_mode": "HTML"}
                     if reply_markup:
@@ -68,30 +127,33 @@ class TelegramPublisher(BasePublisher):
                         json_data["link_preview_options"] = link_preview_options
                     resp = await http_client.post(f"{url}/sendMessage", json=json_data)
 
-                if resp.status_code == 200:
-                    logger.info(f"[TelegramPublisher] ✅ Успешно опубликовано через Bot API в {self.target_channel}")
-                    return True
-                else:
-                    # Если ошибка разметки HTML — делаем fallback без parse_mode
-                    if "can't parse entities" in resp.text.lower() or "bad request" in resp.text.lower():
-                        logger.warning(f"[TelegramPublisher] ⚠️ Ошибка HTML-парсинга, повтор отправки как plain text...")
-                        if media_path and os.path.exists(media_path):
-                            with open(media_path, "rb") as f:
-                                fb_data = {"chat_id": self.target_channel, "caption": text}
-                                if reply_markup:
-                                    fb_data["reply_markup"] = json.dumps(reply_markup)
-                                resp = await http_client.post(f"{url}/sendPhoto", data=fb_data, files={"photo": f})
-                        else:
-                            fb_json = {"chat_id": self.target_channel, "text": text}
-                            if reply_markup:
-                                fb_json["reply_markup"] = reply_markup
-                            resp = await http_client.post(f"{url}/sendMessage", json=fb_json)
-                        if resp.status_code == 200:
-                            logger.info(f"[TelegramPublisher] ✅ Fallback публикация успешна!")
-                            return True
-                    logger.warning(f"[TelegramPublisher] ⚠️ Ответ Telegram API {resp.status_code}: {resp.text}")
+                    if resp.status_code == 200:
+                        logger.info(f"[TelegramPublisher] ✅ Текстовый пост успешно опубликован в {self.target_channel}")
+                        return True
+
         except Exception as e:
             logger.warning(f"[TelegramPublisher] ⚠️ Ошибка при отправке через Bot API: {e}")
+        return False
+
+    async def edit_post_buttons(self, message_id: int, new_reply_markup: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Динамическое обновление Inline-кнопок у опубликованного сообщения без удаления поста.
+        """
+        import httpx
+        url = f"https://api.telegram.org/bot{self.bot_token}/editMessageReplyMarkup"
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as http_client:
+                payload = {
+                    "chat_id": self.target_channel,
+                    "message_id": message_id,
+                    "reply_markup": new_reply_markup or {"inline_keyboard": []}
+                }
+                resp = await http_client.post(url, json=payload)
+                if resp.status_code == 200:
+                    logger.info(f"[TelegramPublisher] 🔄 Кнопки сообщения #{message_id} успешно обновлены.")
+                    return True
+        except Exception as e:
+            logger.warning(f"[TelegramPublisher] ⚠️ Ошибка обновления кнопок: {e}")
         return False
 
     async def _get_client(self):

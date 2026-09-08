@@ -773,8 +773,6 @@ class UnifiedOrchestrator:
             
             print(f"[UnifiedOrchestrator] ✍️ Генерация поста для темы: '{prompt}', компания: '{company_name}', ниша: '{niche}', формат: {format_type}, тон: {tone}")
             
-            # 3. Генерация аутентичного SMM текста через Сайгу (с учетом RAG, Moondream и комментариев)
-            t_text_start = time.time()
             # 1. Формирование маркетинговой директивы (5 Ступеней Ханта, JTBD, Value Ladder, Fogg CTA, Фреймворки)
             from skills.marketing_frameworks import (
                 MarketingFrameworkDirector, HuntStage, MarketingFramework, PsychologicalTrigger
@@ -803,76 +801,87 @@ class UnifiedOrchestrator:
             
             print(f"[UnifiedOrchestrator] 🎯 Воронка Ханта: {hunt_stage_enum.value.upper()} | Фреймворк: {framework_enum.value} | Триггер: {trigger_enum.value}")
 
+            # 2. Visual-First Directing: Предварительный синтез визуального сюжета (Арт-директор)
+            variation_index = int(user_data.get("variation_index", 0))
+            custom_visual_prompt = user_data.get("custom_prompt") or user_data.get("positive_prompt")
+            
+            from skills.photo_generator import CinematographyDirector
+            brand_colors_input = user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
+            cinematic_concept = CinematographyDirector.compose_cinematic_prompt(
+                topic=prompt,
+                niche=niche,
+                brand_colors=brand_colors_input,
+                variation_index=variation_index
+            )
+            
+            # Контекст визуала для копирайтера (Сайги), чтобы текст 100% совпадал с картинкой
+            visual_scene_context_for_saiga = (
+                f"Ключевой визуальный сюжет фотосессии: {cinematic_concept.get('prompt', '')[:250]}. "
+                f"Ракурс: {cinematic_concept.get('perspective', '')}. "
+                f"Световая схема: {cinematic_concept.get('lighting_scheme', '')}. "
+                f"Опирайся на этот визуал, чтобы текст поста идеально гармонировал с кадром."
+            )
+            if moondream_analysis and moondream_analysis.get("visual_context_for_llm"):
+                visual_scene_context_for_saiga += f" | Данные анализа фото бренда: {moondream_analysis['visual_context_for_llm']}"
+
             saiga = SaigaLLMSkill()
-            visual_ctx = moondream_analysis.get("visual_context_for_llm") if moondream_analysis else None
             comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
             audience_q = user_data.get("audience_questions") or user_data.get("top_audience_questions")
             brand_profile = user_data.get("brand_profile")
-            competitor_dossier = user_data.get("competitor_dossier")
-            
-            gen_result = saiga.generate_smm_post(
-                topic=prompt,
-                company_name=company_name,
-                niche=niche,
-                city=city,
-                tone=tone,
-                format_type=format_type,
-                visual_context=visual_ctx,
-                comments_context=comments_ctx,
-                audience_questions=audience_q,
-                comments_enabled=bool(user_data.get("comments_enabled", False)),
-                brand_profile=brand_profile,
-                rag_context=rag_fact_context,
-                marketing_directive=marketing_bundle,
-                routing=routing_directive
-            )
-            post_text = gen_result.get("post_text", "")
-            promo_code = gen_result.get("promo_code", f"{company_name.upper().replace(' ', '')}2026")
-            
-            # 2. Валидация качества текста (Tone of Voice Gatekeeper & Charlie Munger Pre-Mortem с Circuit Breaker)
-            from skills.critic_munger import CriticMungerSkill
-            is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
-            if not is_valid:
-                post_text = saiga.self_heal_text(post_text, error_msg or "", routing=routing_directive)
+
+            # 3. Асинхронные параллельные задачи: Генерация текста + Диффузия фото (GPU Parallel)
+            async def _generate_text_pipeline():
+                t_text_start = time.time()
+                # 3.1 Генерация SMM текста в Сайге
+                gen_res = saiga.generate_smm_post(
+                    topic=prompt,
+                    company_name=company_name,
+                    niche=niche,
+                    city=city,
+                    tone=tone,
+                    format_type=format_type,
+                    visual_context=visual_scene_context_for_saiga,
+                    comments_context=comments_ctx,
+                    audience_questions=audience_q,
+                    comments_enabled=bool(user_data.get("comments_enabled", False)),
+                    brand_profile=brand_profile,
+                    rag_context=rag_fact_context,
+                    marketing_directive=marketing_bundle,
+                    routing=routing_directive
+                )
+                p_text = gen_res.get("post_text", "")
                 
-            critic = CriticMungerSkill(strictness=0.80)
-            critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche, routing=routing_directive)
-            
-            MAX_HEALING_RETRIES = 2
-            healing_attempts = 0
-            while not critic_res.get("passed") and healing_attempts < MAX_HEALING_RETRIES:
-                healing_attempts += 1
-                print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Итерация {healing_attempts}/{MAX_HEALING_RETRIES}, Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
-                post_text = saiga.self_heal_text(post_text, critic_res.get("actionable_feedback", ""), routing=routing_directive)
-                is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(post_text)
+                # 3.2 Валидация качества (Gatekeeper + Critic Munger)
+                from skills.critic_munger import CriticMungerSkill
+                is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(p_text)
                 if not is_valid:
-                    post_text = saiga.self_heal_text(post_text, error_msg or "", routing=routing_directive)
-                critic_res = critic.review_content(post_text, topic=prompt, target_audience=niche, routing=routing_directive)
+                    p_text = saiga.self_heal_text(p_text, error_msg or "", routing=routing_directive)
+                    
+                critic = CriticMungerSkill(strictness=0.80)
+                critic_res = critic.review_content(p_text, topic=prompt, target_audience=niche, routing=routing_directive)
+                
+                MAX_HEALING_RETRIES = 2
+                healing_attempts = 0
+                while not critic_res.get("passed") and healing_attempts < MAX_HEALING_RETRIES:
+                    healing_attempts += 1
+                    print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Итерация {healing_attempts}/{MAX_HEALING_RETRIES}, Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
+                    p_text = saiga.self_heal_text(p_text, critic_res.get("actionable_feedback", ""), routing=routing_directive)
+                    is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(p_text)
+                    if not is_valid:
+                        p_text = saiga.self_heal_text(p_text, error_msg or "", routing=routing_directive)
+                    critic_res = critic.review_content(p_text, topic=prompt, target_audience=niche, routing=routing_directive)
 
-            if not critic_res.get("passed"):
-                print(f"[CircuitBreaker] ⚠️ Достигнут лимит попыток самоисправления ({MAX_HEALING_RETRIES}). Применена безопасная нормализация текста.")
-                self._log_trace(session_id, "CircuitBreaker", "MaxHealingLimitReached", {
-                    "attempts": healing_attempts,
-                    "final_score": critic_res.get("score"),
-                    "data_richness_score": data_richness_score
-                })
-            else:
-                self._log_trace(session_id, "Agent_Critic_Munger", "PostApproved", {
-                    "attempts": healing_attempts,
-                    "score": critic_res.get("score"),
-                    "data_richness_score": data_richness_score
-                })
-            t_text_raw = time.time() - t_text_start
-            t_text_duration = round(t_text_raw, 2) if t_text_raw >= 0.1 else round(max(0.05, t_text_raw), 2)
-            
-            # 3. Формирование коммерческого фото-промпта в связке с текстом поста
-            variation_index = int(user_data.get("variation_index", 0))
-            custom_visual_prompt = user_data.get("custom_prompt") or user_data.get("positive_prompt")
+                t_text_duration = round(max(0.05, time.time() - t_text_start), 2)
+                return {
+                    "gen_result": gen_res,
+                    "post_text": p_text,
+                    "critic_res": critic_res,
+                    "t_text_duration": t_text_duration
+                }
 
-            # 4. Генерация SMM Фотографии
-            image_url = None
-            t_photo_duration = None
-            if should_gen_image:
+            async def _generate_photo_pipeline():
+                if not should_gen_image:
+                    return None
                 try:
                     t_photo_start = time.time()
                     photo_skill = PhotoGeneratorSkill()
@@ -881,49 +890,72 @@ class UnifiedOrchestrator:
                         niche=niche,
                         aspect_ratio=aspect_ratio,
                         company_name=company_name,
-                        brand_colors=user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None),
+                        brand_colors=brand_colors_input,
                         attachments=user_data.get("attachments"),
                         custom_prompt=custom_visual_prompt,
                         variation_index=variation_index
                     )
                     image_url = photo_res.get("image_url")
-                    if image_url:
-                        t_photo_duration = round(time.time() - t_photo_start, 2)
-                    else:
-                        t_photo_duration = None
-                    photo_prompt = photo_res.get("positive_prompt") or ""
-
-                    # Сохранение финального промпта фото в RAG (категория photo_generation_history)
-                    if photo_prompt:
-                        try:
-                            from rag.models import Document
-                            photo_id = os.path.splitext(os.path.basename(photo_res.get("file_path", "")))[0] if photo_res.get("file_path") else str(uuid.uuid4())[:8]
-                            prompt_doc = Document(
-                                doc_id=f"visual_prompt_{photo_id}",
-                                text=(
-                                    f"Финальный промпт генерации фото для компании {company_name} (Ниша: {niche}):\n"
-                                    f"Тема: {prompt}\n"
-                                    f"Положительный промпт ComfyUI: {photo_prompt}\n"
-                                    f"Отрицательный промпт ComfyUI: {photo_res.get('negative_prompt', '')}\n"
-                                    f"Цвета бренда: {user_data.get('brand_colors', [])}\n"
-                                    f"Соотношение сторон: {aspect_ratio}\n"
-                                    f"Путь к файлу: {photo_res.get('file_path', '')}"
-                                ),
-                                metadata={
-                                    "category": "photo_generation_history",
-                                    "company_name": company_name,
-                                    "user_id": user_data.get("user_id"),
-                                    "file_path": photo_res.get("file_path", "")
-                                }
-                            )
-                            await self.rag.ingest_documents_async([prompt_doc])
-                            print(f"[UnifiedOrchestrator] 📚 Финальный фото-промпт успешно сохранен в RAG-память бренда.")
-                        except Exception as rag_p_err:
-                            print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения промпта фото в RAG: {rag_p_err}")
+                    t_photo_duration = round(time.time() - t_photo_start, 2) if image_url else None
+                    return {
+                        "photo_res": photo_res,
+                        "image_url": image_url,
+                        "photo_prompt": photo_res.get("positive_prompt") or "",
+                        "t_photo_duration": t_photo_duration
+                    }
                 except Exception as ex:
-                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка генерации фото: {ex}")
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка параллельной генерации фото: {ex}")
+                    return None
 
-            # 5. Очистка текста для пользователя (строго без хэштегов в теле поста)
+            print("[UnifiedOrchestrator] ⚡ Параллельный запуск генерации: Сайга (Текст + Pre-Mortem) ⨂ ComfyUI (Фото)")
+            text_pipeline_res, photo_pipeline_res = await asyncio.gather(
+                _generate_text_pipeline(),
+                _generate_photo_pipeline()
+            )
+
+            gen_result = text_pipeline_res["gen_result"]
+            post_text = text_pipeline_res["post_text"]
+            critic_res = text_pipeline_res["critic_res"]
+            t_text_duration = text_pipeline_res["t_text_duration"]
+
+            image_url = None
+            t_photo_duration = None
+            photo_prompt = ""
+            if photo_pipeline_res:
+                image_url = photo_pipeline_res.get("image_url")
+                t_photo_duration = photo_pipeline_res.get("t_photo_duration")
+                photo_prompt = photo_pipeline_res.get("photo_prompt", "")
+                photo_res = photo_pipeline_res.get("photo_res", {})
+
+                # Сохранение финального промпта фото в RAG (категория photo_generation_history)
+                if photo_prompt:
+                    try:
+                        from rag.models import Document
+                        photo_id = os.path.splitext(os.path.basename(photo_res.get("file_path", "")))[0] if photo_res.get("file_path") else str(uuid.uuid4())[:8]
+                        prompt_doc = Document(
+                            doc_id=f"visual_prompt_{photo_id}",
+                            text=(
+                                f"Финальный промпт генерации фото для компании {company_name} (Ниша: {niche}):\n"
+                                f"Тема: {prompt}\n"
+                                f"Положительный промпт ComfyUI: {photo_prompt}\n"
+                                f"Отрицательный промпт ComfyUI: {photo_res.get('negative_prompt', '')}\n"
+                                f"Цвета бренда: {user_data.get('brand_colors', [])}\n"
+                                f"Соотношение сторон: {aspect_ratio}\n"
+                                f"Путь к файлу: {photo_res.get('file_path', '')}"
+                            ),
+                            metadata={
+                                "category": "photo_generation_history",
+                                "company_name": company_name,
+                                "user_id": user_data.get("user_id"),
+                                "file_path": photo_res.get("file_path", "")
+                            }
+                        )
+                        await self.rag.ingest_documents_async([prompt_doc])
+                        print(f"[UnifiedOrchestrator] 📚 Финальный фото-промпт успешно сохранен в RAG-память бренда.")
+                    except Exception as rag_p_err:
+                        print(f"[UnifiedOrchestrator] ⚠️ Ошибка сохранения промпта фото в RAG: {rag_p_err}")
+
+            # 4. Очистка текста для пользователя (строго без хэштегов в теле поста)
             clean_user_post_text = "\n".join([
                 line for line in post_text.strip().splitlines()
                 if not line.strip().startswith("#") and not line.strip().startswith("🏷️ Хэштеги")

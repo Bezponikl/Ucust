@@ -1,134 +1,112 @@
-# Отчет по связям и интеграциям «UCust.AI»
+# Архитектура и интеграционный отчет «UCust.AI» (v2.5.0)
 
-Дата: 2026-02-10
-
-## 1. Общая схема взаимодействий
-
-- API слой (`bridge/api_controller.py`) принимает запросы от внешнего Java‑сайта и запускает цепочку агентов в фоне.
-- Оркестратор (`core/orchestrator.py`) запускает агентов по очереди и собирает технический лог.
-- Агенты (`core/agents.py`) используют:
-  - SQL‑хранилище (PostgreSQL через SQLAlchemy) для анкеты пользователя и задач.
-  - Модули парсинга (заглушки Telethon/VK).
-  - Лингвистический фильтр (заглушка RoSBERTa).
-  - Нейросетевой генеративный модуль (заглушка Saiga).
-  - Векторное хранилище эмбеддингов (заглушка ChromaDB/FAISS) для контроля дублей.
-- Java‑bridge (`bridge/java_bridge.py`) предоставляет контракты для интеграции с внешним Java‑backend.
-
-## 2. API слой (FastAPI)
-
-Файл: `bridge/api_controller.py`
-
-### POST /api/v1/process (дублируется как /process)
-
-- Вход: `user_id`
-- Действия:
-  1. Загружает анкету пользователя из SQL через `storage/repository.py:get_user_questionnaire`.
-  2. Если анкета не найдена → 404.
-  3. Создает задачу в SQL через `storage/repository.py:create_content_task` со статусом `PENDING`.
-  4. Запускает фоновую задачу `BackgroundTasks`.
-- Выход: `job_id`, статус `accepted`.
-
-### GET /api/v1/status/{job_id}
-
-- Вход: `job_id`
-- Действия:
-  1. Получает запись задачи через `storage/repository.py:get_task_status`.
-  2. Если задача не найдена → 404.
-  3. Возвращает статус `PENDING/PROCESSING/COMPLETED/FAILED`.
-  4. При `COMPLETED` возвращает результат (`post_text` или `image_link` из `result_payload`).
-  5. При `FAILED` возвращает краткое `error`.
-
-## 3. Оркестратор и агенты
-
-Файлы: `core/orchestrator.py`, `core/agents.py`
-
-- `build_default_orchestrator()` собирает цепочку:
-  1. `Agent_Interviewer`
-  2. `Agent_Analyst`
-  3. `Agent_Copywriter`
-  4. `Agent_Visual_Director`
-
-### Agent_Interviewer
-- Валидирует анкету и сохраняет в SQL (`UserProfile`).
-
-### Agent_Analyst
-- Забирает данные из `TelethonCollector` и `VkApiCollector`.
-- Пропускает текст через `PreProcessor`.
-- Формирует SWOT и стратегию через `GenerativeCore`.
-
-### Agent_Copywriter
-- Генерирует черновик поста и проверяет дубли через `InMemoryVectorStore`.
-- Поддерживает `inject_custom_event(event_type, context, source_text)` для ручного вброса событий:
-  - `gratitude`
-  - `achievement`
-  - `emergency`
-  - `custom_edit`
-
-### Agent_Visual_Director
-- Формирует сетку контента и промпты для Kandinsky.
-
-### Notification + User Intercept
-- Новый модуль: `core/notifier.py`.
-- `AgentOrchestrator` после генерации контента отправляет callback через `NotificationGateway`.
-- При ответе `AWAITING_USER_ACTION` оркестратор переводит задачу в точку перехвата:
-  - состояние `Ожидание решения пользователя`
-  - статус задачи в SQL: `AWAITING_USER_ACTION`
-- После `APPROVED` задача переводится в `COMPLETED`.
-
-## 4. SQL‑хранилище (PostgreSQL)
-
-Файлы: `storage/db.py`, `storage/models.py`, `storage/repository.py`
-
-### Таблицы
-- `user_profiles` — анкета пользователя (шаги 1–5).
-- `project_metadata` — метаданные проекта.
-- `publication_history` — история публикаций.
-- `content_tasks` — задачи генерации контента (статусы и ошибки).
-
-### Репозиторий
-- `get_user_questionnaire()` — загрузка анкеты по `user_id`.
-- `create_content_task()` — создание задачи.
-- `update_content_task_status()` — обновление статуса + error/result.
-- `get_task_status()` — получение статуса задачи.
-
-## 5. Векторное хранилище эмбеддингов
-
-Файл: `storage/vector_store.py`
-
-- Интерфейс `VectorStore` и реализация `InMemoryVectorStore`.
-- Используется `Agent_Copywriter` для проверки уникальности контента.
-
-## 6. Логирование
-
-Файл: `bridge/api_controller.py`
-
-- Стандартный `logging` пишет в `app_log.log`.
-- Логи включают:
-  - Запуск агентов
-  - Технические логи цепочки
-  - Traceback при критических ошибках
-
-## 7. Интеграция с Java‑backend
-
-Файл: `bridge/java_bridge.py`
-
-- Заглушки отправки анкеты, черновика поста и промпта Kandinsky.
-- Контракты соответствуют Pydantic‑моделям из `schemas/models.py`.
-
-## 8. Ключевые контракты
-
-Файл: `schemas/models.py`
-
-- Анкета пользователя (5 шагов)
-- Метаданные проекта
-- История публикаций
-- SWOT и стратегия
-- Черновик поста
-- План сетки и промпты для Kandinsky
+**Версия:** 2.5.0-UnifiedGateway  
+**Статус:** Production-Ready  
+**Порт по умолчанию:** `8000` (в WireGuard туннеле `10.0.0.2:8000`)
 
 ---
 
-## 9. Mermaid-диаграммы
+## 1. Общая схема взаимодействий (v2.5.0)
+
+- **Unified AI Gateway (`api_gateway.py`):** Единая входная точка на FastAPI для внешнего бэкенда (Java Spring Boot, Next.js Frontend или локальные клиенты через WireGuard).
+- **Client & Tunnel Tracking:** Автоматическое определение IP клиента (`request.client.host`), поддержка заголовка авторизации `X-Internal-Secret: ucust-secret-key-2026` и динамическая диспетчеризация callback-уведомлений.
+- **Оркестратор (`core/orchestrator.py`):** Координирует сквозной пайплайн маркетингового анализа, креативной генерации, визуализации и критики.
+- **Команда Агентов (`core/agents.py`):**
+  1. `Agent_Interviewer` — сбор и нормализация онбординг-анкеты бренда.
+  2. `Agent_Analyst` — живой анализ трендов (Tavily/Travity) и парсинг конкурентов (Telethon/VK).
+  3. `Agent_Copywriter` — генерация постов через локальную Saiga LLM (8B) и проверка уникальности по RAG Vector Store.
+  4. `Agent_Visual_Director` — генерация графики и видео (ComfyUI / LTX-2.3), мультимодальный VQA-анализ (Moondream).
+  5. `Agent_Critic_Munger` — стресс-тестирование гипотез и инверсионный аудит Чарли Мангера.
+  6. `ToV_Gatekeeper` & `SecurityGuard` — проверка соблюдения редполитики, цензуры и безопасности.
+- **Smart Publishers (`publishers/`):** Омниканальная публикация в Telegram, VK, OK, MAX.
+
+---
+
+## 2. API Спецификация Gateway v2.5.0
+
+Файл: `ai/api_gateway.py`
+
+### 2.1. Главные эндпоинты оркестратора
+
+#### `POST /api/v1/orchestrator/execute` (и алиас `/api/v1/task/execute`)
+Сквозной запуск оркестратора для генерации контент-планов, стратегий и постов.
+* **Headers:** `X-Internal-Secret: ucust-secret-key-2026`
+* **Body:**
+  ```json
+  {
+    "mode": "marketing",
+    "user_id": "client_123",
+    "prompt": "Сделай анонс сезонной акции",
+    "target_platform": "telegram",
+    "callback_url": "http://10.0.0.1:8080/api/v1/ai/callback"
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "task_id": "task_uuid",
+    "user_id": "client_123",
+    "result": { ... },
+    "logs": [ ... ]
+  }
+  ```
+
+#### `POST /api/v1/ai/tasks/async-generate`
+Постановка задачи в асинхронную очередь с мгновенным возвратом `task_id` (`202 Accepted`).
+
+#### `GET /api/v1/ai/tasks/{task_id}/status`
+Проверка текущего статуса и извлечение результата выполнения асинхронной задачи (`PENDING` | `IN_PROGRESS` | `COMPLETED` | `FAILED`).
+
+#### `GET /api/v1/ai/health`
+Мониторинг доступности сервиса, версии (`2.5.0`) и готовности пула агентов.
+
+### 2.2. Сервисные и аналитические эндпоинты
+* `POST /api/v1/collectors/analyze-brand` — парсинг сайта бренда и извлечение Tone of Voice.
+* `POST /api/v1/collectors/analyze-documents` — парсинг PDF/Word документов и брендбуков.
+* `POST /api/v1/vision/quick-analyze` — VQA-анализ референсных изображений.
+* `POST /api/v1/ai/achievements/post` — генерация постов на основе достижений компании.
+* `POST /api/v1/ai/rag/query` & `POST /api/v1/ai/rag/ingest` — RAG база знаний.
+
+---
+
+## 3. Стандарты визуального оформления для Telegram
+
+Реализация: `skills/telegram_rich_formatter.py` и `publishers/telegram.py`
+
+1. **1 Фотография:**
+   * Отправка через `sendPhoto` с текстом поста в `caption`.
+   * Полное соответствие ширины (100% width matching).
+   * Поддержка прикрепления интерактивных Inline и Reply кнопок.
+2. **2 и более фотографий:**
+   * Отправка через **Единый пост-альбом (`sendMediaGroup`)**.
+   * Текст поста целиком помещается в подпись (caption) первой фотографии альбома, обеспечивая идеальное совпадение ширины и целостность восприятия.
+3. **Коллажи (2x2):**
+   * Формируются **только при явной просьбе пользователя** в промпте/подсказках (через `is_collage_requested`). В стандартном режиме множественные медиа публикуются альбомом.
+4. **Динамическое обновление кнопок:**
+   * Функция `edit_post_buttons` позволяет обновлять или добавлять кнопки к уже опубликованному посту без его удаления и повторной отправки.
+5. **Богатая типографика:**
+   * Использование цитат `<blockquote>`, скрытого текста `<tg-spoiler>`, жирного начертания `<b>` и моноширинных блоков `<code>`.
+
+---
+
+## 4. Запуск и управление сервисом
+
+### Быстрый запуск на сервере (с автопоиском venv):
+```bash
+cd /opt/ucust
+bash start_ai_service.sh
+```
+
+### Проверка статуса портов на Linux:
+```bash
+# Проверка слушающего порта 8000:
+ss -tulpn | grep 8000
+
+# Тест отклика через туннель:
+curl http://10.0.0.2:8000/api/v1/ai/health
+```
+
 
 ### 9.1. ER‑диаграмма SQL‑схемы
 

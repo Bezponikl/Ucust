@@ -189,17 +189,20 @@ docker run -d --name ucust-rabbitmq \
   rabbitmq:3-management
 ```
 
-2. **Запуск AI Gateway (Python FastAPI):**
+2. **Запуск AI Gateway (Python FastAPI v2.5.0):**
 ```bash
-cd /opt/ucust/ai
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+cd /opt/ucust
 
-# Фоновый запуск FastAPI через uvicorn / gunicorn
-nohup uvicorn api_gateway:app --host 0.0.0.0 --port 8000 --workers 2 > ai_gateway.log 2>&1 &
+# Быстрый автоматический запуск (скрипт сам найдет и активирует venv):
+bash start_ai_service.sh
+
+# Либо запуск в фоновом режиме (daemon) через systemd:
+sudo systemctl restart ucust-ai.service
+
+# Проверка слушающего порта:
+ss -tulpn | grep 8000
 ```
+
 
 3. **Сборка и запуск Frontend (Next.js):**
 ```bash

@@ -1,8 +1,8 @@
 # Карта интеграций и конфигурационный справочник «UCust.AI»
 
-**Дата актуализации:** 29 июля 2026 г.  
-**Версия подсистемы:** 2.1.0-MultiPlatform  
-**Назначение документа:** Справочное руководство для разработчиков по местам подключения внешних API, конфигурационным переменным окружения (`.env`) и точкам инициализации клиентов.
+**Дата актуализации:** 8 сентября 2026 г.  
+**Версия подсистемы:** 2.5.0-UnifiedGateway  
+**Назначение документа:** Справочное руководство для разработчиков по местам подключения внешних API, конфигурационным переменным окружения (`.env`), точкам инициализации клиентов и WireGuard-маршрутизации.
 
 ---
 
@@ -10,16 +10,19 @@
 
 | Сервис / Платформа | Модуль и путь к файлу | Переменные окружения (.env) | Точка инициализации клиента в коде | Назначение |
 | :--- | :--- | :--- | :--- | :--- |
+| **Unified AI Gateway (v2.5.0)** | `ai/api_gateway.py` | `AI_SERVICE_HOST` (0.0.0.0), `AI_SERVICE_PORT` (8000), `INTERNAL_SERVICE_SECRET` | `app = FastAPI(...)`, `POST /api/v1/orchestrator/execute` | Единая входная точка API для Java-бэкенда и WireGuard-клиентов |
+| **WireGuard Private Mesh** | `ai/api_gateway.py` | `WIREGUARD_TUNNEL_IP` (10.0.0.2) | `request.client.host`, `_dispatch_callback` | Защищенный межбазовый туннель между серверами и клиентами |
+| **Telegram Multi-Format Publisher** | `publishers/telegram.py`, `skills/telegram_rich_formatter.py` | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION_NAME`, `TELEGRAM_TARGET_CHANNEL` | `TelegramPublisher.publish()`, `edit_post_buttons()` | Посты с 1 фото (100% ширина + кнопки), Альбомы (2+ фото, 100% ширина), 2x2 коллажи (по запросу) |
 | **PostgreSQL / Database** | `storage/db.py` | `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `UCUST_DB_HOST`, `UCUST_DB_PORT` | `get_async_engine()`, `init_db()`, `DatabaseFactory.build()` | Персистентное хранение профилей клиентов, задач FSM и JSON-нагрузок |
 | **ComfyUI (LTX-2.3 Engine)** | `skills/comfyui_local.py` | `COMFYUI_SERVER_ADDRESS` (default: `127.0.0.1:8188`), `COMFYUI_OUTPUT_DIR` | `ComfyUILocalSkill.__init__()` | Генерация мультимодальных видео+аудио графов LTX-2.3 |
 | **Travity / Tavily Search API** | `skills/travity_search.py` | `TRAVITY_API_KEY`, `TAVILY_API_KEY` | `TravitySearchSkill.search()` | Живой поиск маркетинговых трендов и новостей из интернета |
 | **Telegram Telethon (Parser)** | `collectors/telethon_collector.py` | `UCUST_TELEGRAM_API_ID`, `UCUST_TELEGRAM_API_HASH`, `UCUST_TELEGRAPH_SESSION`, `UCUST_TELETHON_CHANNEL` | `TelethonCollector.__init__()` | Сбор постов и сигналов из Telegram-каналов конкурентов |
-| **Telegram UserBot (Publisher)** | `publishers/telegram.py` | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION_NAME`, `TELEGRAM_TARGET_CHANNEL` | `TelegramPublisher._get_client()` | Отправка постов и `.mp4` медиафайлов от лица UserBot |
 | **VK API (Parser & Publisher)** | `collectors/vk_collector.py`, `publishers/vk.py` | `UCUST_VK_ACCESS_TOKEN`, `VK_ACCESS_TOKEN`, `UCUST_VK_GROUP_ID`, `VK_GROUP_ID` | `VkApiCollector.__init__()`, `VkPublisher.__init__()` | Парсинг сообществ VK и публикация постов на стене (`wall.post`) |
 | **Instagram Meta Graph API** | `publishers/instagram.py` | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_ACCOUNT_ID` | `InstagramPublisher.__init__()` | Создание медиа-контейнеров и публикация видео/фото в Instagram |
 | **Одноклассники (OK.ru API)** | `publishers/ok.py` | `OK_ACCESS_TOKEN`, `OK_APPLICATION_KEY`, `OK_GROUP_ID` | `OdnoklassnikiPublisher.__init__()` | Создание заметок `mediatopic.post` с прикрепленным медиа в группах OK |
 | **МАКС Мессенджер (MAX Platform)** | `publishers/max.py` | `MAX_API_TOKEN`, `MAX_CHAT_ID`, `MAX_API_URL` (default: `https://platform-api2.max.ru/messages`) | `MaxPublisher.publish()` | Отправка сообщений и multipart медиафайлов через REST API МАКС |
 | **Java Backend REST Bridge** | `integration/java_bridge.py` | `JAVA_BACKEND_URL`, `UCUST_JAVA_BACKEND_URL` (default: `http://localhost:8080/api/v1`) | `JavaBridgeClient.__init__()` | Передача готовых черновиков и LTX-2.3 воркфлоу на внешнюю Java-платформу |
+
 
 ---
 

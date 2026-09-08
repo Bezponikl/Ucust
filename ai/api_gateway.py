@@ -14,7 +14,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Depends, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Depends, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -27,8 +27,31 @@ from rag.pipeline import CleanRAGPipeline
 from rag.models import Document
 
 # -------------------------------------------------------------------
-# 1. Pydantic Модели запросов и ответов (API Contract)
+# 1. Pydantic Модели запросов и ответов (API Contract v2.5.0)
 # -------------------------------------------------------------------
+
+class OrchestratorTaskRequest(BaseModel):
+    task_type: str = Field(
+        ...,
+        example="generate_post",
+        description="Тип задачи: 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'"
+    )
+    user_id: str = Field("default_user", example="usr_94812", description="Идентификатор пользователя")
+    session_id: Optional[str] = Field(None, example="sess_abc123", description="ID сессии диалога / трейса")
+    callback_url: Optional[str] = Field(None, example="http://10.0.0.1:8080/api/v1/ai/callback", description="Динамический URL вебхука для авто-пуша")
+    payload: Dict[str, Any] = Field(default_factory=dict, description="Полезная нагрузка (параметры, ссылки, фото, тексты)")
+    sync_backend: bool = Field(default=True, description="Флаг авто-пуша результата в бэкенд")
+
+
+class OrchestratorTaskResponse(BaseModel):
+    status: str = Field(..., example="success", description="'success' или 'error'")
+    task_type: str
+    user_id: str
+    session_id: str
+    data: Dict[str, Any] = Field(default_factory=dict)
+    timings: Dict[str, Any] = Field(default_factory=dict)
+    error: Optional[str] = None
+
 
 class TaskRequest(BaseModel):
     user_id: str = Field("default_user", example="usr_94812", description="Идентификатор пользователя")
@@ -142,7 +165,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="UCust AI Service Gateway",
     description="Единая точка входа для бэкенда и фронтенда к команде автономных ИИ-агентов UCust.",
-    version="2.2.0",
+    version="2.5.0",
     lifespan=lifespan
 )
 
@@ -173,6 +196,105 @@ rag_pipeline = CleanRAGPipeline(min_confidence_threshold=0.65)
 queue_manager = AsyncGenerationQueueManager(orchestrator=orchestrator)
 
 
+# ============================================================================
+# ЕДИНЫЙ КОМАНДНЫЙ ШЛЮЗ ОРКЕСТРАТОРА (v2.5.0 WIREGUARD HTTP REST)
+# ============================================================================
+
+@app.post("/api/v1/orchestrator/execute", response_model=OrchestratorTaskResponse, tags=["Unified Orchestrator Gateway"])
+@app.post("/api/v1/task/execute", response_model=OrchestratorTaskResponse, tags=["Unified Orchestrator Gateway"])
+async def execute_orchestrator_task(
+    request: OrchestratorTaskRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> OrchestratorTaskResponse:
+    """
+    ЕДИНЫЙ КОМАНДНЫЙ ШЛЮЗ ОРКЕСТРАТОРА ДЛЯ БЭКЕНДА (v2.5.0):
+    - Принимает любую задачу ('generate_post', 'quick_vision', 'onboard_user', 'analyze_documents', 'quick_scan', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest').
+    - Проводит централизованную валидацию безопасности (SSRF, Injections, Secret).
+    - Выполняет оркестровку через UnifiedOrchestrator.
+    - Автоматически синхронизирует результат с основным бэкендом (HTTP Push Webhook) при sync_backend=True.
+    """
+    import time
+
+    # 1. Проверка внутреннего секрета доступа
+    expected_secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
+    if x_internal_secret and x_internal_secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid internal secret.")
+
+    t_start = time.time()
+    session_id = request.session_id or f"sess_{int(time.time()*1000)}"
+
+    # 2. Обогащение payload системными метаданными
+    task_payload = dict(request.payload)
+    task_payload["user_id"] = request.user_id
+    task_payload["session_id"] = session_id
+
+    # 3. Безопасность ввода
+    for k, v in task_payload.items():
+        if isinstance(v, str) and not SecurityGuard.check_user_input(v):
+            return OrchestratorTaskResponse(
+                status="error",
+                task_type=request.task_type,
+                user_id=request.user_id,
+                session_id=session_id,
+                data={},
+                timings={"total_seconds": round(time.time() - t_start, 3)},
+                error=f"Security Violation: обнаружен недопустимый ввод в поле '{k}'"
+            )
+
+    try:
+        result_data = await orchestrator.execute_task(
+            task_type=request.task_type,
+            user_data=task_payload,
+            session_id=session_id
+        )
+
+        total_sec = round(time.time() - t_start, 3)
+        timings = result_data.get("timings") if isinstance(result_data, dict) else {}
+        if isinstance(timings, dict):
+            timings["gateway_total_seconds"] = total_sec
+
+        # 4. Фоновый Auto-Push в бэкенд (динамический callback_url или глобальный из .env)
+        if request.sync_backend:
+            backend_cb = request.callback_url or os.getenv("BACKEND_COLLECTOR_CALLBACK_URL") or os.getenv("JAVA_BACKEND_CALLBACK_URL")
+            if backend_cb:
+                async def _push_bg():
+                    try:
+                        import aiohttp
+                        async with aiohttp.ClientSession() as s:
+                            headers = {"X-Internal-Secret": expected_secret, "Content-Type": "application/json"}
+                            body = {
+                                "user_id": request.user_id,
+                                "session_id": session_id,
+                                "task_type": request.task_type,
+                                "status": result_data.get("status", "success"),
+                                "result": result_data,
+                                "timestamp": time.time()
+                            }
+                            await s.post(backend_cb, json=body, headers=headers, timeout=aiohttp.ClientTimeout(total=5))
+                    except Exception:
+                        pass
+                asyncio.create_task(_push_bg())
+
+        return OrchestratorTaskResponse(
+            status="success" if result_data.get("status") != "error" else "error",
+            task_type=request.task_type,
+            user_id=request.user_id,
+            session_id=session_id,
+            data=result_data,
+            timings=timings if isinstance(timings, dict) else {"total_seconds": total_sec}
+        )
+    except Exception as exc:
+        return OrchestratorTaskResponse(
+            status="error",
+            task_type=request.task_type,
+            user_id=request.user_id,
+            session_id=session_id,
+            data={},
+            timings={"total_seconds": round(time.time() - t_start, 3)},
+            error=str(exc)
+        )
+
+
 # -------------------------------------------------------------------
 # 3. REST API Эндпоинты
 # -------------------------------------------------------------------
@@ -184,8 +306,14 @@ async def health_check():
     """Проверка доступности ИИ-шлюза и агентов."""
     return {
         "status": "healthy",
-        "service": "UCust AI Gateway",
-        "agents": ["Interviewer", "Analyst", "Saiga Copywriter", "Visual Director LTX-2", "ToV Gatekeeper"],
+        "service": "UCust AI Service Gateway",
+        "version": "2.5.0",
+        "routes": {
+            "unified_orchestrator": "/api/v1/orchestrator/execute",
+            "async_queue": "/api/v1/ai/tasks/async-generate",
+            "health": "/api/v1/ai/health"
+        },
+        "agents": ["Interviewer", "Analyst", "Saiga Copywriter", "Visual Director LTX-2", "ToV Gatekeeper", "UnifiedOrchestrator"],
         "timestamp": datetime.utcnow().isoformat()
     }
 
@@ -513,13 +641,79 @@ async def ingest_knowledge_base(request: RAGIngestRequest):
             )
         )
     indexed_count = await rag_pipeline.ingest_documents_async(docs)
-    return {
-        "status": "success",
-        "indexed_chunks_count": indexed_count
-    }
-
-
 # -------------------------------------------------------------------
+# 3.1 УДОБНЫЕ АЛИАСЫ ДЛЯ ФРОНТЕНДА И СБОРА ДАННЫХ (CONVENIENCE ALIASES)
+# -------------------------------------------------------------------
+
+class QuickVisionAnalysisRequest(BaseModel):
+    user_id: str = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии для кэширования")
+    prompt: Optional[str] = Field("", description="Текстовый промпт/намерение пользователя")
+    niche: Optional[str] = Field("Бизнес и услуги", description="Ниша бизнеса")
+    company_name: Optional[str] = Field("UCust", description="Название компании")
+    attachments: List[Any] = Field(..., description="1-3 фото (Base64 data-url, URL или пути к файлам)")
+
+
+class DocumentAnalysisRequest(BaseModel):
+    user_id: str = Field("default_user", description="ID пользователя")
+    company_name: Optional[str] = Field("UCust", description="Название компании")
+    niche: Optional[str] = Field("Бизнес и услуги", description="Ниша компании")
+    documents: List[str] = Field(..., description="Пути к файлам или имена документов (PDF, DOCX, PPTX)")
+
+
+class UnifiedBrandAnalysisRequest(BaseModel):
+    user_id: str = Field("default_user", description="ID пользователя")
+    company_name: Optional[str] = Field("", description="Название компании")
+    niche: Optional[str] = Field("", description="Сфера деятельности")
+    city: Optional[str] = Field("Москва", description="Город")
+    urls: List[str] = Field(default=[], description="Ссылки: сайт, VK, Telegram, 2GIS/Яндекс")
+    documents: List[str] = Field(default=[], description="Пути к документам (PDF, DOCX, PPTX)")
+    images: List[Any] = Field(default=[], description="Фото / логотипы (Base64 или пути)")
+    raw_notes: Optional[str] = Field("", description="Дополнительные заметки")
+    fast_mode: bool = Field(True, description="Быстрый режим предварительного сканирования")
+
+
+@app.post("/api/v1/vision/quick-analyze", response_model=Dict[str, Any], tags=["Convenience Aliases"])
+async def quick_vision_analyze(
+    payload: QuickVisionAnalysisRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> Dict[str, Any]:
+    task_req = OrchestratorTaskRequest(
+        task_type="quick_vision",
+        user_id=payload.user_id,
+        session_id=payload.session_id,
+        payload=payload.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    return res.data
+
+
+@app.post("/api/v1/collectors/analyze-documents", response_model=Dict[str, Any], tags=["Convenience Aliases"])
+async def analyze_documents_direct(
+    payload: DocumentAnalysisRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> Dict[str, Any]:
+    task_req = OrchestratorTaskRequest(
+        task_type="analyze_documents",
+        user_id=payload.user_id,
+        payload=payload.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    return res.data
+
+
+@app.post("/api/v1/collectors/analyze-brand", response_model=Dict[str, Any], tags=["Convenience Aliases"])
+async def analyze_brand_multimodal(
+    payload: UnifiedBrandAnalysisRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> Dict[str, Any]:
+    task_req = OrchestratorTaskRequest(
+        task_type="quick_scan",
+        user_id=payload.user_id,
+        payload=payload.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    return res.data
 # 4. WebSocket: Живой онбординг и Real-time стриминг для Фронтенда
 # -------------------------------------------------------------------
 

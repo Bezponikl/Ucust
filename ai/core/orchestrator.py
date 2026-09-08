@@ -249,6 +249,66 @@ class UnifiedOrchestrator:
                 "indexed_in_rag_count": indexed_count
             }
 
+        if task_type in {"rag_ingest", "ingest_rag", "index_knowledge"}:
+            from rag.models import Document
+            docs_data = user_data.get("documents") or []
+            if isinstance(docs_data, str):
+                docs_data = [{"text": docs_data}]
+            elif isinstance(docs_data, dict):
+                docs_data = [docs_data]
+            
+            tenant_id = user_data.get("brand_id") or user_data.get("tenant_id") or "default_brand"
+            rag_docs = []
+            for idx, item in enumerate(docs_data):
+                if isinstance(item, str):
+                    rag_docs.append(Document(
+                        doc_id=f"doc_{tenant_id}_{idx+1}",
+                        text=item,
+                        metadata={"tenant_id": tenant_id, "brand_id": tenant_id}
+                    ))
+                elif isinstance(item, dict) and item.get("text"):
+                    meta = item.get("metadata", {})
+                    meta.setdefault("tenant_id", tenant_id)
+                    meta.setdefault("brand_id", tenant_id)
+                    rag_docs.append(Document(
+                        doc_id=item.get("doc_id") or f"doc_{tenant_id}_{idx+1}",
+                        text=item["text"],
+                        metadata=meta,
+                        source=item.get("source", "backend_api")
+                    ))
+
+            indexed_count = 0
+            if rag_docs:
+                try:
+                    indexed_count = await self.rag.ingest_documents_async(rag_docs)
+                except Exception as r_err:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка индексации RAG: {r_err}")
+
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "tenant_id": tenant_id,
+                "documents_received": len(rag_docs),
+                "chunks_indexed": indexed_count
+            }
+
+        if task_type in {"rag_query", "query_rag", "search_knowledge"}:
+            query_str = user_data.get("query") or user_data.get("prompt") or ""
+            top_k = int(user_data.get("top_k", 5))
+            tenant_id = user_data.get("brand_id") or user_data.get("tenant_id")
+
+            rag_context = await self.rag.query_async(query_str, top_k_retrieval=top_k, tenant_id=tenant_id)
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "query": rag_context.query,
+                "has_sufficient_context": rag_context.has_sufficient_context,
+                "top_score": round(rag_context.top_score, 3),
+                "context": rag_context.formatted_context if rag_context.has_sufficient_context else None,
+                "fallback_message": rag_context.fallback_message,
+                "retrieved_chunks_count": len(rag_context.chunks)
+            }
+
         if task_type in {"quick_scan", "scan_sources", "fast_onboarding"}:
             from collectors.website_collector import WebsiteCollector
             from collectors.vk_collector import VKCollector

@@ -618,6 +618,7 @@ class OrchestratorTaskRequest(BaseModel):
     )
     user_id: str = Field(..., description="ID пользователя")
     session_id: Optional[str] = Field(default=None, description="ID сессии / трейса")
+    callback_url: Optional[str] = Field(default=None, description="Динамический URL вебхука для авто-пуша (например, для dev/staging бэкенда)")
     payload: Dict[str, Any] = Field(default={}, description="Полезная нагрузка (параметры, ссылки, фото, тексты)")
     sync_backend: bool = Field(default=True, description="Флаг авто-пуша результата в бэкенд")
 
@@ -687,9 +688,9 @@ async def execute_orchestrator_task(
         if isinstance(timings, dict):
             timings["gateway_total_seconds"] = total_sec
 
-        # 4. Фоновый Auto-Push в бэкенд
+        # 4. Фоновый Auto-Push в бэкенд (динамический callback_url или глобальный из .env)
         if request.sync_backend:
-            backend_cb = os.getenv("BACKEND_COLLECTOR_CALLBACK_URL") or os.getenv("JAVA_BACKEND_CALLBACK_URL")
+            backend_cb = request.callback_url or os.getenv("BACKEND_COLLECTOR_CALLBACK_URL") or os.getenv("JAVA_BACKEND_CALLBACK_URL")
             if backend_cb:
                 async def _push_bg():
                     try:

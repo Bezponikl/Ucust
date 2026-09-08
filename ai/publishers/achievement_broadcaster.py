@@ -343,9 +343,10 @@ class AchievementBroadcaster:
             'rdns': True
         }
 
-    async def _publish_via_bot_api(self, post_text: str, media_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    async def _publish_via_bot_api(self, post_text: str, media_path: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Публикация через официальный Telegram Bot API по HTTPS (без таймаутов MTProto).
+        Поддерживает одиночные фото (sendPhoto) и альбомы из нескольких фото (sendMediaGroup).
         """
         bot_token = self.bot_token
         if not bot_token:
@@ -360,20 +361,93 @@ class AchievementBroadcaster:
         ssl_ctx.check_hostname = False
         ssl_ctx.verify_mode = ssl.CERT_NONE
 
+        # Нормализация списка медиа-файлов
+        media_paths_list: List[str] = []
+        if isinstance(media_path, list):
+            media_paths_list = [p for p in media_path if isinstance(p, str) and os.path.exists(p)]
+        elif isinstance(media_path, str) and os.path.exists(media_path):
+            media_paths_list = [media_path]
+
         # 1. Сначала пробуем httpx с отключенной верификацией SSL
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=25.0, verify=ssl_ctx) as client:
-                if media_path and os.path.exists(media_path):
-                    # Приводим к стандарту единого поста с фото (до 1024 символов в подписи)
-                    caption = post_text
+            async with httpx.AsyncClient(timeout=35.0, verify=ssl_ctx) as client:
+                caption = post_text
+                if len(caption) > 1024:
+                    caption = re.sub(r'\n{3,}', '\n\n', caption)
+                    caption = caption.replace("\n\n📊", "\n📊").replace("\n\n#", "\n#")
                     if len(caption) > 1024:
-                        caption = re.sub(r'\n{3,}', '\n\n', caption)
-                        caption = caption.replace("\n\n📊", "\n📊").replace("\n\n#", "\n#")
-                        if len(caption) > 1024:
-                            caption = caption[:1020]
-                    
-                    with open(media_path, "rb") as f:
+                        caption = caption[:1020]
+
+                # Сценарий А: Альбом из нескольких фото (sendMediaGroup)
+                if len(media_paths_list) > 1:
+                    print(f"[AchievementBroadcaster] 📸 Отправка альбома из {len(media_paths_list)} фото в {self.target_channel} (sendMediaGroup)...")
+                    media_group = []
+                    files_dict = {}
+                    opened_files = []
+                    try:
+                        for idx, p in enumerate(media_paths_list):
+                            attach_key = f"photo_{idx}"
+                            item = {
+                                "type": "photo",
+                                "media": f"attach://{attach_key}"
+                            }
+                            if idx == 0:
+                                item["caption"] = caption
+                                item["parse_mode"] = "HTML"
+                            media_group.append(item)
+                            f_handle = open(p, "rb")
+                            opened_files.append(f_handle)
+                            files_dict[attach_key] = f_handle
+
+                        resp = await client.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMediaGroup",
+                            data={
+                                "chat_id": self.target_channel,
+                                "media": json.dumps(media_group)
+                            },
+                            files=files_dict
+                        )
+                    finally:
+                        for fh in opened_files:
+                            try:
+                                fh.close()
+                            except Exception:
+                                pass
+                    data = resp.json()
+
+                    if not data.get("ok") and "parse entities" in str(data.get("description", "")):
+                        # Повтор без parse_mode при ошибках сущностей HTML
+                        clean_cap = re.sub(r'<[^>]+>', '', caption)
+                        media_group[0]["caption"] = clean_cap
+                        del media_group[0]["parse_mode"]
+                        files_dict = {}
+                        opened_files = []
+                        try:
+                            for idx, p in enumerate(media_paths_list):
+                                attach_key = f"photo_{idx}"
+                                f_handle = open(p, "rb")
+                                opened_files.append(f_handle)
+                                files_dict[attach_key] = f_handle
+                            resp = await client.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendMediaGroup",
+                                data={
+                                    "chat_id": self.target_channel,
+                                    "media": json.dumps(media_group)
+                                },
+                                files=files_dict
+                            )
+                        finally:
+                            for fh in opened_files:
+                                try:
+                                    fh.close()
+                                except Exception:
+                                    pass
+                        data = resp.json()
+
+                # Сценарий Б: Одно фото (sendPhoto)
+                elif len(media_paths_list) == 1:
+                    with open(media_paths_list[0], "rb") as f:
                         resp = await client.post(
                             f"https://api.telegram.org/bot{bot_token}/sendPhoto",
                             data={
@@ -385,9 +459,8 @@ class AchievementBroadcaster:
                         )
                     data = resp.json()
                     
-                    # Если ошибка парсинга HTML — повторяем без parse_mode
                     if not data.get("ok") and "parse entities" in str(data.get("description", "")):
-                        with open(media_path, "rb") as f:
+                        with open(media_paths_list[0], "rb") as f:
                             clean_cap = re.sub(r'<[^>]+>', '', caption)
                             resp = await client.post(
                                 f"https://api.telegram.org/bot{bot_token}/sendPhoto",
@@ -395,6 +468,8 @@ class AchievementBroadcaster:
                                 files={"photo": f}
                             )
                             data = resp.json()
+
+                # Сценарий В: Только текст (sendMessage)
                 else:
                     resp = await client.post(
                         f"https://api.telegram.org/bot{bot_token}/sendMessage",

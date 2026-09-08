@@ -32,13 +32,15 @@ async def run_pipeline(
     tier: str = "BUSINESS",
     aspect_ratio: str = "1:1",
     variation_index: int = 0,
+    batch_variations: Optional[int] = None,
     images: Optional[List[str]] = None
 ):
+    var_count = batch_variations if (batch_variations and batch_variations > 0) else 1
     print("=" * 60)
     print("🚀 ЗАПУСК СКВОЗНОГО АВТОНОМНОГО ПАЙПЛАЙНА UCUST AI")
     print(f"📌 Тема / Промпт: {topic}")
     print(f"🏢 Компания: {company_name} | Ниша: {niche}")
-    print(f"🎯 Тональность: {tone} | Формат фото: {aspect_ratio} | Вариация: #{variation_index}")
+    print(f"🎯 Тональность: {tone} | Формат фото: {aspect_ratio} | Фотографий в посте: {var_count}")
     if images:
         print(f"📎 Прикрепленные файлы/фото: {', '.join(images)} ({len(images)} шт.)")
     print(f"💼 Тариф: {tier} | Ступень воронки: {stage or 'Auto (Ступень 2 / Проблема)'} | Фреймворк: {framework or 'Auto'}")
@@ -57,19 +59,16 @@ async def run_pipeline(
             if os.path.exists(img):
                 attachments.append({"url": img, "local_path": os.path.abspath(img)})
             elif img.startswith("http://") or img.startswith("https://"):
-                # Проверяем, прямая ли это ссылка на картинку или веб-страница
                 is_direct_image = any(img.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"])
                 if is_direct_image:
                     attachments.append({"url": img})
                 else:
-                    # Это веб-страница (например, https://ucust.online/) — извлекаем превью / og:image / баннер
                     print(f"[AttachmentsResolver] 🌐 Обнаружен URL веб-страницы '{img}', извлекаем превью и метаданные...")
                     try:
                         with httpx.Client(timeout=8.0, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0 UCustBot/2.0"}) as client:
                             resp = client.get(img)
                             if resp.status_code == 200:
                                 html_text = resp.text
-                                # Поиск og:image или twitter:image или preload/ключевых изображений
                                 og_match = re.search(r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE) or \
                                            re.search(r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]', html_text, re.IGNORECASE) or \
                                            re.search(r'<meta[^>]+name=[\'"]twitter:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]', html_text, re.IGNORECASE) or \
@@ -78,17 +77,9 @@ async def run_pipeline(
                                 if og_match:
                                     raw_src = og_match.group(1).split("?")[0]
                                     preview_url = urljoin(img, raw_src)
-                                    print(f"[AttachmentsResolver] ✅ Найден ключевой визуал / превью страницы: {preview_url}")
                                     attachments.append({"url": preview_url, "source_page": img})
                                 else:
-                                    # Ищем первое крупное изображение / логотип / баннер
-                                    img_match = re.search(r'<img[^>]+src=[\'"]([^\'"]+\.(?:png|webp|jpg|jpeg))[\'"]', html_text, re.IGNORECASE)
-                                    if img_match:
-                                        first_img = urljoin(img, img_match.group(1))
-                                        print(f"[AttachmentsResolver] ✅ Найден ключевой визуал страницы: {first_img}")
-                                        attachments.append({"url": first_img, "source_page": img})
-                                    else:
-                                        attachments.append({"url": img})
+                                    attachments.append({"url": img})
                             else:
                                 attachments.append({"url": img})
                     except Exception as ex:
@@ -106,7 +97,7 @@ async def run_pipeline(
     except Exception as comfy_chk_err:
         print(f"⚠️ Ошибка проверки ComfyUI: {comfy_chk_err}")
 
-    # 1. Запуск Оркестратора (Сайга + Воронка Ханта + Критик Мангер + Валидация)
+    # 1. Запуск Оркестратора (Сайга + Воронка Ханта + Критик Мангер + Валидация + Фото #0)
     orch = UnifiedOrchestrator()
     task_data = {
         "topic": topic,
@@ -134,8 +125,8 @@ async def run_pipeline(
     photo_url = result.get("photo_url") or result.get("image_url")
     post_hashtags = result.get("hashtags", "#UCust #ИИмаркетинг")
 
-    # Получаем локальный путь к созданному фото
-    photo_local_path = None
+    # Получаем локальный путь к первому фото (вариация 0)
+    all_photo_paths: List[str] = []
     if photo_url:
         fname = os.path.basename(photo_url)
         cand_dirs = [
@@ -147,12 +138,40 @@ async def run_pipeline(
         for cdir in cand_dirs:
             p = os.path.join(cdir, fname)
             if os.path.exists(p) and os.path.getsize(p) > 1000:
-                photo_local_path = os.path.abspath(p)
+                all_photo_paths.append(os.path.abspath(p))
                 break
+
+    # 1.1 Если запрошен мульти-ракурсный альбом (batch_variations > 1), генерируем остальные ракурсы
+    from skills.photo_generator import PhotoGeneratorSkill
+    photo_skill = PhotoGeneratorSkill()
+    additional_photo_sec = 0.0
+
+    if var_count > 1:
+        for v_idx in range(1, var_count):
+            print(f"\n🎬 [Мульти-ракурс {v_idx+1}/{var_count}] Генерация фото-вариации #{v_idx}...")
+            t_add_start = time.time()
+            try:
+                p_res = await photo_skill.generate_photo(
+                    topic=topic,
+                    niche=niche,
+                    aspect_ratio=aspect_ratio,
+                    company_name=company_name,
+                    attachments=attachments if attachments else None,
+                    variation_index=v_idx
+                )
+                add_path = p_res.get("file_path")
+                if add_path and os.path.exists(add_path) and os.path.getsize(add_path) > 1000:
+                    all_photo_paths.append(os.path.abspath(add_path))
+                    print(f"  ✅ Фото #{v_idx+1} успешно готово: {os.path.basename(add_path)}")
+            except Exception as p_err:
+                print(f"  ⚠️ Ошибка генерации вариации #{v_idx}: {p_err}")
+            additional_photo_sec += (time.time() - t_add_start)
 
     timings = result.get("timings", {})
     text_sec = timings.get("text_gen_seconds")
     photo_sec = timings.get("photo_gen_seconds")
+    if photo_sec is not None:
+        photo_sec = round(photo_sec + additional_photo_sec, 2)
 
     total_duration = round(time.time() - start_total, 2)
 
@@ -161,7 +180,7 @@ async def run_pipeline(
     if text_sec is not None:
         print(f" • Генерация текста + Pre-Mortem аудит: {text_sec} сек")
     if photo_sec is not None:
-        print(f" • Генерация мобильного фото-креатива: {photo_sec} сек")
+        print(f" • Генерация альбома из {len(all_photo_paths)} фото: {photo_sec} сек")
     print(f" • Оценка качества контента: {int(critic_score * 100)}% (Одобрено)")
     print(f" • Общее время пайплайна: {total_duration} сек")
     print("=" * 60)
@@ -171,11 +190,11 @@ async def run_pipeline(
     print(post_text)
     print("-" * 50)
 
-    # 2. Автоматическая публикация в канал
+    # 2. Автоматическая публикация в канал (1 единый пост + альбом фото)
     if auto_publish:
         print(f"\n📡 Отправка результата в Telegram-канал {channel}...")
         broadcaster = AchievementBroadcaster(target_channel=channel)
-        has_photo = photo_local_path is not None and os.path.exists(photo_local_path)
+        has_photo = len(all_photo_paths) > 0
         metrics = AchievementBroadcaster.build_honest_metrics(
             text_gen_seconds=text_sec,
             photo_gen_seconds=photo_sec,
@@ -184,22 +203,20 @@ async def run_pipeline(
             critic_score=critic_score
         )
 
-        # ── Умное разделение поста на 2 сообщения при превышении лимита (40% / 60%) ──
+        # Умное разделение поста на 2 сообщения при превышении лимита (40% / 60%)
         part1_caption, part2_text = AchievementBroadcaster.split_text_for_telegram(
             post_text,
             max_caption_len=950,
             target_ratio=0.40
         )
 
-        # ── Сообщение 2: продолжение текста (если пост большой) + время генерации + хэштеги ──
         time_lines = []
         if text_sec is not None:
             time_lines.append(f"• Текст + аудит качества: {round(text_sec, 2)} сек")
         if photo_sec is not None:
-            time_lines.append(f"• Фото-креатив: {round(photo_sec, 2)} сек")
+            time_lines.append(f"• Фото-альбом ({len(all_photo_paths)} ракурса): {round(photo_sec, 2)} сек")
         time_lines.append(f"• Итого: {total_duration} сек")
 
-        # Платформы из метрик (HTML-ссылки уже готовы в build_honest_metrics)
         platforms_line = next((m for m in metrics if m.startswith("Платформы")), None)
         if platforms_line:
             time_lines.append(f"• {platforms_line}")
@@ -216,19 +233,18 @@ async def run_pipeline(
         else:
             metrics_message = telemetry_block
 
-        # Отправка фото с 1-й частью текста (или полным постом)
-        pub_res = await broadcaster._publish_via_bot_api(part1_caption, photo_local_path)
+        # Публикация альбома из всех сгенерированных фото с 1-й частью текста
+        pub_res = await broadcaster._publish_via_bot_api(part1_caption, all_photo_paths if len(all_photo_paths) > 1 else (all_photo_paths[0] if all_photo_paths else None))
         if pub_res is None:
             pub_res = await broadcaster.broadcast_milestone_async(
                 title="",
                 description=part1_caption,
                 metrics=None,
-                media_path=photo_local_path
+                media_path=all_photo_paths[0] if all_photo_paths else None
             )
 
         if pub_res and pub_res.get("status") == "success":
-            print(f"🎉 УСПЕШНО! Фото + сообщение 1 (40%) опубликованы в {channel}")
-            # Небольшая пауза, затем сообщение 2 (60% + метрики + хэштеги)
+            print(f"🎉 УСПЕШНО! Альбом ({len(all_photo_paths)} фото) + сообщение 1 опубликованы в {channel}")
             import asyncio
             await asyncio.sleep(2)
             text_res = await broadcaster._publish_via_bot_api(metrics_message, None)
@@ -246,7 +262,7 @@ async def run_pipeline(
         "total_duration": total_duration,
         "critic_score": critic_score,
         "photo_prompt": photo_prompt,
-        "photo_path": photo_local_path
+        "photo_paths": all_photo_paths
     }
 
 def main():
@@ -265,41 +281,30 @@ def main():
     parser.add_argument("--trigger", type=str, default=None, choices=["social_proof", "scarcity_fomo", "authority", "reciprocity", "risk_reversal"], help="Психологический триггер Чалдини")
     parser.add_argument("--tier", type=str, default="BUSINESS", choices=["START", "BUSINESS", "ENTERPRISE", "CUSTOM"], help="Тариф медиа-оснащения")
     parser.add_argument("--aspect-ratio", "--ratio", type=str, default="1:1", choices=["1:1", "4:5", "9:16", "16:9", "3:4", "4:3"], help="Формат соотношения сторон фото")
-    parser.add_argument("--variation-index", "--variation", "-v", type=int, default=0, help="Номер вариации ракурса/интерьера при перегенерации (0, 1, 2, 3...)")
-    parser.add_argument("--batch-variations", "--count", "-n", type=int, default=None, help="Сгенерировать N вариаций подряд (например, --batch-variations 3)")
-    parser.add_argument("--variations", nargs="+", type=int, default=None, help="Список конкретных номеров вариаций (например, --variations 0 1 2)")
+    parser.add_argument("--variation-index", "--variation", "-v", type=int, default=0, help="Номер вариации ракурса/интерьера при одиночной генерации")
+    parser.add_argument("--batch-variations", "--count", "-n", type=int, default=None, help="Сгенерировать альбом из N разных ракурсов в один пост (например, --batch-variations 3)")
     parser.add_argument("--images", "--files", "-i", "-f", nargs="+", default=None, help="Пути к локальным файлам/фото или URL вложений для анализа Vision (Moondream) и генерации (ComfyUI)")
     parser.add_argument("--channel", type=str, default="@testaipublisher", help="Целевой Telegram-канал")
     parser.add_argument("--no-publish", action="store_true", help="Не отправлять в Telegram, только вывести в консоль")
 
     args = parser.parse_args()
 
-    variations_to_run = [args.variation_index]
-    if args.batch_variations and args.batch_variations > 0:
-        variations_to_run = list(range(args.batch_variations))
-    elif args.variations:
-        variations_to_run = args.variations
-
-    for idx, v_idx in enumerate(variations_to_run, 1):
-        if len(variations_to_run) > 1:
-            print(f"\n{'='*60}")
-            print(f"🎬 [ПАКЕТНЫЙ ЗАПУСК] Генерация вариации #{v_idx} ({idx}/{len(variations_to_run)})")
-            print(f"{'='*60}\n")
-        asyncio.run(run_pipeline(
-            topic=args.prompt,
-            company_name=args.company,
-            niche=args.niche,
-            tone=args.tone,
-            stage=args.stage,
-            framework=args.framework,
-            trigger=args.trigger,
-            tier=args.tier,
-            aspect_ratio=args.aspect_ratio,
-            variation_index=v_idx,
-            images=args.images,
-            channel=args.channel,
-            auto_publish=not args.no_publish
-        ))
+    asyncio.run(run_pipeline(
+        topic=args.prompt,
+        company_name=args.company,
+        niche=args.niche,
+        tone=args.tone,
+        stage=args.stage,
+        framework=args.framework,
+        trigger=args.trigger,
+        tier=args.tier,
+        aspect_ratio=args.aspect_ratio,
+        variation_index=args.variation_index,
+        batch_variations=args.batch_variations,
+        images=args.images,
+        channel=args.channel,
+        auto_publish=not args.no_publish
+    ))
 
 if __name__ == "__main__":
     main()

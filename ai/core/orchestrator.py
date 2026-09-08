@@ -4,6 +4,7 @@ import uuid
 import json
 import time
 import hashlib
+import asyncio
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from storage.models import UserProfile, OrchestratorTrace, PublicationHistory, ProjectMetadata, ContentTask
@@ -832,6 +833,11 @@ class UnifiedOrchestrator:
             variation_index = int(user_data.get("variation_index", 0))
             custom_visual_prompt = user_data.get("custom_prompt") or user_data.get("positive_prompt")
             
+            # Если выполнен Multi-Image Fusion — используем синтезированный Fusion-промпт
+            if not custom_visual_prompt and moondream_analysis and moondream_analysis.get("fusion_prompt"):
+                custom_visual_prompt = moondream_analysis["fusion_prompt"]
+                print(f"[UnifiedOrchestrator] 🧩 Применен композиционный Fusion-промпт для 3 нод ComfyUI:\n  👉 {custom_visual_prompt}")
+
             from skills.photo_generator import CinematographyDirector
             brand_colors_input = user_data.get("brand_colors") or (moondream_analysis.get("colors") if moondream_analysis else None)
             cinematic_concept = CinematographyDirector.compose_cinematic_prompt(
@@ -849,7 +855,7 @@ class UnifiedOrchestrator:
                 f"Опирайся на этот визуал, чтобы текст поста идеально гармонировал с кадром."
             )
             if moondream_analysis and moondream_analysis.get("visual_context_for_llm"):
-                visual_scene_context_for_saiga += f" | Данные анализа фото бренда: {moondream_analysis['visual_context_for_llm']}"
+                visual_scene_context_for_saiga += f" | {moondream_analysis['visual_context_for_llm']}"
 
             saiga = SaigaLLMSkill()
             comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
@@ -857,6 +863,7 @@ class UnifiedOrchestrator:
             brand_profile = user_data.get("brand_profile")
 
             # 3. Асинхронные параллельные задачи: Генерация текста + Диффузия фото (GPU Parallel)
+            t_pipeline_start = time.time()
             async def _generate_text_pipeline():
                 t_text_start = time.time()
                 # 3.1 Генерация SMM текста в Сайге
@@ -912,13 +919,27 @@ class UnifiedOrchestrator:
                 try:
                     t_photo_start = time.time()
                     photo_skill = PhotoGeneratorSkill()
+
+                    # Упорядочивание вложений по слотам Realism 2.0 (Node 55, 64, 65)
+                    ordered_atts = user_data.get("attachments")
+                    if moondream_analysis and moondream_analysis.get("slot_mapping"):
+                        sm = moondream_analysis["slot_mapping"]
+                        cand_ordered = [
+                            sm.get("image1_node55", {}).get("raw_path"),
+                            sm.get("image2_node64", {}).get("raw_path"),
+                            sm.get("image3_node65", {}).get("raw_path")
+                        ]
+                        valid_ordered = [c for c in cand_ordered if c is not None]
+                        if valid_ordered:
+                            ordered_atts = valid_ordered
+
                     photo_res = await photo_skill.generate_photo(
                         topic=prompt,
                         niche=niche,
                         aspect_ratio=aspect_ratio,
                         company_name=company_name,
                         brand_colors=brand_colors_input,
-                        attachments=user_data.get("attachments"),
+                        attachments=ordered_atts,
                         custom_prompt=custom_visual_prompt,
                         variation_index=variation_index
                     )
@@ -1002,7 +1023,7 @@ class UnifiedOrchestrator:
                     timings={
                         "text_gen_seconds": t_text_duration,
                         "photo_gen_seconds": t_photo_duration,
-                        "total_seconds": round(time.time() - t_text_start, 2)
+                        "total_seconds": round(time.time() - t_pipeline_start, 2)
                     },
                     hashtags=hashtags_str,
                     category=user_data.get("category", "Обновление"),
@@ -1013,7 +1034,7 @@ class UnifiedOrchestrator:
             return {
                 "status": "success",
                 "post_text": clean_user_post_text,
-                "promo_code": promo_code,
+                "promo_code": gen_result.get("promo_code"),
                 "photo_prompt": photo_prompt,
                 "image_url": image_url,
                 "photo_url": image_url,
@@ -1027,7 +1048,7 @@ class UnifiedOrchestrator:
                 "timings": {
                     "text_gen_seconds": t_text_duration,
                     "photo_gen_seconds": t_photo_duration,
-                    "total_seconds": round(time.time() - t_text_start, 2)
+                    "total_seconds": round(time.time() - t_pipeline_start, 2)
                 }
             }
 
@@ -1049,6 +1070,23 @@ class UnifiedOrchestrator:
             photo_skill = PhotoGeneratorSkill()
             custom_prompt = user_data.get("custom_prompt") or user_data.get("positive_prompt")
             
+            # Поддержка Multi-Image Semantic Fusion
+            if not custom_prompt and moondream_analysis and moondream_analysis.get("fusion_prompt"):
+                custom_prompt = moondream_analysis["fusion_prompt"]
+                print(f"[UnifiedOrchestrator] 🧩 Применен Fusion-промпт для edit_photo/generate_photo:\n  👉 {custom_prompt}")
+
+            ordered_attachments = attachments
+            if moondream_analysis and moondream_analysis.get("slot_mapping"):
+                sm = moondream_analysis["slot_mapping"]
+                cand_ordered = [
+                    sm.get("image1_node55", {}).get("raw_path"),
+                    sm.get("image2_node64", {}).get("raw_path"),
+                    sm.get("image3_node65", {}).get("raw_path")
+                ]
+                valid_ordered = [c for c in cand_ordered if c is not None]
+                if valid_ordered:
+                    ordered_attachments = valid_ordered
+
             photo_res = await photo_skill.generate_photo(
                 topic=prompt,
                 niche=niche,
@@ -1056,7 +1094,7 @@ class UnifiedOrchestrator:
                 brand_colors=brand_colors,
                 style=style,
                 company_name=company_name,
-                attachments=attachments,
+                attachments=ordered_attachments,
                 custom_prompt=custom_prompt,
                 variation_index=variation_index
             )

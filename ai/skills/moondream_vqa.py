@@ -163,6 +163,16 @@ class MoondreamVQASkill:
         """
         pil_img = self._to_pil_image(image_input)
         if pil_img is None:
+            if isinstance(image_input, dict) and (image_input.get("description") or image_input.get("summary") or image_input.get("caption")):
+                desc = image_input.get("description") or image_input.get("summary") or image_input.get("caption")
+                return {
+                    "status": "success",
+                    "description": desc,
+                    "dominant_colors": image_input.get("colors") or image_input.get("dominant_colors") or ["#8B5A2B", "#D2B48C", "#F5F5DC"],
+                    "aspect_ratio": image_input.get("aspect_ratio", "1:1"),
+                    "prompt_enhancement": desc,
+                    "raw_path": image_input.get("path") or image_input.get("file_name") or "image.png"
+                }
             return {
                 "status": "not_found",
                 "description": "Изображение не распознано или повреждено.",
@@ -282,12 +292,39 @@ class MoondreamVQASkill:
         combined_desc = "\n".join(descriptions)
         combined_keywords = ", ".join(list(dict.fromkeys(enhancements)))
 
+        # 4. Multi-Image Semantic Fusion & Slot Allocation (realism2.0.json Nodes 55, 64, 65)
+        fusion_info = None
+        slot_mapping = None
+        try:
+            from skills.multi_image_fusion import MultiImageSemanticFusionEngine
+            slot_mapping = MultiImageSemanticFusionEngine.allocate_workflow_slots(
+                analyzed_images=analyzed_items,
+                user_prompt=topic,
+                niche=""
+            )
+            fusion_info = MultiImageSemanticFusionEngine.compose_fusion_prompt(
+                slot_mapping=slot_mapping,
+                user_prompt=topic,
+                company_name=company_name
+            )
+            print(f"[Moondream] 🧩 Выполнено семантическое слияние {len(analyzed_items)} фото:")
+            print(f"   • Slot 1 (Node 55 - Базовый субъект): {slot_mapping.get('image1_node55', {}).get('label')}")
+            print(f"   • Slot 2 (Node 64 - Доп. субъект/Питомец): {slot_mapping.get('image2_node64', {}).get('label')}")
+            print(f"   • Slot 3 (Node 65 - Окружение/Кофейня): {slot_mapping.get('image3_node65', {}).get('label')}")
+        except Exception as f_err:
+            logger.warning(f"Error in multi-image semantic fusion: {f_err}")
+
+        narrative = fusion_info.get("visual_narrative_for_saiga") if fusion_info else combined_desc
+
         visual_context_for_llm = (
-            f"\n[ВИЗУАЛЬНЫЙ АНАЛИЗАТОР MOONDREAM]:\n"
-            f"Пользователь прикрепил {len(analyzed_items)} реальных фото.\n"
-            f"Что изображено:\n{combined_desc}\n"
+            f"\n[ВИЗУАЛЬНЫЙ АНАЛИЗАТОР И FUSION MOONDREAM]:\n"
+            f"Пользователь прикрепил {len(analyzed_items)} реальных фото для объединенной сцены.\n"
+            f"Семантический сюжет объединения: {narrative}\n"
             f"Фирменные цвета: {', '.join(unique_colors) if unique_colors else 'натуральные'}.\n"
-            f"ИНСТРУКЦИЯ ДЛЯ КОПИРАЙТЕРА: Обязательно сошлись в тексте на особенности и детали с прикрепленных фото!"
+            f"ИНСТРУКЦИЯ ДЛЯ КОПИРАЙТЕРА ПО МАТРИЦЕ ПРИОРИТЕТОВ:\n"
+            f"1. Опиши именно эту объединенную сцену (собачка на руках, кофе, уютная кофейня).\n"
+            f"2. Сохрани теплую живую интонацию и эмоциональный хук.\n"
+            f"3. Интегрируй коммерческое предложение (приглашение в кофейню/скидку)."
         )
 
         print(f"[Moondream] ✅ Анализ завершен! Выделено {len(unique_colors)} фирменных цветов.")
@@ -298,7 +335,10 @@ class MoondreamVQASkill:
             "colors": unique_colors,
             "summary": combined_desc,
             "visual_context_for_llm": visual_context_for_llm,
-            "prompt_keywords": combined_keywords
+            "prompt_keywords": combined_keywords,
+            "slot_mapping": slot_mapping,
+            "fusion_prompt": fusion_info.get("fusion_prompt") if fusion_info else None,
+            "fusion_narrative": narrative
         }
 
     def analyze_competitor_post(self, competitor_name: str, post_text: str, image_input: Any = None) -> Dict[str, Any]:

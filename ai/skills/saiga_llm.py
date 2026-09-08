@@ -510,8 +510,34 @@ class SaigaLLMSkill:
         # 3. УНИВЕРСАЛЬНЫЙ РЕЕСТР НИШ И СФЕР БИЗНЕСА (12+ НАПРАВЛЕНИЙ)
         # =========================================================================
 
+        # 3.0. Multi-Image Fusion: Домашние питомцы, руки/маникюр и кофейня (Pet-friendly кофейня / Дружба)
+        if (any(w in full_text_search for w in ["собак", "щенок", "хаски", "питомц", "животн", "кот"]) and any(w in full_text_search for w in ["рука", "руки", "маникюр", "пальц", "свитер"]) and any(w in full_text_search for w in ["кофе", "кофейн", "капучин", "латте", "кафе"])) or (visual_context and "собачк" in visual_context and "кофейн" in visual_context):
+            from skills.photo_generator import CinematographyDirector
+            leads = [
+                f"Идеальное утро: любимый кофе, тепло рук и лучший четвероногий друг в «{company_name}» ☕🐶",
+                f"Уютные моменты, которые согревают сердце: «{company_name}» 🐾✨",
+                f"Pet-friendly атмосфера и ваш любимый капучино в «{company_name}» 🐕🌿"
+            ]
+            bodies = [
+                f"Есть мгновения, в которых идеально всё: мягкий трикотаж любимого свитера, аккуратный свежий маникюр, чашка согревающего капучино с нежной пенкой и самый преданный пушистый друг, уютно устроившийся прямо на руках.\n\nВ «{company_name}» мы создали по-настоящему pet-friendly пространство, где всегда рады вам и вашим хвостикам. Заглядывайте за порцией утреннего вдохновения, ароматной выпечкой и искренними улыбками!{comments_phrase}",
+                f"Что может быть лучше, чем неспешный глоток спешелти кофе под мягкими лучами утреннего солнца, когда рядом преданные искренние глаза и мягкие лапки?\n\nМы всегда рады гостям с четвероногими любимцами: чистая вода для питомца, свежесваренный кофе для вас и море тепла для отличного настроения на весь день.{comments_phrase}"
+            ]
+            ctas = [
+                "Берёте своего пушистого друга с собой на кофе? Делитесь в комментариях! 🐾👇" if has_comments else "Заглядывайте в гости вместе с вашими любимцами — ждём вас каждый день! ☕🐶",
+                "Ждём вас и ваших хвостиков на самый уютный кофе в городе! Заглядывайте в «" + company_name + "» 🐾✨"
+            ]
+            lead = random.choice(leads)
+            body = random.choice(bodies)
+            cta = random.choice(ctas)
+            return {
+                "post_text": f"{lead}\n\n{body}\n\n{cta}",
+                "promo_code": f"{company_name.upper().replace(' ', '')}2026",
+                "visual_prompt": "Seamless masterwork photo fusion: featuring slender well-manicured hands in a warm sweater gently holding an expressive charming husky puppy seated at a rustic wooden cafe table inside an authentic sunlit craft coffee shop with a cup of latte art cappuccino.",
+                "hashtags": "#кофейня #petfriendly #собакавгороде #латтеарт #уютноеутро #кофе"
+            }
+
         # 3.1. Рестораны, кафе, доставка еды, гастробары
-        if any(w in full_text_search for w in ["ресторан", "кафе", "меню", "блюдо", "шеф", "кухн", "гастро", "доставка еды", "пицц", "суши", "бургер"]):
+        elif any(w in full_text_search for w in ["ресторан", "кафе", "меню", "блюдо", "шеф", "кухн", "гастро", "доставка еды", "пицц", "суши", "бургер"]):
             from skills.photo_generator import CinematographyDirector
             leads = [
                 f"Вкус, который запоминается: новинки в «{company_name}» 🍽️",

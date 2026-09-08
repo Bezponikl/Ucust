@@ -40,20 +40,33 @@ class TelegramPublisher(BasePublisher):
         self.bot_token = bot_token or os.getenv("TELEGRAM_BOT_TOKEN", os.getenv("BOT_TOKEN", ""))
         self._client = None
 
-    async def _publish_via_bot_api(self, text: str, media_path: Optional[str] = None) -> bool:
-        """Быстрая прямая публикация через официальный Telegram HTTP Bot API."""
+    async def _publish_via_bot_api(
+        self, 
+        text: str, 
+        media_path: Optional[str] = None,
+        reply_markup: Optional[Dict[str, Any]] = None,
+        link_preview_options: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """Быстрая прямая публикация через официальный Telegram HTTP Bot API с поддержкой кнопок и HTML."""
         import httpx
+        import json
         url = f"https://api.telegram.org/bot{self.bot_token}"
         try:
             async with httpx.AsyncClient(timeout=8.0) as http_client:
                 if media_path and os.path.exists(media_path):
                     with open(media_path, "rb") as f:
                         files = {"photo": f}
-                        data = {"chat_id": self.target_channel, "caption": text, "parse_mode": "HTML"}
+                        data: Dict[str, Any] = {"chat_id": self.target_channel, "caption": text, "parse_mode": "HTML"}
+                        if reply_markup:
+                            data["reply_markup"] = json.dumps(reply_markup)
                         resp = await http_client.post(f"{url}/sendPhoto", data=data, files=files)
                 else:
-                    data = {"chat_id": self.target_channel, "text": text, "parse_mode": "HTML"}
-                    resp = await http_client.post(f"{url}/sendMessage", json=data)
+                    json_data: Dict[str, Any] = {"chat_id": self.target_channel, "text": text, "parse_mode": "HTML"}
+                    if reply_markup:
+                        json_data["reply_markup"] = reply_markup
+                    if link_preview_options:
+                        json_data["link_preview_options"] = link_preview_options
+                    resp = await http_client.post(f"{url}/sendMessage", json=json_data)
 
                 if resp.status_code == 200:
                     logger.info(f"[TelegramPublisher] ✅ Успешно опубликовано через Bot API в {self.target_channel}")
@@ -64,13 +77,18 @@ class TelegramPublisher(BasePublisher):
                         logger.warning(f"[TelegramPublisher] ⚠️ Ошибка HTML-парсинга, повтор отправки как plain text...")
                         if media_path and os.path.exists(media_path):
                             with open(media_path, "rb") as f:
-                                resp = await http_client.post(f"{url}/sendPhoto", data={"chat_id": self.target_channel, "caption": text}, files={"photo": f})
+                                fb_data = {"chat_id": self.target_channel, "caption": text}
+                                if reply_markup:
+                                    fb_data["reply_markup"] = json.dumps(reply_markup)
+                                resp = await http_client.post(f"{url}/sendPhoto", data=fb_data, files={"photo": f})
                         else:
-                            resp = await http_client.post(f"{url}/sendMessage", json={"chat_id": self.target_channel, "text": text})
+                            fb_json = {"chat_id": self.target_channel, "text": text}
+                            if reply_markup:
+                                fb_json["reply_markup"] = reply_markup
+                            resp = await http_client.post(f"{url}/sendMessage", json=fb_json)
                         if resp.status_code == 200:
                             logger.info(f"[TelegramPublisher] ✅ Fallback публикация успешна!")
                             return True
-                else:
                     logger.warning(f"[TelegramPublisher] ⚠️ Ответ Telegram API {resp.status_code}: {resp.text}")
         except Exception as e:
             logger.warning(f"[TelegramPublisher] ⚠️ Ошибка при отправке через Bot API: {e}")
@@ -91,7 +109,13 @@ class TelegramPublisher(BasePublisher):
 
         return self._client
 
-    async def publish(self, text: str, media_path: Optional[str] = None) -> bool:
+    async def publish(
+        self, 
+        text: str, 
+        media_path: Optional[str] = None,
+        reply_markup: Optional[Dict[str, Any]] = None,
+        link_preview_options: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Publishes post text with attached local media (.mp4 video or photo) to the target Telegram channel.
         """
@@ -103,7 +127,12 @@ class TelegramPublisher(BasePublisher):
 
         # 1. Если задан Bot Token — используем прямой HTTP Bot API (100% надежно и быстро)
         if self.bot_token and self.bot_token.strip():
-            bot_success = await self._publish_via_bot_api(text, media_path)
+            bot_success = await self._publish_via_bot_api(
+                text, 
+                media_path=media_path, 
+                reply_markup=reply_markup,
+                link_preview_options=link_preview_options
+            )
             return bot_success
 
         # 2. Попытка через Telethon UserBot с таймаутом 2.5 сек (защита от зависания)

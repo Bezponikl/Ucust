@@ -1174,27 +1174,32 @@ class UnifiedOrchestrator:
                 if not line.strip().startswith("#") and not line.strip().startswith("🏷️ Хэштеги")
             ]).strip()
 
-            # 5. Форматирование Expandable Blockquotes (Telegram HTML / MarkdownV2 / Web UI)
-            from skills.expandable_blockquote import ExpandableBlockquoteFormatter
-            enable_blockquote = user_data.get("expandable_blockquote", True)
-            blockquote_mode = user_data.get("blockquote_mode", "html")
+            # 5. Комплексное обогащение для Telegram (Expandable Blockquotes, <code>, <s>, <tg-spoiler>, Inline Buttons)
+            from skills.telegram_rich_formatter import TelegramRichPostFormatter
             
-            post_text_html = clean_user_post_text
-            post_text_tg_md = clean_user_post_text
-            expandable_blocks = []
+            promo_val = gen_result.get("promo_code") or user_data.get("promo_code") or user_data.get("discount")
+            rich_tg_data = TelegramRichPostFormatter.build_rich_telegram_post(
+                text=clean_user_post_text,
+                company_name=company_name,
+                niche=niche,
+                promo_code=promo_val,
+                website_url=user_data.get("website") or user_data.get("website_url"),
+                contacts=user_data.get("contacts"),
+                social_links=user_data.get("social_links"),
+                enable_expandable_blockquote=user_data.get("expandable_blockquote", True),
+                enable_clickable_promo=user_data.get("enable_clickable_promo", True),
+                enable_strikethrough=user_data.get("enable_strikethrough", True),
+                enable_spoilers=user_data.get("enable_spoilers", True),
+                enable_buttons=user_data.get("enable_buttons", True),
+                cta_type=user_data.get("cta_type", "general")
+            )
             
-            if enable_blockquote:
-                post_text_html, wrapped_html_cnt = ExpandableBlockquoteFormatter.auto_wrap_sections(
-                    clean_user_post_text, 
-                    mode="html"
-                )
-                post_text_tg_md, _ = ExpandableBlockquoteFormatter.auto_wrap_sections(
-                    clean_user_post_text, 
-                    mode="markdown_v2"
-                )
-                expandable_blocks = ExpandableBlockquoteFormatter.extract_blocks(post_text_html)
-                if wrapped_html_cnt > 0:
-                    print(f"[UnifiedOrchestrator] 📦 Оформлено {wrapped_html_cnt} сворачиваемых блоков (Expandable Blockquote).")
+            post_text_html = rich_tg_data["html_text"]
+            post_text_tg_md = rich_tg_data["markdown_v2_text"]
+            expandable_blocks = rich_tg_data["expandable_blocks"]
+            reply_markup = rich_tg_data["reply_markup"]
+            link_preview_opts = rich_tg_data["link_preview_options"]
+            features_applied = rich_tg_data["features_applied"]
 
             hashtags_str = gen_result.get("hashtags", f"#{niche.replace(' ', '_')} #бизнес #качество")
 
@@ -1204,8 +1209,8 @@ class UnifiedOrchestrator:
                 from publishers.achievement_broadcaster import AchievementBroadcaster
                 target_ch = user_data.get("target_channel") or user_data.get("channel") or "@testaipublisher"
                 broadcaster = AchievementBroadcaster(target_channel=target_ch)
-                # Для Telegram используем текст с HTML тегами <blockquote expandable>
-                publish_text = post_text_html if enable_blockquote else clean_user_post_text
+                # Для Telegram используем текст с HTML тегами и кнопками
+                publish_text = post_text_html
                 publish_res = await broadcaster.publish_post_async(
                     post_text=publish_text,
                     media_path=image_url,
@@ -1225,6 +1230,9 @@ class UnifiedOrchestrator:
                 "post_text": clean_user_post_text,
                 "post_text_html": post_text_html,
                 "post_text_tg_markdown": post_text_tg_md,
+                "reply_markup": reply_markup,
+                "link_preview_options": link_preview_opts,
+                "features_applied": features_applied,
                 "expandable_blocks": expandable_blocks,
                 "has_expandable_blockquote": bool(expandable_blocks),
                 "promo_code": gen_result.get("promo_code"),

@@ -698,13 +698,40 @@ class UnifiedOrchestrator:
             from skills.advanced_visual_director import AdvancedVisualDirector
             from skills.photo_generator import PhotoGeneratorSkill
             
-            prompt = user_data.get("prompt") or user_data.get("topic") or "Новое предложение для клиентов"
+            # =========================================================================
+            # КАСКАДНАЯ МАТРИЦА РАЗРЕШЕНИЯ КОНТЕКСТА (CASCADE FALLBACK RESOLUTION)
+            # =========================================================================
             format_type = user_data.get("format", "post")
             tone = user_data.get("tone", "Естественный и живой")
             niche = user_data.get("niche", "IT Automation / Сервис контента")
             city = user_data.get("city", "Москва")
             company_name = user_data.get("company_name", "UCust")
+            offer = user_data.get("offer") or user_data.get("promo") or user_data.get("discount") or user_data.get("bonus")
             should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
+
+            # 1. ТЕМАТИЧЕСКИЙ КАСКАД (User Prompt -> Content Plan Stack -> RAG / Auto Topic)
+            user_prompt = user_data.get("prompt") or user_data.get("topic")
+            plan_slot_topic = None
+            if not user_prompt:
+                active_plan = user_data.get("content_plan")
+                if active_plan and isinstance(active_plan, dict) and active_plan.get("days"):
+                    current_day_idx = int(user_data.get("plan_day_index", 0))
+                    days_list = active_plan.get("days", [])
+                    if current_day_idx < len(days_list):
+                        slot = days_list[current_day_idx]
+                        plan_slot_topic = slot.get("topic") or slot.get("title") or slot.get("hook")
+                        if not offer and slot.get("cta_offer"):
+                            offer = slot.get("cta_offer")
+                        print(f"[CascadeResolver] 📅 Тема извлечена из слота #{current_day_idx+1} контент-плана: '{plan_slot_topic}'")
+
+            prompt = user_prompt or plan_slot_topic or f"Специальное предложение и экспертиза в нише {niche}"
+            if user_prompt:
+                print(f"[CascadeResolver] 🎯 Приоритет 1 (Ручной ввод пользователя): '{prompt}'")
+            elif plan_slot_topic:
+                print(f"[CascadeResolver] 🎯 Приоритет 2 (Стек контент-плана): '{prompt}'")
+            else:
+                print(f"[CascadeResolver] 🎯 Приоритет 3 (Автопилот Сайги): '{prompt}'")
+
             aspect_ratio = user_data.get("aspect_ratio")
             if not aspect_ratio:
                 fmt_lower = format_type.lower()
@@ -715,7 +742,7 @@ class UnifiedOrchestrator:
                 else:
                     aspect_ratio = "1:1"
 
-            # 1. Загрузка точного профиля из SQL (если передан user_id / profile_id)
+            # 2. Загрузка точного профиля из SQL (если передан user_id / profile_id)
             if self.db and (user_data.get("user_id") or user_data.get("profile_id")):
                 try:
                     profile_record = None
@@ -740,7 +767,7 @@ class UnifiedOrchestrator:
                 except Exception as sql_e:
                     print(f"[UnifiedOrchestrator] ⚠️ Ошибка загрузки профиля из SQL: {sql_e}")
 
-            # 1.1 Pre-Flight Context Router (4-Квадрантная классификация, Bridge Mode и блокировка воронки)
+            # 2.1 Pre-Flight Context Router (4-Квадрантная классификация, Bridge Mode и блокировка воронки)
             from skills.context_router import ContextRouterSkill
             router = ContextRouterSkill()
             routing_directive = router.route_task(
@@ -751,13 +778,13 @@ class UnifiedOrchestrator:
             )
             tenant_id = routing_directive.tenant_id
 
-            # 2. Семантический RAG-поиск с Multi-Tenant изоляцией и Pre-Flight контроль DRS
+            # 2.2 Семантический RAG-поиск с Multi-Tenant изоляцией и Pre-Flight контроль DRS
             from skills.data_richness_engine import DataRichnessEngine, DRSTier
             rag_fact_context = None
             drs_assessment = None
             data_richness_score = 0.20
             try:
-                rag_query_text = f"{prompt} {niche} {company_name}"
+                rag_query_text = f"{prompt} {niche} {company_name} {offer or ''}"
                 rag_ctx = await self.rag.query_async(rag_query_text, tenant_id=tenant_id)
                 if rag_ctx and (rag_ctx.has_sufficient_context or rag_ctx.formatted_context):
                     rag_fact_context = rag_ctx.formatted_context

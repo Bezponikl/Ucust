@@ -440,23 +440,19 @@ class CinematographyDirector:
             environment = "cozy sunlit specialty craft coffee shop, warm morning sunbeams streaming through window, soft golden bokeh in background"
             persp_key = "culinary_macro_eyelevel" if var % 2 == 0 else "tabletop_commercial"
 
-        # 3. КУЛИНАРИЯ: ШЕФ-ПОВАР И СТЕЙК / РИБАЙ / МЯСО (ПРАВИЛЬНЫЙ ХВАТ И НАРЕЗКА)
-        elif any(w in topic_lower for w in ["стейк", "рибай", "мясо", "steak", "ribeye"]) or (any(w in topic_lower for w in ["шеф", "повар", "chef"]) and any(w in topic_lower for w in ["кухн", "кулинар", "нарез", "жар", "блюд"])):
+        # 3. КУЛИНАРИЯ: ШЕФ-ПОВАР, СТЕЙК, МЯСНОЙ БУТИК (ПРАВИЛЬНЫЙ ХВАТ, ШПАГАТ, ОВОЩИ-ГРИЛЬ)
+        elif any(w in topic_lower for w in ["стейк", "рибай", "мясо", "steak", "ribeye", "bbq", "барбекю", "мясн"]) or (any(w in topic_lower for w in ["шеф", "повар", "chef"]) and any(w in topic_lower for w in ["кухн", "кулинар", "нарез", "жар", "блюд"])):
             garlic_and_herbs = "a caramelized charred roasted garlic bulb with golden edges, fresh rosemary sprig, and crunchy Maldon sea salt crystals on aged dark walnut board"
-            if any(w in topic_lower for w in ["шеф", "повар", "нарез", "нож", "chef", "slicing", "slice"]):
-                steak_archetypes = [
-                    # Вариация 0: Хват повара (claw grip) и нарезка под 45°
-                    f"a professional master chef's hands in action, left hand firmly securing the resting steak in a professional claw grip, right hand slicing a prime ribeye steak against the grain at 45 degrees with a sharp Japanese knife on an aged dark walnut board, {garlic_and_herbs}, tender juicy pink medium-rare center with resting meat juices glistening, subtle translucent culinary heat shimmer",
-                    # Вариация 1: Макро-срез сочных медальонов
-                    f"extreme macro eye-level culinary photography of sliced juicy medium-rare ribeye steak medallions laid out neatly, pink marbled interior texture, glistening natural juices pooling subtly on dark wooden board, sprinkled with flaky Maldon salt and roasted garlic cloves, {garlic_and_herbs}",
-                    # Вариация 2: Презентация блюда на доске в ресторане
-                    f"candid medium shot of a gourmet restaurant chef in clean white uniform presenting a carved prime ribeye steak on a rustic walnut serving board, accompanied by roasted garlic, rosemary, and grilled cherry tomatoes, soft warm kitchen ambiance"
-                ]
-                subject = steak_archetypes[var % len(steak_archetypes)]
-                environment = "dimly lit professional gourmet restaurant open kitchen, warm dramatic Rembrandt chiaroscuro lighting, stainless steel accents and wine bottles in deep atmospheric bokeh"
-            else:
-                subject = f"thick dry-aged Wagyu ribeye steak with deep caramelized diamond sear marks, warm pink medium-rare center, sprinkled with flaky Maldon sea salt crystals, garnished with {garlic_and_herbs}, subtle translucent heat shimmer"
-                environment = "fine dining gourmet restaurant table, warm dramatic side lighting, rich culinary depth"
+            steak_archetypes = [
+                # Вариация 0: Хват повара (claw grip) и нарезка под 45°
+                f"a professional master chef's hands in action, left hand firmly securing the resting steak in a professional claw grip, right hand slicing a prime ribeye steak against the grain at 45 degrees with a sharp Japanese knife on an aged dark walnut board, {garlic_and_herbs}, tender juicy pink medium-rare center with resting meat juices glistening, subtle translucent culinary heat shimmer",
+                # Вариация 1: Крафтовая упаковка / Мясной бутик (шпагат, пергамент, овощи с прогарками от решетки)
+                "candid culinary photography of a raw marbled prime beef steak resting on crinkled brown butcher kraft paper, loosely tied with natural rustic jute cooking twine with a partially unspooled twine spool on the side, accompanied by colorful grilled vegetables with distinct dark charred grill marks — blistered cherry tomatoes, roasted corn wheels and zucchini slices, with scattered coarse peppercorns and roasted garlic cloves on a dark butcher table",
+                # Вариация 2: Макро-срез сочных медальонов и ресторанная подача
+                f"extreme macro eye-level culinary photography of carved juicy medium-rare ribeye steak medallions laid out neatly on a dark slate board, pink marbled interior texture, glistening natural meat juices pooling, sprinkled with flaky Maldon salt and roasted garlic cloves, {garlic_and_herbs}"
+            ]
+            subject = steak_archetypes[var % len(steak_archetypes)]
+            environment = "dimly lit professional gourmet restaurant open kitchen or artisan butcher workshop, warm dramatic Rembrandt chiaroscuro lighting, stainless steel accents and wine bottles in deep atmospheric bokeh"
             persp_key = "culinary_macro_eyelevel" if var % 2 == 0 else "culinary_45_slice"
 
         # 4. IT / РАЗРАБОТЧИК / КОМАНДА / DEVPULSE (КОМАНДА, МОНИТОРЫ, ПРАВИЛЬНЫЙ СВЕТ)

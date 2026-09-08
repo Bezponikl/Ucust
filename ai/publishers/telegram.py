@@ -174,17 +174,30 @@ class TelegramPublisher(BasePublisher):
     async def publish(
         self, 
         text: str, 
-        media_path: Optional[str] = None,
+        media_path: Optional[Union[str, List[str]]] = None,
         reply_markup: Optional[Dict[str, Any]] = None,
-        link_preview_options: Optional[Dict[str, Any]] = None
+        link_preview_options: Optional[Dict[str, Any]] = None,
+        as_collage: Optional[bool] = None,
+        prompt: str = "",
+        user_data: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
-        Publishes post text with attached local media (.mp4 video or photo) to the target Telegram channel.
+        Публикует пост в целевой канал Telegram:
+        - Если 1 фото -> sendPhoto + кнопки.
+        - Если >= 2 фото -> sendMediaGroup (Единый пост-альбом со 100% шириной).
+        - Коллаж собирается ТОЛЬКО если пользователь явно запросил его в промпте/подсказках.
         """
+        from skills.telegram_rich_formatter import TelegramRichPostFormatter
+        
+        # Определение создания коллажа: только по явной просьбе пользователя
+        should_collage = as_collage if as_collage is not None else TelegramRichPostFormatter.is_collage_requested(prompt=prompt, user_data=user_data)
+        
         logger.info(
-            "[TelegramPublisher] Публикация в '%s' (длина: %d симв.)...",
+            "[TelegramPublisher] Публикация в '%s' (длина: %d симв., медиа: %s, коллаж: %s)...",
             self.target_channel,
             len(text),
+            type(media_path).__name__,
+            should_collage
         )
 
         # 1. Если задан Bot Token — используем прямой HTTP Bot API (100% надежно и быстро)
@@ -193,7 +206,8 @@ class TelegramPublisher(BasePublisher):
                 text, 
                 media_path=media_path, 
                 reply_markup=reply_markup,
-                link_preview_options=link_preview_options
+                link_preview_options=link_preview_options,
+                as_collage=should_collage
             )
             return bot_success
 

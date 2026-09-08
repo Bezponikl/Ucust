@@ -1209,11 +1209,17 @@ class UnifiedOrchestrator:
                 from publishers.achievement_broadcaster import AchievementBroadcaster
                 target_ch = user_data.get("target_channel") or user_data.get("channel") or "@testaipublisher"
                 broadcaster = AchievementBroadcaster(target_channel=target_ch)
-                # Для Telegram используем текст с HTML тегами и кнопками
+                
+                # Проверка: запросил ли пользователь коллаж явно
+                as_collage_flag = TelegramRichPostFormatter.is_collage_requested(prompt=prompt, user_data=user_data)
+                
+                # Определение медиа: список вложений или сгенерированное фото
+                pub_media = user_data.get("attachments") or user_data.get("photos") or image_url
+                
                 publish_text = post_text_html
                 publish_res = await broadcaster.publish_post_async(
                     post_text=publish_text,
-                    media_path=image_url,
+                    media_path=pub_media,
                     timings={
                         "text_gen_seconds": t_text_duration,
                         "photo_gen_seconds": t_photo_duration,

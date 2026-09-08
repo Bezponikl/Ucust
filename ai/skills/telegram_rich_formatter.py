@@ -287,3 +287,79 @@ class TelegramRichPostFormatter:
                 "inline_buttons": bool(reply_markup and reply_markup.get("inline_keyboard"))
             }
         }
+
+    COLLAGE_KEYWORDS = [
+        "коллаж", "коллажем", "склейка", "склей", "сетка 2x2", "сеткой", "плиткой",
+        "grid", "collage", "в один кадр", "объедини фото", "сделай коллаж"
+    ]
+
+    @classmethod
+    def is_collage_requested(cls, prompt: str = "", user_data: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Проверяет, запросил ли пользователь создание коллажа ЯВНО в промпте, подсказках или настройках.
+        По умолчанию: False (всегда используется Единый пост-альбом sendMediaGroup).
+        """
+        if user_data:
+            if user_data.get("as_collage") is True or user_data.get("format") in ["collage", "коллаж", "grid"]:
+                return True
+            hints = str(user_data.get("hints", "")) + " " + str(user_data.get("instructions", "")) + " " + str(user_data.get("prompt_hint", ""))
+            hints_lower = hints.lower()
+            for kw in cls.COLLAGE_KEYWORDS:
+                if kw in hints_lower:
+                    return True
+
+        if prompt:
+            prompt_lower = prompt.lower()
+            for kw in cls.COLLAGE_KEYWORDS:
+                if kw in prompt_lower:
+                    return True
+
+        return False
+
+    @classmethod
+    def build_2x2_collage(cls, image_paths: List[str], output_path: str, gap: int = 8) -> Optional[str]:
+        """
+        Объединяет до 4 изображений в красивый симметричный коллаж 2x2.
+        """
+        valid_paths = [p for p in image_paths if isinstance(p, str) and os.path.exists(p)]
+        if not valid_paths:
+            return None
+        if len(valid_paths) == 1:
+            return valid_paths[0]
+
+        try:
+            from PIL import Image
+            imgs = [Image.open(p).convert("RGB") for p in valid_paths[:4]]
+            target_w, target_h = 600, 600
+            resized = []
+            for img in imgs:
+                min_dim = min(img.width, img.height)
+                left = (img.width - min_dim) // 2
+                top = (img.height - min_dim) // 2
+                cropped = img.crop((left, top, left + min_dim, top + min_dim))
+                resized.append(cropped.resize((target_w, target_h), Image.Resampling.LANCZOS))
+
+            # Если 2 фото: горизонтальная склейка
+            if len(resized) == 2:
+                col_w = target_w * 2 + gap
+                col_h = target_h
+                collage = Image.new("RGB", (col_w, col_h), (24, 24, 27))
+                collage.paste(resized[0], (0, 0))
+                collage.paste(resized[1], (target_w + gap, 0))
+            # Если 3 или 4 фото: сетка 2x2
+            else:
+                col_w = target_w * 2 + gap
+                col_h = target_h * 2 + gap
+                collage = Image.new("RGB", (col_w, col_h), (24, 24, 27))
+                collage.paste(resized[0], (0, 0))
+                collage.paste(resized[1], (target_w + gap, 0))
+                collage.paste(resized[2], (0, target_h + gap))
+                if len(resized) == 4:
+                    collage.paste(resized[3], (target_w + gap, target_h + gap))
+
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            collage.save(output_path, "JPEG", quality=95)
+            return output_path
+        except Exception as e:
+            print(f"[TelegramRichPostFormatter] ⚠️ Ошибка сборки коллажа: {e}")
+            return valid_paths[0]

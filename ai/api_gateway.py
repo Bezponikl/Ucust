@@ -105,14 +105,45 @@ class AchievementBroadcastRequest(BaseModel):
     channel: Optional[str] = Field("@UcustAi", example="@UcustAi", description="Целевой Telegram-канал")
 
 
+class AsyncGenerateTaskRequest(BaseModel):
+    topic: str = Field(..., example="Свежесваренный капучино с идеальным латте-артом", description="Тема или промпт поста")
+    company_name: Optional[str] = Field("UCust", example="Roast & Bloom", description="Название компании")
+    niche: Optional[str] = Field("Бизнес", example="Спешелти кофейня", description="Ниша")
+    tone: Optional[str] = Field("Дерзкий, уверенный, вдохновляющий", description="Тон общения")
+    aspect_ratio: Optional[str] = Field("9:16", description="Формат соотношения сторон (1:1, 4:5, 9:16, 16:9)")
+    variation_index: Optional[int] = Field(0, description="Индекс ракурса/вариации (0, 1, 2, 3...)")
+    stage: Optional[str] = Field("problem_aware", description="Ступень воронки Ханта")
+    framework: Optional[str] = Field(None, description="PAS | AIDA | StoryBrand | BAB")
+    trigger: Optional[str] = Field(None, description="Триггер Чалдини")
+    tier: Optional[str] = Field("BUSINESS", description="Тариф медиа-оснащения")
+    custom_prompt: Optional[str] = Field(None, description="Пользовательский визуальный промпт")
+    attachments: Optional[List[Dict[str, Any]]] = Field(None, description="Вложения для анализа и генерации")
+    callback_url: Optional[str] = Field(None, example="http://java-backend:8080/api/v1/ai/callback", description="URL для отправки результата (Push-коллбек)")
+    task_id: Optional[str] = Field(None, description="Опциональный внешний task_id")
+    user_id: Optional[str] = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии")
+
+
 # -------------------------------------------------------------------
 # 2. Инициализация FastAPI приложения
 # -------------------------------------------------------------------
 
+from contextlib import asynccontextmanager
+from core.queue_manager import AsyncGenerationQueueManager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Старт фонового GPU-воркера очереди при запуске приложения
+    await queue_manager.start_worker()
+    yield
+    # Остановка воркера при выключении
+    await queue_manager.stop_worker()
+
 app = FastAPI(
     title="UCust AI Service Gateway",
     description="Единая точка входа для бэкенда и фронтенда к команде автономных ИИ-агентов UCust.",
-    version="2.1.0"
+    version="2.2.0",
+    lifespan=lifespan
 )
 
 # Разрешаем CORS для любых фронтендов (React, Next.js, Vue, Mobile)
@@ -139,6 +170,7 @@ SessionLocal = sessionmaker(bind=db_engine)
 db_session = SessionLocal()
 orchestrator = UnifiedOrchestrator(db_session=db_session)
 rag_pipeline = CleanRAGPipeline(min_confidence_threshold=0.65)
+queue_manager = AsyncGenerationQueueManager(orchestrator=orchestrator)
 
 
 # -------------------------------------------------------------------
@@ -156,6 +188,59 @@ async def health_check():
         "agents": ["Interviewer", "Analyst", "Saiga Copywriter", "Visual Director LTX-2", "ToV Gatekeeper"],
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+@app.post("/api/v1/ai/tasks/async-generate", status_code=status.HTTP_202_ACCEPTED, tags=["Async Generation Queue"])
+async def submit_async_generation_task(request: AsyncGenerateTaskRequest):
+    """
+    ⚡ Асинхронный запуск генерации с гарантией FIFO-очереди и Push-коллбеком на Java-бэкенд.
+    Мгновенно отвечает кодом 202 Accepted, резервирует позицию в очереди и начинает обработку.
+    """
+    payload = request.dict(exclude={"callback_url", "task_id", "user_id", "session_id"})
+    payload["task_type"] = "generate_post"
+
+    # Проверка безопасности
+    payload_str = json.dumps(payload, ensure_ascii=False)
+    if not SecurityGuard.check_user_input(payload_str):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Security Violation: обнаружен запрещенный запрос или попытка инъекции."
+        )
+
+    task_info = await queue_manager.enqueue_task(
+        payload=payload,
+        callback_url=request.callback_url,
+        task_id=request.task_id,
+        user_id=request.user_id or "default_user",
+        session_id=request.session_id
+    )
+    return task_info
+
+
+@app.get("/api/v1/ai/tasks/{task_id}/status", tags=["Async Generation Queue"])
+async def get_async_task_status(task_id: str):
+    """
+    Получение текущего статуса задачи (QUEUED, PROCESSING, COMPLETED, FAILED, PUSHED)
+    и позиции в очереди.
+    """
+    task_status = queue_manager.get_task_status(task_id)
+    if not task_status:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Задача '{task_id}' не найдена в реестре очереди."
+        )
+    return {
+        "status": "success",
+        "task": task_status
+    }
+
+
+@app.get("/api/v1/ai/queue/stats", tags=["Async Generation Queue"])
+async def get_generation_queue_stats():
+    """
+    Мониторинг состояния очереди и загруженности GPU.
+    """
+    return queue_manager.get_queue_stats()
 
 
 @app.post("/api/v1/ai/task", response_model=TaskResponse, tags=["AI Tasks"])

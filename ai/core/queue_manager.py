@@ -99,12 +99,14 @@ class AsyncGenerationQueueManager:
         sid = session_id or f"sess_{uuid.uuid4().hex[:8]}"
         created_at = datetime.utcnow().isoformat()
 
+        target_callback = callback_url or os.getenv("JAVA_BACKEND_CALLBACK_URL")
+
         task_data = {
             "task_id": tid,
             "session_id": sid,
             "user_id": user_id,
             "status": TaskState.QUEUED,
-            "callback_url": callback_url,
+            "callback_url": target_callback,
             "payload": payload,
             "created_at": created_at,
             "started_at": None,

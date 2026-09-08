@@ -608,7 +608,130 @@ async def publish_post(
 
 
 # ============================================================================
-# МУЛЬТИМОДАЛЬНЫЕ ЭНДПОИНТЫ: ПАРСЕРЫ, ДОКУМЕНТЫ И МОМЕНТАЛЬНЫЙ MOONDREAM (VISION)
+# ЕДИНЫЙ УНИВЕРСАЛЬНЫЙ ШЛЮЗ ОРКЕСТРАТОРА (UNIFIED TASK GATEWAY)
+# ============================================================================
+
+class OrchestratorTaskRequest(BaseModel):
+    task_type: str = Field(
+        ...,
+        description="Тип задачи: 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'generate_post', 'edit_photo', 'plan_content', 'feedback_loop', 'get_graph_data'"
+    )
+    user_id: str = Field(..., description="ID пользователя")
+    session_id: Optional[str] = Field(default=None, description="ID сессии / трейса")
+    payload: Dict[str, Any] = Field(default={}, description="Полезная нагрузка (параметры, ссылки, фото, тексты)")
+    sync_backend: bool = Field(default=True, description="Флаг авто-пуша результата в бэкенд")
+
+
+class OrchestratorTaskResponse(BaseModel):
+    status: str = Field(..., description="'success' или 'error'")
+    task_type: str
+    user_id: str
+    session_id: str
+    data: Dict[str, Any] = Field(default={})
+    timings: Dict[str, Any] = Field(default={})
+    error: Optional[str] = None
+
+
+@app.post("/api/v1/orchestrator/execute", response_model=OrchestratorTaskResponse)
+@app.post("/api/v1/task/execute", response_model=OrchestratorTaskResponse)
+async def execute_orchestrator_task(
+    request: OrchestratorTaskRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> OrchestratorTaskResponse:
+    """
+    ЕДИНЫЙ КОМАНДНЫЙ ШЛЮЗ ОРКЕСТРАТОРА ДЛЯ БЭКЕНДА:
+    - Принимает любую команду ('generate_post', 'quick_vision', 'onboard_user', 'analyze_documents', 'quick_scan').
+    - Проводит централизованную валидацию безопасности (SSRF, Injections, Secret).
+    - Выполняет оркестровку через UnifiedOrchestrator на максимальной скорости.
+    - Автоматически синхронизирует результат с основным бэкендом (HTTP Push Webhook).
+    """
+    import time
+    from core.orchestrator import UnifiedOrchestrator, SecurityGuard
+
+    # 1. Проверка внутреннего секрета доступа
+    expected_secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
+    if x_internal_secret and x_internal_secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid internal secret.")
+
+    t_start = time.time()
+    session_id = request.session_id or f"sess_{int(time.time()*1000)}"
+
+    # 2. Обогащение payload системными метаданными
+    task_payload = dict(request.payload)
+    task_payload["user_id"] = request.user_id
+    task_payload["session_id"] = session_id
+
+    # 3. Безопасность ввода
+    for k, v in task_payload.items():
+        if isinstance(v, str) and not SecurityGuard.check_user_input(v):
+            return OrchestratorTaskResponse(
+                status="error",
+                task_type=request.task_type,
+                user_id=request.user_id,
+                session_id=session_id,
+                data={},
+                timings={"total_seconds": round(time.time() - t_start, 3)},
+                error=f"Security Violation: обнаружен недопустимый ввод в поле '{k}'"
+            )
+
+    try:
+        orchestrator = UnifiedOrchestrator(db_session=database)
+        result_data = await orchestrator.execute_task(
+            task_type=request.task_type,
+            user_data=task_payload,
+            session_id=session_id
+        )
+
+        total_sec = round(time.time() - t_start, 3)
+        timings = result_data.get("timings") if isinstance(result_data, dict) else {}
+        if isinstance(timings, dict):
+            timings["gateway_total_seconds"] = total_sec
+
+        # 4. Фоновый Auto-Push в бэкенд
+        if request.sync_backend:
+            backend_cb = os.getenv("BACKEND_COLLECTOR_CALLBACK_URL") or os.getenv("JAVA_BACKEND_CALLBACK_URL")
+            if backend_cb:
+                async def _push_bg():
+                    try:
+                        import aiohttp
+                        async with aiohttp.ClientSession() as s:
+                            headers = {"X-Internal-Secret": expected_secret, "Content-Type": "application/json"}
+                            body = {
+                                "user_id": request.user_id,
+                                "session_id": session_id,
+                                "task_type": request.task_type,
+                                "status": result_data.get("status", "success"),
+                                "result": result_data,
+                                "timestamp": time.time()
+                            }
+                            await s.post(backend_cb, json=body, headers=headers, timeout=aiohttp.ClientTimeout(total=5))
+                    except Exception:
+                        pass
+                asyncio.create_task(_push_bg())
+
+        return OrchestratorTaskResponse(
+            status="success" if result_data.get("status") != "error" else "error",
+            task_type=request.task_type,
+            user_id=request.user_id,
+            session_id=session_id,
+            data=result_data,
+            timings=timings if isinstance(timings, dict) else {"total_seconds": total_sec}
+        )
+    except Exception as exc:
+        logger.exception("Error executing orchestrator task %s: %s", request.task_type, exc)
+        return OrchestratorTaskResponse(
+            status="error",
+            task_type=request.task_type,
+            user_id=request.user_id,
+            session_id=session_id,
+            data={},
+            timings={"total_seconds": round(time.time() - t_start, 3)},
+            error=str(exc)
+        )
+
+
+# ============================================================================
+# АЛИАСЫ ДЛЯ УДОБСТВА ФРОНТЕНДА (DELEGATING ALIASES)
 # ============================================================================
 
 class QuickVisionAnalysisRequest(BaseModel):
@@ -644,39 +767,14 @@ async def quick_vision_analyze(
     payload: QuickVisionAnalysisRequest,
     x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
 ) -> Dict[str, Any]:
-    """
-    Эндпоинт моментального анализа фото при загрузке на фронтенде:
-    1. Запускает Moondream VLM сразу при прикреплении пользователем 1-3 фото.
-    2. Определяет семантические роли (руки/маникюр, питомец, интерьер/кофейня).
-    3. Раскладывает по слотам воркфлоу realism2.0.json (Ноды 55, 64, 65).
-    4. Синтезирует композиционный Fusion-промпт и палитру цветов.
-    5. Кэширует результат, чтобы генерация поста происходила мгновенно.
-    """
-    import time
-    from skills.moondream_vqa import MoondreamVQA
-
-    t_start = time.time()
-    vqa = MoondreamVQA()
-
-    analysis_res = vqa.analyze_attachments_batch(
-        attachments=payload.attachments,
-        topic=payload.prompt or "",
-        company_name=payload.company_name
+    task_req = OrchestratorTaskRequest(
+        task_type="quick_vision",
+        user_id=payload.user_id,
+        session_id=payload.session_id,
+        payload=payload.dict()
     )
-
-    duration_ms = round((time.time() - t_start) * 1000, 2)
-    return {
-        "status": "success",
-        "execution_time_ms": duration_ms,
-        "user_id": payload.user_id,
-        "session_id": payload.session_id,
-        "photos_count": analysis_res.get("count", 0),
-        "brand_colors": analysis_res.get("colors", []),
-        "slot_mapping": analysis_res.get("slot_mapping"),
-        "fusion_prompt": analysis_res.get("fusion_prompt"),
-        "visual_narrative": analysis_res.get("fusion_narrative"),
-        "prompt_keywords": analysis_res.get("prompt_keywords")
-    }
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    return res.data
 
 
 @app.post("/api/v1/collectors/analyze-documents", response_model=Dict[str, Any])
@@ -684,34 +782,13 @@ async def analyze_documents_direct(
     payload: DocumentAnalysisRequest,
     x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
 ) -> Dict[str, Any]:
-    """
-    Эндпоинт парсинга документов клиентов (PDF, DOCX, PPTX):
-    1. Извлекает текст, прайсы, списки услуг и УТП.
-    2. Индексирует контент в Clean RAG память бренда.
-    3. Возвращает структурированную сводку для предзаполнения анкеты.
-    """
-    import time
-    from collectors.document_collector import DocumentCollector
-
-    t_start = time.time()
-    doc_collector = DocumentCollector()
-    extracted_docs = doc_collector.extract_documents_batch(payload.documents)
-
-    summary_chunks = []
-    for doc in extracted_docs:
-        if doc.get("status") == "success" and doc.get("raw_text"):
-            summary_chunks.append(f"[{doc['file_name']}]: {doc['raw_text'][:300]}")
-
-    duration_ms = round((time.time() - t_start) * 1000, 2)
-    return {
-        "status": "success",
-        "execution_time_ms": duration_ms,
-        "user_id": payload.user_id,
-        "company_name": payload.company_name,
-        "documents_count": len(extracted_docs),
-        "extracted_documents": extracted_docs,
-        "quick_summary": "\n".join(summary_chunks)
-    }
+    task_req = OrchestratorTaskRequest(
+        task_type="analyze_documents",
+        user_id=payload.user_id,
+        payload=payload.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    return res.data
 
 
 @app.post("/api/v1/collectors/analyze-brand", response_model=Dict[str, Any])
@@ -719,123 +796,13 @@ async def analyze_brand_multimodal(
     payload: UnifiedBrandAnalysisRequest,
     x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
 ) -> Dict[str, Any]:
-    """
-    Единый мультимодальный эндпоинт для онбординга и предзаполнения анкеты:
-    1. Параллельно опрашивает парсеры сайта, VK, TG, карт (2GIS/Яндекс).
-    2. Анализирует загруженные документы (PDF/DOCX) и фото через Moondream VLM.
-    3. Формирует готовую анкету бренда (название, ниша, УТП, цвета, соцсети, отзывы).
-    4. Автоматически отправляет результат в бэкенд через Webhook (BACKEND_COLLECTOR_CALLBACK_URL).
-    """
-    import time
-    from collectors.website_collector import WebsiteCollector
-    from collectors.vk_collector import VKCollector
-    from collectors.twogis_collector import TwoGISCollector
-    from collectors.document_collector import DocumentCollector
-    from skills.moondream_vqa import MoondreamVQA
-    from core.orchestrator import SecurityGuard
-
-    t_start = time.time()
-    
-    # SSRF защита ссылок
-    safe_urls = []
-    for u in payload.urls:
-        if SecurityGuard.check_user_input(u) and not any(h in u.lower() for h in ["localhost", "127.0.0.1", "10.0.", "192.168.", "169.254."]):
-            safe_urls.append(u)
-
-    site_urls = [u for u in safe_urls if not any(k in u.lower() for k in ["vk.com", "t.me", "2gis.", "yandex."])]
-    vk_urls = [u for u in safe_urls if "vk.com" in u.lower()]
-    tg_urls = [u for u in safe_urls if "t.me" in u.lower()]
-    map_urls = [u for u in safe_urls if any(k in u.lower() for k in ["2gis.", "yandex.ru/maps", "maps.yandex"])]
-
-    # Параллельные асинхронные задачи
-    async def _fetch_site():
-        if not site_urls:
-            return None
-        return await WebsiteCollector().collect_website_async(site_urls[0])
-
-    async def _fetch_vk():
-        if not vk_urls:
-            return None
-        return await VKCollector().collect_group_async(vk_urls[0])
-
-    async def _fetch_maps():
-        if not map_urls:
-            return None
-        return await TwoGISCollector().collect_reviews_async(map_urls[0])
-
-    async def _fetch_docs():
-        if not payload.documents:
-            return []
-        return DocumentCollector().extract_documents_batch(payload.documents)
-
-    async def _fetch_vision():
-        if not payload.images:
-            return None
-        return MoondreamVQA().analyze_attachments_batch(
-            attachments=payload.images,
-            company_name=payload.company_name or "Brand"
-        )
-
-    site_data, vk_data, maps_data, docs_data, vision_data = await asyncio.gather(
-        _fetch_site(),
-        _fetch_vk(),
-        _fetch_maps(),
-        _fetch_docs(),
-        _fetch_vision(),
-        return_exceptions=True
+    task_req = OrchestratorTaskRequest(
+        task_type="quick_scan",
+        user_id=payload.user_id,
+        payload=payload.dict()
     )
-
-    # Агрегация фирменных цветов
-    brand_colors = []
-    if isinstance(vision_data, dict) and vision_data.get("colors"):
-        brand_colors.extend(vision_data["colors"])
-    if isinstance(site_data, dict) and site_data.get("theme_color"):
-        brand_colors.append(site_data["theme_color"])
-
-    extracted_title = payload.company_name or (site_data.get("title") if isinstance(site_data, dict) else "") or "Мой бизнес"
-    extracted_niche = payload.niche or (site_data.get("description", "")[:60] if isinstance(site_data, dict) else "") or "Бизнес и услуги"
-    description = payload.raw_notes or (site_data.get("description") if isinstance(site_data, dict) else "")
-
-    prefilled_profile = {
-        "business_name": extracted_title,
-        "niche": extracted_niche,
-        "city": payload.city,
-        "description": description,
-        "brand_colors": list(dict.fromkeys(brand_colors))[:5] or ["#3b82f6", "#1e293b"],
-        "visual_style": vision_data.get("visual_context_for_llm") if isinstance(vision_data, dict) else "Естественный студийный свет",
-        "contacts": site_data.get("contacts") if isinstance(site_data, dict) else {},
-        "reviews_summary": maps_data.get("summary") if isinstance(maps_data, dict) else None,
-        "documents_parsed_count": len(docs_data) if isinstance(docs_data, list) else 0,
-        "social_links": {
-            "website": site_urls[0] if site_urls else None,
-            "vk": vk_urls[0] if vk_urls else None,
-            "telegram": tg_urls[0] if tg_urls else None
-        }
-    }
-
-    # Фоновый HTTP Push в основной Бэкенд
-    backend_sync_url = os.getenv("BACKEND_COLLECTOR_CALLBACK_URL")
-    if backend_sync_url:
-        async def _push():
-            try:
-                import aiohttp
-                secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
-                async with aiohttp.ClientSession() as s:
-                    headers = {"X-Internal-Secret": secret, "Content-Type": "application/json"}
-                    await s.post(backend_sync_url, json={"user_id": payload.user_id, "profile": prefilled_profile}, headers=headers, timeout=aiohttp.ClientTimeout(total=5))
-            except Exception:
-                pass
-        asyncio.create_task(_push())
-
-    duration_ms = round((time.time() - t_start) * 1000, 2)
-    return {
-        "status": "success",
-        "execution_time_ms": duration_ms,
-        "user_id": payload.user_id,
-        "prefilled_profile": prefilled_profile,
-        "moondream_analysis": vision_data if isinstance(vision_data, dict) else None,
-        "documents_analysis": docs_data if isinstance(docs_data, list) else []
-    }
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    return res.data
 
 
 __all__ = ["app"]

@@ -205,6 +205,111 @@ class UnifiedOrchestrator:
             except Exception as e:
                 print(f"[UnifiedOrchestrator] ⚠️ Ошибка Moondream анализа: {e}")
 
+        if task_type in {"quick_vision", "analyze_attachments", "analyze_photo", "vision"}:
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "photos_count": moondream_analysis.get("count", 0) if moondream_analysis else 0,
+                "brand_colors": moondream_analysis.get("colors", []) if moondream_analysis else [],
+                "slot_mapping": moondream_analysis.get("slot_mapping") if moondream_analysis else None,
+                "fusion_prompt": moondream_analysis.get("fusion_prompt") if moondream_analysis else None,
+                "visual_narrative": moondream_analysis.get("fusion_narrative") if moondream_analysis else None,
+                "prompt_keywords": moondream_analysis.get("prompt_keywords") if moondream_analysis else ""
+            }
+
+        if task_type in {"analyze_documents", "extract_documents", "parse_documents"}:
+            from collectors.document_collector import DocumentCollector
+            from rag.pipeline import Document
+            doc_collector = DocumentCollector()
+            doc_paths = user_data.get("documents") or user_data.get("files") or user_data.get("document_paths") or []
+            if isinstance(doc_paths, str):
+                doc_paths = [doc_paths]
+            extracted_docs = doc_collector.extract_documents_batch(doc_paths)
+            rag_docs = []
+            company_name = user_data.get("company_name", "UCust")
+            for idx, doc in enumerate(extracted_docs):
+                if doc.get("status") == "success" and doc.get("raw_text"):
+                    rag_docs.append(Document(
+                        doc_id=f"doc_{company_name}_{idx+1}",
+                        text=f"Документ '{doc['file_name']}':\n{doc['raw_text']}",
+                        metadata={"category": "client_files", "company_name": company_name}
+                    ))
+            indexed_count = 0
+            if rag_docs:
+                try:
+                    indexed_count = await self.rag.ingest_documents_async(rag_docs)
+                except Exception as r_err:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка индексации документов: {r_err}")
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "company_name": company_name,
+                "documents_count": len(extracted_docs),
+                "extracted_documents": extracted_docs,
+                "indexed_in_rag_count": indexed_count
+            }
+
+        if task_type in {"quick_scan", "scan_sources", "fast_onboarding"}:
+            from collectors.website_collector import WebsiteCollector
+            from collectors.vk_collector import VKCollector
+            from collectors.twogis_collector import TwoGISCollector
+            urls = user_data.get("urls") or []
+            if isinstance(urls, str):
+                urls = [urls]
+            safe_urls = [u for u in urls if SecurityGuard.check_user_input(u) and not any(h in u.lower() for h in ["localhost", "127.0.0.1", "10.0.", "192.168.", "169.254."])]
+            site_urls = [u for u in safe_urls if not any(k in u.lower() for k in ["vk.com", "t.me", "2gis.", "yandex."])]
+            vk_urls = [u for u in safe_urls if "vk.com" in u.lower()]
+            map_urls = [u for u in safe_urls if any(k in u.lower() for k in ["2gis.", "yandex."])]
+
+            async def _f_site():
+                if site_urls:
+                    return await WebsiteCollector().collect_website_async(site_urls[0])
+                return None
+
+            async def _f_vk():
+                if vk_urls:
+                    return await VKCollector().collect_group_async(vk_urls[0])
+                return None
+
+            async def _f_map():
+                if map_urls:
+                    return await TwoGISCollector().collect_reviews_async(map_urls[0])
+                return None
+
+            site_res, vk_res, map_res = await asyncio.gather(_f_site(), _f_vk(), _f_map(), return_exceptions=True)
+            
+            b_colors = []
+            if moondream_analysis and moondream_analysis.get("colors"):
+                b_colors.extend(moondream_analysis["colors"])
+            if isinstance(site_res, dict) and site_res.get("theme_color"):
+                b_colors.append(site_res["theme_color"])
+
+            comp_title = user_data.get("company_name") or (site_res.get("title") if isinstance(site_res, dict) else "") or "Мой бизнес"
+            comp_niche = user_data.get("niche") or (site_res.get("description", "")[:60] if isinstance(site_res, dict) else "") or "Бизнес и услуги"
+
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "prefilled_profile": {
+                    "business_name": comp_title,
+                    "niche": comp_niche,
+                    "city": user_data.get("city", "Москва"),
+                    "description": site_res.get("description", "") if isinstance(site_res, dict) else "",
+                    "brand_colors": list(dict.fromkeys(b_colors))[:5] or ["#3b82f6", "#1e293b"],
+                    "contacts": site_res.get("contacts") if isinstance(site_res, dict) else {},
+                    "reviews_summary": map_res.get("summary") if isinstance(map_res, dict) else None,
+                    "social_links": {
+                        "website": site_urls[0] if site_urls else None,
+                        "vk": vk_urls[0] if vk_urls else None
+                    }
+                },
+                "raw_sources": {
+                    "website": site_res if not isinstance(site_res, Exception) else None,
+                    "vk": vk_res if not isinstance(vk_res, Exception) else None,
+                    "maps": map_res if not isinstance(map_res, Exception) else None
+                }
+            }
+
         if task_type in {"onboarding", "onboard_user", "analyze_brand", "interviewer"}:
             from skills.saiga_llm import SaigaLLMSkill
             from collectors.website_collector import WebsiteCollector
@@ -1203,6 +1308,10 @@ class UnifiedOrchestrator:
                 "top_score": rag_res.top_score,
                 "fallback_message": rag_res.fallback_message
             }
+
+        if task_type in ["get_graph_data", "graph_data", "metrics"]:
+            metrics = self.get_frontend_graph_data()
+            return {"status": "success", "task_type": task_type, "metrics": metrics}
 
         return {"status": "error", "message": f"Неизвестная задача '{task_type}'"}
 

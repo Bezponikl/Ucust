@@ -77,20 +77,30 @@ class SecurityGuard:
         return True
 
     @classmethod
-    def validate_content_tone_of_voice(cls, content_text: str) -> tuple[bool, Optional[str]]:
+    def validate_content_tone_of_voice(cls, content_text: str, custom_forbidden_words: Optional[List[str]] = None) -> tuple[bool, Optional[str]]:
         """
         Tone-of-Voice Gatekeeper: Проверяет исходящий контент перед отправкой на фронтенд/в API.
-        Отсекает фальшь, стоп-слова, токсичную бодрость и некорректную типографику.
+        Отсекает фальшь, глобальные стоп-слова, а также кастомные стоп-слова бренда из BrandGuidelines.
         """
         if not content_text:
             return True, None
             
         content_lower = content_text.lower()
+        # 1. Глобальные стоп-слова
         for word in cls.TONE_STOPWORDS:
             if word in content_lower:
                 print(f"[SecurityGuard] ⚠️ БРАК КОНТЕНТА (Tone of Voice): обнаружено стоп-выражение '{word}'!")
                 return False, f"Нарушение гайдлайнов качества: обнаружено запрещенное слово/символ '{word}'"
+
+        # 2. Кастомные стоп-слова клиента (Brand Guidelines)
+        if custom_forbidden_words:
+            for c_word in custom_forbidden_words:
+                if c_word and c_word.lower() in content_lower:
+                    print(f"[SecurityGuard] ⚠️ БРАК КОНТЕНТА (Brand Guidelines): обнаружено стоп-слово бренда '{c_word}'!")
+                    return False, f"Нарушение редполитики бренда: запрещено использовать слово '{c_word}'"
+
         return True, None
+
 
     @classmethod
     def sanitize_graph_data(cls, raw_data: List[Dict]) -> List[Dict]:
@@ -889,11 +899,44 @@ class UnifiedOrchestrator:
                     user_data["brand_colors"] = proj_ctx.get("brandColors")
                 if (proj_ctx.get("id") or proj_ctx.get("projectId")) and not user_data.get("project_id"):
                     user_data["project_id"] = proj_ctx.get("id") or proj_ctx.get("projectId")
+                if proj_ctx.get("brandGuidelines"):
+                    bg = proj_ctx.get("brandGuidelines")
+                    if isinstance(bg, dict):
+                        user_data["brand_guidelines"] = bg
+                        if bg.get("forbiddenWords"):
+                            user_data["forbidden_words"] = bg.get("forbiddenWords")
+                        if bg.get("mandatoryPhrases"):
+                            user_data["mandatory_phrases"] = bg.get("mandatoryPhrases")
+                        if bg.get("addressingStyle"):
+                            user_data["addressing_style"] = bg.get("addressingStyle")
+                if proj_ctx.get("visualDna"):
+                    vd = proj_ctx.get("visualDna")
+                    if isinstance(vd, dict):
+                        user_data["visual_dna"] = vd
+                        if vd.get("brandColors") and not user_data.get("brand_colors"):
+                            user_data["brand_colors"] = vd.get("brandColors")
+                        if vd.get("moodKeywords") and not user_data.get("mood_keywords"):
+                            user_data["mood_keywords"] = vd.get("moodKeywords")
+                        if vd.get("visualStyle") and not user_data.get("visual_style"):
+                            user_data["visual_style"] = vd.get("visualStyle")
+                if proj_ctx.get("productsCatalog"):
+                    user_data["products_catalog"] = proj_ctx.get("productsCatalog")
+                if proj_ctx.get("keyBenefits"):
+                    user_data["key_benefits"] = proj_ctx.get("keyBenefits")
+                if proj_ctx.get("locations"):
+                    user_data["locations"] = proj_ctx.get("locations")
+                if proj_ctx.get("deliveryInfo"):
+                    user_data["delivery_info"] = proj_ctx.get("deliveryInfo")
+                if proj_ctx.get("language"):
+                    user_data["language"] = proj_ctx.get("language")
+                if proj_ctx.get("recentPostTopics"):
+                    user_data["recent_post_topics"] = proj_ctx.get("recentPostTopics")
             else:
                 tone = user_data.get("tone", "Естественный и живой")
                 niche = user_data.get("niche", "IT Automation / Сервис контента")
                 city = user_data.get("city", "Москва")
                 company_name = user_data.get("company_name") or user_data.get("companyName") or "UCust"
+
 
             format_type = user_data.get("format", "post")
             offer = user_data.get("offer") or user_data.get("promo") or user_data.get("promoCode") or user_data.get("promo_code") or user_data.get("discount") or user_data.get("bonus")
@@ -1071,13 +1114,21 @@ class UnifiedOrchestrator:
                     brand_profile=brand_profile,
                     rag_context=rag_fact_context,
                     marketing_directive=marketing_bundle,
-                    routing=routing_directive
+                    routing=routing_directive,
+                    products_catalog=user_data.get("products_catalog"),
+                    key_benefits=user_data.get("key_benefits"),
+                    brand_guidelines=user_data.get("brand_guidelines"),
+                    locations=user_data.get("locations"),
+                    rubric=user_data.get("rubric"),
+                    primary_cta=user_data.get("primary_cta"),
+                    language=user_data.get("language", "ru")
                 )
                 p_text = gen_res.get("post_text", "")
                 
                 # 3.2 Валидация качества (Gatekeeper + Critic Munger)
+                custom_forb = user_data.get("forbidden_words")
                 from skills.critic_munger import CriticMungerSkill
-                is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(p_text)
+                is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(p_text, custom_forbidden_words=custom_forb)
                 if not is_valid:
                     p_text = saiga.self_heal_text(p_text, error_msg or "", routing=routing_directive)
                     
@@ -1090,10 +1141,11 @@ class UnifiedOrchestrator:
                     healing_attempts += 1
                     print(f"[UnifiedOrchestrator] 🛡️ Агент-Критик отклонил черновик (Итерация {healing_attempts}/{MAX_HEALING_RETRIES}, Score={critic_res['score']}): {critic_res['criticism']}. Запуск самоисправления...")
                     p_text = saiga.self_heal_text(p_text, critic_res.get("actionable_feedback", ""), routing=routing_directive)
-                    is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(p_text)
+                    is_valid, error_msg = SecurityGuard.validate_content_tone_of_voice(p_text, custom_forbidden_words=custom_forb)
                     if not is_valid:
                         p_text = saiga.self_heal_text(p_text, error_msg or "", routing=routing_directive)
                     critic_res = critic.review_content(p_text, topic=prompt, target_audience=niche, routing=routing_directive)
+
 
                 t_text_duration = round(max(0.05, time.time() - t_text_start), 2)
                 return {
@@ -1208,7 +1260,7 @@ class UnifiedOrchestrator:
                 company_name=company_name,
                 niche=niche,
                 promo_code=promo_val,
-                website_url=user_data.get("website") or user_data.get("website_url"),
+                website_url=user_data.get("target_action_link") or user_data.get("website") or user_data.get("website_url") or (user_data.get("social_links", {}).get("website") if isinstance(user_data.get("social_links"), dict) else None),
                 contacts=user_data.get("contacts"),
                 social_links=user_data.get("social_links"),
                 enable_expandable_blockquote=user_data.get("expandable_blockquote", True),
@@ -1216,8 +1268,9 @@ class UnifiedOrchestrator:
                 enable_strikethrough=user_data.get("enable_strikethrough", True),
                 enable_spoilers=user_data.get("enable_spoilers", True),
                 enable_buttons=user_data.get("enable_buttons", True),
-                cta_type=user_data.get("cta_type", "general")
+                cta_type=user_data.get("primary_cta") or user_data.get("cta_type", "general")
             )
+
             
             post_text_html = rich_tg_data["html_text"]
             post_text_tg_md = rich_tg_data["markdown_v2_text"]

@@ -128,6 +128,39 @@ class AchievementBroadcastRequest(BaseModel):
     channel: Optional[str] = Field("@UcustAi", example="@UcustAi", description="Целевой Telegram-канал")
 
 
+class BrandGuidelines(BaseModel):
+    addressingStyle: Optional[str] = Field("YOU_PLURAL", description="Стиль обращения: YOU_SINGULAR (на 'ты'), YOU_PLURAL (на 'вы'), WE_FORM (от лица команды)")
+    forbiddenWords: Optional[List[str]] = Field(default_factory=list, description="Черный список стоп-слов, которые запрещено употреблять")
+    mandatoryPhrases: Optional[List[str]] = Field(default_factory=list, description="Обязательные фразы / слоганы бренда")
+    emojiPolicy: Optional[str] = Field("MINIMAL", description="Политика эмодзи: MINIMAL, VIBRANT, NONE, STRICT_SYSTEM")
+    brandKeywords: Optional[List[str]] = Field(default_factory=list, description="Ключевые слова бренда для органического SEO")
+
+
+class VisualDna(BaseModel):
+    brandColors: Optional[List[str]] = Field(default_factory=list, description="Палитра бренда в Hex (#2D5A27, #D4AF37)")
+    visualStyle: Optional[str] = Field("PHOTOREALISTIC", description="Визуальный стиль: PHOTOREALISTIC, WARM_NATURAL, MINIMALIST, CINEMATIC, 3D_RENDER")
+    moodKeywords: Optional[List[str]] = Field(default_factory=list, description="Атмосферные дескрипторы (уют, крафт, утренний свет)")
+    logoUrl: Optional[str] = Field(None, description="URL логотипа для брендинга")
+    watermarkPosition: Optional[str] = Field("BOTTOM_RIGHT", description="Позиция водяного знака / лого")
+    aspectRatio: Optional[str] = Field("1:1", description="Дефолтное соотношение сторон")
+
+
+class ProductItem(BaseModel):
+    name: str = Field(..., description="Название товара или услуги")
+    price: Optional[str] = Field(None, description="Цена (например '850 ₽' или 'от 5 000 ₽')")
+    description: Optional[str] = Field(None, description="Краткое описание товара")
+    flavorNotes: Optional[str] = Field(None, description="Вкусовые ноты / специфика состава")
+    category: Optional[str] = Field(None, description="Категория продукта")
+    ctaUrl: Optional[str] = Field(None, description="Прямая ссылка на покупку/заказ")
+
+
+class LocationBranch(BaseModel):
+    address: str = Field(..., description="Физический адрес филиала / точки")
+    city: Optional[str] = Field(None, description="Город филиала")
+    workingHours: Optional[str] = Field(None, description="Часы работы конкретного филиала")
+    phone: Optional[str] = Field(None, description="Контактный телефон")
+
+
 class ProjectContext(BaseModel):
     id: Optional[str] = Field(None, description="ID проекта")
     projectId: Optional[str] = Field(None, description="ID проекта (алиас)")
@@ -137,8 +170,20 @@ class ProjectContext(BaseModel):
     niche: Optional[str] = Field(None, description="Ниша бизнеса (алиас)")
     city: Optional[str] = Field("Москва", description="Город присутствия")
     description: Optional[str] = Field(None, description="Описание бизнеса и ключевое позиционирование")
-    targetAudience: Optional[str] = Field(None, description="Описание целевой аудитории")
+    targetAudience: Optional[str] = Field(None, description="Описание целевой аудитории (возраст, боли, ценности)")
     toneOfVoice: Optional[str] = Field("FRIENDLY", description="Тон коммуникации (FRIENDLY, BOLD, EXPERT, FORMAL)")
+    
+    # 🌟 Расширенные блоки обогащения
+    brandGuidelines: Optional[BrandGuidelines] = Field(None, description="Редакционная политика и правила бренда")
+    visualDna: Optional[VisualDna] = Field(None, description="Визуальный брендбук и параметры генерации графики")
+    productsCatalog: Optional[List[ProductItem]] = Field(default_factory=list, description="Флагманские продукты / меню с ценами")
+    keyBenefits: Optional[List[str]] = Field(default_factory=list, description="Ключевые преимущества бренда (УТП)")
+    locations: Optional[List[LocationBranch]] = Field(default_factory=list, description="Адреса филиалов и точек продаж")
+    deliveryInfo: Optional[str] = Field(None, description="Условия доставки и самовывоза")
+    language: Optional[str] = Field("ru", description="Основной язык контента (ru, en, pt, de...)")
+    recentPostTopics: Optional[List[str]] = Field(default_factory=list, description="Темы последних постов для защиты от повторений")
+
+    # Базовые инфраструктурные поля
     socialLinks: Optional[Dict[str, Any]] = Field(None, description="Ссылки на соцсети (telegram, instagram, vk, website)")
     businessHours: Optional[Dict[str, Any]] = Field(None, description="График работы и выходные дни")
     ownerId: Optional[str] = Field(None, description="ID владельца")
@@ -158,8 +203,15 @@ class GeneratePostRequest(BaseModel):
     attachments: Optional[List[Any]] = Field(default_factory=list, description="Медиа-вложения (фото, референсы)")
     promoCode: Optional[str] = Field(None, description="Промокод / специальное предложение")
     promo_code: Optional[str] = Field(None, description="Промокод (алиас)")
+    
+    # 🌟 Супер-контекст проекта
     projectContext: Optional[ProjectContext] = Field(None, description="Полный объект проекта")
     project_context: Optional[ProjectContext] = Field(None, description="Полный объект проекта (алиас)")
+    
+    rubric: Optional[str] = Field(None, description="Рубрика публикации: EXPERT, PRODUCT, PROMO, CASE, LIFE, MEME")
+    primaryCta: Optional[str] = Field(None, description="Целевое действие: BUY, BOOK, COMMENT, CHAT, PROMO")
+    targetActionLink: Optional[str] = Field(None, description="Ссылка для встраивания в целевую кнопку CTA")
+    language: Optional[str] = Field("ru", description="Язык генерации поста (ru, en, pt, de...)")
     tone: Optional[str] = Field(None, description="Тон коммуникации")
     aspect_ratio: Optional[str] = Field("1:1", description="Соотношение сторон (1:1, 9:16, 16:9)")
     callback_url: Optional[str] = Field(None, description="URL для Push-коллбека")
@@ -187,6 +239,7 @@ class AsyncGenerateTaskRequest(BaseModel):
     session_id: Optional[str] = Field(None, description="ID сессии")
     projectContext: Optional[ProjectContext] = Field(None, description="Полный контекст проекта")
     project_context: Optional[ProjectContext] = Field(None, description="Полный контекст проекта (алиас)")
+
 
 
 
@@ -408,6 +461,47 @@ async def direct_orchestration_generate(
             task_payload["brand_colors"] = proj.brandColors
         if proj.id or proj.projectId:
             task_payload["project_id"] = proj.id or proj.projectId
+        if proj.brandGuidelines:
+            task_payload["brand_guidelines"] = proj.brandGuidelines.dict(exclude_none=True)
+            if proj.brandGuidelines.forbiddenWords:
+                task_payload["forbidden_words"] = proj.brandGuidelines.forbiddenWords
+            if proj.brandGuidelines.mandatoryPhrases:
+                task_payload["mandatory_phrases"] = proj.brandGuidelines.mandatoryPhrases
+            if proj.brandGuidelines.addressingStyle:
+                task_payload["addressing_style"] = proj.brandGuidelines.addressingStyle
+            if proj.brandGuidelines.emojiPolicy:
+                task_payload["emoji_policy"] = proj.brandGuidelines.emojiPolicy
+        if proj.visualDna:
+            task_payload["visual_dna"] = proj.visualDna.dict(exclude_none=True)
+            if proj.visualDna.brandColors and not task_payload.get("brand_colors"):
+                task_payload["brand_colors"] = proj.visualDna.brandColors
+            if proj.visualDna.visualStyle:
+                task_payload["visual_style"] = proj.visualDna.visualStyle
+            if proj.visualDna.moodKeywords:
+                task_payload["mood_keywords"] = proj.visualDna.moodKeywords
+            if proj.visualDna.logoUrl and not task_payload.get("logo_url"):
+                task_payload["logo_url"] = proj.visualDna.logoUrl
+        if proj.productsCatalog:
+            task_payload["products_catalog"] = [p.dict(exclude_none=True) for p in proj.productsCatalog]
+        if proj.keyBenefits:
+            task_payload["key_benefits"] = proj.keyBenefits
+        if proj.locations:
+            task_payload["locations"] = [loc.dict(exclude_none=True) for loc in proj.locations]
+        if proj.deliveryInfo:
+            task_payload["delivery_info"] = proj.deliveryInfo
+        if proj.language:
+            task_payload["language"] = proj.language
+        if proj.recentPostTopics:
+            task_payload["recent_post_topics"] = proj.recentPostTopics
+
+    if request.rubric:
+        task_payload["rubric"] = request.rubric
+    if request.primaryCta:
+        task_payload["primary_cta"] = request.primaryCta
+    if request.targetActionLink:
+        task_payload["target_action_link"] = request.targetActionLink
+    if request.language:
+        task_payload["language"] = request.language
 
     # 3. Валидация безопасности
     payload_str = json.dumps(task_payload, ensure_ascii=False)
@@ -430,6 +524,7 @@ async def direct_orchestration_generate(
         "project_id": task_payload.get("project_id"),
         "data": result
     }
+
 
 
 @app.get("/api/v1/ai/health", tags=["System"])

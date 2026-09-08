@@ -245,12 +245,19 @@ class SaigaLLMSkill:
         tone_override: Optional[str] = None,
         marketing_directive: Optional[Dict[str, Any]] = None,
         routing: Optional[Any] = None,
+        products_catalog: Optional[List[Dict[str, Any]]] = None,
+        key_benefits: Optional[List[str]] = None,
+        brand_guidelines: Optional[Dict[str, Any]] = None,
+        locations: Optional[List[Dict[str, Any]]] = None,
+        rubric: Optional[str] = None,
+        primary_cta: Optional[str] = None,
+        language: Optional[str] = "ru",
         **kwargs
     ) -> dict:
         """
         Генерирует уникальный, высококонверсионный SMM-текст публикации строго под заданную тему,
         нишу и компанию, обогащая текст деталями визуального анализа от Moondream,
-        анализом комментариев/возражений, точными фактами из RAG и глубокой маркетинговой воронкой Ханта (JTBD, Value Ladder, Fogg CTA).
+        анализом комментариев/возражений, точными фактами из RAG, глубоким ProjectContext (продукты, редполитика, УТП) и воронкой Ханта.
         """
         if tone_override:
             tone = tone_override
@@ -263,6 +270,12 @@ class SaigaLLMSkill:
         print(f"[SaigaSkill] ✍️ Генерация SMM-поста: Компания='{company_name}', Ниша='{niche}', Тема='{topic}', Тон='{tone}'...")
         if rag_context:
             print(f"[SaigaSkill] 📚 Включен контекст базы знаний RAG (факты, боли, УТП): {len(rag_context)} симв.")
+        if products_catalog:
+            print(f"[SaigaSkill] 🛍️ Включен каталог товаров: {len(products_catalog)} позиций.")
+        if key_benefits:
+            print(f"[SaigaSkill] 🌟 Включены преимущества бренда (УТП): {len(key_benefits)} пунктов.")
+        if brand_guidelines:
+            print(f"[SaigaSkill] 🛡️ Включена редполитика бренда: {brand_guidelines.get('addressingStyle', 'дефолт')}.")
         if visual_context:
             print(f"[SaigaSkill] 👁️ Включен визуальный контекст от Moondream: {visual_context[:100]}...")
         if comments_context:
@@ -270,6 +283,54 @@ class SaigaLLMSkill:
         if marketing_directive:
             print(f"[SaigaSkill] 🎯 Маркетинговая воронка: Ступень Ханта={marketing_directive.get('hunt_stage')}, Фреймворк={marketing_directive.get('framework')}")
         
+        # 1. Продуктовый каталог и меню
+        products_info = ""
+        if products_catalog:
+            p_lines = []
+            for p in products_catalog[:5]:
+                p_name = p.get("name", "")
+                p_price = f" ({p.get('price')})" if p.get("price") else ""
+                p_desc = f" - {p.get('flavorNotes') or p.get('description')}" if (p.get('flavorNotes') or p.get('description')) else ""
+                p_lines.append(f"• {p_name}{p_price}{p_desc}")
+            products_info = f"\nФЛАГМАНСКИЕ ТОВАРЫ/МЕНЮ И ЦЕНЫ:\n" + "\n".join(p_lines) + "\n"
+
+        # 2. Ключевые преимущества бренда (УТП)
+        benefits_info = ""
+        if key_benefits:
+            benefits_info = f"\nПРЕИМУЩЕСТВА БРЕНДА (УТП):\n" + "\n".join([f"• {b}" for b in key_benefits[:5]]) + "\n"
+
+        # 3. Редполитика бренда (Brand Guidelines)
+        guidelines_info = ""
+        if brand_guidelines:
+            g_lines = []
+            addr_style = brand_guidelines.get("addressingStyle")
+            if addr_style == "YOU_SINGULAR":
+                g_lines.append("Обращение к читателю строго на «ты».")
+            elif addr_style == "YOU_PLURAL":
+                g_lines.append("Обращение к читателю строго уважительно на «вы».")
+            elif addr_style == "WE_FORM":
+                g_lines.append("Повествование ведется от лица команды («мы», «наш коллектив»).")
+            
+            forb = brand_guidelines.get("forbiddenWords")
+            if forb:
+                g_lines.append(f"КАТЕГОРИЧЕСКИ ЗАПРЕЩЕННЫЕ СЛОВА КЛИЕНТА (Строгий бан): {', '.join(forb)}")
+            
+            mand = brand_guidelines.get("mandatoryPhrases")
+            if mand:
+                g_lines.append(f"ОБЯЗАТЕЛЬНО ИСПОЛЬЗУЙ ФРАЗЫ/СЛОГАНЫ: {', '.join(mand)}")
+            
+            guidelines_info = "\nРЕДПОЛИТИКА БРЕНДА:\n" + "\n".join(g_lines) + "\n"
+
+        # 4. Локации и филиалы
+        locations_info = ""
+        if locations:
+            l_lines = [f"• {loc.get('address')}" + (f" ({loc.get('workingHours')})" if loc.get('workingHours') else "") for loc in locations[:3]]
+            locations_info = f"\nФИЛИАЛЫ И АДРЕСА:\n" + "\n".join(l_lines) + "\n"
+
+        rubric_info = f"\nРУБРИКА: {rubric}\n" if rubric else ""
+        cta_info = f"\nЦЕЛЕВОЕ ДЕЙСТВИЕ (CTA): {primary_cta}\n" if primary_cta else ""
+        lang_info = f"\nЯЗЫК ТЕКСТА: {language}\n" if language and language != "ru" else ""
+
         # Если загружена реальная модель llama-cpp
         if self._is_loaded and self._llm and os.getenv("DISABLE_LOCAL_LLM", "").lower() not in ["1", "true", "yes"]:
             try:
@@ -305,14 +366,22 @@ class SaigaLLMSkill:
                     f"   - Точное описание продукта, характеристик или пользы простым экспертным языком.\n"
                     f"   - Решение реальной задачи клиента без шаблонных процентов и пустых обещаний.\n"
                     f"   - Спокойный и уважительный призыв к диалогу или заказу в личные сообщения.\n"
-                    f"5. ТОНАЛЬНОСТЬ: Интеллигентный, спокойный, уверенный тон эксперта и основателя бренда.\n"
+                    f"5. ТОНАЛЬНОСТЬ: {tone}.\n"
                     f"6. ОБЪЕМ И ЛАКОНИЧНОСТЬ: Целевой объем 400-600 символов (3 коротких содержательных абзаца без дефисных списков).\n"
                     f"7. ЯКОРЯ ГАРДЕРОБА ДЛЯ ВИЗУАЛА: При описании персонажей в рабочей одежде или фартуках всегда явно фиксируй базовый слой (например, loose white cotton t-shirt under apron), исключая открытое тело.\n"
                     f"{routing_funnel_rules}\n"
+                    f"{guidelines_info}"
+                    f"{products_info}"
+                    f"{benefits_info}"
+                    f"{locations_info}"
+                    f"{rubric_info}"
+                    f"{cta_info}"
+                    f"{lang_info}"
                     f"{mktg_info}\n"
                     f"{rag_info}\n"
                     f"{visual_context or ''}{comments_info}"
                 )
+
                 fw_name = marketing_directive.get('framework', 'экспертный стиль') if marketing_directive else 'экспертный стиль'
                 hunt_name = marketing_directive.get('hunt_stage', 'осознание') if marketing_directive else 'осознание'
                 

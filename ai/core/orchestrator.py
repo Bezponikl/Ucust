@@ -867,13 +867,38 @@ class UnifiedOrchestrator:
             # =========================================================================
             # КАСКАДНАЯ МАТРИЦА РАЗРЕШЕНИЯ КОНТЕКСТА (CASCADE FALLBACK RESOLUTION)
             # =========================================================================
+            # 0. Извлечение расширенного контекста проекта (ProjectContext Enrichment)
+            proj_ctx = user_data.get("project_context") or user_data.get("projectContext") or user_data.get("project") or {}
+            if isinstance(proj_ctx, dict):
+                company_name = proj_ctx.get("name") or proj_ctx.get("companyName") or user_data.get("company_name") or user_data.get("companyName") or "UCust"
+                niche = proj_ctx.get("industry") or proj_ctx.get("niche") or user_data.get("niche") or "IT Automation / Сервис контента"
+                city = proj_ctx.get("city") or user_data.get("city") or "Москва"
+                tone = proj_ctx.get("toneOfVoice") or proj_ctx.get("tone_of_voice") or user_data.get("tone") or "Естественный и живой"
+                if proj_ctx.get("description") and not user_data.get("usp"):
+                    user_data["usp"] = proj_ctx.get("description")
+                    user_data["description"] = proj_ctx.get("description")
+                if proj_ctx.get("targetAudience") and not user_data.get("target_audience"):
+                    user_data["target_audience"] = proj_ctx.get("targetAudience")
+                if proj_ctx.get("socialLinks"):
+                    user_data["social_links"] = proj_ctx.get("socialLinks")
+                if proj_ctx.get("businessHours"):
+                    user_data["business_hours"] = proj_ctx.get("businessHours")
+                if proj_ctx.get("logoUrl"):
+                    user_data["logo_url"] = proj_ctx.get("logoUrl")
+                if proj_ctx.get("brandColors") and not user_data.get("brand_colors"):
+                    user_data["brand_colors"] = proj_ctx.get("brandColors")
+                if (proj_ctx.get("id") or proj_ctx.get("projectId")) and not user_data.get("project_id"):
+                    user_data["project_id"] = proj_ctx.get("id") or proj_ctx.get("projectId")
+            else:
+                tone = user_data.get("tone", "Естественный и живой")
+                niche = user_data.get("niche", "IT Automation / Сервис контента")
+                city = user_data.get("city", "Москва")
+                company_name = user_data.get("company_name") or user_data.get("companyName") or "UCust"
+
             format_type = user_data.get("format", "post")
-            tone = user_data.get("tone", "Естественный и живой")
-            niche = user_data.get("niche", "IT Automation / Сервис контента")
-            city = user_data.get("city", "Москва")
-            company_name = user_data.get("company_name", "UCust")
-            offer = user_data.get("offer") or user_data.get("promo") or user_data.get("discount") or user_data.get("bonus")
+            offer = user_data.get("offer") or user_data.get("promo") or user_data.get("promoCode") or user_data.get("promo_code") or user_data.get("discount") or user_data.get("bonus")
             should_gen_image = user_data.get("generate_image", True) or format_type in ["post", "photo"]
+
 
             # 1. ТЕМАТИЧЕСКИЙ КАСКАД (User Prompt -> Content Plan Stack -> RAG / Auto Topic)
             user_prompt = user_data.get("prompt") or user_data.get("topic")

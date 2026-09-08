@@ -128,10 +128,50 @@ class AchievementBroadcastRequest(BaseModel):
     channel: Optional[str] = Field("@UcustAi", example="@UcustAi", description="Целевой Telegram-канал")
 
 
+class ProjectContext(BaseModel):
+    id: Optional[str] = Field(None, description="ID проекта")
+    projectId: Optional[str] = Field(None, description="ID проекта (алиас)")
+    name: Optional[str] = Field(None, description="Название бренда/компании")
+    companyName: Optional[str] = Field(None, description="Название бренда (алиас)")
+    industry: Optional[str] = Field(None, description="Индустрия / сфера деятельности")
+    niche: Optional[str] = Field(None, description="Ниша бизнеса (алиас)")
+    city: Optional[str] = Field("Москва", description="Город присутствия")
+    description: Optional[str] = Field(None, description="Описание бизнеса и ключевое позиционирование")
+    targetAudience: Optional[str] = Field(None, description="Описание целевой аудитории")
+    toneOfVoice: Optional[str] = Field("FRIENDLY", description="Тон коммуникации (FRIENDLY, BOLD, EXPERT, FORMAL)")
+    socialLinks: Optional[Dict[str, Any]] = Field(None, description="Ссылки на соцсети (telegram, instagram, vk, website)")
+    businessHours: Optional[Dict[str, Any]] = Field(None, description="График работы и выходные дни")
+    ownerId: Optional[str] = Field(None, description="ID владельца")
+    logoUrl: Optional[str] = Field(None, description="URL логотипа бренда")
+    brandColors: Optional[List[str]] = Field(None, description="Фирменные цвета (Hex)")
+    usp: Optional[str] = Field(None, description="Уникальное торговое предложение")
+
+
+class GeneratePostRequest(BaseModel):
+    projectId: Optional[str] = Field(None, description="ID проекта")
+    project_id: Optional[str] = Field(None, description="ID проекта")
+    prompt: Optional[str] = Field(None, description="Промпт или тема публикации")
+    topic: Optional[str] = Field(None, description="Тема публикации (алиас)")
+    companyName: Optional[str] = Field(None, description="Название компании")
+    company_name: Optional[str] = Field(None, description="Название компании (алиас)")
+    niche: Optional[str] = Field(None, description="Ниша бизнеса")
+    attachments: Optional[List[Any]] = Field(default_factory=list, description="Медиа-вложения (фото, референсы)")
+    promoCode: Optional[str] = Field(None, description="Промокод / специальное предложение")
+    promo_code: Optional[str] = Field(None, description="Промокод (алиас)")
+    projectContext: Optional[ProjectContext] = Field(None, description="Полный объект проекта")
+    project_context: Optional[ProjectContext] = Field(None, description="Полный объект проекта (алиас)")
+    tone: Optional[str] = Field(None, description="Тон коммуникации")
+    aspect_ratio: Optional[str] = Field("1:1", description="Соотношение сторон (1:1, 9:16, 16:9)")
+    callback_url: Optional[str] = Field(None, description="URL для Push-коллбека")
+    user_id: Optional[str] = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии")
+    generate_image: bool = Field(True, description="Флаг генерации визуального контента")
+
+
 class AsyncGenerateTaskRequest(BaseModel):
-    topic: str = Field(..., example="Свежесваренный капучино с идеальным латте-артом", description="Тема или промпт поста")
-    company_name: Optional[str] = Field("UCust", example="Roast & Bloom", description="Название компании")
-    niche: Optional[str] = Field("Бизнес", example="Спешелти кофейня", description="Ниша")
+    topic: str = Field(..., description="Тема или промпт поста")
+    company_name: Optional[str] = Field("UCust", description="Название компании")
+    niche: Optional[str] = Field("Бизнес", description="Ниша")
     tone: Optional[str] = Field("Дерзкий, уверенный, вдохновляющий", description="Тон общения")
     aspect_ratio: Optional[str] = Field("9:16", description="Формат соотношения сторон (1:1, 4:5, 9:16, 16:9)")
     variation_index: Optional[int] = Field(0, description="Индекс ракурса/вариации (0, 1, 2, 3...)")
@@ -141,10 +181,13 @@ class AsyncGenerateTaskRequest(BaseModel):
     tier: Optional[str] = Field("BUSINESS", description="Тариф медиа-оснащения")
     custom_prompt: Optional[str] = Field(None, description="Пользовательский визуальный промпт")
     attachments: Optional[List[Dict[str, Any]]] = Field(None, description="Вложения для анализа и генерации")
-    callback_url: Optional[str] = Field(None, example="http://java-backend:8080/api/v1/ai/callback", description="URL для отправки результата (Push-коллбек)")
+    callback_url: Optional[str] = Field(None, description="URL для отправки результата (Push-коллбек)")
     task_id: Optional[str] = Field(None, description="Опциональный внешний task_id")
     user_id: Optional[str] = Field("default_user", description="ID пользователя")
     session_id: Optional[str] = Field(None, description="ID сессии")
+    projectContext: Optional[ProjectContext] = Field(None, description="Полный контекст проекта")
+    project_context: Optional[ProjectContext] = Field(None, description="Полный контекст проекта (алиас)")
+
 
 
 # -------------------------------------------------------------------
@@ -299,7 +342,98 @@ async def execute_orchestrator_task(
 # 3. REST API Эндпоинты
 # -------------------------------------------------------------------
 
+@app.post("/orchestration/generate", tags=["Direct Generation Bridge"])
+@app.post("/api/v1/orchestration/generate", tags=["Direct Generation Bridge"])
+async def direct_orchestration_generate(
+    request: GeneratePostRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+):
+    """
+    ⚡ ПРЯМОЙ ЭНДПОИНТ ГЕНЕРАЦИИ КОНТЕНТА ДЛЯ БЭКЕНДА (с поддержкой ProjectContext):
+    - Принимает как минимальные параметры (prompt, attachments, promoCode),
+      так и полный объект проекта (city, toneOfVoice, targetAudience, businessHours, logoUrl, socialLinks).
+    - Автоматически обогащает контекст для Saiga LLM, Moondream2 и ComfyUI.
+    - Выполняет сквозную оркестровку и возвращает структурированный результат.
+    """
+    expected_secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
+    if x_internal_secret and x_internal_secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid internal secret.")
+
+    session_id = request.session_id or f"sess_{uuid.uuid4().hex[:8]}"
+
+    # 1. Базовый payload
+    task_payload: Dict[str, Any] = {
+        "prompt": request.prompt or request.topic or "",
+        "topic": request.prompt or request.topic or "",
+        "company_name": request.companyName or request.company_name or "UCust",
+        "niche": request.niche or "Бизнес",
+        "attachments": request.attachments or [],
+        "promo_code": request.promoCode or request.promo_code,
+        "offer": request.promoCode or request.promo_code,
+        "aspect_ratio": request.aspect_ratio or "1:1",
+        "generate_image": request.generate_image,
+        "tone": request.tone or "Естественный и живой",
+        "user_id": request.user_id or "default_user",
+        "session_id": session_id,
+        "project_id": request.projectId or request.project_id
+    }
+
+    # 2. Обогащение данными из ProjectContext
+    proj = request.projectContext or request.project_context
+    if proj:
+        proj_dict = proj.dict(exclude_none=True)
+        task_payload["project_context"] = proj_dict
+        task_payload["project"] = proj_dict
+        if proj.name or proj.companyName:
+            task_payload["company_name"] = proj.name or proj.companyName
+        if proj.industry or proj.niche:
+            task_payload["niche"] = proj.industry or proj.niche
+        if proj.city:
+            task_payload["city"] = proj.city
+        if proj.description:
+            task_payload["description"] = proj.description
+            task_payload["usp"] = proj.description
+        if proj.targetAudience:
+            task_payload["target_audience"] = proj.targetAudience
+        if proj.toneOfVoice:
+            task_payload["tone"] = proj.toneOfVoice
+            task_payload["tone_of_voice"] = proj.toneOfVoice
+        if proj.socialLinks:
+            task_payload["social_links"] = proj.socialLinks
+        if proj.businessHours:
+            task_payload["business_hours"] = proj.businessHours
+        if proj.logoUrl:
+            task_payload["logo_url"] = proj.logoUrl
+        if proj.brandColors:
+            task_payload["brand_colors"] = proj.brandColors
+        if proj.id or proj.projectId:
+            task_payload["project_id"] = proj.id or proj.projectId
+
+    # 3. Валидация безопасности
+    payload_str = json.dumps(task_payload, ensure_ascii=False)
+    if not SecurityGuard.check_user_input(payload_str):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Security Violation: обнаружен недопустимый ввод в запросе."
+        )
+
+    # 4. Запуск генерации через Orchestrator
+    result = await orchestrator.execute_task(
+        task_type="generate_post",
+        user_data=task_payload,
+        session_id=session_id
+    )
+
+    return {
+        "status": "success" if result.get("status") != "error" else "error",
+        "session_id": session_id,
+        "project_id": task_payload.get("project_id"),
+        "data": result
+    }
+
+
 @app.get("/api/v1/ai/health", tags=["System"])
+
 @app.get("/health", tags=["System"])
 @app.get("/", tags=["System"])
 async def health_check():

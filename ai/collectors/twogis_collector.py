@@ -28,3 +28,6 @@ class TwoGisCollector:
             "url": organization_url_or_id,
             "reviews": mock_reviews[:limit]
         }
+
+TwoGISCollector = TwoGisCollector
+__all__ = ["TwoGisCollector", "TwoGISCollector"]

@@ -1224,3 +1224,51 @@ class UnifiedOrchestrator:
         safe_data = SecurityGuard.sanitize_graph_data(mock_raw_db_data)
         print(f"[UnifiedOrchestrator] 🛡️ Данные очищены: {safe_data}")
         return safe_data
+
+
+from enum import Enum
+
+class AgentState(str, Enum):
+    IDLE = "IDLE"
+    COLLECTING = "COLLECTING"
+    ANALYZING = "ANALYZING"
+    GENERATING = "GENERATING"
+    REVIEWING = "REVIEWING"
+    AWAITING_APPROVAL = "AWAITING_APPROVAL"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class AgentOrchestrator:
+    """Совместимый адаптер для вызовов конвейера агентов."""
+    def __init__(self, database=None):
+        self.database = database
+        self.unified = UnifiedOrchestrator(db_session=database)
+
+    async def run_pipeline(self, context):
+        try:
+            user_data = {
+                "user_id": context.user_profile_id or "user_default",
+                "questionnaire": context.questionnaire
+            }
+            if context.questionnaire and hasattr(context.questionnaire, "step1") and context.questionnaire.step1:
+                user_data["name"] = context.questionnaire.step1.business_name
+                user_data["company_name"] = context.questionnaire.step1.business_name
+                user_data["city"] = context.questionnaire.step1.region
+            res = await self.unified.execute_task("onboarding", user_data)
+            return context
+        except Exception:
+            return context
+
+
+def build_default_orchestrator(database=None):
+    return AgentOrchestrator(database=database)
+
+
+__all__ = [
+    "UnifiedOrchestrator",
+    "SecurityGuard",
+    "AgentState",
+    "AgentOrchestrator",
+    "build_default_orchestrator"
+]

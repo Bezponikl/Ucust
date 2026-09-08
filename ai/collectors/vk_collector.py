@@ -50,3 +50,14 @@ class VkApiCollector:
             ],
         }
         return CollectorDataSchema(source="vk_api", payload=payload)
+
+    async def collect_group_async(self, group_id_or_url: str, limit: int = 10) -> dict:
+        """Асинхронная обертка для сбора данных сообщества VK."""
+        try:
+            res = self.collect(str(group_id_or_url), limit=limit)
+            return {"status": "success", "source": "vk", "data": res.payload}
+        except Exception as e:
+            return {"status": "error", "source": "vk", "error": str(e)}
+
+VKCollector = VkApiCollector
+__all__ = ["VkApiCollector", "VKCollector"]

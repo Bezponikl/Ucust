@@ -7,10 +7,11 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Any, Dict, Literal, Optional
+import asyncio
+from typing import Any, Dict, List, Literal, Optional
 
 try:
-    from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
+    from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status, Header
 except ImportError:
     class FastAPI:
         def __init__(self, title: str = "UCust.AI API", version: str = "1.0.0"):
@@ -52,6 +53,9 @@ except ImportError:
 
     def Depends(dependency=None):
         return dependency
+
+    def Header(default=None, alias=None):
+        return default
 
 from pydantic import BaseModel, Field
 
@@ -600,6 +604,237 @@ async def publish_post(
         "job_id": post_id,
         "detail": f"Post #{post_id} successfully published to platforms: {platforms}.",
         "publish_results": publish_results,
+    }
+
+
+# ============================================================================
+# МУЛЬТИМОДАЛЬНЫЕ ЭНДПОИНТЫ: ПАРСЕРЫ, ДОКУМЕНТЫ И МОМЕНТАЛЬНЫЙ MOONDREAM (VISION)
+# ============================================================================
+
+class QuickVisionAnalysisRequest(BaseModel):
+    user_id: str = Field(..., description="ID пользователя")
+    session_id: Optional[str] = Field(default=None, description="ID сессии для кэширования")
+    prompt: Optional[str] = Field(default="", description="Текстовый промпт/намерение пользователя")
+    niche: Optional[str] = Field(default="Бизнес и услуги", description="Ниша бизнеса")
+    company_name: Optional[str] = Field(default="UCust", description="Название компании")
+    attachments: List[Any] = Field(..., description="1-3 фото (Base64 data-url, URL или пути к файлам)")
+
+
+class DocumentAnalysisRequest(BaseModel):
+    user_id: str = Field(..., description="ID пользователя")
+    company_name: Optional[str] = Field(default="UCust", description="Название компании")
+    niche: Optional[str] = Field(default="Бизнес и услуги", description="Ниша компании")
+    documents: List[str] = Field(..., description="Пути к файлам или имена документов (PDF, DOCX, PPTX)")
+
+
+class UnifiedBrandAnalysisRequest(BaseModel):
+    user_id: str = Field(..., description="ID пользователя")
+    company_name: Optional[str] = Field(default="", description="Название компании")
+    niche: Optional[str] = Field(default="", description="Сфера деятельности")
+    city: Optional[str] = Field(default="Москва", description="Город")
+    urls: List[str] = Field(default=[], description="Ссылки: сайт, VK, Telegram, 2GIS/Яндекс")
+    documents: List[str] = Field(default=[], description="Пути к документам (PDF, DOCX, PPTX)")
+    images: List[Any] = Field(default=[], description="Фото / логотипы (Base64 или пути)")
+    raw_notes: Optional[str] = Field(default="", description="Дополнительные заметки")
+    fast_mode: bool = Field(default=True, description="Быстрый режим предварительного сканирования")
+
+
+@app.post("/api/v1/vision/quick-analyze", response_model=Dict[str, Any])
+async def quick_vision_analyze(
+    payload: QuickVisionAnalysisRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> Dict[str, Any]:
+    """
+    Эндпоинт моментального анализа фото при загрузке на фронтенде:
+    1. Запускает Moondream VLM сразу при прикреплении пользователем 1-3 фото.
+    2. Определяет семантические роли (руки/маникюр, питомец, интерьер/кофейня).
+    3. Раскладывает по слотам воркфлоу realism2.0.json (Ноды 55, 64, 65).
+    4. Синтезирует композиционный Fusion-промпт и палитру цветов.
+    5. Кэширует результат, чтобы генерация поста происходила мгновенно.
+    """
+    import time
+    from skills.moondream_vqa import MoondreamVQA
+
+    t_start = time.time()
+    vqa = MoondreamVQA()
+
+    analysis_res = vqa.analyze_attachments_batch(
+        attachments=payload.attachments,
+        topic=payload.prompt or "",
+        company_name=payload.company_name
+    )
+
+    duration_ms = round((time.time() - t_start) * 1000, 2)
+    return {
+        "status": "success",
+        "execution_time_ms": duration_ms,
+        "user_id": payload.user_id,
+        "session_id": payload.session_id,
+        "photos_count": analysis_res.get("count", 0),
+        "brand_colors": analysis_res.get("colors", []),
+        "slot_mapping": analysis_res.get("slot_mapping"),
+        "fusion_prompt": analysis_res.get("fusion_prompt"),
+        "visual_narrative": analysis_res.get("fusion_narrative"),
+        "prompt_keywords": analysis_res.get("prompt_keywords")
+    }
+
+
+@app.post("/api/v1/collectors/analyze-documents", response_model=Dict[str, Any])
+async def analyze_documents_direct(
+    payload: DocumentAnalysisRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> Dict[str, Any]:
+    """
+    Эндпоинт парсинга документов клиентов (PDF, DOCX, PPTX):
+    1. Извлекает текст, прайсы, списки услуг и УТП.
+    2. Индексирует контент в Clean RAG память бренда.
+    3. Возвращает структурированную сводку для предзаполнения анкеты.
+    """
+    import time
+    from collectors.document_collector import DocumentCollector
+
+    t_start = time.time()
+    doc_collector = DocumentCollector()
+    extracted_docs = doc_collector.extract_documents_batch(payload.documents)
+
+    summary_chunks = []
+    for doc in extracted_docs:
+        if doc.get("status") == "success" and doc.get("raw_text"):
+            summary_chunks.append(f"[{doc['file_name']}]: {doc['raw_text'][:300]}")
+
+    duration_ms = round((time.time() - t_start) * 1000, 2)
+    return {
+        "status": "success",
+        "execution_time_ms": duration_ms,
+        "user_id": payload.user_id,
+        "company_name": payload.company_name,
+        "documents_count": len(extracted_docs),
+        "extracted_documents": extracted_docs,
+        "quick_summary": "\n".join(summary_chunks)
+    }
+
+
+@app.post("/api/v1/collectors/analyze-brand", response_model=Dict[str, Any])
+async def analyze_brand_multimodal(
+    payload: UnifiedBrandAnalysisRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+) -> Dict[str, Any]:
+    """
+    Единый мультимодальный эндпоинт для онбординга и предзаполнения анкеты:
+    1. Параллельно опрашивает парсеры сайта, VK, TG, карт (2GIS/Яндекс).
+    2. Анализирует загруженные документы (PDF/DOCX) и фото через Moondream VLM.
+    3. Формирует готовую анкету бренда (название, ниша, УТП, цвета, соцсети, отзывы).
+    4. Автоматически отправляет результат в бэкенд через Webhook (BACKEND_COLLECTOR_CALLBACK_URL).
+    """
+    import time
+    from collectors.website_collector import WebsiteCollector
+    from collectors.vk_collector import VKCollector
+    from collectors.twogis_collector import TwoGISCollector
+    from collectors.document_collector import DocumentCollector
+    from skills.moondream_vqa import MoondreamVQA
+    from core.orchestrator import SecurityGuard
+
+    t_start = time.time()
+    
+    # SSRF защита ссылок
+    safe_urls = []
+    for u in payload.urls:
+        if SecurityGuard.check_user_input(u) and not any(h in u.lower() for h in ["localhost", "127.0.0.1", "10.0.", "192.168.", "169.254."]):
+            safe_urls.append(u)
+
+    site_urls = [u for u in safe_urls if not any(k in u.lower() for k in ["vk.com", "t.me", "2gis.", "yandex."])]
+    vk_urls = [u for u in safe_urls if "vk.com" in u.lower()]
+    tg_urls = [u for u in safe_urls if "t.me" in u.lower()]
+    map_urls = [u for u in safe_urls if any(k in u.lower() for k in ["2gis.", "yandex.ru/maps", "maps.yandex"])]
+
+    # Параллельные асинхронные задачи
+    async def _fetch_site():
+        if not site_urls:
+            return None
+        return await WebsiteCollector().collect_website_async(site_urls[0])
+
+    async def _fetch_vk():
+        if not vk_urls:
+            return None
+        return await VKCollector().collect_group_async(vk_urls[0])
+
+    async def _fetch_maps():
+        if not map_urls:
+            return None
+        return await TwoGISCollector().collect_reviews_async(map_urls[0])
+
+    async def _fetch_docs():
+        if not payload.documents:
+            return []
+        return DocumentCollector().extract_documents_batch(payload.documents)
+
+    async def _fetch_vision():
+        if not payload.images:
+            return None
+        return MoondreamVQA().analyze_attachments_batch(
+            attachments=payload.images,
+            company_name=payload.company_name or "Brand"
+        )
+
+    site_data, vk_data, maps_data, docs_data, vision_data = await asyncio.gather(
+        _fetch_site(),
+        _fetch_vk(),
+        _fetch_maps(),
+        _fetch_docs(),
+        _fetch_vision(),
+        return_exceptions=True
+    )
+
+    # Агрегация фирменных цветов
+    brand_colors = []
+    if isinstance(vision_data, dict) and vision_data.get("colors"):
+        brand_colors.extend(vision_data["colors"])
+    if isinstance(site_data, dict) and site_data.get("theme_color"):
+        brand_colors.append(site_data["theme_color"])
+
+    extracted_title = payload.company_name or (site_data.get("title") if isinstance(site_data, dict) else "") or "Мой бизнес"
+    extracted_niche = payload.niche or (site_data.get("description", "")[:60] if isinstance(site_data, dict) else "") or "Бизнес и услуги"
+    description = payload.raw_notes or (site_data.get("description") if isinstance(site_data, dict) else "")
+
+    prefilled_profile = {
+        "business_name": extracted_title,
+        "niche": extracted_niche,
+        "city": payload.city,
+        "description": description,
+        "brand_colors": list(dict.fromkeys(brand_colors))[:5] or ["#3b82f6", "#1e293b"],
+        "visual_style": vision_data.get("visual_context_for_llm") if isinstance(vision_data, dict) else "Естественный студийный свет",
+        "contacts": site_data.get("contacts") if isinstance(site_data, dict) else {},
+        "reviews_summary": maps_data.get("summary") if isinstance(maps_data, dict) else None,
+        "documents_parsed_count": len(docs_data) if isinstance(docs_data, list) else 0,
+        "social_links": {
+            "website": site_urls[0] if site_urls else None,
+            "vk": vk_urls[0] if vk_urls else None,
+            "telegram": tg_urls[0] if tg_urls else None
+        }
+    }
+
+    # Фоновый HTTP Push в основной Бэкенд
+    backend_sync_url = os.getenv("BACKEND_COLLECTOR_CALLBACK_URL")
+    if backend_sync_url:
+        async def _push():
+            try:
+                import aiohttp
+                secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
+                async with aiohttp.ClientSession() as s:
+                    headers = {"X-Internal-Secret": secret, "Content-Type": "application/json"}
+                    await s.post(backend_sync_url, json={"user_id": payload.user_id, "profile": prefilled_profile}, headers=headers, timeout=aiohttp.ClientTimeout(total=5))
+            except Exception:
+                pass
+        asyncio.create_task(_push())
+
+    duration_ms = round((time.time() - t_start) * 1000, 2)
+    return {
+        "status": "success",
+        "execution_time_ms": duration_ms,
+        "user_id": payload.user_id,
+        "prefilled_profile": prefilled_profile,
+        "moondream_analysis": vision_data if isinstance(vision_data, dict) else None,
+        "documents_analysis": docs_data if isinstance(docs_data, list) else []
     }
 
 

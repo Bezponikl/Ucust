@@ -433,4 +433,6 @@ class MoondreamVQASkill:
         dossier = self.extract_visual_dossier(image_path)
         return dossier.get("description", "Изображение проанализировано.")
 
-__all__ = ["MoondreamVQASkill"]
+MoondreamVQA = MoondreamVQASkill
+
+__all__ = ["MoondreamVQASkill", "MoondreamVQA"]

@@ -49,15 +49,27 @@ class TelegramPublisher(BasePublisher):
                 if media_path and os.path.exists(media_path):
                     with open(media_path, "rb") as f:
                         files = {"photo": f}
-                        data = {"chat_id": self.target_channel, "caption": text}
+                        data = {"chat_id": self.target_channel, "caption": text, "parse_mode": "HTML"}
                         resp = await http_client.post(f"{url}/sendPhoto", data=data, files=files)
                 else:
-                    data = {"chat_id": self.target_channel, "text": text}
+                    data = {"chat_id": self.target_channel, "text": text, "parse_mode": "HTML"}
                     resp = await http_client.post(f"{url}/sendMessage", json=data)
 
                 if resp.status_code == 200:
                     logger.info(f"[TelegramPublisher] ✅ Успешно опубликовано через Bot API в {self.target_channel}")
                     return True
+                else:
+                    # Если ошибка разметки HTML — делаем fallback без parse_mode
+                    if "can't parse entities" in resp.text.lower() or "bad request" in resp.text.lower():
+                        logger.warning(f"[TelegramPublisher] ⚠️ Ошибка HTML-парсинга, повтор отправки как plain text...")
+                        if media_path and os.path.exists(media_path):
+                            with open(media_path, "rb") as f:
+                                resp = await http_client.post(f"{url}/sendPhoto", data={"chat_id": self.target_channel, "caption": text}, files={"photo": f})
+                        else:
+                            resp = await http_client.post(f"{url}/sendMessage", json={"chat_id": self.target_channel, "text": text})
+                        if resp.status_code == 200:
+                            logger.info(f"[TelegramPublisher] ✅ Fallback публикация успешна!")
+                            return True
                 else:
                     logger.warning(f"[TelegramPublisher] ⚠️ Ответ Telegram API {resp.status_code}: {resp.text}")
         except Exception as e:

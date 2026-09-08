@@ -1174,6 +1174,28 @@ class UnifiedOrchestrator:
                 if not line.strip().startswith("#") and not line.strip().startswith("🏷️ Хэштеги")
             ]).strip()
 
+            # 5. Форматирование Expandable Blockquotes (Telegram HTML / MarkdownV2 / Web UI)
+            from skills.expandable_blockquote import ExpandableBlockquoteFormatter
+            enable_blockquote = user_data.get("expandable_blockquote", True)
+            blockquote_mode = user_data.get("blockquote_mode", "html")
+            
+            post_text_html = clean_user_post_text
+            post_text_tg_md = clean_user_post_text
+            expandable_blocks = []
+            
+            if enable_blockquote:
+                post_text_html, wrapped_html_cnt = ExpandableBlockquoteFormatter.auto_wrap_sections(
+                    clean_user_post_text, 
+                    mode="html"
+                )
+                post_text_tg_md, _ = ExpandableBlockquoteFormatter.auto_wrap_sections(
+                    clean_user_post_text, 
+                    mode="markdown_v2"
+                )
+                expandable_blocks = ExpandableBlockquoteFormatter.extract_blocks(post_text_html)
+                if wrapped_html_cnt > 0:
+                    print(f"[UnifiedOrchestrator] 📦 Оформлено {wrapped_html_cnt} сворачиваемых блоков (Expandable Blockquote).")
+
             hashtags_str = gen_result.get("hashtags", f"#{niche.replace(' ', '_')} #бизнес #качество")
 
             # 6. Опциональная авто-публикация
@@ -1182,8 +1204,10 @@ class UnifiedOrchestrator:
                 from publishers.achievement_broadcaster import AchievementBroadcaster
                 target_ch = user_data.get("target_channel") or user_data.get("channel") or "@testaipublisher"
                 broadcaster = AchievementBroadcaster(target_channel=target_ch)
+                # Для Telegram используем текст с HTML тегами <blockquote expandable>
+                publish_text = post_text_html if enable_blockquote else clean_user_post_text
                 publish_res = await broadcaster.publish_post_async(
-                    post_text=clean_user_post_text,
+                    post_text=publish_text,
                     media_path=image_url,
                     timings={
                         "text_gen_seconds": t_text_duration,
@@ -1199,6 +1223,10 @@ class UnifiedOrchestrator:
             return {
                 "status": "success",
                 "post_text": clean_user_post_text,
+                "post_text_html": post_text_html,
+                "post_text_tg_markdown": post_text_tg_md,
+                "expandable_blocks": expandable_blocks,
+                "has_expandable_blockquote": bool(expandable_blocks),
                 "promo_code": gen_result.get("promo_code"),
                 "photo_prompt": photo_prompt,
                 "image_url": image_url,

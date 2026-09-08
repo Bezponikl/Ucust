@@ -191,6 +191,36 @@ class SaigaLLMSkill:
         clean_text = re.sub(r'\n{3,}', '\n\n', clean_text).strip()
         return clean_text
 
+    @staticmethod
+    def _transform_brief_into_organic_story(topic: str, niche: str = "") -> str:
+        """
+        Превращает сырой бриф/запрос пользователя в естественное и живое повествование:
+        'хочу пост про новое меню' -> 'Мы подготовили обновленное сезонное меню и рады делиться любимыми вкусами.'
+        """
+        if not topic:
+            return "Делимся главными новостями и свежими идеями."
+            
+        clean = topic.strip()
+        # Убираем служебные префиксы
+        prefix_patterns = [
+            r"^(?:хочу\s+(?:пост|написать|рассказать|сделать)\s+(?:про|о|об|на\s+тему|для)?)\s*",
+            r"^(?:напиши\s+(?:пост|текст|статью)\s+(?:про|о|об|на\s+тему)?)\s*",
+            r"^(?:расскажи\s+(?:про|о|об|на\s+тему)?)\s*",
+            r"^(?:пост\s+(?:про|о|об|на\s+тему)?)\s*",
+            r"^(?:тема:\s*)\s*"
+        ]
+        for pat in prefix_patterns:
+            clean = re.sub(pat, "", clean, flags=re.IGNORECASE).strip()
+            
+        if not clean:
+            return "Делимся главными новостями и актуальными предложениями."
+            
+        clean = clean[0].upper() + clean[1:] if len(clean) > 1 else clean.upper()
+        if not clean.endswith((".", "!", "?")):
+            clean += "."
+            
+        return clean
+
     def generate_smm_post(
         self,
         topic: str,

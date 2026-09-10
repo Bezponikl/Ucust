@@ -125,13 +125,14 @@ class GeoAnalyzeRequest(BaseModel):
 
 
 class UniversalCollectorRequest(BaseModel):
-    source_type: str = Field(..., example="telegram", description="Тип источника: 'telegram', 'vk', 'website', 'geo', '2gis', 'yandex', 'documents'")
-    target: str = Field(..., example="@UcustAi", description="Ссылка, username, ID группы или путь к файлу")
+    source_type: Optional[str] = Field("auto", example="auto", description="Тип источника: 'auto', 'telegram', 'vk', 'website', 'geo', '2gis', 'yandex', 'documents'")
+    target: str = Field(..., example="@UcustAi", description="Ссылка, username (@channel), ID группы или путь к файлу")
     limit: Optional[int] = Field(10, example=10, description="Лимит элементов для сбора")
     include_media_vqa: Optional[bool] = Field(True, description="Флаг VLM-анализа медиа")
     payload: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Дополнительные параметры")
     user_id: Optional[str] = Field("default_user", description="ID пользователя")
     session_id: Optional[str] = Field(None, description="ID сессии")
+
 
 
 class CompetitorAnalyzeRequest(BaseModel):
@@ -759,7 +760,8 @@ async def analyze_visual_media(request: VisionAnalyzeRequest):
     }
 
 
-@app.post("/api/v1/ai/website/analyze", tags=["Web & Social Intelligence"])
+@app.post("/api/v1/ai/website/analyze", tags=["Collectors & Web Scrapers", "Web & Social Intelligence"])
+@app.post("/api/v1/collectors/website", tags=["Collectors & Web Scrapers", "Web & Social Intelligence"])
 async def analyze_website(request: WebsiteAnalyzeRequest):
     """
     Глубокий парсинг и ИИ-анализ веб-сайта компании (B2B, e-commerce, лендинги).
@@ -877,34 +879,56 @@ async def analyze_geo_reviews(
 
 
 @app.post("/api/v1/collectors/parse", tags=["Collectors & Web Scrapers"])
+@app.post("/api/v1/ai/collectors/parse", tags=["Collectors & Web Scrapers"])
+@app.post("/api/v1/ai/parse", tags=["Collectors & Web Scrapers"])
 async def universal_collector_parse(
     request: UniversalCollectorRequest,
     x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
 ):
     """
     🌐 Универсальный шлюз сбора данных по любому источнику (Telegram, VK, Website, 2GIS, Yandex, Документы).
-    Автоматически маршрутизирует запрос в нужный парсер и возвращает нормализованную схему.
+    Автоматически определяет тип источника по ссылке или типу и возвращает нормализованную схему.
     """
-    st = request.source_type.lower()
+    st = (request.source_type or "auto").lower().strip()
+    target = (request.target or "").strip()
+
+    # Умное автоопределение источника по ссылке/формату, если source_type="auto"
+    if st == "auto":
+        target_lower = target.lower()
+        if "t.me/" in target_lower or target.startswith("@"):
+            st = "telegram"
+        elif "vk.com/" in target_lower:
+            st = "vk"
+        elif "2gis.ru" in target_lower or "2gis.com" in target_lower:
+            st = "2gis"
+        elif "yandex.ru/maps" in target_lower or "maps.yandex." in target_lower:
+            st = "yandex"
+        elif any(target_lower.endswith(ext) for ext in [".pdf", ".docx", ".doc", ".pptx", ".txt"]):
+            st = "documents"
+        elif target_lower.startswith("http://") or target_lower.startswith("https://") or "." in target:
+            st = "website"
+        else:
+            st = "telegram"  # fallback по умолчанию для @-тегов
+
     if st in {"telegram", "tg"}:
         task_type = "parse_telegram"
-        payload = {"channel": request.target, "limit": request.limit, "include_media_vqa": request.include_media_vqa, **(request.payload or {})}
+        payload = {"channel": target, "limit": request.limit, "include_media_vqa": request.include_media_vqa, **(request.payload or {})}
     elif st in {"vk", "vkontakte"}:
         task_type = "parse_vk"
-        payload = {"group_id": request.target, "limit": request.limit, **(request.payload or {})}
+        payload = {"group_id": target, "limit": request.limit, **(request.payload or {})}
     elif st in {"geo", "2gis", "yandex", "maps"}:
         task_type = "parse_geo"
-        payload = {"url": request.target, "provider": st, "limit": request.limit, **(request.payload or {})}
+        payload = {"url": target, "provider": st, "limit": request.limit, **(request.payload or {})}
     elif st in {"site", "website", "web"}:
         task_type = "parse_website"
-        payload = {"url": request.target, **(request.payload or {})}
+        payload = {"url": target, **(request.payload or {})}
     elif st in {"doc", "document", "documents", "file"}:
         task_type = "analyze_documents"
-        payload = {"documents": [request.target], **(request.payload or {})}
+        payload = {"documents": [target], **(request.payload or {})}
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Неизвестный тип источника '{request.source_type}'. Доступны: telegram, vk, website, geo, 2gis, yandex, documents"
+            detail=f"Неизвестный тип источника '{request.source_type}'. Доступны: auto, telegram, vk, website, geo, 2gis, yandex, documents"
         )
 
     task_req = OrchestratorTaskRequest(
@@ -917,6 +941,7 @@ async def universal_collector_parse(
     if res.status == "error":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=res.error or f"Ошибка сбора данных из {st}")
     return res.data
+
 
 
 
@@ -1065,7 +1090,9 @@ async def quick_vision_analyze(
     return res.data
 
 
-@app.post("/api/v1/collectors/analyze-documents", response_model=Dict[str, Any], tags=["Convenience Aliases"])
+@app.post("/api/v1/collectors/analyze-documents", response_model=Dict[str, Any], tags=["Collectors & Web Scrapers", "Convenience Aliases"])
+@app.post("/api/v1/ai/documents/analyze", response_model=Dict[str, Any], tags=["Collectors & Web Scrapers", "Convenience Aliases"])
+@app.post("/api/v1/collectors/documents", response_model=Dict[str, Any], tags=["Collectors & Web Scrapers", "Convenience Aliases"])
 async def analyze_documents_direct(
     payload: DocumentAnalysisRequest,
     x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),

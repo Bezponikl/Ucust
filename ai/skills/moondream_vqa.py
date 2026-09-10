@@ -263,6 +263,13 @@ class MoondreamVQASkill:
         if isinstance(image_input, Image.Image):
             return image_input.convert("RGB")
 
+        if isinstance(image_input, bytes):
+            try:
+                return Image.open(io.BytesIO(image_input)).convert("RGB")
+            except Exception as e:
+                logger.error(f"[Moondream] Ошибка открытия изображения из bytes: {e}")
+                return None
+
         if isinstance(image_input, dict):
             if "dataUrl" in image_input and image_input["dataUrl"]:
                 return self._to_pil_image(image_input["dataUrl"])

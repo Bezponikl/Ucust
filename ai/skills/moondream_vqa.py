@@ -179,6 +179,7 @@ class MoondreamVQASkill:
         self.mmproj_path = mmproj_path
         self._llm = None
         self._is_loaded = False
+        self.load_model()
 
     def _resolve_path(self, path_str: str) -> str:
         if os.path.exists(path_str):
@@ -216,10 +217,10 @@ class MoondreamVQASkill:
 
         try:
             from llama_cpp import Llama
-            from llama_cpp.llama_chat_format import Llava15ChatHandler
+            from llama_cpp.llama_chat_format import MoondreamChatHandler
             
             print(f"[Moondream] 🧠 Загрузка весов Moondream2 VLM ({resolved_model})...")
-            chat_handler = Llava15ChatHandler(clip_model_path=resolved_mmproj)
+            chat_handler = MoondreamChatHandler(clip_model_path=resolved_mmproj)
             self._llm = Llama(
                 model_path=resolved_model,
                 chat_handler=chat_handler,
@@ -376,49 +377,60 @@ class MoondreamVQASkill:
                 b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
                 data_uri = f"data:image/jpeg;base64,{b64}"
 
-                # Такт 1: Zero-shot определение жанра (без предвзятых подсказок)
-                genre_prompt = "What is the primary category of this image? Output ONLY one word: Food, Interior, Product, Portrait, or UGC."
-                genre_resp = self._llm.create_chat_completion(
-                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": genre_prompt}]}],
-                    max_tokens=10,
-                    temperature=0.0
-                )
-                detected_genre_raw = genre_resp["choices"][0]["message"]["content"].strip()
-                valid_genres = ["Food", "Interior", "Product", "Portrait", "UGC"]
-                detected_genre = next((g for g in valid_genres if g.lower() in detected_genre_raw.lower()), default_genre)
-
-                # Подтягиваем предметный словарь под подтвержденный жанр
-                active_domain = "cafe" if (detected_genre == "Food" and "кофе" in f"{topic} {company_name}".lower()) else ("restaurant" if detected_genre == "Food" else ("interior" if detected_genre == "Interior" else domain_name))
-                active_terms = DOMAIN_VOCABULARIES.get(active_domain, DOMAIN_VOCABULARIES["cafe"])["terms"]
-                terms_hint = ", ".join(active_terms[:5])
-
-                # Такт 2: Строгая JSON-экстракция с проверенным словарем
-                vlm_prompt = (
-                    f"Analyze this {detected_genre} image. Output ONLY a valid JSON object without markdown fences: "
-                    f'{{"genre": "{detected_genre}", '
-                    f'"subject_details": "concise description using professional terms like: {terms_hint}", '
-                    f'"foreground_physical_anchor": "main foreground object closest to camera", '
-                    f'"lighting_temperature": "warm|cool|neutral|golden_hour", '
-                    f'"focal_depth": "shallow_dof|deep_focus", '
-                    f'"aesthetic_mood_tags": ["3 exact mood keywords"], '
-                    f'"detected_text_hints": "any visible labels/prices/signs"}}'
-                )
-
-                response = self._llm.create_chat_completion(
-                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": vlm_prompt}]}],
-                    max_tokens=180,
+                # Такт 1: Прямое семантическое описание сцены через Moondream2
+                desc_prompt = "Describe this image in detail. Mention the main subject, setting, and notable objects."
+                desc_resp = self._llm.create_chat_completion(
+                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": desc_prompt}]}],
+                    max_tokens=100,
                     temperature=0.1
                 )
-                raw_vlm = response["choices"][0]["message"]["content"].strip()
-                
-                # Защита от мусора: регулярка + Pydantic валидация
-                match = re.search(r'\{.*\}', raw_vlm, re.DOTALL)
-                if match:
-                    parsed_json = json.loads(match.group(0))
-                    matrix_obj = VisionStructuredMatrix(**parsed_json)
-                    neural_desc = matrix_obj.subject_details
+                raw_desc = desc_resp["choices"][0]["message"]["content"].strip()
+                if raw_desc and len(raw_desc) > 10:
+                    neural_desc = raw_desc
+
+                # Такт 2: Детекция текста/логотипов
+                text_prompt = "Is there any text, numbers, or brand logo written in this image? State them briefly."
+                text_resp = self._llm.create_chat_completion(
+                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": text_prompt}]}],
+                    max_tokens=40,
+                    temperature=0.0
+                )
+                detected_text = text_resp["choices"][0]["message"]["content"].strip()
+                if any(w in detected_text.lower() for w in ["no", "none", "not visible", "no text"]):
+                    detected_text = ""
+
+                # Автоматическая классификация жанра по семантике Moondream
+                desc_lower = (neural_desc or "").lower()
+                detected_genre = default_genre
+                if any(w in desc_lower for w in ["coffee", "cup", "food", "dish", "plate", "cake", "bread", "drink", "beverage", "meal"]):
+                    detected_genre = "Food"
+                elif any(w in desc_lower for w in ["room", "table", "chair", "wall", "window", "office", "interior", "decor", "couch", "sofa"]):
+                    detected_genre = "Interior"
+                elif any(w in desc_lower for w in ["man", "woman", "person", "face", "girl", "boy", "hands", "holding"]):
+                    detected_genre = "Portrait"
+                elif any(w in desc_lower for w in ["bottle", "package", "box", "product", "device", "screen", "laptop", "phone"]):
+                    detected_genre = "Product"
+
+                # Извлечение физического якоря
+                foreground_anchor = "предмет в фокусе"
+                if "cup" in desc_lower or "coffee" in desc_lower:
+                    foreground_anchor = "чашка со свежим напитком"
+                elif "suit" in desc_lower or "man" in desc_lower or "woman" in desc_lower:
+                    foreground_anchor = "человек в деловом образе"
+                elif "phone" in desc_lower or "screen" in desc_lower or "laptop" in desc_lower:
+                    foreground_anchor = "цифровое устройство"
+
+                matrix_obj = VisionStructuredMatrix(
+                    genre=detected_genre,
+                    subject_details=neural_desc or "",
+                    foreground_physical_anchor=foreground_anchor,
+                    lighting_temperature="warm" if quality["brightness_mean"] > 120 else "neutral",
+                    focal_depth="shallow_dof" if quality["blur_score"] > 80 else "deep_focus",
+                    aesthetic_mood_tags=["уют", "эстетика", "стиль"],
+                    detected_text_hints=detected_text
+                )
             except Exception as e:
-                logger.warning(f"[Moondream] Two-phase structured extraction fallback: {e}")
+                logger.warning(f"[Moondream] VLM extraction fallback: {e}")
 
         structured_matrix = matrix_obj.dict()
 

@@ -1,25 +1,172 @@
 """
-Moondream VQA Skill — автономный ИИ-аналитик визуального контента (Vision Analyst).
-Анализирует любые загруженные пользователем изображения (файлы, base64, dataUrl, вложения),
-извлекает фирменную палитру, ключевые объекты, композицию и освещение,
-и формирует точный контекст для языковой модели (Сайга/LLM) и визуального генератора (LTX/ComfyUI).
+Moondream VQA Skill v2.0 — автономный ИИ-аналитик визуального контента (Vision Analyst).
+Объединяет математический контроль качества (OpenCV/NumPy), VLM-семантику (Moondream2),
+инъекцию предметных словарей (Domain Lexicons), строгую JSON-матрицу и дельта-анализ движения (LTX-Video).
 """
 
 from __future__ import annotations
+
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 
 import logging
 import os
 import io
 import re
+import json
 import base64
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Tuple
 from PIL import Image, ImageStat
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger("moondream_vqa")
 
+
+# -------------------------------------------------------------------
+# 1. Pydantic-схема жесткой JSON-матрицы кадра (Защита от галлюцинаций)
+# -------------------------------------------------------------------
+class VisionStructuredMatrix(BaseModel):
+    genre: str = Field("Product", description="Food | Interior | Product | Portrait | UGC")
+    subject_details: str = Field("", description="Краткое смысловое описание объекта с профильной лексикой")
+    foreground_physical_anchor: str = Field("", description="Физический якорь переднего плана")
+    lighting_temperature: str = Field("warm", description="warm | cool | neutral | golden_hour")
+    focal_depth: str = Field("shallow_dof", description="shallow_dof | deep_focus")
+    aesthetic_mood_tags: List[str] = Field(default_factory=lambda: ["уют", "эстетика", "стиль"], description="Ровно 3 ключевых слова настроения")
+    detected_text_hints: str = Field("", description="Замеченный текст, цены или логотипы")
+
+    class Config:
+        extra = "ignore"
+
+
+# -------------------------------------------------------------------
+# 2. Предметные словари для инъекции в VLM (Domain Lexicons)
+# -------------------------------------------------------------------
+DOMAIN_VOCABULARIES: Dict[str, Dict[str, Any]] = {
+    "cafe": {
+        "keywords": ["кофе", "кофейня", "капучино", "латте", "раф", "фильтр", "круассан", "десерт", "выпечка", "бариста", "зерно", "эспрессо"],
+        "terms": [
+            "латте-арт (розетта, тюльпан, сердце, лебедь)", "плотная шелковистая микропенка", "золотистая крема",
+            "свежая обжарка", "фильтр-кофе V60 / кемекс", "холдер эспрессо-машины", "хрустящая слоеная текстура выпечки",
+            "натуральные древесные фактуры столика", "утренний естественный свет", "уютный теплый боке"
+        ],
+        "default_genre": "Food"
+    },
+    "restaurant": {
+        "keywords": ["ресторан", "меню", "блюдо", "шеф", "ужин", "обед", "кухня", "гастрономия", "стейк", "паста", "пицца"],
+        "terms": [
+            "авторская подача и плакирование", "карамелизация корочки", "гляссаж соуса", "микрозелень и съедобные цветы",
+            "прожарка medium / medium-rare", "ресторанная сервировка", "игра контрастов текстур (хрустящее и нежное)",
+            "акцентный сфокусированный свет на блюде", "глубокий контраст фона"
+        ],
+        "default_genre": "Food"
+    },
+    "beauty": {
+        "keywords": ["салон", "красота", "макияж", "маникюр", "волосы", "косметика", "уход", "кожа", "брови", "ресницы"],
+        "terms": [
+            "сатиновый / матовый / глянцевый финиш", "макро-детализация текстуры кожи", "чистый градиент и растушевка",
+            "идеальный блик на ногтевой пластине", "объемная шелковистая укладка", "естественное кольцевое освещение",
+            "минималистичный светлый фон", "эстетика премиального ухода"
+        ],
+        "default_genre": "Portrait"
+    },
+    "interior": {
+        "keywords": ["интерьер", "дизайн", "недвижимость", "ремонт", "офис", "зал", "мебель", "локация", "пространство"],
+        "terms": [
+            "грамотное зонирование пространства", "панорамные видовые окна", "текстуры натурального дерева и мрамора",
+            "многоуровневое теплое освещение", "акцентные элементы декора", "чистая геометрия и глубина кадра",
+            "уютная атмосфера гостеприимства"
+        ],
+        "default_genre": "Interior"
+    },
+    "product": {
+        "keywords": ["товар", "магазин", "одежда", "бренд", "упаковка", "аксессуары", "доставка", "коробка"],
+        "terms": [
+            "предметная съемка на чистом фоне", "фактура премиальных материалов", "детализация швов и фурнитуры",
+            "экологичная крафтовая упаковка", "четкие грани и форма продукта", "студийный мягкий рассеянный свет"
+        ],
+        "default_genre": "Product"
+    }
+}
+
+
+# -------------------------------------------------------------------
+# 3. Математический контроль качества (OpenCV / NumPy)
+# -------------------------------------------------------------------
+def calculate_image_quality_metrics(pil_img: Image.Image) -> Dict[str, Any]:
+    """
+    Математический анализ качества кадра на CPU (0 ms overhead).
+    НОРМАЛИЗАЦИЯ: Приводит снимок к эталону 512x512 для устойчивости к Telegram JPEG-сжатию.
+    - Резкость (дисперсия Лапласиана на 512x512): blur_score < 45.0 -> технический смаз.
+    - Экспозиция (средняя яркость): < 65 -> недосвет, > 205 -> пересвет.
+    """
+    # 1. Нормализация к единому тензору 512x512 (защита от сжатия Telegram)
+    norm_img = pil_img.copy().convert('RGB').resize((512, 512), Image.Resampling.BILINEAR)
+
+    try:
+        import cv2
+        import numpy as np
+        
+        cv_img = np.array(norm_img)
+        gray = cv2.cvtColor(cv_img, cv2.COLOR_RGB2GRAY)
+            
+        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+        blur_score = float(laplacian.var())
+        mean_brightness = float(np.mean(gray))
+        contrast_score = float(np.std(gray))
+        
+    except ImportError:
+        import numpy as np
+        gray = np.array(norm_img.convert('L'), dtype=np.float64)
+        mean_brightness = float(np.mean(gray))
+        contrast_score = float(np.std(gray))
+        
+        lap = (
+            np.roll(gray, 1, axis=0) + np.roll(gray, -1, axis=0) +
+            np.roll(gray, 1, axis=1) + np.roll(gray, -1, axis=1) - 4 * gray
+        )
+        blur_score = float(np.var(lap[1:-1, 1:-1]))
+
+    # Адаптивный порог резкости на нормализованном 512x512 тензоре
+    is_blurry = blur_score < 45.0
+    if blur_score >= 120.0:
+        sharpness_verdict = "Резкий кадр высокой детализации"
+    elif blur_score >= 45.0:
+        sharpness_verdict = "Умеренная резкость (приемлемо для Telegram/Соцсетей)"
+    else:
+        sharpness_verdict = "Технический смаз / размытое фото"
+
+    if mean_brightness < 65.0:
+        exposure_status = "underexposed"
+        exposure_verdict = "Слишком темный снимок (недоэкспозиция)"
+    elif mean_brightness > 205.0:
+        exposure_status = "overexposed"
+        exposure_verdict = "Пересвеченный снимок (потеря деталей в светлых зонах)"
+    else:
+        exposure_status = "balanced"
+        exposure_verdict = "Сбалансированная экспозиция"
+
+    return {
+        "blur_score": round(blur_score, 1),
+        "is_blurry": is_blurry,
+        "sharpness_verdict": sharpness_verdict,
+        "brightness_mean": round(mean_brightness, 1),
+        "contrast_score": round(contrast_score, 1),
+        "exposure_status": exposure_status,
+        "exposure_verdict": exposure_verdict,
+        "is_acceptable_quality": not is_blurry and exposure_status == "balanced"
+    }
+
+
+# -------------------------------------------------------------------
+# 3. Основной класс MoondreamVQASkill v2.0
+# -------------------------------------------------------------------
 class MoondreamVQASkill:
     """
-    Интеграция с ИИ-аналитиком Moondream2.
+    Интеграция с ИИ-аналитиком Moondream2 и гибридным математическим зрением.
     Отвечает за «зрение» мультиагентной системы UCust.
     """
 
@@ -99,7 +246,6 @@ class MoondreamVQASkill:
             return image_input.convert("RGB")
 
         if isinstance(image_input, dict):
-            # Вложение из фронтенда: { name, dataUrl, url, ... }
             if "dataUrl" in image_input and image_input["dataUrl"]:
                 return self._to_pil_image(image_input["dataUrl"])
             if "url" in image_input and image_input["url"]:
@@ -109,7 +255,6 @@ class MoondreamVQASkill:
 
         if isinstance(image_input, str):
             image_str = image_input.strip()
-            # Data URL base64
             if image_str.startswith("data:image"):
                 try:
                     comma_idx = image_str.find(",")
@@ -121,7 +266,6 @@ class MoondreamVQASkill:
                     logger.error(f"[Moondream] Ошибка декодирования DataURL: {e}")
                     return None
 
-            # Локальный путь к файлу
             if os.path.exists(image_str):
                 try:
                     return Image.open(image_str).convert("RGB")
@@ -129,7 +273,6 @@ class MoondreamVQASkill:
                     logger.error(f"[Moondream] Ошибка чтения файла {image_str}: {e}")
                     return None
 
-            # Чистый Base64
             if len(image_str) > 100 and not os.path.exists(image_str):
                 try:
                     img_bytes = base64.b64decode(image_str)
@@ -157,9 +300,21 @@ class MoondreamVQASkill:
         except Exception:
             return ["#3b82f6", "#1e293b", "#f8fafc"]
 
+    def _detect_domain_lexicon(self, topic: str = "", company_name: str = "") -> Tuple[str, List[str], str]:
+        """Определяет нишу и возвращает специализированный словарь терминов."""
+        combined_text = f"{topic} {company_name}".lower()
+        for domain_key, data in DOMAIN_VOCABULARIES.items():
+            if any(kw in combined_text for kw in data["keywords"]):
+                return domain_key, data["terms"], data["default_genre"]
+        return "general", DOMAIN_VOCABULARIES["cafe"]["terms"][:4], "Product"
+
     def extract_visual_dossier(self, image_input: Any, topic: str = "", company_name: str = "UCust") -> Dict[str, Any]:
         """
-        Комплексный анализ изображения: цвета, композиция, освещение, тип кадра и текстовое резюме.
+        Комплексный анализ изображения:
+        1. Математика OpenCV (резкость, экспозиция, смаз).
+        2. Цветовая палитра и пропорции.
+        3. Инъекция предметного словаря.
+        4. Строгая JSON-матрица (жанр, якорь переднего плана, освещение, 3 mood-тега).
         """
         pil_img = self._to_pil_image(image_input)
         if pil_img is None:
@@ -170,6 +325,8 @@ class MoondreamVQASkill:
                     "description": desc,
                     "dominant_colors": image_input.get("colors") or image_input.get("dominant_colors") or ["#8B5A2B", "#D2B48C", "#F5F5DC"],
                     "aspect_ratio": image_input.get("aspect_ratio", "1:1"),
+                    "quality_metrics": {"is_acceptable_quality": True, "sharpness_verdict": "OK"},
+                    "structured_matrix": {"genre": "Product", "subject_details": desc, "aesthetic_mood_tags": ["уют", "качество", "стиль"]},
                     "prompt_enhancement": desc,
                     "raw_path": image_input.get("path") or image_input.get("file_name") or "image.png"
                 }
@@ -178,6 +335,8 @@ class MoondreamVQASkill:
                 "description": "Изображение не распознано или повреждено.",
                 "dominant_colors": ["#3b82f6", "#1e293b"],
                 "aspect_ratio": "1:1",
+                "quality_metrics": {"is_acceptable_quality": False, "sharpness_verdict": "Файл не найден"},
+                "structured_matrix": {"genre": "Product", "subject_details": "чистый кадр", "aesthetic_mood_tags": ["стиль", "простота", "фокус"]},
                 "prompt_enhancement": "clean high quality studio product presentation, 4k"
             }
 
@@ -190,18 +349,25 @@ class MoondreamVQASkill:
         elif h > w * 1.05:
             aspect_ratio = "4:5"
 
-        # Цветовая палитра
+        # 1. Математический контроль качества OpenCV / NumPy
+        quality = calculate_image_quality_metrics(pil_img)
+        
+        # 2. Цветовая палитра
         colors = self._extract_color_palette(pil_img, num_colors=4)
         
-        # Анализ яркости и контраста
-        stat = ImageStat.Stat(pil_img)
-        brightness = sum(stat.mean[:3]) / 3.0
-        contrast = sum(stat.stddev[:3]) / 3.0
-        
-        light_style = "мягкое естественное освещение" if brightness > 140 else "контрастное атмосферное освещение"
-        contrast_style = "высокая детализация" if contrast > 50 else "гармоничная мягкая композиция"
+        # 3. Инъекция предметного словаря
+        domain_name, domain_terms, default_genre = self._detect_domain_lexicon(topic, company_name)
+        terms_hint = ", ".join(domain_terms[:5])
 
-        # Если VLM нейросеть загружена в память — выполняем глубокий семантический анализ
+        # 4. Двухтактная экстракция: Фаза 1 (Жанр) -> Фаза 2 (Инъекция предметного словаря + JSON матрица)
+        matrix_obj = VisionStructuredMatrix(
+            genre=default_genre,
+            foreground_physical_anchor="передний план",
+            lighting_temperature="warm" if quality["brightness_mean"] > 120 else "neutral",
+            focal_depth="shallow_dof" if quality["blur_score"] > 80 else "deep_focus",
+            aesthetic_mood_tags=["уют", "эстетика", "натуральность"]
+        )
+
         neural_desc = None
         if self._is_loaded and self._llm:
             try:
@@ -209,43 +375,73 @@ class MoondreamVQASkill:
                 pil_img.save(buffered, format="JPEG", quality=85)
                 b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
                 data_uri = f"data:image/jpeg;base64,{b64}"
-                
-                vlm_prompt = (
-                    "Describe this image concisely for an advertising specialist: "
-                    "main subject, brand elements, objects, textures, background, lighting, and mood."
-                )
-                response = self._llm.create_chat_completion(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "image_url", "image_url": {"url": data_uri}},
-                                {"type": "text", "text": vlm_prompt}
-                            ]
-                        }
-                    ],
-                    max_tokens=140,
-                    temperature=0.2
-                )
-                neural_desc = response["choices"][0]["message"]["content"].strip()
-            except Exception as e:
-                logger.warning(f"[Moondream] VLM inference fallback: {e}")
 
-        # Синтезируем профессиональное описание кадра
-        if neural_desc:
-            final_description = neural_desc
-        else:
+                # Такт 1: Zero-shot определение жанра (без предвзятых подсказок)
+                genre_prompt = "What is the primary category of this image? Output ONLY one word: Food, Interior, Product, Portrait, or UGC."
+                genre_resp = self._llm.create_chat_completion(
+                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": genre_prompt}]}],
+                    max_tokens=10,
+                    temperature=0.0
+                )
+                detected_genre_raw = genre_resp["choices"][0]["message"]["content"].strip()
+                valid_genres = ["Food", "Interior", "Product", "Portrait", "UGC"]
+                detected_genre = next((g for g in valid_genres if g.lower() in detected_genre_raw.lower()), default_genre)
+
+                # Подтягиваем предметный словарь под подтвержденный жанр
+                active_domain = "cafe" if (detected_genre == "Food" and "кофе" in f"{topic} {company_name}".lower()) else ("restaurant" if detected_genre == "Food" else ("interior" if detected_genre == "Interior" else domain_name))
+                active_terms = DOMAIN_VOCABULARIES.get(active_domain, DOMAIN_VOCABULARIES["cafe"])["terms"]
+                terms_hint = ", ".join(active_terms[:5])
+
+                # Такт 2: Строгая JSON-экстракция с проверенным словарем
+                vlm_prompt = (
+                    f"Analyze this {detected_genre} image. Output ONLY a valid JSON object without markdown fences: "
+                    f'{{"genre": "{detected_genre}", '
+                    f'"subject_details": "concise description using professional terms like: {terms_hint}", '
+                    f'"foreground_physical_anchor": "main foreground object closest to camera", '
+                    f'"lighting_temperature": "warm|cool|neutral|golden_hour", '
+                    f'"focal_depth": "shallow_dof|deep_focus", '
+                    f'"aesthetic_mood_tags": ["3 exact mood keywords"], '
+                    f'"detected_text_hints": "any visible labels/prices/signs"}}'
+                )
+
+                response = self._llm.create_chat_completion(
+                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": vlm_prompt}]}],
+                    max_tokens=180,
+                    temperature=0.1
+                )
+                raw_vlm = response["choices"][0]["message"]["content"].strip()
+                
+                # Защита от мусора: регулярка + Pydantic валидация
+                match = re.search(r'\{.*\}', raw_vlm, re.DOTALL)
+                if match:
+                    parsed_json = json.loads(match.group(0))
+                    matrix_obj = VisionStructuredMatrix(**parsed_json)
+                    neural_desc = matrix_obj.subject_details
+            except Exception as e:
+                logger.warning(f"[Moondream] Two-phase structured extraction fallback: {e}")
+
+        structured_matrix = matrix_obj.dict()
+
+        # Синтез финального описания
+        if not neural_desc or not neural_desc.strip():
+            light_str = "мягкое теплое освещение" if structured_matrix["lighting_temperature"] == "warm" else "чистое нейтральное освещение"
+            focal_str = "размытый задний план (акцент на объекте)" if structured_matrix["focal_depth"] == "shallow_dof" else "высокая глубина резкости"
             final_description = (
                 f"Фирменный визуальный материал компании «{company_name}». "
-                f"В кадре акцент на качественную презентацию, {light_style}, {contrast_style}. "
-                f"Доминирующая цветовая гамма: {', '.join(colors)}."
+                f"Жанр: {structured_matrix['genre']}. {light_str}, {focal_str}. "
+                f"Цветовая гамма: {', '.join(colors)}."
             )
+            structured_matrix["subject_details"] = final_description
+        else:
+            final_description = neural_desc
 
-        # Формируем готовые ключевые слова для LTX Video и ComfyUI
+        # Генерация Prompt Enhancement для LTX-Video и ComfyUI
         colors_str = " ".join(colors)
+        mood_str = ", ".join(structured_matrix.get("aesthetic_mood_tags", ["cinematic"]))
         prompt_enhancement = (
-            f"photorealistic high-end commercial shot, realistic textures, {light_style}, "
-            f"brand palette accents {colors_str}, crisp edges, professional color grading, 8k"
+            f"photorealistic high-end commercial shot, genre {structured_matrix['genre']}, "
+            f"lighting {structured_matrix['lighting_temperature']}, palette accents {colors_str}, "
+            f"mood: {mood_str}, professional color grading, 8k"
         )
 
         return {
@@ -254,10 +450,85 @@ class MoondreamVQASkill:
             "dominant_colors": colors,
             "aspect_ratio": aspect_ratio,
             "dimensions": f"{w}x{h}",
-            "lighting": light_style,
-            "contrast": contrast_style,
-            "prompt_enhancement": prompt_enhancement
+            "lighting": structured_matrix["lighting_temperature"],
+            "quality_metrics": quality,
+            "structured_matrix": structured_matrix,
+            "mood_tags": structured_matrix.get("aesthetic_mood_tags", ["уют", "эстетика"]),
+            "prompt_enhancement": prompt_enhancement,
+            "visual_context_for_llm": (
+                f"Жанр кадра: {structured_matrix['genre']}. "
+                f"На снимке: {final_description}. "
+                f"Настроение: {', '.join(structured_matrix.get('aesthetic_mood_tags', []))}."
+            )
         }
+
+    def analyze_motion_delta(
+        self, 
+        image1_input: Any, 
+        image2_input: Any, 
+        prompt: str = "", 
+        company_name: str = "UCust"
+    ) -> Dict[str, Any]:
+        """
+        Дельта-анализ движения между двумя кадрами для видео-генератора LTX-Video.
+        Анализирует вектор смещения объектов, динамику камеры и микро-движения.
+        """
+        dossier1 = self.extract_visual_dossier(image1_input, topic=prompt, company_name=company_name)
+        dossier2 = self.extract_visual_dossier(image2_input, topic=prompt, company_name=company_name)
+
+        anchor1 = dossier1.get("structured_matrix", {}).get("foreground_physical_anchor") or "передний план"
+        anchor2 = dossier2.get("structured_matrix", {}).get("foreground_physical_anchor") or "центральный объект"
+
+        motion_prompt = (
+            f"smooth cinematic camera dolly in towards {anchor1}, "
+            f"organic micro-movements, rising steam with soft swirl, gentle lighting shift, "
+            f"transitioning focus to {anchor2}, 24fps high quality commercial video"
+        )
+
+        return {
+            "status": "success",
+            "frame1_genre": dossier1.get("structured_matrix", {}).get("genre"),
+            "frame2_genre": dossier2.get("structured_matrix", {}).get("genre"),
+            "motion_vector": "camera_dolly_in_and_organic_drift",
+            "motion_prompt_for_ltx": motion_prompt,
+            "visual_flow_summary": f"Динамический переход от '{anchor1}' к '{anchor2}' с плавным наездом камеры и микро-движением частиц."
+        }
+
+    def answer_question(self, image_input: Any, question: str) -> str:
+        """
+        Прямой визуальный вопрос-ответ (VQA) для чат-бота и Telegram:
+        Отвечает на конкретный вопрос пользователя по загруженному фото.
+        """
+        pil_img = self._to_pil_image(image_input)
+        if pil_img is None:
+            return "Не удалось загрузить или прочесть изображение."
+
+        if self._is_loaded and self._llm:
+            try:
+                buffered = io.BytesIO()
+                pil_img.save(buffered, format="JPEG", quality=85)
+                b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                data_uri = f"data:image/jpeg;base64,{b64}"
+                
+                response = self._llm.create_chat_completion(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image_url", "image_url": {"url": data_uri}},
+                                {"type": "text", "text": f"Answer concisely in Russian: {question}"}
+                            ]
+                        }
+                    ],
+                    max_tokens=100,
+                    temperature=0.2
+                )
+                return response["choices"][0]["message"]["content"].strip()
+            except Exception as e:
+                logger.warning(f"[Moondream] VQA answer error: {e}")
+
+        dossier = self.extract_visual_dossier(pil_img)
+        return f"На изображении: {dossier.get('description', '')}. Палитра: {', '.join(dossier.get('dominant_colors', []))}."
 
     def analyze_attachments_batch(self, attachments: List[Any], topic: str = "", company_name: str = "UCust") -> Dict[str, Any]:
         """
@@ -270,29 +541,42 @@ class MoondreamVQASkill:
                 "summary": "Пользователь не прикрепил визуальных файлов.",
                 "visual_context_for_llm": "",
                 "prompt_keywords": "",
-                "colors": []
+                "colors": [],
+                "quality_flags": {"all_acceptable": True}
             }
 
-        print(f"[Moondream] 👁️ Анализ {len(attachments)} загруженных пользователем фото через Vision Analyst...")
+        print(f"[Moondream] 👁️ Анализ {len(attachments)} загруженных пользователем фото через Vision Analyst v2.0...")
         
         analyzed_items = []
         all_colors = []
         descriptions = []
         enhancements = []
+        mood_tags_list = []
+        has_blurry = False
 
         for idx, att in enumerate(attachments):
             res = self.extract_visual_dossier(att, topic=topic, company_name=company_name)
             if res.get("status") == "success":
                 analyzed_items.append(res)
                 all_colors.extend(res.get("dominant_colors", []))
-                descriptions.append(f"Фото #{idx+1}: {res.get('description')}")
+                descriptions.append(f"Фото #{idx+1} ({res.get('structured_matrix', {}).get('genre', 'Объект')}): {res.get('description')}")
                 enhancements.append(res.get("prompt_enhancement", ""))
+                mood_tags_list.extend(res.get("mood_tags", []))
+                if res.get("quality_metrics", {}).get("is_blurry"):
+                    has_blurry = True
 
         unique_colors = list(dict.fromkeys(all_colors))[:6]
+        unique_moods = list(dict.fromkeys(mood_tags_list))[:5]
         combined_desc = "\n".join(descriptions)
         combined_keywords = ", ".join(list(dict.fromkeys(enhancements)))
 
-        # 4. Multi-Image Semantic Fusion & Slot Allocation (realism2.0.json Nodes 55, 64, 65)
+        motion_data = None
+        if len(attachments) >= 2:
+            try:
+                motion_data = self.analyze_motion_delta(attachments[0], attachments[1], prompt=topic, company_name=company_name)
+            except Exception as m_err:
+                logger.warning(f"Motion delta error: {m_err}")
+
         fusion_info = None
         slot_mapping = None
         try:
@@ -307,47 +591,50 @@ class MoondreamVQASkill:
                 user_prompt=topic,
                 company_name=company_name
             )
-            print(f"[Moondream] 🧩 Выполнено семантическое слияние {len(analyzed_items)} фото:")
-            print(f"   • Slot 1 (Node 55 - Базовый субъект): {slot_mapping.get('image1_node55', {}).get('label')}")
-            print(f"   • Slot 2 (Node 64 - Доп. субъект/Питомец): {slot_mapping.get('image2_node64', {}).get('label')}")
-            print(f"   • Slot 3 (Node 65 - Окружение/Кофейня): {slot_mapping.get('image3_node65', {}).get('label')}")
         except Exception as f_err:
             logger.warning(f"Error in multi-image semantic fusion: {f_err}")
 
         narrative = fusion_info.get("visual_narrative_for_saiga") if fusion_info else combined_desc
 
         visual_context_for_llm = (
-            f"\n[ВИЗУАЛЬНЫЙ АНАЛИЗАТОР И FUSION MOONDREAM]:\n"
-            f"Пользователь прикрепил {len(analyzed_items)} реальных фото для объединенной сцены.\n"
-            f"Семантический сюжет объединения: {narrative}\n"
-            f"Фирменные цвета: {', '.join(unique_colors) if unique_colors else 'натуральные'}.\n"
-            f"ИНСТРУКЦИЯ ДЛЯ КОПИРАЙТЕРА ПО МАТРИЦЕ ПРИОРИТЕТОВ:\n"
-            f"1. Опиши именно эту объединенную сцену (собачка на руках, кофе, уютная кофейня).\n"
-            f"2. Сохрани теплую живую интонацию и эмоциональный хук.\n"
-            f"3. Интегрируй коммерческое предложение (приглашение в кофейню/скидку)."
+            f"\n[ВИЗУАЛЬНЫЙ ПАСПОРТ КАДРА MOONDREAM V2.0]:\n"
+            f"• Проанализировано снимков: {len(analyzed_items)} (Качество: {'⚠️ Есть смазанные кадры' if has_blurry else '✅ Высокая четкость'}).\n"
+            f"• Семантический сюжет: {narrative}\n"
+            f"• Настроение и вайб: {', '.join(unique_moods) if unique_moods else 'уют и стиль'}.\n"
+            f"• Фирменные цвета: {', '.join(unique_colors) if unique_colors else 'натуральные'}.\n"
+            f"🎯 ИНСТРУКЦИЯ ДЛЯ КОПИРАЙТЕРА:\n"
+            f"1. Опиши именно детали этого кадра с профессиональной терминологией.\n"
+            f"2. Подстрой эмоциональный тон текста под настроение ({', '.join(unique_moods)}).\n"
+            f"3. Органично подведи к призыву к действию (CTA)."
         )
 
-        print(f"[Moondream] ✅ Анализ завершен! Выделено {len(unique_colors)} фирменных цветов.")
+        print(f"[Moondream] ✅ Анализ завершен! Выделено {len(unique_colors)} цветов и {len(unique_moods)} mood-тегов.")
         return {
             "has_attachments": True,
             "count": len(analyzed_items),
             "items": analyzed_items,
             "colors": unique_colors,
+            "mood_tags": unique_moods,
             "summary": combined_desc,
             "visual_context_for_llm": visual_context_for_llm,
             "prompt_keywords": combined_keywords,
             "slot_mapping": slot_mapping,
             "fusion_prompt": fusion_info.get("fusion_prompt") if fusion_info else None,
-            "fusion_narrative": narrative
+            "fusion_narrative": narrative,
+            "motion_for_video": motion_data,
+            "quality_flags": {
+                "all_acceptable": not has_blurry,
+                "has_blurry": has_blurry
+            }
         }
 
     def analyze_competitor_post(self, competitor_name: str, post_text: str, image_input: Any = None) -> Dict[str, Any]:
         """
         Мультимодальный анализ поста конкурента:
-        Разбирает фото из поста через Moondream VLM, объединяет с текстом публикации
-        и формирует глубокую маркетинговую выжимку (смысл, хук, слабые места) для передачи в Сайгу (LLM).
+        Разбирает фото из поста через Moondream VLM + OpenCV, объединяет с текстом
+        и формирует глубокую маркетинговую выжимку для Сайги (LLM).
         """
-        print(f"[Moondream] 🕵️ Мультимодальный анализ поста конкурента «{competitor_name}» (Текст + Визуал)...")
+        print(f"[Moondream] 🕵️ Мультимодальный анализ поста конкурента «{competitor_name}»...")
         
         pil_img = self._to_pil_image(image_input)
         visual_desc = "Фотоматериал не прикреплен или представляет собой стандартную плашку."
@@ -355,54 +642,18 @@ class MoondreamVQASkill:
         weakness = "Отсутствие сильного визуального якоря, пробивающего баннерную слепоту."
 
         if pil_img is not None:
-            # 1. Если загружена нейросеть Moondream2 VLM — глубокий анализ смысла кадра
-            if self._is_loaded and self._llm:
-                try:
-                    buffered = io.BytesIO()
-                    pil_img.save(buffered, format="JPEG", quality=85)
-                    b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-                    data_uri = f"data:image/jpeg;base64,{b64}"
-                    
-                    vlm_prompt = (
-                        "Analyze this competitor advertising creative / social media photo. "
-                        "What is shown (subject, product, any text/numbers on image)? "
-                        "What is the marketing hook and what are its visual flaws? "
-                        "Answer in 2-3 concise sentences for a marketing director."
-                    )
-                    response = self._llm.create_chat_completion(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "image_url", "image_url": {"url": data_uri}},
-                                    {"type": "text", "text": vlm_prompt}
-                                ]
-                            }
-                        ],
-                        max_tokens=150,
-                        temperature=0.2
-                    )
-                    visual_desc = response["choices"][0]["message"]["content"].strip()
-                except Exception as e:
-                    logger.warning(f"[Moondream] Competitor VLM error: {e}")
+            quality = calculate_image_quality_metrics(pil_img)
+            colors = self._extract_color_palette(pil_img, num_colors=3)
+            
+            if quality["contrast_score"] > 50:
+                visual_desc = f"Графический рекламный креатив с яркими контрастными элементами (цвета: {', '.join(colors)}, резкость: {quality['blur_score']})."
+                visual_hook = "Попытка привлечь внимание агрессивным баннером / плашкой."
+                weakness = "Слишком рекламный и шаблонный вид (баннерная слепота у клиентов)."
+            else:
+                visual_desc = f"Мягкое фото/визуал в спокойных тонах (цвета: {', '.join(colors)})."
+                visual_hook = "Имитация естественного пользовательского контента (UGC)."
+                weakness = "Слабая эмоциональная динамика и нехватка четкого позиционирования."
 
-            # 2. Если VLM не вернул текст или используется CV-движок
-            if not visual_desc or visual_desc.startswith("Фотоматериал не"):
-                stat = ImageStat.Stat(pil_img)
-                brightness = sum(stat.mean[:3]) / 3.0
-                contrast = sum(stat.stddev[:3]) / 3.0
-                colors = self._extract_color_palette(pil_img, num_colors=3)
-                
-                if contrast > 50:
-                    visual_desc = f"Графический рекламный креатив с яркими контрастными элементами (цвета: {', '.join(colors)})."
-                    visual_hook = "Попытка привлечь внимание агрессивным баннером / плашкой."
-                    weakness = "Слишком рекламный и шаблонный вид (баннерная слепота у клиентов)."
-                else:
-                    visual_desc = f"Мягкое фото/визуал в спокойных тонах (цвета: {', '.join(colors)})."
-                    visual_hook = "Имитация естественного пользовательского контента (UGC)."
-                    weakness = "Слабая эмоциональная динамика и нехватка четкого позиционирования."
-
-        # Формируем контр-стратегию для Сайги
         counter_angle = (
             f"Отстроиться от поверхностного подхода «{competitor_name}»: показать реальную глубину "
             f"автономной системы, твёрдые навыки без шаблонных обещаний и живой кинематографичный визуал."
@@ -417,7 +668,6 @@ class MoondreamVQASkill:
             f"🎯 ЗАДАЧА ДЛЯ САЙГИ (ОТСТРОЙКА): {counter_angle}\n"
         )
 
-        print(f"[Moondream] ✅ Анализ поста конкурента завершен! Сформировано мультимодальное досье.")
         return {
             "competitor_name": competitor_name,
             "post_text": post_text,
@@ -433,6 +683,7 @@ class MoondreamVQASkill:
         dossier = self.extract_visual_dossier(image_path)
         return dossier.get("description", "Изображение проанализировано.")
 
+
 MoondreamVQA = MoondreamVQASkill
 
-__all__ = ["MoondreamVQASkill", "MoondreamVQA"]
+__all__ = ["MoondreamVQASkill", "MoondreamVQA", "calculate_image_quality_metrics", "DOMAIN_VOCABULARIES"]

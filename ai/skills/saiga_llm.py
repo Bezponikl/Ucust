@@ -4,17 +4,22 @@ import re
 import json
 import time
 import random
+import threading
 from typing import Any, Dict, List, Optional, Union
 from skills.competitor_hashtags import NicheCompetitorHashtagEngine
 
 class SaigaLLMSkill:
     """
-    Интеграция с локальной LLM Сайга (через llama.cpp или Ollama).
-    Здесь собраны все "крутилки" (настройки) для генерации контента.
+    Интеграция с локальной LLM Сайга (Saiga NeMo 12B BF16).
+    Использует потокобезопасный Singleton Model Pool — веса загружаются в VRAM строго 1 раз.
     """
+    _shared_llm = None
+    _shared_is_loaded = False
+    _lock = threading.Lock()
+
     def __init__(
         self, 
-        model_path: str = "models/saiga/saiga-8b.gguf",
+        model_path: str = "models/saiga/saiga_nemo_12b.BF16.gguf",
         temperature: float = 0.7,
         top_p: float = 0.9,
         top_k: int = 40,
@@ -33,21 +38,34 @@ class SaigaLLMSkill:
         self._try_load_model()
 
     def _try_load_model(self):
-        try:
-            resolved_path = self._resolve_path(self.model_path)
-            if os.path.exists(resolved_path) and not self._is_loaded:
-                from llama_cpp import Llama
-                print(f"[SaigaSkill] 🚀 Загрузка весов модели Saiga из {resolved_path}...")
-                self._llm = Llama(
-                    model_path=resolved_path,
-                    n_ctx=min(2048, self.max_tokens * 2),
-                    n_gpu_layers=int(os.getenv("LLAMA_GPU_LAYERS", "-1")),
-                    verbose=False
-                )
+        if SaigaLLMSkill._shared_is_loaded and SaigaLLMSkill._shared_llm is not None:
+            self._llm = SaigaLLMSkill._shared_llm
+            self._is_loaded = True
+            return
+
+        with SaigaLLMSkill._lock:
+            if SaigaLLMSkill._shared_is_loaded and SaigaLLMSkill._shared_llm is not None:
+                self._llm = SaigaLLMSkill._shared_llm
                 self._is_loaded = True
-                print(f"[SaigaSkill] ✅ Модель Saiga успешно загружена в память!")
-        except Exception as e:
-            pass
+                return
+
+            try:
+                resolved_path = self._resolve_path(self.model_path)
+                if os.path.exists(resolved_path):
+                    from llama_cpp import Llama
+                    print(f"[SaigaSkill] 🚀 Загрузка весов Saiga NeMo 12B BF16 из {resolved_path}...")
+                    SaigaLLMSkill._shared_llm = Llama(
+                        model_path=resolved_path,
+                        n_ctx=min(4096, self.max_tokens * 4),
+                        n_gpu_layers=int(os.getenv("LLAMA_GPU_LAYERS", "-1")),
+                        verbose=False
+                    )
+                    SaigaLLMSkill._shared_is_loaded = True
+                    self._llm = SaigaLLMSkill._shared_llm
+                    self._is_loaded = True
+                    print(f"[SaigaSkill] ✅ Модель Saiga NeMo 12B BF16 успешно загружена в Singleton-пул памяти!")
+            except Exception as e:
+                pass
 
     def _resolve_path(self, path_str: str) -> str:
         if os.path.exists(path_str):
@@ -226,6 +244,108 @@ class SaigaLLMSkill:
             clean += "."
             
         return clean
+
+    def interpret_visual_context(
+        self,
+        moondream_raw_desc: str,
+        topic: str = "",
+        company_name: str = "UCust",
+        niche: str = "",
+        quality_metrics: Optional[Dict[str, Any]] = None,
+        colors: Optional[List[str]] = None,
+        detected_text: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Агент-Интерпретатор Зрения (Visual Interpreter Agent):
+        Использует уже загруженную в память модель Saiga NeMo 12B (без расхода доп. VRAM),
+        чтобы превратить сырое англоязычное описание Moondream в живой,
+        точный русскоязычный контекст с устранением галлюцинаций малой VLM.
+        """
+        if not moondream_raw_desc or not moondream_raw_desc.strip():
+            return {
+                "russian_description": f"Фирменный визуал компании «{company_name}».",
+                "genre": "Product",
+                "anchor": "объект в фокусе",
+                "mood_tags": ["эстетика", "стиль", "качество"]
+            }
+
+        # 1. Если активна Saiga LLM
+        if self._is_loaded and self._llm and os.getenv("DISABLE_LOCAL_LLM", "").lower() not in ["1", "true", "yes"]:
+            try:
+                system_prompt = (
+                    "Ты — экспертный AI-интерпретатор компьютерного зрения для коммерческого SMM. "
+                    "Твоя задача: перевести и семантически адаптировать сырое англоязычное описание фото в четкую русскую выжимку. "
+                    "Устраняй артефакты и галлюцинации англоязычного распознавания (например, если на фото IT-мем или интерфейс, сформулируй это профессионально). "
+                    "Ответь СТРОГО в формате JSON без markdown fences:\n"
+                    '{"russian_description": "краткое емкое описание сути кадра на русском языке (1-2 предложения)", '
+                    '"genre": "Food|Interior|Product|Portrait|UGC", '
+                    '"anchor": "главный физический предмет переднего плана на русском", '
+                    '"mood_tags": ["3 mood тега на русском"]}'
+                )
+                
+                user_content = (
+                    f"Сырое VLM-описание: {moondream_raw_desc}\n"
+                    f"Компания: «{company_name}», Ниша: {niche or 'Бизнес'}, Тема: {topic or 'Контент'}\n"
+                    f"Замеченный текст: {detected_text or 'нет'}"
+                )
+
+                response = self._llm.create_chat_completion(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_content}
+                    ],
+                    max_tokens=150,
+                    temperature=0.1
+                )
+                raw_reply = response["choices"][0]["message"]["content"].strip()
+                match = re.search(r'\{.*\}', raw_reply, re.DOTALL)
+                if match:
+                    res_json = json.loads(match.group(0))
+                    return {
+                        "russian_description": res_json.get("russian_description", moondream_raw_desc),
+                        "genre": res_json.get("genre", "Product"),
+                        "anchor": res_json.get("anchor", "предмет в фокусе"),
+                        "mood_tags": res_json.get("mood_tags", ["эстетика", "стиль", "уют"])
+                    }
+            except Exception as e:
+                print(f"[SaigaSkill] ⚠️ Ошибка инференса VisualInterpreter: {e}")
+
+        # 2. Интеллектуальный эвристический интерпретатор (Fallback)
+        desc_lower = moondream_raw_desc.lower()
+        genre = "Product"
+        anchor = "предмет в фокусе"
+        moods = ["эстетика", "стиль", "уют"]
+
+        if any(w in desc_lower for w in ["coffee", "cup", "cappuccino", "latte", "food", "dish", "bakery", "croissant"]):
+            genre = "Food"
+            anchor = "чашка свежесваренного кофе" if ("coffee" in desc_lower or "cup" in desc_lower) else "авторское блюдо"
+            moods = ["вкус", "уют", "наслаждение"]
+        elif any(w in desc_lower for w in ["laptop", "computer", "desk", "office", "code", "saas", "screen", "website", "sonnet"]):
+            genre = "Product"
+            anchor = "рабочее место с ноутбуком и интерфейсом"
+            moods = ["продуктивность", "технологии", "фокус"]
+        elif any(w in desc_lower for w in ["man", "woman", "person", "suit", "face", "glasses"]):
+            genre = "Portrait"
+            anchor = "человек в деловом образе" if "suit" in desc_lower else "портрет героя за процессом"
+            moods = ["экспертность", "харизма", "стиль"]
+        elif any(w in desc_lower for w in ["logo", "symbol", "brand", "sign", "illustration", "meme", "monkey", "branch"]):
+            genre = "Product"
+            anchor = "фирменный визуальный акцент"
+            moods = ["креатив", "юмор", "айдентика"]
+
+        ru_summary = (
+            f"Кадр в стилистике «{company_name}» ({genre}): "
+            f"в центре композиции — {anchor} в атмосфере {', '.join(moods[:2])}."
+        )
+        if detected_text:
+            ru_summary += f" Текстовый акцент на изображении: «{detected_text}»."
+
+        return {
+            "russian_description": ru_summary,
+            "genre": genre,
+            "anchor": anchor,
+            "mood_tags": moods
+        }
 
     def generate_smm_post(
         self,

@@ -23,6 +23,8 @@ from typing import List, Dict, Any, Optional, Union, Tuple
 from PIL import Image, ImageStat
 from pydantic import BaseModel, Field
 
+import threading
+
 logger = logging.getLogger("moondream_vqa")
 
 
@@ -98,77 +100,82 @@ DOMAIN_VOCABULARIES: Dict[str, Dict[str, Any]] = {
 # -------------------------------------------------------------------
 def calculate_image_quality_metrics(pil_img: Image.Image) -> Dict[str, Any]:
     """
-    Математический анализ качества кадра на CPU (0 ms overhead).
-    НОРМАЛИЗАЦИЯ: Приводит снимок к эталону 512x512 для устойчивости к Telegram JPEG-сжатию.
-    - Резкость (дисперсия Лапласиана на 512x512): blur_score < 45.0 -> технический смаз.
-    - Экспозиция (средняя яркость): < 65 -> недосвет, > 205 -> пересвет.
+    Математический контроль качества снимка:
+    1. Дисперсия Лапласиана (Laplacian Variance) для выявления смазанных/нечетких фото.
+       Нормализует изображение к 512x512 для устойчивости к сжатию Telegram 4:2:0 JPEG.
+    2. Анализ средней яркости (Luminance) для фиксации недоэкспонированных и пересвеченных кадров.
+    3. Контраст (RMS Contrast) для оценки динамического диапазона.
     """
-    # 1. Нормализация к единому тензору 512x512 (защита от сжатия Telegram)
-    norm_img = pil_img.copy().convert('RGB').resize((512, 512), Image.Resampling.BILINEAR)
-
+    w, h = pil_img.size
+    
+    # 1. Анализ резкости через OpenCV
     try:
         import cv2
         import numpy as np
         
-        cv_img = np.array(norm_img)
-        gray = cv2.cvtColor(cv_img, cv2.COLOR_RGB2GRAY)
-            
-        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-        blur_score = float(laplacian.var())
-        mean_brightness = float(np.mean(gray))
-        contrast_score = float(np.std(gray))
+        # Конвертируем PIL в NumPy BGR
+        open_cv_image = np.array(pil_img.convert('RGB'))
+        open_cv_image = open_cv_image[:, :, ::-1].copy()
+        gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
         
-    except ImportError:
-        import numpy as np
-        gray = np.array(norm_img.convert('L'), dtype=np.float64)
-        mean_brightness = float(np.mean(gray))
-        contrast_score = float(np.std(gray))
-        
-        lap = (
-            np.roll(gray, 1, axis=0) + np.roll(gray, -1, axis=0) +
-            np.roll(gray, 1, axis=1) + np.roll(gray, -1, axis=1) - 4 * gray
-        )
-        blur_score = float(np.var(lap[1:-1, 1:-1]))
+        # Нормализуем размер для стандартизации дисперсии Лапласиана
+        resized_gray = cv2.resize(gray, (512, 512), interpolation=cv2.INTER_AREA)
+        laplacian_var = cv2.Laplacian(resized_gray, cv2.CV_64F).var()
+        blur_score = round(float(laplacian_var), 1)
+    except Exception as e:
+        logger.warning(f"OpenCV Laplacian calculation failed: {e}, falling back to PIL edge analysis")
+        stat = ImageStat.Stat(pil_img.convert('L'))
+        blur_score = round(float(stat.var[0]), 1)
 
-    # Адаптивный порог резкости на нормализованном 512x512 тензоре
+    # Порог резкости (resilient к сжатию Telegram)
     is_blurry = blur_score < 45.0
-    if blur_score >= 120.0:
-        sharpness_verdict = "Резкий кадр высокой детализации"
-    elif blur_score >= 45.0:
-        sharpness_verdict = "Умеренная резкость (приемлемо для Telegram/Соцсетей)"
-    else:
+    if blur_score < 45.0:
         sharpness_verdict = "Технический смаз / размытое фото"
+    elif blur_score < 120.0:
+        sharpness_verdict = "Умеренная резкость (мягкий фокус)"
+    else:
+        sharpness_verdict = "Резкий кадр высокой детализации"
 
-    if mean_brightness < 65.0:
+    # 2. Анализ экспозиции и контраста
+    stat_gray = ImageStat.Stat(pil_img.convert('L'))
+    brightness_mean = round(float(stat_gray.mean[0]), 1)
+    contrast_score = round(float(stat_gray.stddev[0]), 1)
+
+    if brightness_mean < 65.0:
         exposure_status = "underexposed"
         exposure_verdict = "Слишком темный снимок (недоэкспозиция)"
-    elif mean_brightness > 205.0:
+    elif brightness_mean > 205.0:
         exposure_status = "overexposed"
-        exposure_verdict = "Пересвеченный снимок (потеря деталей в светлых зонах)"
+        exposure_verdict = "Пересвеченный снимок (потеря деталей в светах)"
     else:
         exposure_status = "balanced"
         exposure_verdict = "Сбалансированная экспозиция"
 
+    is_acceptable = (not is_blurry) and (exposure_status == "balanced")
+
     return {
-        "blur_score": round(blur_score, 1),
+        "blur_score": blur_score,
         "is_blurry": is_blurry,
         "sharpness_verdict": sharpness_verdict,
-        "brightness_mean": round(mean_brightness, 1),
-        "contrast_score": round(contrast_score, 1),
+        "brightness_mean": brightness_mean,
+        "contrast_score": contrast_score,
         "exposure_status": exposure_status,
         "exposure_verdict": exposure_verdict,
-        "is_acceptable_quality": not is_blurry and exposure_status == "balanced"
+        "is_acceptable_quality": is_acceptable
     }
 
 
 # -------------------------------------------------------------------
-# 3. Основной класс MoondreamVQASkill v2.0
+# 4. Основной класс навыка Moondream VQA Skill v2.0
 # -------------------------------------------------------------------
 class MoondreamVQASkill:
     """
-    Интеграция с ИИ-аналитиком Moondream2 и гибридным математическим зрением.
-    Отвечает за «зрение» мультиагентной системы UCust.
+    Интеграция с локальной VLM Moondream2.
+    Использует потокобезопасный Singleton Model Pool — веса загружаются строго 1 раз.
     """
+    _shared_llm = None
+    _shared_is_loaded = False
+    _lock = threading.Lock()
 
     def __init__(
         self, 
@@ -204,10 +211,12 @@ class MoondreamVQASkill:
         return path_str
 
     def load_model(self) -> bool:
-        """Загружает модель Moondream GGUF в память (если доступна библиотека llama_cpp)."""
-        if self._is_loaded:
+        """Загружает модель Moondream GGUF в память через Singleton Pool."""
+        if MoondreamVQASkill._shared_is_loaded and MoondreamVQASkill._shared_llm is not None:
+            self._llm = MoondreamVQASkill._shared_llm
+            self._is_loaded = True
             return True
-            
+
         resolved_model = self._resolve_path(self.model_path)
         resolved_mmproj = self._resolve_path(self.mmproj_path)
         
@@ -215,28 +224,36 @@ class MoondreamVQASkill:
             logger.info(f"[Moondream] Локальные GGUF веса не найдены по пути: {resolved_model}. Используется встроенный CV-анализатор.")
             return False
 
-        try:
-            from llama_cpp import Llama
-            from llama_cpp.llama_chat_format import MoondreamChatHandler
-            
-            print(f"[Moondream] 🧠 Загрузка весов Moondream2 VLM ({resolved_model})...")
-            chat_handler = MoondreamChatHandler(clip_model_path=resolved_mmproj)
-            self._llm = Llama(
-                model_path=resolved_model,
-                chat_handler=chat_handler,
-                n_ctx=2048,
-                n_threads=4,
-                verbose=False
-            )
-            self._is_loaded = True
-            print("[Moondream] ✅ Moondream2 VLM успешно инициализирован!")
-            return True
-        except ImportError:
-            logger.info("[Moondream] llama-cpp-python не установлен. Активирован продвинутый встроенный CV-движок анализа.")
-            return False
-        except Exception as e:
-            logger.warning(f"[Moondream] Ошибка инициализации VLM: {e}")
-            return False
+        with MoondreamVQASkill._lock:
+            if MoondreamVQASkill._shared_is_loaded and MoondreamVQASkill._shared_llm is not None:
+                self._llm = MoondreamVQASkill._shared_llm
+                self._is_loaded = True
+                return True
+
+            try:
+                from llama_cpp import Llama
+                from llama_cpp.llama_chat_format import MoondreamChatHandler
+                
+                print(f"[Moondream] 🧠 Загрузка весов Moondream2 VLM ({resolved_model})...")
+                chat_handler = MoondreamChatHandler(clip_model_path=resolved_mmproj)
+                MoondreamVQASkill._shared_llm = Llama(
+                    model_path=resolved_model,
+                    chat_handler=chat_handler,
+                    n_ctx=2048,
+                    n_threads=4,
+                    verbose=False
+                )
+                MoondreamVQASkill._shared_is_loaded = True
+                self._llm = MoondreamVQASkill._shared_llm
+                self._is_loaded = True
+                print("[Moondream] ✅ Moondream2 VLM успешно инициализирован в Singleton-пуле!")
+                return True
+            except ImportError:
+                logger.info("[Moondream] llama-cpp-python не установлен. Активирован встроенный CV-движок.")
+                return False
+            except Exception as e:
+                logger.warning(f"[Moondream] Ошибка инициализации VLM: {e}")
+                return False
 
     def _to_pil_image(self, image_input: Any) -> Optional[Image.Image]:
         """Универсальное преобразование любого типа входных данных в объект PIL Image."""
@@ -420,13 +437,40 @@ class MoondreamVQASkill:
                 elif "phone" in desc_lower or "screen" in desc_lower or "laptop" in desc_lower:
                     foreground_anchor = "цифровое устройство"
 
+                # Агент-Интерпретатор Зрения на базе Saiga NeMo 12B (переиспользует память без доп. VRAM)
+                try:
+                    from skills.saiga_llm import SaigaLLMSkill
+                    saiga = SaigaLLMSkill()
+                    interp_res = saiga.interpret_visual_context(
+                        moondream_raw_desc=neural_desc or "",
+                        topic=topic,
+                        company_name=company_name,
+                        niche=domain_name,
+                        quality_metrics=quality,
+                        colors=colors,
+                        detected_text=detected_text
+                    )
+                    if interp_res.get("russian_description"):
+                        neural_desc = interp_res["russian_description"]
+                    if interp_res.get("genre"):
+                        detected_genre = interp_res["genre"]
+                    if interp_res.get("anchor"):
+                        foreground_anchor = interp_res["anchor"]
+                    if interp_res.get("mood_tags"):
+                        custom_moods = interp_res["mood_tags"]
+                    else:
+                        custom_moods = ["уют", "эстетика", "стиль"]
+                except Exception as saiga_err:
+                    logger.warning(f"[Moondream] Saiga VisualInterpreter fallback: {saiga_err}")
+                    custom_moods = ["уют", "эстетика", "стиль"]
+
                 matrix_obj = VisionStructuredMatrix(
                     genre=detected_genre,
                     subject_details=neural_desc or "",
                     foreground_physical_anchor=foreground_anchor,
                     lighting_temperature="warm" if quality["brightness_mean"] > 120 else "neutral",
                     focal_depth="shallow_dof" if quality["blur_score"] > 80 else "deep_focus",
-                    aesthetic_mood_tags=["уют", "эстетика", "стиль"],
+                    aesthetic_mood_tags=custom_moods,
                     detected_text_hints=detected_text
                 )
             except Exception as e:

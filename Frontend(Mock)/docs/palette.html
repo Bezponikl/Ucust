@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UCust — палитра проекта</title>
+<style>
+  :root {
+    --canvas: #f2f4f7; --surface-soft: #f8f9fc; --surface-blue: #e8ebff;
+    --card: #ffffff; --border: #e6e9f0;
+    --brand: #4f7dff; --brand-hover: #3d63e6; --brand-tint: #e6ecff;
+    --brand-purple: #7b5cff; --brand-pink: #ff5fa2; --brand-orange: #ff8c4b;
+    --ink: #1f2433; --ink-muted: #6b7280; --success: #18a957;
+    --gradient-brand: linear-gradient(120deg,#4f7dff 0%,#7b5cff 38%,#ff5fa2 72%,#ff8c4b 100%);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 48px clamp(20px,5vw,72px);
+    background: var(--canvas); color: var(--ink);
+    font-family: "Manrope", system-ui, -apple-system, Segoe UI, sans-serif;
+  }
+  header { max-width: 1100px; margin: 0 auto 40px; }
+  h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { color: var(--ink-muted); font-size: 15px; }
+  main { max-width: 1100px; margin: 0 auto; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--ink-muted); font-weight: 700; margin: 40px 0 16px;
+  }
+  .grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+  .sw {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden; cursor: pointer;
+    box-shadow: 0 2px 14px rgba(10,14,26,0.05);
+    transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s;
+  }
+  .sw:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(10,14,26,0.10); }
+  .chip { height: 92px; border-bottom: 1px solid var(--border); }
+  .meta { padding: 12px 14px; }
+  .meta .name { font-weight: 700; font-size: 14px; }
+  .meta .token { font-size: 12px; color: var(--ink-muted); font-family: ui-monospace, monospace; }
+  .meta .hex { font-size: 13px; font-family: ui-monospace, monospace; margin-top: 4px; letter-spacing: .02em; }
+  .wide { grid-column: 1 / -1; }
+  .wide .chip { height: 120px; }
+  .note { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+  .copied { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .copied.on { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>UCust — палитра проекта</h1>
+  <div class="sub">Фирменные цвета из <code>app/globals.css</code>. Клик по плашке — HEX копируется в буфер.</div>
+</header>
+<main>
+  <h2>Бренд</h2>
+  <div class="grid" id="brand"></div>
+
+  <h2>Фирменный градиент</h2>
+  <div class="grid">
+    <div class="sw wide" data-copy="linear-gradient(120deg,#4f7dff,#7b5cff,#ff5fa2,#ff8c4b)">
+      <div class="chip" style="background:var(--gradient-brand)"></div>
+      <div class="meta">
+        <div class="name">Gradient Brand</div>
+        <div class="token">--gradient-brand</div>
+        <div class="hex">120° · #4f7dff → #7b5cff → #ff5fa2 → #ff8c4b</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Акценты</h2>
+  <div class="grid" id="accent"></div>
+
+  <h2>Текст (ink)</h2>
+  <div class="grid" id="ink"></div>
+
+  <h2>Поверхности</h2>
+  <div class="grid" id="surface"></div>
+
+  <h2>Статус</h2>
+  <div class="grid" id="status"></div>
+</main>
+
+<div class="copied" id="toast">Скопировано</div>
+
+<script>
+  const groups = {
+    brand: [
+      ["Brand", "--brand", "#4f7dff"],
+      ["Brand Hover", "--brand-hover", "#3d63e6"],
+      ["Brand Tint", "--brand-tint", "#e6ecff"],
+    ],
+    accent: [
+      ["Purple", "--brand-purple", "#7b5cff"],
+      ["Pink", "--brand-pink", "#ff5fa2"],
+      ["Orange", "--brand-orange", "#ff8c4b"],
+    ],
+    ink: [
+      ["Ink", "--ink", "#1f2433"],
+      ["Ink Muted", "--ink-muted", "#6b7280"],
+    ],
+    surface: [
+      ["Canvas", "--canvas", "#f2f4f7"],
+      ["Surface Soft", "--surface-soft", "#f8f9fc"],
+      ["Surface Blue", "--surface-blue", "#e8ebff"],
+      ["Card", "--card", "#ffffff"],
+      ["Border", "--border", "#e6e9f0"],
+    ],
+    status: [
+      ["Success", "--success", "#18a957"],
+    ],
+  };
+  const toast = document.getElementById("toast");
+  function card([name, token, hex]) {
+    const el = document.createElement("div");
+    el.className = "sw"; el.dataset.copy = hex;
+    el.innerHTML =
+      '<div class="chip" style="background:' + hex + '"></div>' +
+      '<div class="meta"><div class="name">' + name + '</div>' +
+      '<div class="token">' + token + '</div>' +
+      '<div class="hex">' + hex + '</div></div>';
+    return el;
+  }
+  for (const [id, items] of Object.entries(groups)) {
+    const box = document.getElementById(id);
+    items.forEach(i => box.appendChild(card(i)));
+  }
+  document.addEventListener("click", e => {
+    const sw = e.target.closest("[data-copy]");
+    if (!sw) return;
+    navigator.clipboard.writeText(sw.dataset.copy);
+    toast.textContent = "Скопировано: " + sw.dataset.copy;
+    toast.classList.add("on");
+    clearTimeout(window._t);
+    window._t = setTimeout(() => toast.classList.remove("on"), 1400);
+  });
+</script>
+</body>
+</html>

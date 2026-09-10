@@ -26,9 +26,11 @@ class CrossEncoderReranker:
         
         try:
             from sentence_transformers import CrossEncoder
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
             # Пробуем загрузить локально без сетевой блокировки
-            self.model = CrossEncoder(self.model_name, local_files_only=True)
-            print(f"[CrossEncoderReranker] 🟢 Кросс-энкодер '{self.model_name}' успешно загружен локально.")
+            self.model = CrossEncoder(self.model_name, device=device, local_files_only=True)
+            print(f"[CrossEncoderReranker] 🟢 Кросс-энкодер '{self.model_name}' успешно загружен на {device.upper()}.")
         except Exception:
             # Fallback на быстрый детерминированный Reranker
             self.model = None

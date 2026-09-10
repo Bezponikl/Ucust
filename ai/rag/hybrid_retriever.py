@@ -30,7 +30,9 @@ class LocalDenseStore:
         
         try:
             from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2", local_files_only=True)
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2", device=device, local_files_only=True)
         except Exception:
             self.model = None
 

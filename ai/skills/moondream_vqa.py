@@ -234,19 +234,21 @@ class MoondreamVQASkill:
                 from llama_cpp import Llama
                 from llama_cpp.llama_chat_format import MoondreamChatHandler
                 
-                print(f"[Moondream] 🧠 Загрузка весов Moondream2 VLM ({resolved_model})...")
+                print(f"[Moondream] 🧠 Загрузка весов Moondream2 VLM на GPU ({resolved_model})...")
                 chat_handler = MoondreamChatHandler(clip_model_path=resolved_mmproj)
+                n_gpu = int(os.getenv("MOONDREAM_GPU_LAYERS", "-1"))
                 MoondreamVQASkill._shared_llm = Llama(
                     model_path=resolved_model,
                     chat_handler=chat_handler,
                     n_ctx=2048,
                     n_threads=4,
+                    n_gpu_layers=n_gpu,
                     verbose=False
                 )
                 MoondreamVQASkill._shared_is_loaded = True
                 self._llm = MoondreamVQASkill._shared_llm
                 self._is_loaded = True
-                print("[Moondream] ✅ Moondream2 VLM успешно инициализирован в Singleton-пуле!")
+                print(f"[Moondream] 🚀 Moondream2 VLM успешно инициализирован на GPU (слои: {n_gpu}) в Singleton-пуле!")
                 return True
             except ImportError:
                 logger.info("[Moondream] llama-cpp-python не установлен. Активирован встроенный CV-движок.")

@@ -78,14 +78,27 @@ class SaigaLLMSkill:
         if os.path.exists(alt_repo):
             return alt_repo
         
-        # Автоматический поиск любого GGUF файла в папке models/saiga/
+        # Автоматический поиск файла модели Saiga NeMo 12B BF16
         for candidate_dir in [
+            "/opt/ucust/ai/models/saiga",
+            "/opt/ucust/models/saiga",
             os.path.normpath(os.path.join(base_dir, "..", "models", "saiga")),
             os.path.normpath(os.path.join(base_dir, "..", "..", "ai", "models", "saiga")),
-            "models/saiga",
-            "/opt/ucust/ai/models/saiga"
+            "models/saiga"
         ]:
             if os.path.exists(candidate_dir):
+                # 1. Приоритет: точное имя saiga_nemo_12b.BF16.gguf
+                exact = os.path.join(candidate_dir, "saiga_nemo_12b.BF16.gguf")
+                if os.path.exists(exact):
+                    print(f"[SaigaSkill] 🔍 Обнаружен официальный файл Saiga NeMo 12B BF16: {exact}")
+                    return exact
+                # 2. Поиск любого NeMo GGUF
+                for fname in os.listdir(candidate_dir):
+                    if "nemo" in fname.lower() and fname.endswith(".gguf"):
+                        found = os.path.join(candidate_dir, fname)
+                        print(f"[SaigaSkill] 🔍 Автоматически обнаружен файл Saiga NeMo 12B: {found}")
+                        return found
+                # 3. Любой Saiga GGUF
                 for fname in os.listdir(candidate_dir):
                     if fname.endswith(".gguf"):
                         found = os.path.join(candidate_dir, fname)

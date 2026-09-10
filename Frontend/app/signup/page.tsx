@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
 import FormError from "@/components/auth/FormError";
+import SocialAuth from "@/components/auth/SocialAuth";
 import Checkbox from "@/components/ui/Checkbox";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { register } from "@/lib/api/auth";
@@ -145,6 +146,8 @@ export default function SignupPage() {
           Войти
         </Link>
       </form>
+
+      <SocialAuth label="или продолжите с помощью" />
     </AuthPageChrome>
   );
 }

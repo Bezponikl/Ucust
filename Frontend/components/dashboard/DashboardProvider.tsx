@@ -7,6 +7,7 @@ import { loadWorkspace } from "@/lib/dashboard/source";
 
 const BG_STORAGE_KEY = "uc_bg";
 const SURFACE_STORAGE_KEY = "uc_surface";
+const PROJECT_STORAGE_KEY = "uc_active_project";
 
 export type SurfaceStyle = "solid" | "glass";
 
@@ -46,19 +47,36 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   // Актуальный id проекта: reloadWorkspace перечитывает то, что выбрано сейчас.
   const activeProjectId = useRef<string | null>(null);
 
-  const applyWorkspace = useCallback(async (targetId?: string) => {
-    // Селектор может звать переключение, а reloadWorkspace — просто «перечитать текущее».
-    const ws = await loadWorkspace(targetId ?? activeProjectId.current ?? undefined);
-    activeProjectId.current = ws.projectId;
-    setData(buildDashboardData(ws.profile, ws.projectName, ws.projectLogo, ws.projects));
-    setHasProject(ws.hasProject);
-    setProjectId(ws.projectId);
+  // Персист выбора в localStorage: после полной перезагрузки активным
+  // становится последний выбранный проект, а не первый из списка.
+  const rememberProject = useCallback((id: string | null) => {
+    try {
+      if (id) localStorage.setItem(PROJECT_STORAGE_KEY, id);
+      else localStorage.removeItem(PROJECT_STORAGE_KEY);
+    } catch {}
   }, []);
+
+  const applyWorkspace = useCallback(
+    async (targetId?: string) => {
+      // Селектор может звать переключение, а reloadWorkspace — просто «перечитать текущее».
+      const ws = await loadWorkspace(targetId ?? activeProjectId.current ?? undefined);
+      activeProjectId.current = ws.projectId;
+      rememberProject(ws.projectId);
+      setData(buildDashboardData(ws.profile, ws.projectName, ws.projectLogo, ws.projects));
+      setHasProject(ws.hasProject);
+      setProjectId(ws.projectId);
+    },
+    [rememberProject],
+  );
 
   // Профиль приходит с сервера либо из sessionStorage — решает loadWorkspace.
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    void applyWorkspace().then(() => setHydrated(true));
+    let savedProject: string | null = null;
+    try {
+      savedProject = localStorage.getItem(PROJECT_STORAGE_KEY);
+    } catch {}
+    void applyWorkspace(savedProject ?? undefined).then(() => setHydrated(true));
     try {
       const savedBg = localStorage.getItem(BG_STORAGE_KEY);
       if (savedBg) setBackgroundState(savedBg);

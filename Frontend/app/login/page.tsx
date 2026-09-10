@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
 import FormError from "@/components/auth/FormError";
+import SocialAuth from "@/components/auth/SocialAuth";
 import Checkbox from "@/components/ui/Checkbox";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { toMessage } from "@/lib/api/errors";
-import { authorizeUrl, oauthErrorMessage } from "@/lib/api/oauth";
+import { oauthErrorMessage } from "@/lib/api/oauth";
 import { useSession } from "@/lib/session/SessionProvider";
 
 const inputClass =
@@ -29,11 +29,6 @@ export default function LoginPage() {
     setError(message);
     window.history.replaceState(null, "", "/login");
   }, []);
-
-  const startYandex = () => {
-    // Полноценный переход, а не fetch: дальше идёт цепочка редиректов Яндекса.
-    window.location.href = authorizeUrl("yandex");
-  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -110,29 +105,7 @@ export default function LoginPage() {
         </Link>
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-ink-muted">
-        <span className="h-px flex-1 bg-border" aria-hidden="true" />
-        или войдите с помощью
-        <span className="h-px flex-1 bg-border" aria-hidden="true" />
-      </div>
-
-      <div className="flex items-center justify-center gap-4">
-        <button
-          type="button"
-          onClick={startYandex}
-          aria-label="Войти через Яндекс"
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-soft transition-all hover:bg-card dark:hover:bg-white/5"
-        >
-          <Image
-            src="/yandex.svg"
-            alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8 shrink-0"
-            aria-hidden="true"
-          />
-        </button>
-      </div>
+      <SocialAuth />
     </AuthPageChrome>
   );
 }

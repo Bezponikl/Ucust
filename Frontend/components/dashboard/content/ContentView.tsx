@@ -545,7 +545,7 @@ export default function ContentView() {
   const passes = (p: Post) =>
     (status === "all" || p.status === status) &&
     types.includes(p.type) &&
-    p.channels.some((c) => chans.includes(c));
+    (p.channels.length === 0 || p.channels.some((c) => chans.includes(c)));
 
   const dayRefs = useRef<Map<number, HTMLLIElement>>(new Map());
 

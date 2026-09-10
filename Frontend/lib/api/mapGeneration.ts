@@ -93,9 +93,11 @@ const STATUS_MAP: Record<string, PostStatus> = {
   CONFIRMED: "scheduled",
   APPROVED: "scheduled",
   DRAFT: "draft",
+  DRAFTED: "draft",
   NEW: "draft",
   CREATED: "draft",
   GENERATED: "draft",
+  REJECTED: "draft",
 };
 
 export function postStatus(post: PostResponse): PostStatus {
@@ -114,7 +116,11 @@ function postType(post: PostResponse): PostType {
 
 function postChannels(post: PostResponse): ChannelId[] {
   const raw = post as Record<string, unknown>;
-  const value = raw.channels ?? raw.socialNetworks ?? raw.platforms;
+  let value = raw.channels ?? raw.socialNetworks ?? raw.platforms;
+  // targetPlatforms у бэка — строка «telegram,vk» — такие тоже понимаем
+  if (typeof value === "string") {
+    value = value.split(/[,;\s]+/);
+  }
   if (!Array.isArray(value)) return [];
 
   return value

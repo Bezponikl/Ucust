@@ -8,12 +8,11 @@ import EmojiPicker from "@/components/ui/EmojiPicker";
 import { toast } from "@/lib/toast";
 import type { ChannelId } from "@/lib/channels";
 import { STATUS_LABEL, type Post, type PostType } from "@/lib/dashboard/content";
-import { dayToIso, fmtDayMonth } from "@/lib/dashboard/date";
+import { combineDateTime, dayToIso, fmtDayMonth } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
-import type { PostStatus } from "@/lib/dashboard/types";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { toMessage } from "@/lib/api/errors";
-import { confirmPost, publishPost, rejectPost } from "@/lib/api/orchestration";
+import { confirmPost, publishPost, schedulePost, updatePost } from "@/lib/api/orchestration";
 import FeedPreview, { type PreviewMedia } from "./FeedPreview";
 import {
   ActionMenu,
@@ -36,11 +35,13 @@ const TYPE_OPTIONS: SelectOption<PostType>[] = [
   { id: "video", label: "Видео",      icon: "clapperboard" },
 ];
 
-const STATUS_OPTIONS: SelectOption<PostStatus>[] = [
-  { id: "published", label: STATUS_LABEL.published, dot: "bg-success" },
-  { id: "scheduled", label: STATUS_LABEL.scheduled, dot: "bg-brand" },
-  { id: "draft",     label: STATUS_LABEL.draft,     dot: "bg-ink-muted" },
-];
+/** Точка статуса поста в компактной подписи (не редактируется). */
+const STATUS_DOT: Record<Post["status"], string> = {
+  published: "bg-success",
+  scheduled: "bg-brand",
+  draft: "bg-ink-muted",
+  none: "bg-ink-muted",
+};
 
 type Media = PreviewMedia;
 
@@ -54,15 +55,13 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
   const [text, setText] = useState(post.excerpt);
   const [media, setMedia] = useState<Media>(initialMedia);
   const [channels, setChannels] = useState<ChannelId[]>(post.channels);
-  const [status, setStatus] = useState<PostStatus>(post.status === "none" ? "draft" : post.status);
   const [type, setType] = useState<PostType>(post.type);
   const [date, setDate] = useState(dayToIso(post.day));
   const [time, setTime] = useState(post.time === "—" ? "12:00" : post.time);
   const [tags, setTags] = useState<string[]>(["кофейня", "утро", "эспрессо"]);
 
   const [busy, setBusy] = useState<null | "text" | "image">(null);
-  const [publishing, setPublishing] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
+  const [actioning, setActioning] = useState<null | "save" | "draft" | "schedule" | "publish">(null);
   const [saved, setSaved] = useState(true);
   const [addingTag, setAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -73,8 +72,8 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
   useEffect(() => { const u = objectUrls.current; return () => u.forEach((x) => URL.revokeObjectURL(x)); }, []);
 
   const snapshot = useMemo(
-    () => JSON.stringify({ title, text, media, channels, status, type, date, time, tags }),
-    [title, text, media, channels, status, type, date, time, tags],
+    () => JSON.stringify({ title, text, media, channels, type, date, time, tags }),
+    [title, text, media, channels, type, date, time, tags],
   );
   const savedSnapshot = useRef(snapshot);
   useEffect(() => { setSaved(snapshot === savedSnapshot.current); }, [snapshot]);
@@ -123,25 +122,103 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
     setAddingTag(false);
   };
 
-  const save = () => {
+  /**
+   * Переносит текущие правки экрана (текст, хэштеги, площадки) на бэк, чтобы
+   * сохранённый пост содержал то, что видит пользователь. Картинка/дата
+   * отдельно не передаются: обложка живёт на бэке (imageUrl), дату ставит
+   * «Запланировать».
+   */
+  const persistContent = async () => {
+    if (!serverId) return;
+    await updatePost(serverId, {
+      text,
+      hashtags: tags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+      targetPlatforms: channels.join(","),
+    });
     savedSnapshot.current = snapshot;
     setSaved(true);
-    toast("Изменения сохранены");
   };
+
+  /** «Сохранить» — просто пишет правки на бэк, статус не меняет. */
+  const save = async () => {
+    if (actioning) return;
+    if (!serverId) {
+      savedSnapshot.current = snapshot;
+      setSaved(true);
+      toast("Изменения сохранены");
+      return;
+    }
+    setActioning("save");
+    try {
+      await persistContent();
+      toast("Изменения сохранены");
+    } catch (err) {
+      toast(toMessage(err));
+    } finally {
+      setActioning(null);
+    }
+  };
+
+  /** «Черновик» — правки сохраняются, пост остаётся в DRAFT и виден в плане. */
+  const draft = async () => {
+    if (actioning) return;
+    if (!serverId) {
+      toast("Сохранено в черновики");
+      router.push("/dashboard/content");
+      return;
+    }
+    setActioning("draft");
+    try {
+      await persistContent();
+      toast("Сохранено в черновики");
+      router.push("/dashboard/content");
+    } catch (err) {
+      toast(toMessage(err));
+    } finally {
+      setActioning(null);
+    }
+  };
+
+  /**
+   * «Запланировать» — сохраняет правки, подтверждает пост и ставит его
+   * в очередь планировщика бэка на выбранные дату/время.
+   */
+  const schedule = async () => {
+    if (actioning) return;
+    if (!serverId) {
+      toast("Публикация запланирована");
+      router.push("/dashboard/content");
+      return;
+    }
+    setActioning("schedule");
+    try {
+      await persistContent();
+      await confirmPost(serverId);
+      await schedulePost(serverId, combineDateTime(date, time));
+      toast("Публикация запланирована");
+      router.push("/dashboard/content");
+    } catch (err) {
+      toast(toMessage(err));
+    } finally {
+      setActioning(null);
+    }
+  };
+
   /**
    * У поста, живущего на бэке, публикация идёт в два шага: сначала подтверждение
    * (текст принят человеком), затем отправка в соцсети. Демо-посты витрины
    * проходят этот путь только на экране.
    */
   const publish = async () => {
+    if (actioning) return;
     if (!serverId) {
       toast("Публикация отправлена");
       router.push("/dashboard/content");
       return;
     }
-
-    setPublishing(true);
+    setActioning("publish");
     try {
+      await persistContent();
       await confirmPost(serverId);
       await publishPost(serverId);
       toast("Публикация отправлена");
@@ -149,27 +226,7 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
     } catch (err) {
       toast(toMessage(err));
     } finally {
-      setPublishing(false);
-    }
-  };
-
-  /** «Отложить» — снимаем пост с публикации (REJECTED). Сам текст остаётся. */
-  const reject = async () => {
-    if (!serverId) {
-      toast("Публикация отложена");
-      router.push("/dashboard/content");
-      return;
-    }
-
-    setRejecting(true);
-    try {
-      await rejectPost(serverId);
-      toast("Публикация отложена");
-      router.push("/dashboard/content");
-    } catch (err) {
-      toast(toMessage(err));
-    } finally {
-      setRejecting(false);
+      setActioning(null);
     }
   };
 
@@ -207,28 +264,38 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
 
           <button
             type="button"
-            onClick={save}
-            className="btn-glass inline-flex items-center px-4 py-2 text-[0.8125rem] font-semibold sm:text-sm"
+            onClick={() => void save()}
+            disabled={actioning !== null}
+            className="btn-glass inline-flex items-center px-4 py-2 text-[0.8125rem] font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
           >
-            Сохранить
+            {actioning === "save" ? "Сохраняем…" : "Сохранить"}
           </button>
           <button
             type="button"
-            onClick={() => void reject()}
-            disabled={rejecting}
-            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-ink-muted transition duration-150 hover:bg-surface-soft hover:text-ink disabled:opacity-60"
+            onClick={() => void draft()}
+            disabled={actioning !== null}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-ink-muted transition duration-150 hover:bg-surface-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Icon name="clock" size={15} aria-hidden="true" />
-            {rejecting ? "Откладываем…" : "Отложить"}
+            <Icon name="file-text" size={15} aria-hidden="true" />
+            {actioning === "draft" ? "Сохраняем…" : "Черновик"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void schedule()}
+            disabled={actioning !== null}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-ink-muted transition duration-150 hover:bg-surface-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon name="calendar-plus" size={15} aria-hidden="true" />
+            {actioning === "schedule" ? "Планируем…" : "Запланировать"}
           </button>
           <button
             type="button"
             onClick={() => void publish()}
-            disabled={publishing}
+            disabled={actioning !== null}
             className="btn-glass-blue inline-flex items-center gap-2 px-4 py-2 text-[0.8125rem] font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:px-5 sm:text-sm"
           >
             <Icon name="send" size={15} aria-hidden="true" />
-            {publishing ? "Публикуем…" : "Опубликовать"}
+            {actioning === "publish" ? "Публикуем…" : "Опубликовать"}
           </button>
         </div>
       </header>
@@ -414,7 +481,10 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
                 <SoftSelect value={type} options={TYPE_OPTIONS} onChange={setType} ariaLabel="Тип публикации" />
               </ControlRow>
               <ControlRow label="Статус">
-                <SoftSelect value={status} options={STATUS_OPTIONS} onChange={setStatus} ariaLabel="Статус публикации" />
+                <span className="inline-flex items-center gap-2 text-sm text-ink">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[post.status]}`} aria-hidden="true" />
+                  {STATUS_LABEL[post.status]}
+                </span>
               </ControlRow>
               <ControlRow label="Дата">
                 <DateTimeField

@@ -412,16 +412,29 @@ class MoondreamVQASkill:
                 if raw_desc and len(raw_desc) > 10:
                     neural_desc = raw_desc
 
-                # Такт 2: Детекция текста/логотипов
-                text_prompt = "Is there any text, numbers, or brand logo written in this image? State them briefly."
-                text_resp = self._llm.create_chat_completion(
-                    messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": text_prompt}]}],
-                    max_tokens=40,
-                    temperature=0.0
-                )
-                detected_text = text_resp["choices"][0]["message"]["content"].strip()
-                if any(w in detected_text.lower() for w in ["no", "none", "not visible", "no text"]):
-                    detected_text = ""
+                # Такт 2: Высокоточная детекция текста через PaddleOCR / OCREngine (мгновенно)
+                detected_text = ""
+                try:
+                    from skills.ocr_engine import OCREngine
+                    ocr = OCREngine(use_gpu=True)
+                    detected_text = ocr.extract_text(pil_img)
+                except Exception as ocr_e:
+                    logger.debug(f"[Moondream] OCR engine fallback: {ocr_e}")
+
+                # Fallback к VLM детекции, если OCR не установлен или пуст
+                if not detected_text and self._llm:
+                    try:
+                        text_prompt = "Is there any text, numbers, or brand logo written in this image? State them briefly."
+                        text_resp = self._llm.create_chat_completion(
+                            messages=[{"role": "user", "content": [{"type": "image_url", "image_url": {"url": data_uri}}, {"type": "text", "text": text_prompt}]}],
+                            max_tokens=30,
+                            temperature=0.0
+                        )
+                        raw_vlm_text = text_resp["choices"][0]["message"]["content"].strip()
+                        if not any(w in raw_vlm_text.lower() for w in ["no", "none", "not visible", "no text", "ссс"]):
+                            detected_text = raw_vlm_text
+                    except Exception:
+                        pass
 
                 # Автоматическая классификация жанра по семантике Moondream
                 desc_lower = (neural_desc or "").lower()

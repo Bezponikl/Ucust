@@ -252,6 +252,7 @@ class SaigaLLMSkill:
         rubric: Optional[str] = None,
         primary_cta: Optional[str] = None,
         language: Optional[str] = "ru",
+        vision_matrix: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
         **kwargs
     ) -> dict:
         """
@@ -283,6 +284,37 @@ class SaigaLLMSkill:
         if marketing_directive:
             print(f"[SaigaSkill] 🎯 Маркетинговая воронка: Ступень Ханта={marketing_directive.get('hunt_stage')}, Фреймворк={marketing_directive.get('framework')}")
         
+        # 0. Структурный паспорт снимка (Moondream v2.0 Vision Matrix)
+        vm = vision_matrix or kwargs.get("vision_matrix")
+        if isinstance(vm, list) and len(vm) > 0:
+            vm = vm[0]
+        vision_matrix_info = ""
+        if isinstance(vm, dict) and vm:
+            v_lines = []
+            if vm.get("genre"):
+                v_lines.append(f"• Жанр снимка: {vm.get('genre')}")
+            if vm.get("subject_details"):
+                v_lines.append(f"• Главный объект: {vm.get('subject_details')}")
+            if vm.get("foreground_physical_anchor"):
+                v_lines.append(f"• Физический якорь переднего плана (тактильные/предметные детали): {vm.get('foreground_physical_anchor')}")
+            if vm.get("lighting_temperature"):
+                v_lines.append(f"• Освещение и световая температура: {vm.get('lighting_temperature')}")
+            if vm.get("aesthetic_mood_tags"):
+                m_tags = vm.get("aesthetic_mood_tags")
+                v_lines.append(f"• Эстетическое настроение: {', '.join(m_tags) if isinstance(m_tags, list) else m_tags}")
+            if vm.get("focal_depth"):
+                v_lines.append(f"• Глубина фокуса: {vm.get('focal_depth')}")
+            if vm.get("detected_text_hints"):
+                v_lines.append(f"• Замеченный текст на снимке: {vm.get('detected_text_hints')}")
+            
+            if v_lines:
+                vision_matrix_info = (
+                    "\nСТРУКТУРНЫЙ ВИЗУАЛЬНЫЙ ПАСПОРТ КАДРА (MOONDREAM V2.0):\n"
+                    + "\n".join(v_lines) + "\n"
+                    "ТРЕБОВАНИЕ К СВЯЗКЕ С ВИЗУАЛОМ: Обязательно органично упомяни детали кадра "
+                    f"({vm.get('foreground_physical_anchor') or vm.get('subject_details', '')}) и выдержи настроение ({', '.join(vm.get('aesthetic_mood_tags', [])) if isinstance(vm.get('aesthetic_mood_tags'), list) else 'эстетика'}).\n"
+                )
+
         # 1. Продуктовый каталог и меню
         products_info = ""
         if products_catalog:
@@ -379,6 +411,7 @@ class SaigaLLMSkill:
                     f"{lang_info}"
                     f"{mktg_info}\n"
                     f"{rag_info}\n"
+                    f"{vision_matrix_info}"
                     f"{visual_context or ''}{comments_info}"
                 )
 
@@ -426,7 +459,15 @@ class SaigaLLMSkill:
         niche_lower = niche.lower()
 
         visual_phrase = ""
-        if visual_context and "Что изображено:" in visual_context:
+        if isinstance(vm, dict) and vm:
+            anchor_or_subj = vm.get("foreground_physical_anchor") or vm.get("subject_details")
+            m_tags = vm.get("aesthetic_mood_tags", [])
+            mood_suffix = f" в атмосфере {', '.join(m_tags[:2])}" if isinstance(m_tags, list) and m_tags else ""
+            if anchor_or_subj:
+                visual_phrase = f"\n\nНа фото в фокусе внимания — {anchor_or_subj}{mood_suffix}. Это именно то внимание к деталям и эстетике, которое мы воплощаем в каждом нашем продукте."
+            else:
+                visual_phrase = "\n\nНа прикреплённом фото — именно те детали и атмосфера, которые мы воплощаем в каждом нашем продукте."
+        elif visual_context and ("Что изображено:" in visual_context or "ВИЗУАЛЬНЫЙ ПАСПОРТ" in visual_context):
             visual_phrase = "\n\nНа прикреплённом фото — именно те детали и атмосфера, которые мы воплощаем в каждом нашем продукте."
 
         # Формируем блок ответов на вопросы из комментариев

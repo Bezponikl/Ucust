@@ -216,11 +216,22 @@ class UnifiedOrchestrator:
                 print(f"[UnifiedOrchestrator] ⚠️ Ошибка Moondream анализа: {e}")
 
         if task_type in {"quick_vision", "analyze_attachments", "analyze_photo", "vision"}:
+            extracted_matrix = None
+            if moondream_analysis:
+                if moondream_analysis.get("items") and len(moondream_analysis["items"]) > 0:
+                    extracted_matrix = moondream_analysis["items"][0].get("structured_matrix")
+                elif moondream_analysis.get("structured_matrix"):
+                    extracted_matrix = moondream_analysis.get("structured_matrix")
+
             return {
                 "status": "success",
                 "task_type": task_type,
                 "photos_count": moondream_analysis.get("count", 0) if moondream_analysis else 0,
                 "brand_colors": moondream_analysis.get("colors", []) if moondream_analysis else [],
+                "mood_tags": moondream_analysis.get("mood_tags", []) if moondream_analysis else [],
+                "quality_flags": moondream_analysis.get("quality_flags", {}) if moondream_analysis else {},
+                "structured_matrix": extracted_matrix,
+                "items": moondream_analysis.get("items", []) if moondream_analysis else [],
                 "slot_mapping": moondream_analysis.get("slot_mapping") if moondream_analysis else None,
                 "fusion_prompt": moondream_analysis.get("fusion_prompt") if moondream_analysis else None,
                 "visual_narrative": moondream_analysis.get("fusion_narrative") if moondream_analysis else None,
@@ -1090,6 +1101,13 @@ class UnifiedOrchestrator:
             if moondream_analysis and moondream_analysis.get("visual_context_for_llm"):
                 visual_scene_context_for_saiga += f" | {moondream_analysis['visual_context_for_llm']}"
 
+            extracted_matrix = None
+            if moondream_analysis:
+                if moondream_analysis.get("items") and len(moondream_analysis["items"]) > 0:
+                    extracted_matrix = moondream_analysis["items"][0].get("structured_matrix")
+                elif moondream_analysis.get("structured_matrix"):
+                    extracted_matrix = moondream_analysis.get("structured_matrix")
+
             saiga = SaigaLLMSkill()
             comments_ctx = user_data.get("comments") or user_data.get("comments_context") or user_data.get("top_objections_from_comments")
             audience_q = user_data.get("audience_questions") or user_data.get("top_audience_questions")
@@ -1121,7 +1139,8 @@ class UnifiedOrchestrator:
                     locations=user_data.get("locations"),
                     rubric=user_data.get("rubric"),
                     primary_cta=user_data.get("primary_cta"),
-                    language=user_data.get("language", "ru")
+                    language=user_data.get("language", "ru"),
+                    vision_matrix=extracted_matrix
                 )
                 p_text = gen_res.get("post_text", "")
                 

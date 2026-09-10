@@ -212,3 +212,7 @@ class TrendsAndMemesCollector:
 
         await rag_pipeline.ingest_documents_async(docs)
         return len(docs)
+
+TrendsCollector = TrendsAndMemesCollector
+__all__ = ["TrendsAndMemesCollector", "TrendsCollector"]
+

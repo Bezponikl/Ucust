@@ -270,6 +270,121 @@ class UnifiedOrchestrator:
                 "indexed_in_rag_count": indexed_count
             }
 
+        if task_type in {"parse_telegram", "collect_telegram", "telegram"}:
+            from collectors.telethon_collector import TelethonCollector
+            channel = user_data.get("channel") or user_data.get("url") or user_data.get("target") or "@UcustAi"
+            limit = int(user_data.get("limit", 10))
+            include_media_vqa = user_data.get("include_media_vqa", True)
+            
+            tg_collector = TelethonCollector()
+            tg_data = await tg_collector.collect_async(channel=channel, limit=limit)
+            payload = tg_data.payload if hasattr(tg_data, "payload") else tg_data
+            
+            media_vqa_result = None
+            if include_media_vqa and isinstance(payload, dict) and payload.get("messages"):
+                # Собираем фото из постов, если они есть
+                collected_photos = []
+                for msg in payload.get("messages", []):
+                    if isinstance(msg, dict) and msg.get("photo_url"):
+                        collected_photos.append(msg["photo_url"])
+                    elif isinstance(msg, dict) and msg.get("media_path"):
+                        collected_photos.append(msg["media_path"])
+                
+                if collected_photos:
+                    try:
+                        from skills.moondream_vqa import MoondreamVQASkill
+                        vqa = MoondreamVQASkill()
+                        media_vqa_result = vqa.analyze_attachments_batch(
+                            attachments=collected_photos[:5],
+                            topic=f"Анализ ленты Telegram-канала {channel}",
+                            company_name=user_data.get("company_name", channel)
+                        )
+                    except Exception as ve:
+                        print(f"[UnifiedOrchestrator] ⚠️ Ошибка VLM анализа медиа Telegram: {ve}")
+
+            self._log_trace(session_id, "TelethonCollector", "TelegramParsed", {
+                "channel": channel,
+                "posts_count": len(payload.get("messages", [])) if isinstance(payload, dict) else 0,
+                "has_media_vqa": bool(media_vqa_result)
+            })
+
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "channel": channel,
+                "source": "telegram",
+                "data": payload,
+                "media_analysis": media_vqa_result
+            }
+
+        if task_type in {"parse_vk", "collect_vk", "vk"}:
+            from collectors.vk_collector import VKCollector
+            group_id = user_data.get("group_id") or user_data.get("url") or user_data.get("target") or "ucust_ai"
+            limit = int(user_data.get("limit", 10))
+            
+            vk_collector = VKCollector()
+            vk_res = await vk_collector.collect_group_async(group_id_or_url=group_id, limit=limit)
+            
+            self._log_trace(session_id, "VKCollector", "VKParsed", {
+                "group_id": group_id,
+                "status": vk_res.get("status")
+            })
+
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "group_id": group_id,
+                "source": "vk",
+                "data": vk_res.get("data", vk_res)
+            }
+
+        if task_type in {"parse_geo", "collect_geo", "maps", "2gis", "yandex"}:
+            url_or_id = user_data.get("url") or user_data.get("organization_id") or user_data.get("target") or ""
+            provider = (user_data.get("provider") or "").lower()
+            limit = int(user_data.get("limit", 10))
+
+            if "yandex" in url_or_id.lower() or provider == "yandex":
+                from collectors.yandex_collector import YandexMapsCollector
+                geo_res = await YandexMapsCollector().collect_reviews_async(url_or_id, limit=limit)
+            else:
+                from collectors.twogis_collector import TwoGisCollector
+                geo_res = await TwoGisCollector().collect_reviews_async(url_or_id, limit=limit)
+
+            self._log_trace(session_id, "GeoCollector", "GeoReviewsParsed", {
+                "url": url_or_id,
+                "source": geo_res.get("source")
+            })
+
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "source": geo_res.get("source", "geo"),
+                "url": url_or_id,
+                "data": geo_res
+            }
+
+        if task_type in {"parse_website", "collect_website", "website"}:
+            from collectors.website_collector import WebsiteCollector
+            url = user_data.get("url") or user_data.get("target") or ""
+            if not url:
+                return {"status": "error", "message": "Параметр 'url' обязателен для задачи parse_website."}
+            
+            collector = WebsiteCollector()
+            site_data = await collector.collect_website_async(url)
+            
+            self._log_trace(session_id, "WebsiteCollector", "WebsiteParsed", {
+                "url": url,
+                "status": site_data.get("status")
+            })
+
+            return {
+                "status": "success" if site_data.get("status") != "error" else "error",
+                "task_type": task_type,
+                "source": "website",
+                "url": url,
+                "data": site_data
+            }
+
         if task_type in {"rag_ingest", "ingest_rag", "index_knowledge"}:
             from rag.models import Document
             docs_data = user_data.get("documents") or []

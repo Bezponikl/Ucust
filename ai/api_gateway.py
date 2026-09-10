@@ -34,7 +34,7 @@ class OrchestratorTaskRequest(BaseModel):
     task_type: str = Field(
         ...,
         example="generate_post",
-        description="Тип задачи: 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'"
+        description="Тип задачи: 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'parse_telegram', 'parse_vk', 'parse_geo', 'parse_website', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'"
     )
     user_id: str = Field("default_user", example="usr_94812", description="Идентификатор пользователя")
     session_id: Optional[str] = Field(None, example="sess_abc123", description="ID сессии диалога / трейса")
@@ -56,7 +56,7 @@ class OrchestratorTaskResponse(BaseModel):
 class TaskRequest(BaseModel):
     user_id: str = Field("default_user", example="usr_94812", description="Идентификатор пользователя")
     session_id: Optional[str] = Field(None, example="sess_abc123", description="ID сессии диалога")
-    task_type: str = Field(..., example="generate_post", description="Тип задачи: generate_post | generate_image | prepare_holiday_greeting | get_trends | rag_query")
+    task_type: str = Field(..., example="generate_post", description="Тип задачи: generate_post | generate_image | prepare_holiday_greeting | get_trends | rag_query | parse_telegram | parse_vk | parse_geo | parse_website")
     payload: Dict[str, Any] = Field(default_factory=dict, description="Параметры задачи")
 
 
@@ -99,6 +99,39 @@ class VisionAnalyzeRequest(BaseModel):
 
 class WebsiteAnalyzeRequest(BaseModel):
     url: str = Field(..., example="https://ucust.ai", description="URL веб-сайта компании для парсинга и анализа")
+
+
+class TelegramAnalyzeRequest(BaseModel):
+    channel: str = Field(..., example="@UcustAi", description="Username Telegram-канала или ссылка t.me/...")
+    limit: Optional[int] = Field(10, example=10, description="Количество постов для анализа (по умолчанию 10)")
+    include_media_vqa: Optional[bool] = Field(True, description="Флаг анализа прикрепленных фото через Moondream2 + OCR")
+    user_id: Optional[str] = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии")
+
+
+class VkAnalyzeRequest(BaseModel):
+    group_id: str = Field(..., example="ucust_ai", description="ID или короткое имя сообщества VK / ссылка")
+    limit: Optional[int] = Field(10, example=10, description="Количество постов (по умолчанию 10)")
+    user_id: Optional[str] = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии")
+
+
+class GeoAnalyzeRequest(BaseModel):
+    url: str = Field(..., example="https://2gis.ru/moscow/firm/...", description="Ссылка на организацию в 2GIS или Яндекс Картах")
+    provider: Optional[str] = Field("auto", example="auto", description="Провайдер: 'auto', '2gis', 'yandex'")
+    limit: Optional[int] = Field(10, example=10, description="Количество отзывов")
+    user_id: Optional[str] = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии")
+
+
+class UniversalCollectorRequest(BaseModel):
+    source_type: str = Field(..., example="telegram", description="Тип источника: 'telegram', 'vk', 'website', 'geo', '2gis', 'yandex', 'documents'")
+    target: str = Field(..., example="@UcustAi", description="Ссылка, username, ID группы или путь к файлу")
+    limit: Optional[int] = Field(10, example=10, description="Лимит элементов для сбора")
+    include_media_vqa: Optional[bool] = Field(True, description="Флаг VLM-анализа медиа")
+    payload: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Дополнительные параметры")
+    user_id: Optional[str] = Field("default_user", description="ID пользователя")
+    session_id: Optional[str] = Field(None, description="ID сессии")
 
 
 class CompetitorAnalyzeRequest(BaseModel):
@@ -770,6 +803,121 @@ async def analyze_competitor(request: CompetitorAnalyzeRequest):
         "analyst": "CompetitiveIntelSkill",
         "data": result
     }
+
+
+# ============================================================================
+# ПАРСЕРЫ И СБОРЩИКИ ДАННЫХ (COLLECTORS & WEB SCRAPERS)
+# ============================================================================
+
+@app.post("/api/v1/ai/telegram/analyze", tags=["Collectors & Web Scrapers"])
+@app.post("/api/v1/collectors/telegram", tags=["Collectors & Web Scrapers"])
+async def analyze_telegram_channel(
+    request: TelegramAnalyzeRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+):
+    """
+    ⚡ Парсинг и VLM-анализ Telegram-канала (@username или ссылка t.me/...):
+    - Извлекает последние посты, метрики охвата, комментарии и возражения аудитории.
+    - При include_media_vqa=True анализирует прикрепленные фото через связку Moondream2 + OCR (PaddleOCR).
+    """
+    task_req = OrchestratorTaskRequest(
+        task_type="parse_telegram",
+        user_id=request.user_id or "default_user",
+        session_id=request.session_id,
+        payload=request.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    if res.status == "error":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=res.error or "Ошибка парсинга Telegram")
+    return res.data
+
+
+@app.post("/api/v1/ai/vk/analyze", tags=["Collectors & Web Scrapers"])
+@app.post("/api/v1/collectors/vk", tags=["Collectors & Web Scrapers"])
+async def analyze_vk_group(
+    request: VkAnalyzeRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+):
+    """
+    ⚡ Парсинг сообщества ВКонтакте (VK):
+    - Сбор постов, реакций (лайков/просмотров) и частых вопросов аудитории.
+    """
+    task_req = OrchestratorTaskRequest(
+        task_type="parse_vk",
+        user_id=request.user_id or "default_user",
+        session_id=request.session_id,
+        payload=request.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    if res.status == "error":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=res.error or "Ошибка парсинга VK")
+    return res.data
+
+
+@app.post("/api/v1/ai/geo/analyze", tags=["Collectors & Web Scrapers"])
+@app.post("/api/v1/collectors/geo", tags=["Collectors & Web Scrapers"])
+async def analyze_geo_reviews(
+    request: GeoAnalyzeRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+):
+    """
+    ⚡ Парсинг отзывов и рейтинга организации из 2GIS и Яндекс Карт:
+    - Извлекает клиентский опыт, реальные отзывы, оценки и частые жалобы/похвалы.
+    """
+    task_req = OrchestratorTaskRequest(
+        task_type="parse_geo",
+        user_id=request.user_id or "default_user",
+        session_id=request.session_id,
+        payload=request.dict()
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    if res.status == "error":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=res.error or "Ошибка парсинга гео-сервиса")
+    return res.data
+
+
+@app.post("/api/v1/collectors/parse", tags=["Collectors & Web Scrapers"])
+async def universal_collector_parse(
+    request: UniversalCollectorRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret"),
+):
+    """
+    🌐 Универсальный шлюз сбора данных по любому источнику (Telegram, VK, Website, 2GIS, Yandex, Документы).
+    Автоматически маршрутизирует запрос в нужный парсер и возвращает нормализованную схему.
+    """
+    st = request.source_type.lower()
+    if st in {"telegram", "tg"}:
+        task_type = "parse_telegram"
+        payload = {"channel": request.target, "limit": request.limit, "include_media_vqa": request.include_media_vqa, **(request.payload or {})}
+    elif st in {"vk", "vkontakte"}:
+        task_type = "parse_vk"
+        payload = {"group_id": request.target, "limit": request.limit, **(request.payload or {})}
+    elif st in {"geo", "2gis", "yandex", "maps"}:
+        task_type = "parse_geo"
+        payload = {"url": request.target, "provider": st, "limit": request.limit, **(request.payload or {})}
+    elif st in {"site", "website", "web"}:
+        task_type = "parse_website"
+        payload = {"url": request.target, **(request.payload or {})}
+    elif st in {"doc", "document", "documents", "file"}:
+        task_type = "analyze_documents"
+        payload = {"documents": [request.target], **(request.payload or {})}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Неизвестный тип источника '{request.source_type}'. Доступны: telegram, vk, website, geo, 2gis, yandex, documents"
+        )
+
+    task_req = OrchestratorTaskRequest(
+        task_type=task_type,
+        user_id=request.user_id or "default_user",
+        session_id=request.session_id,
+        payload=payload
+    )
+    res = await execute_orchestrator_task(task_req, x_internal_secret=x_internal_secret)
+    if res.status == "error":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=res.error or f"Ошибка сбора данных из {st}")
+    return res.data
+
 
 
 @app.post("/api/v1/ai/strategy/generate", tags=["Content Strategy & Personas"])

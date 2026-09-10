@@ -29,3 +29,7 @@ class YandexMapsCollector:
             "url": organization_url_or_id,
             "reviews": mock_reviews[:limit]
         }
+
+YandexCollector = YandexMapsCollector
+__all__ = ["YandexMapsCollector", "YandexCollector"]
+

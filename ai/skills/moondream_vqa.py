@@ -570,6 +570,17 @@ class MoondreamVQASkill:
             "visual_flow_summary": f"Динамический переход от '{anchor1}' к '{anchor2}' с плавным наездом камеры и микро-движением частиц."
         }
 
+    def describe_image(self, image_input: Any, prompt: str = "") -> str:
+        """
+        Быстрое описание изображения с извлечением текста через OCR и VLM для парсинга сайтов и Telegram.
+        """
+        dossier = self.extract_visual_dossier(image_input, topic=prompt)
+        desc = dossier.get("description", "")
+        detected_text = dossier.get("structured_matrix", {}).get("detected_text_hints", "")
+        if detected_text:
+            return f"{desc} (Текст на фото: «{detected_text}»)"
+        return desc
+
     def answer_question(self, image_input: Any, question: str) -> str:
         """
         Прямой визуальный вопрос-ответ (VQA) для чат-бота и Telegram:

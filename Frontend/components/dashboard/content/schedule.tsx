@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
-import { WEEKDAYS, postsByDay } from "@/lib/dashboard/content";
+import { WEEKDAYS } from "@/lib/dashboard/content";
 import {
+  CUR_YEAR,
   MONTHS_NOM,
-  MOCK_MONTH,
-  MOCK_YEAR,
   daysInMonth,
   firstWeekdayMon,
   parseIso,
@@ -14,8 +13,8 @@ import {
   todayIso,
 } from "@/lib/dashboard/date";
 
-const YEAR_MIN = MOCK_YEAR - 1;
-const YEAR_MAX = MOCK_YEAR + 5;
+const YEAR_MIN = CUR_YEAR - 1;
+const YEAR_MAX = CUR_YEAR + 5;
 
 /**
  * Календарь месяца с переключением месяца и года.
@@ -24,21 +23,15 @@ const YEAR_MAX = MOCK_YEAR + 5;
 export function MonthCalendar({
   value,
   onSelect,
-  /** Дата поста до правки: свою занятость днём не подсвечиваем. */
-  originalDate,
 }: {
   value: string;
   onSelect: (iso: string) => void;
-  originalDate?: string;
 }) {
   const selected = parseIso(value);
   const [view, setView] = useState({ year: selected.year, month: selected.month });
   const [picking, setPicking] = useState(false);
 
   const today = todayIso();
-  const busyByDay = postsByDay();
-  const isMockView = view.year === MOCK_YEAR && view.month === MOCK_MONTH;
-  const original = originalDate ? parseIso(originalDate) : null;
 
   const shift = (delta: number) => {
     const next = new Date(view.year, view.month + delta, 1);
@@ -142,8 +135,6 @@ export function MonthCalendar({
             const iso = toIso({ year: view.year, month: view.month, day: d });
             const isSel = iso === value;
             const isToday = iso === today;
-            const isOriginal = original?.year === view.year && original?.month === view.month && original?.day === d;
-            const busy = isMockView && !isOriginal && (busyByDay.get(d)?.length ?? 0) > 0;
             return (
               <button
                 key={d}
@@ -159,7 +150,6 @@ export function MonthCalendar({
                 }`}
               >
                 {d}
-                {busy && !isSel && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-brand" aria-hidden="true" />}
               </button>
             );
           })}

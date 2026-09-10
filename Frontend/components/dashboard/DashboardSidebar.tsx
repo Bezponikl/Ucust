@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
 import ProjectSwitcher from "./ProjectSwitcher";
 import { LOCKED_HINT, NAV_ITEMS, isNavActive, requiresProject } from "./nav";
@@ -10,9 +10,10 @@ import { useDashboard } from "./DashboardProvider";
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { surfaceStyle, data, hasProject } = useDashboard();
-  const businessName = data?.businessName ?? "Ваш бизнес";
-  const businessInitial = businessName.slice(0, 1).toUpperCase();
+  const businessName = data?.businessName?.trim() || null;
+  const businessInitial = businessName?.slice(0, 1).toUpperCase();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -39,14 +40,26 @@ export default function DashboardSidebar() {
       {/* Логотип + проект */}
       <div className={`flex h-16 shrink-0 items-center border-b border-border/40 ${collapsed ? "justify-center px-3" : "px-4"}`}>
         {collapsed ? (
-          <Link
-            href="/dashboard"
-            title={businessName}
-            aria-label={`${businessName} — на главную дашборда`}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-tint text-sm font-bold text-brand transition hover:brightness-95"
-          >
-            {businessInitial}
-          </Link>
+          businessName ? (
+            <Link
+              href="/dashboard"
+              title={businessName}
+              aria-label={`${businessName ?? ""} — на главную дашборда`}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-tint text-sm font-bold text-brand transition hover:brightness-95"
+            >
+              {businessInitial}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => router.push("/onboarding")}
+              title="Создать проект"
+              aria-label="Создать проект"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white transition hover:brightness-95"
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          )
         ) : (
           <div className="min-w-0 flex-1">
             {mounted && <ProjectSwitcher />}

@@ -10,21 +10,25 @@ import { CHANNELS, CHANNEL_ORDER, type ChannelId } from "@/lib/channels";
 import type { PostStatus } from "@/lib/dashboard/types";
 import {
   DAYS_IN_MONTH,
+  MONTH_DD,
+  MONTH_GEN,
   MONTH_LABEL,
+  MONTH_OFFSET,
   STATUS_LABEL,
   WEEKDAYS,
+  YEAR,
   postsByDay,
   type Post,
   type PostType,
 } from "@/lib/dashboard/content";
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import CreateProjectNotice from "@/components/dashboard/CreateProjectNotice";
 import { listProjectPosts } from "@/lib/api/orchestration";
 import { toDashboardPost } from "@/lib/api/mapGeneration";
 import { menuSurfaceClass } from "@/lib/dashboard/surface";
 
 const DAYS_PER_WEEK = 7;
-const MONTH_GEN = "февраля"; // мок-месяц
 
 const STATUS_DOT: Record<PostStatus, string> = {
   published: "bg-success",
@@ -39,8 +43,9 @@ const TYPE: Record<PostType, { icon: IconName; label: string; chip: string; cove
   video: { icon: "clapperboard", label: "Видео", chip: "bg-brand-purple/10 text-brand-purple", cover: "bg-brand-purple/8 text-brand-purple", bar: "bg-brand-purple", tint: "text-brand-purple" },
 };
 
-const weekdayOf = (day: number) => WEEKDAYS[(day - 1) % DAYS_PER_WEEK];
-const ALL_DAYS = Array.from({ length: DAYS_IN_MONTH }, (_, i) => i + 1);
+/** Готовые дни для сетки: пустые ячейки выравнивают первый день по дню недели. */
+const ALL_DAYS = [...Array.from({ length: MONTH_OFFSET }, () => 0), ...Array.from({ length: DAYS_IN_MONTH }, (_, i) => i + 1)];
+const weekdayOf = (day: number) => WEEKDAYS[(MONTH_OFFSET + day - 1) % DAYS_PER_WEEK];
 
 function ChannelIcons({ post }: { post: Post }) {
   if (post.channels.length === 0) return null;
@@ -148,7 +153,7 @@ function GridCard({ post, onOpen, onDelete }: { post: Post; onOpen: (p: Post) =>
   const { surfaceStyle } = useDashboard();
   const [menu, setMenu] = useState(false);
   const t = TYPE[post.type];
-  const date = `${String(post.day).padStart(2, "0")}.02.2026`;
+  const date = `${String(post.day).padStart(2, "0")}.${MONTH_DD}.${YEAR}`;
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-lift">
@@ -453,7 +458,7 @@ function ContentFilters({
 
 /** Пустой день — слот «Запланировать». */
 function EmptyDayCard({ day }: { day: number }) {
-  const date = `${String(day).padStart(2, "0")}.02`;
+  const date = `${String(day).padStart(2, "0")}.${MONTH_DD}`;
   return (
     <Link
       href={`/dashboard/create?day=${day}`}
@@ -475,6 +480,7 @@ function FeedGrid({ byDay, onOpen, passes }: { byDay: Map<number, Post[]>; onOpe
   type Cell = { key: string } & ({ kind: "post"; post: Post } | { kind: "empty"; day: number });
   const cells: Cell[] = [];
   for (const day of ALL_DAYS) {
+    if (day === 0) continue; // пустые ячейки-выравнивание только в календаре
     const dayPosts = (byDay.get(day) ?? []).filter((p) => !hidden.includes(p.id));
     if (dayPosts.length === 0) {
       cells.push({ key: `e${day}`, kind: "empty", day });
@@ -497,9 +503,9 @@ function FeedGrid({ byDay, onOpen, passes }: { byDay: Map<number, Post[]>; onOpe
 }
 
 export default function ContentView() {
-  const { surfaceStyle, projectId } = useDashboard();
-  /** Посты проекта с бэка. null — сервис не ответил, показываем демо-план. */
-  const [serverPosts, setServerPosts] = useState<Post[] | null>(null);
+  const { surfaceStyle, projectId, hasProject, data } = useDashboard();
+  /** Посты проекта с бэка. Демо-плана нет: пустой список = пустой план. */
+  const [serverPosts, setServerPosts] = useState<Post[]>([]);
   const [view, setView] = useState<ViewId>("grid");
   const [focusedDay, setFocusedDay] = useState<number | null>(null);
   const [flashDay, setFlashDay] = useState<number | null>(null);
@@ -509,18 +515,18 @@ export default function ContentView() {
   const [chans, setChans] = useState<ChannelId[]>(CHANNEL_ORDER);
   const [types, setTypes] = useState<PostType[]>(POST_TYPE_ORDER);
   const [status, setStatus] = useState<"all" | PostStatus>("all");
-  const byDay = postsByDay(serverPosts ?? undefined);
+  const byDay = postsByDay(serverPosts);
 
   useEffect(() => {
     if (!projectId) return;
     let cancelled = false;
     void listProjectPosts(projectId)
       .then((list) => {
-        // Пустой ответ — не повод стирать демо-план: у нового проекта постов ещё нет.
-        if (!cancelled && list.length > 0) setServerPosts(list.map(toDashboardPost));
+        // Пустой ответ — это пустой план проекта, а не повод показать демо.
+        if (!cancelled) setServerPosts(list.map(toDashboardPost));
       })
       .catch(() => {
-        /* сервис генерации не отвечает — остаёмся на демо-плане */
+        if (!cancelled) setServerPosts([]);
       });
     return () => {
       cancelled = true;
@@ -583,6 +589,20 @@ export default function ContentView() {
 
   const selectedPosts = selected ? (byDay.get(selected) ?? []).filter(passes) : [];
 
+  // Проекта без профиля бренда нет для генерации и планирования: вместо
+  // контент-плана — уведомление о необходимости создать проект.
+  if (!hasProject || !data?.businessName?.trim()) {
+    return (
+      <div className="flex flex-col gap-6 sm:gap-8">
+        <div>
+          <h1 className="text-xl font-bold text-ink sm:text-2xl">Контент-план</h1>
+          <p className="mt-0.5 text-sm text-ink-muted">Управляйте постами и публикациями</p>
+        </div>
+        <CreateProjectNotice />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Шапка */}
@@ -619,6 +639,7 @@ export default function ContentView() {
         /* Список: агенда по всем дням месяца */
         <ul className="flex flex-col gap-2">
           {ALL_DAYS.map((day) => {
+            if (day === 0) return null; // выравнивание месяца — только в календаре
             const posts = (byDay.get(day) ?? []).filter(passes);
             const dimmed = focusedDay !== null && focusedDay !== day;
             return (
@@ -679,6 +700,7 @@ export default function ContentView() {
               <div key={w} className="pb-1 text-center text-xs font-medium text-ink-muted">{w}</div>
             ))}
             {ALL_DAYS.map((day) => {
+              if (day === 0) return <div key="cal-lead" aria-hidden="true" />;
               const posts = (byDay.get(day) ?? []).filter(passes);
               const has = posts.length > 0;
               return (

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiFetch, setAccessToken } from "@/lib/api/client";
+import { apiFetch, onSessionExpired, setAccessToken } from "@/lib/api/client";
 
 const okJson = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -48,6 +48,102 @@ describe("apiFetch", () => {
     ]);
 
     expect(refreshCalls).toHaveLength(1);
+  });
+
+  it("при неудачном refresh бросает sessionExpired и зовёт обработчик один раз", async () => {
+    const listener = vi.fn();
+    onSessionExpired(listener);
+    let refreshTries = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/auth/refresh")) {
+          refreshTries += 1;
+          return new Response("", { status: 401 });
+        }
+        return new Response("", { status: 401 });
+      }),
+    );
+
+    await expect(apiFetch("/user/me", { auth: true })).rejects.toMatchObject({
+      status: 401,
+      sessionExpired: true,
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(refreshTries).toBe(1);
+    onSessionExpired(null);
+  });
+
+  it("вычитывает accessToken из завёрнутого ApiResponse у /auth/refresh", async () => {
+    const calls: string[] = [];
+    const fetchMock = vi.fn(async (url: string) => {
+      calls.push(url);
+      if (url.endsWith("/auth/refresh")) {
+        return okJson({
+          success: true,
+          data: { accessToken: "fresh", type: "Bearer" },
+          error: null,
+          pagination: null,
+        });
+      }
+      return calls.filter((c) => c.endsWith("/user/me")).length === 1
+        ? new Response("", { status: 401 })
+        : okJson({ id: "1" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiFetch<{ id: string }>("/user/me", { auth: true });
+
+    expect(result).toEqual({ id: "1" });
+    expect(calls.filter((c) => c.endsWith("/auth/refresh"))).toHaveLength(1);
+  });
+
+  it("временный сбой refresh (500) не убивает сессию", async () => {
+    const listener = vi.fn();
+    onSessionExpired(listener);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/auth/refresh")) return new Response("", { status: 500 });
+        return new Response("", { status: 401 });
+      }),
+    );
+
+    await expect(apiFetch("/user/me", { auth: true })).rejects.toMatchObject({ status: 401 });
+    expect(listener).not.toHaveBeenCalled();
+    onSessionExpired(null);
+  });
+
+  it("сетевой обрыв во время refresh не убивает сессию", async () => {
+    const listener = vi.fn();
+    onSessionExpired(listener);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/auth/refresh")) throw new TypeError("Failed to fetch");
+        return new Response("", { status: 401 });
+      }),
+    );
+
+    await expect(apiFetch("/user/me", { auth: true })).rejects.toMatchObject({ status: 401 });
+    expect(listener).not.toHaveBeenCalled();
+    onSessionExpired(null);
+  });
+
+  it("после свежего refresh не считает сессию умершей", async () => {
+    const listener = vi.fn();
+    onSessionExpired(listener);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/auth/refresh")) return okJson({ accessToken: "fresh", type: "Bearer" });
+        return new Response("", { status: 401 });
+      }),
+    );
+
+    await expect(apiFetch("/user/me", { auth: true })).rejects.toMatchObject({ status: 401 });
+    expect(listener).not.toHaveBeenCalled();
+    onSessionExpired(null);
   });
 
   it("бросает ApiError с текстом из тела ответа", async () => {
@@ -103,6 +199,23 @@ describe("apiFetch", () => {
     const result = await apiFetch<{ id: string; email: string }>("/user/me", { auth: true });
 
     expect(result).toEqual({ id: "1", email: "a@b.c" });
+  });
+
+  it("разворачивает пустой массив проектов (у пользователя нет проектов)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ success: true, data: [], error: null, pagination: null }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+
+    const result = await apiFetch<unknown[]>("/projects", { auth: true });
+
+    expect(result).toEqual([]);
   });
 
   it("не трогает строковые ответы (logo, /status/hello)", async () => {

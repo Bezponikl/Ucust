@@ -14,11 +14,11 @@ import PromptComposer from "@/components/dashboard/PromptComposer";
 import { useAttachments } from "@/lib/dashboard/attachments";
 import { DateField } from "@/components/dashboard/content/EditorControls";
 import TimeInput from "@/components/ui/TimeInput";
-import { fmtDayMonth, isoOffset } from "@/lib/dashboard/date";
+import { fmtDayMonth, isoOffset, combineDateTime } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { toMessage } from "@/lib/api/errors";
-import { confirmPost, generateAsync, publishPost, pollTask } from "@/lib/api/orchestration";
+import { confirmPost, generateAsync, getPost, publishPost, pollTask, schedulePost, updatePost } from "@/lib/api/orchestration";
 import { isTaskFailed, isTaskFinished, taskPostId, taskText } from "@/lib/api/mapGeneration";
 
 type Format = "post" | "video";
@@ -236,13 +236,33 @@ export default function CreateView() {
   };
 
   /** Показ готового результата — общий хвост для сервера и запасного варианта. */
-  const finishGeneration = (body: string, postId: string | null) => {
+  const finishGeneration = (body: string, postId: string | null, fromServer: { hashtags?: string[]; imageUrl?: string } = {}) => {
     if (timer.current) clearInterval(timer.current);
     setText(body);
-    setHashtags(deriveHashtags(topic));
-    setMedia(resolveMedia());
+    // От сервера берём настоящие хештеги контура; мок — только когда их нет.
+    setHashtags(fromServer.hashtags?.length ? fromServer.hashtags : deriveHashtags(topic));
+    // Настоящая картинка поста у контура тоже приходит — ставим её, мок оставляем fallback-ветке.
+    setMedia(
+      fromServer.imageUrl && format === "post" && imgSource !== "none"
+        ? { kind: "image", src: fromServer.imageUrl }
+        : resolveMedia(),
+    );
     setServerPostId(postId);
     setMode("edit");
+  };
+
+  /** Хештеги и картинку достаём из сохранённого поста: task отдаёт только текст. */
+  const loadPostResult = async (postId: string | null): Promise<{ hashtags?: string[]; imageUrl?: string }> => {
+    if (!postId) return {};
+    try {
+      const p = await getPost(postId);
+      return {
+        hashtags: (p.hashtags ?? "").split(/[\s#]+/).map((h) => h.trim()).filter(Boolean),
+        imageUrl: p.imageUrl ?? undefined,
+      };
+    } catch {
+      return {};
+    }
   };
 
   const runGeneration = () => {
@@ -273,13 +293,14 @@ export default function CreateView() {
 
     void (async () => {
       try {
-        // mode бэк принимает как enum, значения контракт не раскрывает —
-        // отправляем формат публикации в его же терминах.
+        // mode — enum бэка (MANUAL|AUTO). Генерация идёт по теме пользователя,
+        // поэтому MANUAL; AUTO требует industry/description/toneOfVoice в запросе.
+        // Бэк требует в MANUAL непустой prompt — с фото без текста шлём дефолтную.
         const { taskId } = await generateAsync({
           projectId,
-          mode: format.toUpperCase(),
+          mode: "MANUAL",
           count: 1,
-          prompt: topic.trim() || undefined,
+          prompt: topic.trim() || "Создай пост на основе приложенных изображений",
         });
 
         const task = await pollTask(taskId, {
@@ -298,7 +319,8 @@ export default function CreateView() {
           fallback("Сервис генерации не прислал текст — показан черновик");
           return;
         }
-        finishGeneration(body, taskPostId(task));
+        const postId = taskPostId(task);
+        finishGeneration(body, postId, await loadPostResult(postId));
       } catch (err) {
         fallback(toMessage(err));
       }
@@ -317,23 +339,51 @@ export default function CreateView() {
   const schedule = () => setPublishMode("schedule");
 
   /**
+   * Переносит текущие правки экрана (текст, хештеги, площадки) на бэк, чтобы
+   * сохранённый пост содержал то, что видит пользователь, а не исходную выдачу ИИ.
+   */
+  const persistContent = async (id: string) => {
+    await updatePost(id, {
+      text,
+      hashtags: hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+      targetPlatforms: channels.join(","),
+    });
+  };
+
+  /**
    * Отправка публикации. Пост, рождённый сервисом генерации, сначала
    * подтверждается — так бэк отличает принятый текст от черновика, — и только
-   * «опубликовать сейчас» отправляет его в соцсети.
+   * «опубликовать сейчас» отправляет его в соцсети. «Запланировать» передаёт
+   * выбранные дату/время, и публикация ставится в очередь планировщиком бэка.
    */
-  const submitPublication = async (kind: "publish" | "schedule"): Promise<boolean> => {
-    if (!serverPostId) return true; // черновик собран локально — отправлять нечего
+  const submitPublication = async (kind: "publish" | "schedule", scheduledAt?: string): Promise<boolean> => {
+    if (!serverPostId) {
+      toast("Пост не сохранён на сервере — создайте его заново и попробуйте ещё раз");
+      return false;
+    }
 
     try {
+      await persistContent(serverPostId);
       await confirmPost(serverPostId);
       if (kind === "publish") await publishPost(serverPostId);
+      if (kind === "schedule") await schedulePost(serverPostId, scheduledAt ?? "");
       return true;
     } catch (err) {
       toast(toMessage(err));
       return false;
     }
   };
-  const draft = () => { toast("Сохранено в черновики"); router.push("/dashboard/content"); };
+  /** «Черновик»: сохраняет текущие правки на бэк и оставляет пост в статусе DRAFT. */
+  const draft = async () => {
+    try {
+      if (serverPostId) await persistContent(serverPostId);
+      toast(serverPostId ? "Сохранено в черновики" : "Черновик собран локально — с сервером он появится после генерации");
+    } catch (err) {
+      toast(toMessage(err));
+      return;
+    }
+    router.push("/dashboard/content");
+  };
   const startNew = () => { setMode("create"); setTopic(""); setSettingsShown(false); setText(""); setHashtags([]); setMedia({ kind: "none" }); photos.clear(); };
 
   return (
@@ -597,7 +647,7 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onS
   mode: null | "publish" | "schedule"; channels: ChannelId[]; onChange: (v: ChannelId[]) => void;
   onClose: () => void; onDone: () => void; onNewPost: () => void;
   /** Отправка на бэк. false — не получилось, экран «готово» показывать нельзя. */
-  onSubmit: (kind: "publish" | "schedule") => Promise<boolean>;
+  onSubmit: (kind: "publish" | "schedule", scheduledAt?: string) => Promise<boolean>;
 }) {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<"form" | "done">("form");
@@ -669,7 +719,8 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onS
                 type="button"
                 onClick={async () => {
                   setBusy(true);
-                  const ok = await onSubmit(isSchedule ? "schedule" : "publish");
+                  const ok = await onSubmit(isSchedule ? "schedule" : "publish",
+                    isSchedule ? combineDateTime(date, time) : undefined);
                   setBusy(false);
                   if (ok) setStep("done");
                 }}

@@ -13,9 +13,10 @@ export const MONTHS_GEN = [
   "июля", "августа", "сентября", "октября", "ноября", "декабря",
 ] as const;
 
-/** Мок-месяц контент-плана: Февраль 2026 (Пн-старт, ровно 4 недели). */
-export const MOCK_YEAR = 2026;
-export const MOCK_MONTH = 1; // 0-based → февраль
+/** Месяц контент-плана — всегда текущий: даты постов совпадают с календарём. */
+const NOW = new Date();
+export const CUR_YEAR = NOW.getFullYear();
+export const CUR_MONTH = NOW.getMonth(); // 0-based
 
 export const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -32,16 +33,16 @@ export function parseIso(iso: string): DateParts {
   return { year: y, month: (m ?? 1) - 1, day: d ?? 1 };
 }
 
-/** День мок-месяца (Post.day) → ISO. */
-export const dayToIso = (day: number) => toIso({ year: MOCK_YEAR, month: MOCK_MONTH, day });
+/** День текущего месяца (Post.day) → ISO. */
+export const dayToIso = (day: number) => toIso({ year: CUR_YEAR, month: CUR_MONTH, day });
 
-/** ISO → день месяца; для дат вне мок-месяца это всё равно номер дня. */
+/** ISO → день месяца; для дат вне месяца это всё равно номер дня. */
 export const isoDay = (iso: string) => parseIso(iso).day;
 
-/** Дата принадлежит мок-месяцу контент-плана (только там знаем занятость дней). */
-export const isMockMonth = (iso: string) => {
+/** Дата принадлежит текущему месяцу контент-плана. */
+export const isCurrentMonth = (iso: string) => {
   const { year, month } = parseIso(iso);
-  return year === MOCK_YEAR && month === MOCK_MONTH;
+  return year === CUR_YEAR && month === CUR_MONTH;
 };
 
 export const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -66,7 +67,7 @@ export const MONTHS_SHORT = [
 ] as const;
 
 /** «1 фев» → ISO. Возвращает null, если строку разобрать не удалось. */
-export function parseRuShort(value: string, year = MOCK_YEAR): string | null {
+export function parseRuShort(value: string, year = CUR_YEAR): string | null {
   const m = value.trim().toLowerCase().match(/^(\d{1,2})\s+([а-яё]+)/);
   if (!m) return null;
   const day = Number(m[1]);
@@ -123,3 +124,13 @@ export function maskTime(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 4);
   return digits.length <= 2 ? digits : `${digits.slice(0, 2)}:${digits.slice(2)}`;
 }
+
+/** Часовой пояс публикаций в интерфейсе (жёстко задан рядом с полями даты). */
+export const PUBLISH_TZ_OFFSET = "+03:00";
+
+/**
+ * «2026-02-02» + «12:00» → ISO-момент для бэка в поясе публикации.
+ * Offset прописывается явно, чтобы не зависеть от времени локальной машины.
+ */
+export const combineDateTime = (dateIso: string, time: string) =>
+  `${dateIso}T${time}:00${PUBLISH_TZ_OFFSET}`;

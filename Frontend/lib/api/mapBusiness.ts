@@ -1,11 +1,12 @@
 import type { BusinessProfile } from "@/lib/dashboard/businesses";
-import { EMPTY_BUSINESS } from "@/lib/dashboard/businesses";
+import { EMPTY_BUSINESS, TONE_LABELS } from "@/lib/dashboard/businesses";
 import type {
   BusinessHours,
   DayOfWeek,
   Industry,
   ProjectRequest,
   ProjectResponse,
+  ToneOfVoice,
 } from "./types";
 
 /**
@@ -24,6 +25,24 @@ export const INDUSTRY_LABELS: Record<Industry, string> = {
   MEDICINE: "Медицина",
   OTHER: "Другое",
 };
+
+/** Метки тона в том же порядке, что и TONE_LABELS: индексу метки = индекс enum. */
+export const TONE_ENUMS: ToneOfVoice[] = [
+  "FRIENDLY",
+  "PROFESSIONAL",
+  "INFORMAL",
+  "CREATIVE",
+];
+
+export function toneToLabel(tone: ToneOfVoice | undefined): string {
+  if (!tone) return EMPTY_BUSINESS.toneOfVoice;
+  return TONE_LABELS[TONE_ENUMS.indexOf(tone)] ?? TONE_LABELS[0];
+}
+
+export function labelToTone(label: string): ToneOfVoice {
+  const idx = TONE_LABELS.indexOf(label);
+  return TONE_ENUMS[idx >= 0 ? idx : 0];
+}
 
 /** Порядок дней в интерфейсе: Пн…Вс, как в календаре. */
 const WEEK_DAYS: DayOfWeek[] = [
@@ -54,6 +73,39 @@ function toShortTime(value: string | null | undefined, fallback: string): string
   return h && m ? `${h}:${m}` : fallback;
 }
 
+/** Позиционирование из brandProfile-JSON: терпим к любой форме строки. */
+export function positioningOf(project: ProjectResponse | null | undefined): string {
+  const raw = project?.brandProfile;
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const value = parsed.positioning;
+    return typeof value === "string" ? value : "";
+  } catch {
+    return "";
+  }
+}
+
+/** Позиционирование в brandProfile-JSON: остальные ключи профиля сохраняем. */
+export function brandProfileWithPositioning(
+  current: ProjectResponse | null | undefined,
+  positioning: string,
+): string | undefined {
+  const raw = current?.brandProfile;
+  let base: Record<string, unknown> = {};
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object") base = parsed;
+    } catch {
+      base = {};
+    }
+  }
+  if (positioning.trim()) base.positioning = positioning.trim();
+  else if ("positioning" in base) delete base.positioning;
+  return Object.keys(base).length > 0 ? JSON.stringify(base) : undefined;
+}
+
 export function projectToBusiness(project: ProjectResponse): BusinessProfile {
   const hours = project.businessHours ?? null;
   const offDays = hours?.offDays ?? [];
@@ -68,11 +120,21 @@ export function projectToBusiness(project: ProjectResponse): BusinessProfile {
     address: project.city ?? "",
     site: project.socialLinks?.website ?? "",
     description: project.description ?? "",
+    targetAudience: project.targetAudience ?? "",
+    toneOfVoice: toneToLabel(project.toneOfVoice),
+    positioning: positioningOf(project),
+    instagram: project.socialLinks?.instagram ?? "",
+    telegram: project.socialLinks?.telegram ?? "",
     workStart: toShortTime(hours?.openTime, EMPTY_BUSINESS.workStart),
     workEnd: toShortTime(hours?.closeTime, EMPTY_BUSINESS.workEnd),
     daysOff: WEEK_DAYS.map((day, index) => (offDays.includes(day) ? index : -1)).filter(
       (index) => index >= 0,
     ),
+    // Список собран из `...EMPTY_BUSINESS` — статус сверяем с реальными ссылками проекта.
+    socials: EMPTY_BUSINESS.socials.map((s) => ({
+      ...s,
+      connected: s.id === "telegram" ? Boolean(project.socialLinks?.telegram) : s.connected,
+    })),
   };
 }
 
@@ -87,16 +149,23 @@ export function businessToProjectPatch(
     offDays: business.daysOff.map((index) => WEEK_DAYS[index]).filter(Boolean),
   };
 
+  const socialLinks = {
+    ...(current?.socialLinks ?? {}),
+    website: business.site || null,
+    instagram: business.instagram.trim() || null,
+    telegram: business.telegram.trim() || null,
+  };
+
   return {
     name: business.name.slice(0, 100),
     industry: labelToIndustry(business.category),
     // city у бэка @NotBlank — пустое значение вернуло бы 400.
     city: (business.address || current?.city || "Не указан").slice(0, 50),
     description: business.description.slice(0, 2000),
-    socialLinks: {
-      ...(current?.socialLinks ?? {}),
-      website: business.site || null,
-    },
+    targetAudience: business.targetAudience.trim().slice(0, 500),
+    toneOfVoice: labelToTone(business.toneOfVoice),
+    socialLinks,
     businessHours,
+    brandProfile: brandProfileWithPositioning(current, business.positioning),
   };
 }

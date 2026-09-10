@@ -38,15 +38,25 @@ export default function DashboardFooter() {
           <ul className="mt-4 flex items-center gap-2.5">
             {SOCIALS.map((social) => (
               <li key={social.label}>
-                <a
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-surface-soft shadow-soft transition-transform duration-200 hover:-translate-y-0.5"
-                >
-                  <Image src={social.icon} alt={social.label} width={22} height={22} className="h-5 w-5 object-contain" />
-                </a>
+                {social.label === "Telegram" ? (
+                  <a
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-surface-soft shadow-soft transition-transform duration-200 hover:-translate-y-0.5"
+                  >
+                    <Image src={social.icon} alt={social.label} width={22} height={22} className="h-5 w-5 object-contain" />
+                  </a>
+                ) : (
+                  <span
+                    aria-label={social.label}
+                    title={social.label}
+                    className="flex h-9 w-9 cursor-not-allowed items-center justify-center overflow-hidden rounded-xl bg-surface-soft opacity-60"
+                  >
+                    <Image src={social.icon} alt={social.label} width={22} height={22} className="h-5 w-5 object-contain" />
+                  </span>
+                )}
               </li>
             ))}
           </ul>

@@ -1,6 +1,13 @@
 import type { ChannelId } from "@/lib/channels";
 import type { IconName } from "@/lib/icons/solar";
 
+/** Проект в переключателе: имя и аватар показываются без чтения brandProfile каждого. */
+export interface ProjectListItem {
+  id: string;
+  name: string;
+  logo: string | null;
+}
+
 export type AccentColor = "brand" | "purple" | "pink" | "orange" | "success";
 export type StatIcon = "views" | "engagement" | "subscribers" | "reviews";
 
@@ -45,7 +52,11 @@ export interface ActivityItem {
 }
 
 export interface DashboardData {
-  businessName: string;
+  businessName: string | null;
+  /** Аватар проекта с сервера /s3/... — null, когда логотипа нет. */
+  businessLogo: string | null;
+  /** Все проекты аккаунта для переключателя. */
+  projects: ProjectListItem[];
   stats: Stat[];
   chart: Record<ChartTab, number[]>;
   tips: AiTip[];

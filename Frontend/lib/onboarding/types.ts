@@ -2,6 +2,12 @@ import type { ChannelId } from "@/lib/channels";
 
 export type AboutMode = "link" | "manual";
 
+/** Файл с реальным содержимым (data-URL) для отправки в AI-анализ бизнеса. */
+export interface UploadedFile {
+  name: string;
+  dataUrl: string;
+}
+
 export interface WizardInput {
   name: string;
   aboutMode: AboutMode;
@@ -9,7 +15,12 @@ export interface WizardInput {
   activity: string;
   difference: string;
   socials: ChannelId[];
+  /** Введённые пользователем @хэндлы/ссылки подключённых соцсетей. */
+  channelHandles: Partial<Record<ChannelId, string>>;
+  /** Имена прикреплённых документов — только для отображения в UI. */
   files: string[];
+  /** Прикреплённые документы с содержимым (data-URL, до 2 МБ), уходят в анализ. */
+  fileData: UploadedFile[];
 }
 
 export interface MarketInfo {
@@ -49,5 +60,7 @@ export const EMPTY_INPUT: WizardInput = {
   activity: "",
   difference: "",
   socials: [],
+  channelHandles: {},
   files: [],
+  fileData: [],
 };

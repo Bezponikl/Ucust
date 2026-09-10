@@ -39,12 +39,13 @@ export function toProjectRequest(input: WizardInput, profile: BrandProfile): Pro
     city: (profile.market.geography || "Не указан").slice(0, 50),
     // Описание бизнеса приходит с шага «О бизнесе»; если его заполнили ссылкой —
     // берём позиционирование из собранного профиля, поле у бэка обязательное.
-    description: ([input.activity, input.difference].filter(Boolean).join(". ") || profile.positioning).slice(0, 2000),
+    description: ([input.activity, input.difference].filter(Boolean).join(". ") || profile.positioning || "Описание уточняется").slice(0, 2000),
     targetAudience: profile.market.segment.slice(0, 500),
     toneOfVoice: pick(TONE_HINTS, toneText, "FRIENDLY"),
     socialLinks: {
       instagram: input.link.startsWith("https://") ? input.link : null,
-      telegram: input.socials.includes("telegram") ? "" : null,
+      // Подключается только после verifySocial(...).verified — шлём проверенный @хэндл/ссылку.
+      telegram: input.socials.includes("telegram") ? (input.channelHandles?.telegram ?? "").trim() : null,
       website: null,
     },
     businessHours: null,

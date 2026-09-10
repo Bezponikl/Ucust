@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { BrandProfile, WizardInput } from "@/lib/onboarding/types";
 import { EMPTY_INPUT } from "@/lib/onboarding/types";
-import { analyzeBusiness } from "@/lib/onboarding/mock";
+import { analyzeBusiness } from "@/lib/api/analysis";
 import { clearOnboarding, loadOnboarding, saveOnboarding } from "@/lib/onboarding/storage";
 
 interface Ctx {

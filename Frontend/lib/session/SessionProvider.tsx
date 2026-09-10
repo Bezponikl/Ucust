@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { login as apiLogin, logout as apiLogout, refresh } from "@/lib/api/auth";
+import { onSessionExpired, setAccessToken } from "@/lib/api/client";
 import { getMe } from "@/lib/api/users";
 import type { ProfileResponse } from "@/lib/api/types";
 
@@ -41,6 +42,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       else setStatus("anonymous");
     })();
   }, [reload]);
+
+  // Сессия может умереть в середине работы: refresh-токен протух, любой запрос
+  // с 401 не смог обновиться. Тогда гасим состояние — AuthGuard сам уведёт
+  // на /login вместо зависшего дашборда с ошибками на каждое действие.
+  useEffect(() => {
+    onSessionExpired(() => {
+      setAccessToken(null);
+      setUser(null);
+      setStatus("anonymous");
+    });
+    return () => onSessionExpired(null);
+  }, []);
 
   const signIn = useCallback(
     async (email: string, password: string, rememberMe?: boolean) => {

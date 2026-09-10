@@ -74,6 +74,12 @@ describe("toMessage", () => {
     expect(toMessage(new ApiError(401, ""))).toBe("Неверная почта или пароль");
   });
 
+  it("отличает протухшую сессию от неверного входа", () => {
+    expect(toMessage(new ApiError(401, "", undefined, true))).toBe(
+      "Сессия истекла — войдите заново",
+    );
+  });
+
   it("не показывает пользователю технические детали 500", () => {
     expect(toMessage(new ApiError(500, "NullPointerException at line 42"))).toBe(
       "Сервис временно недоступен, попробуйте позже",

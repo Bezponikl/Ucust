@@ -93,9 +93,16 @@
 | POST | `/orchestration/generate/async` | `generateAsync()` | `lib/api/orchestration.ts` |
 | GET | `/orchestration/tasks/{taskId}` | `getTaskStatus()`, `pollTask()` | `lib/api/orchestration.ts` |
 | GET | `/orchestration/posts/{id}` | `getPost()` | `lib/api/orchestration.ts` |
+| PATCH | `/orchestration/posts/{id}` | `updatePost(id, patch)` | `lib/api/orchestration.ts` |
+| POST | `/orchestration/posts/{id}/ai-review` | `aiReviewPost(id)` | `lib/api/orchestration.ts` |
 | POST | `/orchestration/posts/{id}/confirm` | `confirmPost()` | `lib/api/orchestration.ts` |
 | POST | `/orchestration/posts/{id}/publish` | `publishPost()` | `lib/api/orchestration.ts` |
+| POST | `/orchestration/posts/{id}/schedule` | `schedulePost(id, scheduledAt)` | `lib/api/orchestration.ts` |
+| POST | `/orchestration/posts/{id}/reject` | `rejectPost()` | `lib/api/orchestration.ts` |
 | GET | `/orchestration/projects/{projectId}/posts` | `listProjectPosts()` | `lib/api/orchestration.ts` |
+| POST | `/orchestration/analysis` | `analyzeBusiness()` | `lib/api/analysis.ts` |
+| GET | `/orchestration/analysis/{id}` | `analysisById()` | `lib/api/analysis.ts` (fallback-опрос) |
+| POST | `/orchestration/socials/verify` | `verifySocial(channel, reference)` | `lib/api/orchestration.ts` |
 
 Генерация асинхронная: `generateAsync` отвечает `202` и отдаёт только `taskId`,
 дальше состояние забирается опросом. `pollTask` требует явный признак готовности —
@@ -132,8 +139,15 @@
 | `GET /orchestration/tasks/{taskId}` | `CreateView` через `pollTask` |
 | `GET /orchestration/projects/{id}/posts` | `components/dashboard/content/ContentView.tsx` |
 | `GET /orchestration/posts/{id}` | `components/dashboard/content/RemotePostEditView.tsx` |
+| `PATCH /orchestration/posts/{id}` | `RemotePostEditView` — сохранение правок текста/медиа/площадок |
+| `POST /orchestration/posts/{id}/ai-review` | `RemotePostEditView` — «AI-аудит», правки применяются тем же `PATCH` |
 | `POST /orchestration/posts/{id}/confirm` | `CreateView` (перед отправкой), `PostEditView` |
 | `POST /orchestration/posts/{id}/publish` | `CreateView` («опубликовать сейчас»), `PostEditView` |
+| `POST /orchestration/posts/{id}/schedule` | `CreateView` (модалка «Запланировать» — дата/время через `combineDateTime`) |
+| `POST /orchestration/posts/{id}/reject` | `PostEditView` (кнопка «Отложить») |
+| `POST /orchestration/analysis` | `components/onboarding/OnboardingProvider.tsx` — шаг «Расскажите о бизнесе» |
+| `GET /orchestration/analysis/{id}` | `lib/api/analysis.ts` — fallback-опрос (страховка от PENDING) |
+| `POST /orchestration/socials/verify` | `components/onboarding/steps/StepChannels.tsx` — ввод @хэндла/ссылки → «Подключено» только при verified |
 
 Общее правило деградации: если сервис не отвечает, экран не ломается — контент-план
 и тарифы показывают демо-данные витрины, генерация собирает черновик локально и
@@ -163,7 +177,10 @@
 ## Что в контракте не расшифровано
 
 Формы `TariffResponse`, `CheckQuotaResponse`, `SubscriptionOverview`,
-`TaskStatusResponse`, `PostResponse` названы, но не расписаны по полям, как и
-значения `GenerationMode`. В `types.ts` они описаны известными полями плюс
-открытая индексная подпись — фронт не выдумывает поля и не падает на лишних.
-Когда бэк даст расшифровку, подписи убираются, поля дописываются.
+`TaskStatusResponse` названы, но не расписаны по полям, как и
+`GenerationMode`, `ContentType`, `PostStatus`. `PostResponse` расписан из кода
+бэка (gen-ort): id, projectId, text, imageUrl, hashtags, targetPlatforms,
+scheduledAt, status, contentType, generationMode, createdAt. В `types.ts` DTO
+описаны известными полями плюс открытая индексная подпись — фронт не
+выдумывает поля и не падает на лишних. Когда бэк даст расшифровку, подписи
+убираются, поля дописываются.

@@ -248,13 +248,11 @@ type FieldVariant = "inline" | "field";
 export function DateField({
   value,
   onChange,
-  originalDate,
   variant = "inline",
   ariaLabel = "Дата публикации",
 }: {
   value: string;
   onChange: (iso: string) => void;
-  originalDate?: string;
   variant?: FieldVariant;
   ariaLabel?: string;
 }) {
@@ -292,7 +290,6 @@ export function DateField({
       >
         <MonthCalendar
           value={value}
-          originalDate={originalDate}
           onSelect={(iso) => { onChange(iso); setOpen(false); }}
         />
       </AnchoredPopover>
@@ -304,19 +301,17 @@ export function DateField({
 export function DateTimeField({
   date,
   time,
-  originalDate,
   onDate,
   onTime,
 }: {
   date: string;
   time: string;
-  originalDate?: string;
   onDate: (iso: string) => void;
   onTime: (t: string) => void;
 }) {
   return (
     <div className="flex items-center gap-1">
-      <DateField value={date} onChange={onDate} originalDate={originalDate} />
+      <DateField value={date} onChange={onDate} />
       <TimeInput value={time} onChange={onTime} ariaLabel="Время публикации" />
     </div>
   );

@@ -7,6 +7,7 @@ import type {
   LinkSocialRequest,
   LoginRequest,
   RegisterRequest,
+  SessionResponse,
 } from "./types";
 
 export async function register(req: RegisterRequest): Promise<void> {
@@ -40,6 +41,24 @@ export async function refresh(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Активные сессии текущего пользователя (Bearer). */
+export function getSessions(): Promise<SessionResponse[]> {
+  return apiFetch<SessionResponse[]>(endpoints.auth.sessions, { auth: true });
+}
+
+/** Завершить конкретную сессию (не текущую). */
+export function revokeSession(sessionId: string): Promise<void> {
+  return apiFetch<void>(endpoints.auth.sessionById(sessionId), {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+/** Завершить все сессии, кроме текущей. */
+export function revokeAllSessions(): Promise<void> {
+  return apiFetch<void>(endpoints.auth.sessions, { method: "DELETE", auth: true });
 }
 
 /** Подтверждение почты по токену из письма — вызывается со страницы перехода по ссылке. */

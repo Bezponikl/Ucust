@@ -5,7 +5,7 @@ import { whoAmI } from "@/lib/api/status";
 import { deleteProject, getProject } from "@/lib/api/projects";
 import { listTariffs } from "@/lib/api/tariffs";
 import { getMyQuota, purchaseTariff } from "@/lib/api/quota";
-import { generateAsync, pollTask, publishPost } from "@/lib/api/orchestration";
+import { aiReviewPost, generateAsync, pollTask, publishPost, updatePost } from "@/lib/api/orchestration";
 import { authorizeUrl } from "@/lib/api/oauth";
 
 interface Call {
@@ -123,6 +123,30 @@ describe("модули API бьют в адреса контракта", () => {
 
     expect(calls[0].url).toBe("/api/v0/orchestration/posts/post-1/publish");
     expect(calls[0].method).toBe("POST");
+  });
+
+  it("правка поста — PATCH по адресу поста с partial-телом", async () => {
+    stubFetch({ id: "post-1", status: "DRAFT" });
+    await updatePost("post-1", { text: "Новый текст", imageUrl: "https://x/img.png" });
+
+    expect(calls[0].url).toBe("/api/v0/orchestration/posts/post-1");
+    expect(calls[0].method).toBe("PATCH");
+    expect(calls[0].body).toBe(JSON.stringify({ text: "Новый текст", imageUrl: "https://x/img.png" }));
+  });
+
+  it("AI-аудит поста — POST на ai-review, возвращает замечания критика", async () => {
+    stubFetch({
+      status: "ok",
+      critic: "munger",
+      data: { corrections: ["Усилить CTA"] },
+      error: null,
+    });
+    const review = await aiReviewPost("post-1");
+
+    expect(calls[0].url).toBe("/api/v0/orchestration/posts/post-1/ai-review");
+    expect(calls[0].method).toBe("POST");
+    expect(review.critic).toBe("munger");
+    expect(review.data?.corrections).toEqual(["Усилить CTA"]);
   });
 
   it("опрос задачи прекращается, как только она готова", async () => {

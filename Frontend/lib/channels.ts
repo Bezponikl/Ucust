@@ -95,3 +95,6 @@ export const CHANNEL_ORDER: ChannelId[] = [
   "rutube",
   "avito",
 ];
+
+/** Соцсети, к которым подключение уже работает; остальные пока недоступны. */
+export const CONNECTIBLE_CHANNELS: ChannelId[] = ["telegram"];

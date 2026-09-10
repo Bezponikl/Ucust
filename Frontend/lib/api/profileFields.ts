@@ -16,14 +16,18 @@ export function normalizePhone(raw: string): string {
 
 export interface ProfileFields {
   firstName: string;
+  middleName?: string;
   lastName: string;
   phone?: string;
 }
 
 /** null — данные корректны; иначе текст ошибки для пользователя. */
-export function validateProfileFields({ firstName, lastName, phone }: ProfileFields): string | null {
+export function validateProfileFields({ firstName, middleName, lastName, phone }: ProfileFields): string | null {
   if (!CYRILLIC_NAME.test(firstName)) {
     return "Имя — кириллицей, можно с дефисом";
+  }
+  if (middleName && !CYRILLIC_NAME.test(middleName)) {
+    return "Отчество — кириллицей, можно с дефисом";
   }
   if (!CYRILLIC_NAME.test(lastName)) {
     return "Фамилия — кириллицей, можно с дефисом";

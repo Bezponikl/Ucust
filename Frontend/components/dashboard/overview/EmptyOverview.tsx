@@ -5,7 +5,7 @@ import Icon from "@/components/ui/Icon";
 import type { IconName } from "@/lib/icons/solar";
 
 const STEPS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "brain",     title: "Профиль бизнеса", text: "Расскажите о деле своими словами — ИИ соберёт «мозг бренда»" },
+  { icon: "brain",     title: "Профиль бизнеса", text: "Расскажите о деле своими словами — UCust учтёт это в каждом посте" },
   { icon: "link",      title: "Соцсети",         text: "Подключите VK, Telegram и остальные площадки" },
   { icon: "sparkles",  title: "Первый пост",     text: "UCust напишет и опубликует — вам останется подтвердить" },
 ];
@@ -58,8 +58,8 @@ export default function EmptyOverview() {
               Добро пожаловать в UCust
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-              Осталось рассказать о бизнесе — на это уйдёт около трёх минут. После этого ИИ
-              соберёт профиль бренда, предложит контент-план и начнёт вести соцсети за вас.
+              Осталось рассказать о бизнесе — на это уйдёт около трёх минут. Заполните
+              профиль бренда, и UCust начнёт вести соцсети за вас.
             </p>
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -106,12 +106,12 @@ export default function EmptyOverview() {
           <GhostPanel
             title="Контент-план недели"
             icon="calendar"
-            hint="Появится сразу после создания профиля — ИИ предложит темы на неделю вперёд"
+            hint="Скоро здесь появится план недели — пока публикации планируются вручную"
           />
           <GhostPanel
             title="Рекомендации UCust"
             icon="brain"
-            hint="Здесь будут подсказки: что опубликовать, кому ответить, какую акцию запустить"
+            hint="Скоро здесь будут подсказки: что опубликовать, кому ответить, какую акцию запустить"
           />
         </div>
       </div>

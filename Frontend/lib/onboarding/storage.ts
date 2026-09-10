@@ -1,4 +1,7 @@
+import type { ChannelId } from "@/lib/channels";
+import { CONNECTIBLE_CHANNELS } from "@/lib/channels";
 import type { BrandProfile, WizardInput } from "./types";
+import { EMPTY_INPUT } from "./types";
 
 export interface OnboardingState {
   input: WizardInput;
@@ -11,7 +14,22 @@ export function loadOnboarding(): OnboardingState | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.sessionStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as OnboardingState) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<OnboardingState>;
+    // Бережно к старым сессиям: типы могли пополниться полями (channelHandles,
+    // fileData), а их в сохранённом JSON нет — слияние с дефолтами лечит расхождение.
+    // Из уже отмеченных соцсетей оставляем только доступные к подключению: в старых
+    // версиях можно было «выбрать» любую, сейчас проверкой занимается бэк.
+    const rawInput: WizardInput = { ...EMPTY_INPUT, ...(parsed.input ?? {}) };
+    const keep = new Set<string>(CONNECTIBLE_CHANNELS);
+    const input: WizardInput = {
+      ...rawInput,
+      socials: rawInput.socials.filter((id) => keep.has(id)),
+      channelHandles: Object.fromEntries(
+        Object.entries(rawInput.channelHandles ?? {}).filter(([id]) => keep.has(id)),
+      ) as Partial<Record<ChannelId, string>>,
+    };
+    return { input, profile: parsed.profile ?? null };
   } catch {
     return null;
   }

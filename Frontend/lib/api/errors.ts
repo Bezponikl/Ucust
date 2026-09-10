@@ -4,6 +4,8 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly code?: string,
+    /** true — 401 после неудачного refresh: сессия умерла, нужен новый вход. */
+    readonly sessionExpired = false,
   ) {
     super(message);
     this.name = "ApiError";
@@ -71,6 +73,8 @@ export function toMessage(e: unknown): string {
   if (!(e instanceof ApiError)) return "Не удалось связаться с сервером";
 
   if (e.status >= 500) return "Сервис временно недоступен, попробуйте позже";
+
+  if (e.sessionExpired) return "Сессия истекла — войдите заново";
 
   if (e.code === "VALIDATION_ERROR") {
     const hint = VALIDATION_HINTS.find(([re]) => re.test(e.message))?.[1];

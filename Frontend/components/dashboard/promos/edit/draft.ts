@@ -1,6 +1,6 @@
 import type { ChannelId } from "@/lib/channels";
 import { isoOffset, parseRuShort } from "@/lib/dashboard/date";
-import type { Promo, PromoStatus, PromoType } from "@/lib/dashboard/promos";
+import { promoPeriod, type Promo, type PromoStatus, type PromoType } from "@/lib/dashboard/promos";
 
 /** Черновик акции — всё, что редактируется на пяти вкладках. */
 export interface PromoDraft {
@@ -38,7 +38,7 @@ export interface PromoDraft {
 }
 
 export function draftFromPromo(p: Promo): PromoDraft {
-  const [rawFrom = "", rawTo = ""] = p.period.split("—").map((s) => s.trim());
+  const [rawFrom = "", rawTo = ""] = promoPeriod(p).split("—").map((s) => s.trim());
   const dateFrom = parseRuShort(rawFrom) ?? isoOffset(0);
   const dateTo = parseRuShort(rawTo) ?? isoOffset(14);
 

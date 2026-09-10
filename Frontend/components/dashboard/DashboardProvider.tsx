@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { DashboardData } from "@/lib/dashboard/types";
-import { getDashboardData } from "@/lib/dashboard/mock";
+import { buildDashboardData } from "@/lib/dashboard/data";
 import { loadWorkspace } from "@/lib/dashboard/source";
 
 const BG_STORAGE_KEY = "uc_bg";
@@ -19,6 +19,8 @@ interface Ctx {
   projectId: string | null;
   /** Перечитать проект с сервера: после правок в настройках бизнеса. */
   reloadWorkspace: () => Promise<void>;
+  /** Переключить активный проект (из селектора) — обновляет projectId и данные. */
+  switchProject: (id: string) => Promise<void>;
   /** Скрывает топбар и мобильную нижнюю навигацию (полноэкранные страницы вроде открытого чата) */
   mobileChromeHidden: boolean;
   setMobileChromeHidden: (hidden: boolean) => void;
@@ -41,10 +43,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [background, setBackgroundState] = useState<string | null>(null);
   // По умолчанию «жидкое стекло»: на сплошной заливке карточки сливались с фоном.
   const [surfaceStyle, setSurfaceStyleState] = useState<SurfaceStyle>("glass");
+  // Актуальный id проекта: reloadWorkspace перечитывает то, что выбрано сейчас.
+  const activeProjectId = useRef<string | null>(null);
 
-  const applyWorkspace = useCallback(async () => {
-    const ws = await loadWorkspace();
-    setData(getDashboardData(ws.profile));
+  const applyWorkspace = useCallback(async (targetId?: string) => {
+    // Селектор может звать переключение, а reloadWorkspace — просто «перечитать текущее».
+    const ws = await loadWorkspace(targetId ?? activeProjectId.current ?? undefined);
+    activeProjectId.current = ws.projectId;
+    setData(buildDashboardData(ws.profile, ws.projectName, ws.projectLogo, ws.projects));
     setHasProject(ws.hasProject);
     setProjectId(ws.projectId);
   }, []);
@@ -77,6 +83,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     } catch {}
   };
 
+  const switchProject = useCallback(
+    async (id: string) => {
+      await applyWorkspace(id);
+    },
+    [applyWorkspace],
+  );
+
   return (
     <DashboardContext.Provider
       value={{
@@ -85,6 +98,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         hasProject,
         projectId,
         reloadWorkspace: applyWorkspace,
+        switchProject,
         mobileChromeHidden,
         setMobileChromeHidden,
         background,

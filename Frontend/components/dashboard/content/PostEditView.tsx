@@ -13,7 +13,7 @@ import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import type { PostStatus } from "@/lib/dashboard/types";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { toMessage } from "@/lib/api/errors";
-import { confirmPost, publishPost } from "@/lib/api/orchestration";
+import { confirmPost, publishPost, rejectPost } from "@/lib/api/orchestration";
 import FeedPreview, { type PreviewMedia } from "./FeedPreview";
 import {
   ActionMenu,
@@ -62,6 +62,7 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
 
   const [busy, setBusy] = useState<null | "text" | "image">(null);
   const [publishing, setPublishing] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [saved, setSaved] = useState(true);
   const [addingTag, setAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -152,6 +153,26 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
     }
   };
 
+  /** «Отложить» — снимаем пост с публикации (REJECTED). Сам текст остаётся. */
+  const reject = async () => {
+    if (!serverId) {
+      toast("Публикация отложена");
+      router.push("/dashboard/content");
+      return;
+    }
+
+    setRejecting(true);
+    try {
+      await rejectPost(serverId);
+      toast("Публикация отложена");
+      router.push("/dashboard/content");
+    } catch (err) {
+      toast(toMessage(err));
+    } finally {
+      setRejecting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col">
       {/* ── Панель редактора: всегда сверху ── */}
@@ -190,6 +211,15 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
             className="btn-glass inline-flex items-center px-4 py-2 text-[0.8125rem] font-semibold sm:text-sm"
           >
             Сохранить
+          </button>
+          <button
+            type="button"
+            onClick={() => void reject()}
+            disabled={rejecting}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-ink-muted transition duration-150 hover:bg-surface-soft hover:text-ink disabled:opacity-60"
+          >
+            <Icon name="clock" size={15} aria-hidden="true" />
+            {rejecting ? "Откладываем…" : "Отложить"}
           </button>
           <button
             type="button"
@@ -390,7 +420,6 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
                 <DateTimeField
                   date={date}
                   time={time}
-                  originalDate={dayToIso(post.day)}
                   onDate={setDate}
                   onTime={setTime}
                 />

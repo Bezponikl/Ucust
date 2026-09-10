@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Icon from "./ui/Icon";
 import { useAuthModal } from "./AuthModalProvider";
+import { useSession } from "@/lib/session/SessionProvider";
 
 const NAV_LINKS = [
   { href: "#how-it-works", label: "Как работает", id: "how-it-works" },
@@ -20,6 +21,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState<string>("");
   const { openLogin, openSignup } = useAuthModal();
+  const { status } = useSession();
+  const signedIn = status === "authenticated";
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -86,13 +89,22 @@ export default function Navbar() {
           </ul>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <button
-              type="button"
-              onClick={openLogin}
-              className="px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
-            >
-              Войти
-            </button>
+            {signedIn ? (
+              <Link
+                href="/dashboard"
+                className="px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+              >
+                Дашборд
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={openLogin}
+                className="px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+              >
+                Войти
+              </button>
+            )}
             <button type="button" onClick={openSignup} className="btn-glass-blue px-4 py-2 text-sm font-semibold">
               Зарегистрироваться
             </button>
@@ -131,16 +143,26 @@ export default function Navbar() {
               ))}
             </ul>
             <div className="mt-3 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  openLogin();
-                }}
-                className="px-4 py-3 text-center text-sm font-medium text-ink-muted transition-colors hover:text-ink"
-              >
-                Войти
-              </button>
+              {signedIn ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="px-4 py-3 text-center text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+                >
+                  Дашборд
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    openLogin();
+                  }}
+                  className="px-4 py-3 text-center text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+                >
+                  Войти
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

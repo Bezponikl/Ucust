@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
@@ -49,8 +50,12 @@ export default function ProfileMenu() {
         aria-label="Профиль"
         className={`${topbarButtonClass(surfaceStyle)} flex items-center gap-2 py-1 pl-1 pr-3`}
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">
-          {initials}
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-sm font-semibold text-white">
+          {user?.fullAvatarUrl ? (
+            <Image src={user.fullAvatarUrl} alt="" fill unoptimized className="object-cover" />
+          ) : (
+            initials
+          )}
         </span>
         <span className="hidden pr-1 text-sm font-medium text-ink sm:block">{displayName}</span>
       </button>

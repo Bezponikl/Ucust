@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { businessToProjectPatch, industryToLabel, labelToIndustry, projectToBusiness } from "@/lib/api/mapBusiness";
+import { businessToProjectPatch, industryToLabel, labelToIndustry, labelToTone, projectToBusiness, toneToLabel } from "@/lib/api/mapBusiness";
 import { quotaView, subscriptionView, tariffView, formatDate } from "@/lib/api/mapBilling";
 import { isTaskFailed, isTaskFinished, taskPostId, taskText, toDashboardPost } from "@/lib/api/mapGeneration";
 import { EMPTY_BUSINESS } from "@/lib/dashboard/businesses";
@@ -14,8 +14,10 @@ const project: ProjectResponse = {
   city: "Москва",
   toneOfVoice: "FRIENDLY",
   description: "Кофе и выпечка",
+  targetAudience: "Жители района 25–40",
   socialLinks: { website: "https://coffee.ru", instagram: "https://insta/coffee" },
   businessHours: { openTime: "08:00:00", closeTime: "20:00:00", offDays: ["SUNDAY"] },
+  brandProfile: JSON.stringify({ positioning: "Спешелти кофе свежей обжарки" }),
 };
 
 describe("проект ↔ настройки бизнеса", () => {
@@ -28,21 +30,51 @@ describe("проект ↔ настройки бизнеса", () => {
       category: "Кафе и рестораны",
       address: "Москва",
       site: "https://coffee.ru",
+      description: "Кофе и выпечка",
+      targetAudience: "Жители района 25–40",
+      toneOfVoice: "Дружелюбный",
+      positioning: "Спешелти кофе свежей обжарки",
+      instagram: "https://insta/coffee",
+      telegram: "",
       workStart: "08:00",
       workEnd: "20:00",
       daysOff: [6],
     });
+    expect(business.socials).toEqual([{ id: "telegram", connected: false }]);
+  });
+
+  it("отмечает Telegram подключённым, если в проекте есть ссылка на канал", () => {
+    const withTg = projectToBusiness({ ...project, socialLinks: { telegram: "@coffee", website: "https://coffee.ru" } });
+    expect(withTg.socials).toEqual([{ id: "telegram", connected: true }]);
+    expect(withTg.telegram).toBe("@coffee");
+  });
+
+  it("переводит тон общения в метку и обратно", () => {
+    expect(toneToLabel("PROFESSIONAL")).toBe("Деловой");
+    expect(toneToLabel(undefined)).toBe("Дружелюбный");
+    expect(labelToTone("Креативный")).toBe("CREATIVE");
+    expect(labelToTone("Незнакомый тон")).toBe("FRIENDLY");
+  });
+
+  it("сохраняет чужой brandProfile при смене позиционирования", () => {
+    const patched = { ...project, brandProfile: JSON.stringify({ positioning: "Ещё круче", swot: { strengths: ["a"] } }) };
+    const patch = businessToProjectPatch(projectToBusiness(patched), patched);
+    expect(JSON.parse(patch.brandProfile!)).toMatchObject({ positioning: "Ещё круче", swot: { strengths: ["a"] } });
   });
 
   it("возвращает правки в формате контракта", () => {
     const patch = businessToProjectPatch(
-      { ...projectToBusiness(project), name: "Новая кофейня", daysOff: [0, 6] },
+      { ...projectToBusiness(project), name: "Новая кофейня", daysOff: [0, 6], telegram: "@par_coffee" },
       project,
     );
 
     expect(patch.name).toBe("Новая кофейня");
     expect(patch.industry).toBe("CAFE_RESTAURANT");
     expect(patch.businessHours?.offDays).toEqual(["MONDAY", "SUNDAY"]);
+    expect(patch.targetAudience).toBe("Жители района 25–40");
+    expect(patch.toneOfVoice).toBe("FRIENDLY");
+    expect(patch.socialLinks?.telegram).toBe("@par_coffee");
+    expect(JSON.parse(patch.brandProfile!)).toMatchObject({ positioning: "Спешелти кофе свежей обжарки" });
     // Поля, которых нет на экране, не теряются.
     expect(patch.socialLinks?.instagram).toBe("https://insta/coffee");
   });

@@ -32,6 +32,8 @@ export const endpoints = {
     resetPassword: "/auth/reset-password",
     yandexMobile: "/auth/yandex-mobile",
     linkSocial: "/auth/link-social",
+    sessions: "/auth/sessions",
+    sessionById: (id: string) => `/auth/sessions/${encodeURIComponent(id)}`,
     changeEmail: {
       verifyPassword: "/auth/change-email/verify-password",
       setNewEmail: "/auth/change-email/set-new-email",
@@ -76,10 +78,19 @@ export const endpoints = {
     generateAsync: "/orchestration/generate/async",
     task: (taskId: string) => `/orchestration/tasks/${encodeURIComponent(taskId)}`,
     post: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}`,
+    updatePost: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}`,
+    aiReviewPost: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}/ai-review`,
     confirmPost: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}/confirm`,
     publishPost: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}/publish`,
+    schedulePost: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}/schedule`,
+    rejectPost: (id: string) => `/orchestration/posts/${encodeURIComponent(id)}/reject`,
     projectPosts: (projectId: string) =>
       `/orchestration/projects/${encodeURIComponent(projectId)}/posts`,
+    /** Анализ бизнеса по ссылке/документам/заметкам (онбординг) */
+    analyze: "/orchestration/analysis",
+    analysisById: (id: string) => `/orchestration/analysis/${encodeURIComponent(id)}`,
+    /** Верификация ссылки/канала соцсети на этапе подключения */
+    socialsVerify: "/orchestration/socials/verify",
   },
 
   /**

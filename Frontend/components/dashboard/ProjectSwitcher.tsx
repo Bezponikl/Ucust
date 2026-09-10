@@ -4,14 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { useDashboard } from "./DashboardProvider";
+import ProjectLogo from "./ProjectLogo";
 import { menuSurfaceClass } from "@/lib/dashboard/surface";
 import { dropClass, useDropDirection } from "@/lib/useDropDirection";
 
 export default function ProjectSwitcher() {
-  const { data, surfaceStyle, hasProject } = useDashboard();
-  const current = data?.businessName ?? "Ваш бизнес";
-  // Показываем только созданные проекты: пока он один — тот, что собрал онбординг
-  const projects = hasProject ? [{ id: "current", name: current }] : [];
+  const { data, surfaceStyle, hasProject, projectId, switchProject } = useDashboard();
+  // Имя приходит из профиля проекта. Без него проекта по сути нет — в шапке
+  // вместо фейкового «Ваш бизнес» показываем кнопку создания.
+  const current = data?.businessName?.trim() || null;
+  const logo = data?.businessLogo ?? null;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const dir = useDropDirection(open, ref, 220);
@@ -26,6 +28,36 @@ export default function ProjectSwitcher() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
+  const goCreate = () => {
+    try {
+      sessionStorage.setItem("uc_show_setup", "1");
+    } catch {}
+    router.push("/onboarding");
+  };
+
+  // Проекта с именем ещё нет: вместо шапки «Ваш проект» — кнопка запуска онбординга.
+  if (!hasProject || !current) {
+    return (
+      <button
+        type="button"
+        onClick={goCreate}
+        aria-label="Создать проект"
+        className="flex w-full min-w-0 items-center gap-2.5 rounded-xl border border-dashed border-brand/45 bg-brand/6 px-2.5 py-2 text-left transition hover:border-brand/70 hover:bg-brand/10"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-white" aria-hidden="true">
+          <Icon name="plus" size={16} />
+        </span>
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block text-[0.625rem] font-semibold uppercase tracking-wider text-brand">Проект</span>
+          <span className="block truncate text-sm font-semibold text-ink">Создать проект</span>
+        </span>
+      </button>
+    );
+  }
+
+  // Показать всё, что вернул список проектов, а не одного «current».
+  const projects = data?.projects ?? [];
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -39,8 +71,8 @@ export default function ProjectSwitcher() {
             : "border-brand/30 bg-brand/6 hover:border-brand/60 hover:bg-brand/10"
         }`}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white" aria-hidden="true">
-          {current.slice(0, 1).toUpperCase()}
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand text-sm font-bold text-white" aria-hidden="true">
+          <ProjectLogo src={logo} name={current} className="h-full w-full" />
         </span>
         <span className="min-w-0 flex-1 leading-tight">
           <span className="block text-[0.625rem] font-semibold uppercase tracking-wider text-brand">Проект</span>
@@ -58,15 +90,20 @@ export default function ProjectSwitcher() {
             <p className="px-3 py-2 text-sm text-ink-muted">Проектов пока нет</p>
           ) : (
             projects.map((b) => {
-              const active = b.name === current;
+              const active = b.id === projectId;
               return (
                 <button
                   key={b.id}
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    if (b.id !== projectId) void switchProject(b.id);
+                  }}
                   className="flex w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-surface-soft"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-xs font-bold text-brand" aria-hidden="true">{b.name.slice(0, 1)}</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-tint text-xs font-bold text-brand" aria-hidden="true">
+                    <ProjectLogo src={b.logo} name={b.name} className="h-full w-full" />
+                  </span>
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{b.name}</span>
                   {active && <Icon name="check" size={16} className="shrink-0 text-brand" aria-hidden="true" />}
                 </button>
@@ -76,7 +113,7 @@ export default function ProjectSwitcher() {
           <div className="my-1 h-px bg-border" />
           <button
             type="button"
-            onClick={() => { setOpen(false); try { sessionStorage.setItem("uc_show_setup", "1"); } catch {} router.push("/onboarding"); }}
+            onClick={goCreate}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-brand hover:bg-surface-soft"
           >
             <Icon name="plus" size={16} aria-hidden="true" /> Добавить проект

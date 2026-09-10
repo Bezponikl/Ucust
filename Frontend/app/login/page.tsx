@@ -39,10 +39,11 @@ export default function LoginPage() {
     e.preventDefault();
 
     const data = new FormData(e.currentTarget);
+    const rememberMe = data.get("rememberMe") != null;
     setPending(true);
     setError(null);
     try {
-      await signIn(String(data.get("email") ?? ""), String(data.get("password") ?? ""));
+      await signIn(String(data.get("email") ?? ""), String(data.get("password") ?? ""), rememberMe);
       router.push("/dashboard");
     } catch (err) {
       setError(toMessage(err));

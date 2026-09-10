@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { toProjectRequest } from "@/lib/api/mapProfile";
 import { EMPTY_INPUT } from "@/lib/onboarding/types";
-import type { BrandProfile } from "@/lib/onboarding/types";
+import type { BrandProfile, WizardInput } from "@/lib/onboarding/types";
 
 const profile: BrandProfile = {
   name: "Кофейня «Пар»",
@@ -72,5 +72,16 @@ describe("toProjectRequest", () => {
   it("имя проекта берёт из ввода, а при пустом — из профиля", () => {
     expect(toProjectRequest({ ...EMPTY_INPUT, name: "Пар" }, profile).name).toBe("Пар");
     expect(toProjectRequest(EMPTY_INPUT, profile).name).toBe("Кофейня «Пар»");
+  });
+
+  it("отправляет проверенный Telegram-хэндл, а не пустой маркер", () => {
+    const withTg: WizardInput = {
+      ...EMPTY_INPUT,
+      socials: ["telegram"],
+      channelHandles: { telegram: "  @par_coffee  " },
+    };
+    expect(toProjectRequest(withTg, profile).socialLinks?.telegram).toBe("@par_coffee");
+
+    expect(toProjectRequest(EMPTY_INPUT, profile).socialLinks?.telegram).toBeNull();
   });
 });

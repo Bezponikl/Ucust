@@ -1,0 +1,22 @@
+# Сборка идёт локально в Docker: ничего из host-окружения не нужно.
+node_modules
+.next
+coverage
+out
+.git
+.vercel
+
+# Секреты/локальные настройки не попадают в образ.
+.env
+.env.*.local
+.env.local
+dev-server.log
+
+# Служебное и тяжёлое, не входит в standalone.
+screenshots
+/docs/_backup
+/docs/design/video-tour
+/public/hero-bg-*
+
+# Скрипты-пробы (ITMO demo, render probes) не требуются в проде.
+/_*.mjs

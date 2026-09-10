@@ -17,6 +17,7 @@ import {
   PROMO_TYPE_ORDER,
   fmtNum,
   promoCounts,
+  promoPeriod,
   promoProgress,
   promoTotalUses,
   type Promo,
@@ -215,7 +216,7 @@ function PromoCard({ p }: { p: Promo }) {
         <div className="mt-auto flex flex-col gap-4">
           <Progress p={p} />
           <div className="flex items-center justify-between gap-2">
-            <span className="min-w-0 truncate text-xs text-ink-muted">{p.period}</span>
+            <span className="min-w-0 truncate text-xs text-ink-muted">{promoPeriod(p)}</span>
             <Channels ids={p.channels} />
           </div>
         </div>
@@ -254,7 +255,7 @@ function PromoRow({ p, onAction }: { p: Promo; onAction: (a: CardAction) => void
           </span>
           <span className="mt-0.5 flex items-center gap-2 text-xs text-ink-muted">
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[p.status]}`} aria-hidden="true" />
-            {PROMO_STATUS_LABEL[p.status]} · {p.period}
+            {PROMO_STATUS_LABEL[p.status]} · {promoPeriod(p)}
           </span>
         </span>
 
@@ -395,7 +396,7 @@ export default function PromosView() {
       switch (sort) {
         case "uses": return (b.uses ?? 0) - (a.uses ?? 0);
         case "title": return a.title.localeCompare(b.title, "ru");
-        case "ending": return order[a.status] - order[b.status] || a.period.localeCompare(b.period, "ru");
+        case "ending": return order[a.status] - order[b.status] || promoPeriod(a).localeCompare(promoPeriod(b), "ru");
         default: return order[a.status] - order[b.status];
       }
     });

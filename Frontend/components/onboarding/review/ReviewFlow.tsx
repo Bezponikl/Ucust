@@ -66,6 +66,16 @@ export default function ReviewFlow() {
       <div className="relative z-10 mx-auto flex w-full max-w-(--container-page) flex-1 flex-col gap-8 px-4 py-8 sm:px-6 lg:flex-row lg:gap-12">
         <ProfileSidebar current={section} onSelect={setSection} />
         <main className="min-w-0 flex-1 pb-12">
+          {/* Профиль предзаполнен результатом ИИ-анализа (или пустой, если анализ недоступен). */}
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-dashed border-brand/40 bg-brand/5 px-4 py-3 text-sm">
+            <Icon name="sparkles" size={16} className="mt-0.5 shrink-0 text-brand" aria-hidden="true" />
+            <p className="text-ink-muted">
+              <span className="font-semibold text-ink">Профиль предзаполнен ИИ-анализом</span>{" "}
+              по вашей ссылке, документам и заметкам — проверьте разделы и дополните при необходимости.
+              Правки сохраняются сразу.
+            </p>
+          </div>
+
           {sections[section]}
 
           <div className="mt-10 flex items-center gap-3">

@@ -95,6 +95,28 @@
                 "response": "200 OK 'Logged out successfully' + кука на удаление"
               },
               {
+                "method": "GET",
+                "path": "/api/v0/auth/sessions",
+                "summary": "Список активных сессий текущего пользователя",
+                "auth": "Bearer",
+                "response": "SessionResponse[] { id, ip, city, userAgent, createdAt, expiresAt, rememberMe, current }"
+              },
+              {
+                "method": "DELETE",
+                "path": "/api/v0/auth/sessions/{sessionId}",
+                "summary": "Завершить конкретную сессию (не текущую)",
+                "auth": "Bearer",
+                "pathParams": { "sessionId": "UUID" },
+                "response": "204 No Content"
+              },
+              {
+                "method": "DELETE",
+                "path": "/api/v0/auth/sessions",
+                "summary": "Завершить все сессии, кроме текущей",
+                "auth": "Bearer",
+                "response": "204 No Content"
+              },
+              {
                 "method": "POST",
                 "path": "/api/v0/auth/forgot-password",
                 "summary": "Смена/восстановление пароля. Шаг 1: отправить письмо",
@@ -217,6 +239,7 @@
                 "auth": "Bearer",
                 "requestBody": {
                   "firstName": { "type": "string", "required": false, "constraints": "кириллица, дефис; 2-50" },
+                  "middleName": { "type": "string", "required": false, "constraints": "кириллица, дефис; 2-50" },
                   "lastName": { "type": "string", "required": false, "constraints": "кириллица, дефис; 2-50" },
                   "phone": { "type": "string", "required": false, "constraints": "11 цифр, начинается с 79" },
                   "position": { "type": "string", "required": false, "constraints": "2-50" }
@@ -443,6 +466,23 @@
                 "response": "PostResponse"
               },
               {
+                "method": "POST",
+                "path": "/api/v0/orchestration/posts/{id}/schedule",
+                "summary": "Запланировать публикацию (SCHEDULED, публикуется планировщиком)",
+                "auth": "Bearer",
+                "pathParams": { "id": "UUID" },
+                "body": { "scheduledAt": "ISO-8601 instant с offset" },
+                "response": "PostResponse"
+              },
+              {
+                "method": "POST",
+                "path": "/api/v0/orchestration/posts/{id}/reject",
+                "summary": "Отложить пост (REJECTED)",
+                "auth": "Bearer",
+                "pathParams": { "id": "UUID" },
+                "response": "PostResponse"
+              },
+              {
                 "method": "GET",
                 "path": "/api/v0/orchestration/posts/{id}",
                 "summary": "Получить пост по ID",
@@ -451,12 +491,83 @@
                 "response": "PostResponse"
               },
               {
+                "method": "PATCH",
+                "path": "/api/v0/orchestration/posts/{id}",
+                "summary": "Сохранить отредактированный пост (partial; только владелец)",
+                "auth": "Bearer",
+                "pathParams": { "id": "UUID" },
+                "body": {
+                  "text": "string, необязательно",
+                  "imageUrl": "string, необязательно",
+                  "hashtags": "string, необязательно",
+                  "targetPlatforms": "string, необязательно",
+                  "scheduledAt": "ISO-8601 instant, необязательно"
+                },
+                "response": "PostResponse",
+                "note": "Владельцем считается пользователь, чей userId совпадает с userId поста"
+              },
+              {
+                "method": "POST",
+                "path": "/api/v0/orchestration/posts/{id}/ai-review",
+                "summary": "AI-аудит поста критиком Чарли Мангера (текст поста + niche из проекта; только владелец)",
+                "auth": "Bearer",
+                "pathParams": { "id": "UUID" },
+                "response": "CriticReviewResponse { status, critic, data, error }",
+                "note": "Возвращает правки/замечания для улучшения; применение правок — через PATCH posts/{id}"
+              },
+              {
                 "method": "GET",
                 "path": "/api/v0/orchestration/projects/{projectId}/posts",
                 "summary": "Посты проекта",
                 "auth": "Bearer",
                 "pathParams": { "projectId": "UUID" },
                 "response": "PostResponse[]"
+              }
+            ]
+          },
+          "BusinessAnalysisController": {
+            "tag": "Анализ бизнеса (онбординг)",
+            "basePath": "/orchestration",
+            "gatewayPattern": "/api/v0/orchestration/**",
+            "endpoints": [
+              {
+                "method": "POST",
+                "path": "/api/v0/orchestration/analysis",
+                "summary": "Проанализировать бизнес по ссылке/документам/заметкам",
+                "auth": "Bearer",
+                "requestBody": {
+                  "companyName": { "type": "string", "required": false },
+                  "url": { "type": "string", "required": false },
+                  "notes": { "type": "string", "required": false },
+                  "documents": { "type": "string[] (data-URL)", "required": false }
+                },
+                "response": "AnalysisResponse { id, sessionId, taskType, status, profile, result, error }"
+              },
+              {
+                "method": "GET",
+                "path": "/api/v0/orchestration/analysis/{id}",
+                "summary": "Статус и результат анализа бизнеса",
+                "auth": "Bearer",
+                "pathParams": { "id": "UUID" },
+                "response": "AnalysisResponse"
+              }
+            ]
+          },
+          "SocialVerificationController": {
+            "tag": "Верификация соцсетей (онбординг)",
+            "basePath": "/orchestration",
+            "gatewayPattern": "/api/v0/orchestration/**",
+            "endpoints": [
+              {
+                "method": "POST",
+                "path": "/api/v0/orchestration/socials/verify",
+                "summary": "Верифицировать ссылку/канал соцсети (telegram — Bot API/t.me, остальные — best-effort HTTP)",
+                "auth": "Bearer",
+                "requestBody": {
+                  "channel": { "type": "string (vk|telegram|max|ok|instagram|zen|rutube|avito)", "required": true },
+                  "reference": { "type": "string (@handle / ссылка)", "required": true }
+                },
+                "response": "SocialVerifyResponse { channel, reference, verified, provider, error }"
               }
             ]
           }

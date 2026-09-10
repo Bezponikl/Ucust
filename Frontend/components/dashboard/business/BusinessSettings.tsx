@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
+import ProjectLogo from "@/components/dashboard/ProjectLogo";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { CHANNELS } from "@/lib/channels";
-import { businessFromOnboarding, CATEGORIES, EMPTY_BUSINESS, type BusinessProfile } from "@/lib/dashboard/businesses";
+import { businessFromOnboarding, CATEGORIES, EMPTY_BUSINESS, TONE_LABELS, type BusinessProfile } from "@/lib/dashboard/businesses";
 import { loadOnboarding } from "@/lib/onboarding/storage";
 import { SettingsCard, Field, TextArea, SelectField, SaveButton } from "@/components/dashboard/settings/primitives";
 import TimeInput from "@/components/ui/TimeInput";
@@ -82,7 +83,6 @@ export default function BusinessSettings() {
   };
 
   const toggleDay = (d: number) => set("daysOff", b.daysOff.includes(d) ? b.daysOff.filter((x) => x !== d) : [...b.daysOff, d]);
-  const toggleSocial = (id: string) => set("socials", b.socials.map((s) => s.id === id ? { ...s, connected: !s.connected } : s));
 
   const save = async () => {
     if (!projectId) {
@@ -128,7 +128,7 @@ export default function BusinessSettings() {
       {/* Шапка: лого + название — без карточки */}
       <div className="flex items-center gap-5">
         <span className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-tint text-3xl font-bold text-brand">
-          {b.logo ? <Image src={b.logo} alt="" fill unoptimized={b.logo.startsWith("blob:")} className="object-cover" /> : b.name.slice(0, 1)}
+          <ProjectLogo src={b.logo} name={b.name} fill unoptimized={b.logo?.startsWith("blob:") ?? true} />
         </span>
         <div className="min-w-0">
           <p className="truncate text-xl font-bold text-ink">{b.name || "Название бизнеса"}</p>
@@ -152,6 +152,19 @@ export default function BusinessSettings() {
         </div>
         <div className="mt-4">
           <TextArea label="Описание бизнеса" value={b.description} onChange={(v) => set("description", v)} placeholder="Опишите, чем занимается ваш бизнес" />
+        </div>
+      </SettingsCard>
+
+      {/* Поля, которые подставляются контуру при генерации постов */}
+      <SettingsCard title="Для генерации контента" desc="Эти данные ИИ использует, когда пишет посты">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SelectField label="Тон общения" value={b.toneOfVoice} onChange={(v) => set("toneOfVoice", v)} options={TONE_LABELS} />
+        </div>
+        <div className="mt-4">
+          <TextArea label="Целевая аудитория" value={b.targetAudience} onChange={(v) => set("targetAudience", v)} placeholder="Кому адресованы посты, например: жители района 25–40 лет" />
+        </div>
+        <div className="mt-4">
+          <TextArea label="Позиционирование" value={b.positioning} onChange={(v) => set("positioning", v)} placeholder="Одно-два предложения о сути бренда — идёт в контур как USP" />
         </div>
       </SettingsCard>
 
@@ -210,15 +223,14 @@ export default function BusinessSettings() {
                       : "Не подключено"}
                   </p>
                 </div>
-                {s.connected ? (
-                  <button type="button" onClick={() => toggleSocial(s.id)} className="btn-glass shrink-0 px-4 py-1.5 text-xs font-semibold">Отключить</button>
-                ) : (
-                  <button type="button" onClick={() => toggleSocial(s.id)} className="btn-glass-blue shrink-0 px-4 py-1.5 text-xs font-semibold">Подключить</button>
-                )}
               </li>
             );
           })}
         </ul>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Instagram" hint="ссылка или @хэндл" value={b.instagram} onChange={(v) => set("instagram", v)} placeholder="https://instagram.com/ваш_аккаунт" />
+          <Field label="Telegram" hint="ссылка или @хэндл канала" value={b.telegram} onChange={(v) => set("telegram", v)} placeholder="https://t.me/ваш_канал" />
+        </div>
       </SettingsCard>
 
       {/* Действия */}

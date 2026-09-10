@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import LegalBody from "@/components/legal/LegalBody";
 import { SettingsCard } from "@/components/dashboard/settings/primitives";
 import { LEGAL_LINKS, LEGAL_UPDATED, type LegalDoc } from "@/lib/legal";
 
@@ -32,20 +33,7 @@ export default function LegalView({ doc }: { doc: LegalDoc }) {
       </div>
 
       <SettingsCard title={doc.title} desc={`Редакция от ${LEGAL_UPDATED}`}>
-        <div className="flex flex-col gap-6">
-          <p className="text-sm leading-relaxed text-ink-muted">{doc.intro}</p>
-
-          {doc.sections.map((section) => (
-            <section key={section.heading}>
-              <h2 className="text-sm font-bold text-ink">{section.heading}</h2>
-              <div className="mt-2 flex flex-col gap-2">
-                {section.body.map((p, i) => (
-                  <p key={i} className="text-sm leading-relaxed text-ink-muted">{p}</p>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        <LegalBody blocks={doc.blocks} />
       </SettingsCard>
     </div>
   );

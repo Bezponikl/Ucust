@@ -9,7 +9,10 @@ import { ApiError, parseErrorBody } from "./errors";
  * запросом /auth/refresh, а не чтением хранилища.
  */
 let accessToken: string | null = null;
-let refreshing: Promise<string | null> | null = null;
+let refreshing: Promise<RefreshOutcome> | null = null;
+
+/** Слот для уведомления «сессия умерла» — регистрирует SessionProvider. */
+let sessionExpiredListener: (() => void) | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
@@ -19,22 +22,49 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+/** Передать обработчик протухания сессии (или null, чтобы отписаться). */
+export function onSessionExpired(listener: (() => void) | null): void {
+  sessionExpiredListener = listener;
+}
+
+/** Итог попытки обновить токен. Что отдаём: новый токен / сессия мертва / временный сбой. */
+type RefreshOutcome =
+  | { ok: true; token: string }
+  | { ok: false; reason: "expired" | "transient" };
+
+async function refreshAccessToken(): Promise<RefreshOutcome> {
   // Параллельные 401 должны сойтись в один запрос обновления: иначе гонка
   // сожжёт refresh-токен и выбросит пользователя из сессии.
   if (!refreshing) {
-    refreshing = (async () => {
+    refreshing = (async (): Promise<RefreshOutcome> => {
       try {
         const res = await fetch(`${API_BASE_URL}${endpoints.auth.refresh}`, {
           method: "POST",
           credentials: "include",
         });
-        if (!res.ok) return null;
-        const data = (await res.json()) as JwtLike;
+        if (res.status === 401 || res.status === 403) {
+          // Refresh-кука перестала приниматься — сессия реально истекла.
+          accessToken = null;
+          sessionExpiredListener?.();
+          return { ok: false, reason: "expired" };
+        }
+        if (!res.ok) {
+          // Временный сбой шлюза/сети: токен не обновился, но сессию не рушим.
+          return { ok: false, reason: "transient" };
+        }
+        // Ответ также завёрнут в ApiResponse (unwrapData), как и у остальных
+        // эндпоинтов: без него accessToken вычитался бы как undefined.
+        const data = unwrapData(await res.json()) as JwtLike;
+        if (!data.accessToken) {
+          accessToken = null;
+          sessionExpiredListener?.();
+          return { ok: false, reason: "expired" };
+        }
         accessToken = data.accessToken;
-        return accessToken;
+        return { ok: true, token: accessToken };
       } catch {
-        return null;
+        // Сеть лежала — не выкидываем пользователя из сессии.
+        return { ok: false, reason: "transient" };
       } finally {
         refreshing = null;
       }
@@ -85,8 +115,19 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   let res = await send(auth ? accessToken : null);
 
   if (res.status === 401 && auth) {
-    const fresh = await refreshAccessToken();
-    if (fresh) res = await send(fresh);
+    const outcome = await refreshAccessToken();
+    if (outcome.ok) {
+      res = await send(outcome.token);
+      // Свежий токен тоже отвергнут — асимметрия между фронтом и шлюзом. Сессия
+      // на деле жива (refresh прошёл), поэтому отдельной протухшей ошибки не шьём:
+      // это обычный 401, который toMessage покажет как «Неверная почта или пароль».
+    } else if (outcome.reason === "expired") {
+      // Refresh начисто отказал — сессия мертва. Состояние переключает
+      // sessionExpiredListener, а вызывающий код получает понятное сообщение.
+      throw new ApiError(401, "", undefined, true);
+    }
+    // reason === "transient": токены не достались, но и сессия жива —
+    // проваливаемся в общую ветку !res.ok и показываем обычную ошибку.
   }
 
   if (!res.ok) {

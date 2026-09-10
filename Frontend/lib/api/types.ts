@@ -5,6 +5,19 @@ export interface JwtResponse {
   type: string;
 }
 
+/** Активная сессия пользователя (security-service, AuthController). */
+export interface SessionResponse {
+  id: string;
+  ip: string;
+  /** Город, определённый по IP (null, если не удалось). */
+  city: string | null;
+  userAgent: string;
+  createdAt: string | null;
+  expiresAt: string | null;
+  rememberMe: boolean;
+  current: boolean;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;
@@ -22,6 +35,7 @@ export interface LoginRequest {
 export interface ProfileResponse {
   id: string;
   firstName: string;
+  middleName: string | null;
   lastName: string;
   email: string;
   phone: string | null;
@@ -31,6 +45,7 @@ export interface ProfileResponse {
 
 export interface UpdateProfileRequest {
   firstName?: string;
+  middleName?: string;
   lastName?: string;
   phone?: string;
   position?: string;
@@ -187,7 +202,52 @@ export interface TaskStatusResponse {
   [key: string]: unknown;
 }
 
+/** Значения enum из бэка (PostStatus). */
+export type PostStatus = "DRAFT" | "CONFIRMED" | "SCHEDULED" | "PUBLISHED" | "REJECTED";
+
+/**
+ * Пост генерации. Известные поля — из PostResponse бэка (gen-ort), остальное
+ * открыто индексной подписью на случай новых полей сверх текущей версии.
+ */
 export interface PostResponse {
   id: string;
+  projectId?: string;
+  text?: string | null;
+  imageUrl?: string | null;
+  hashtags?: string | null;
+  targetPlatforms?: string | null;
+  /** ISO-8601 (Instant) — время запланированной публикации. */
+  scheduledAt?: string | null;
+  status?: PostStatus;
+  contentType?: string;
+  generationMode?: string;
+  createdAt?: string | null;
   [key: string]: unknown;
+}
+
+/** Partial-правки поста: бэк обновляет только переданные поля (PATCH). */
+export interface UpdatePostRequest {
+  text?: string;
+  imageUrl?: string;
+  hashtags?: string;
+  targetPlatforms?: string;
+  /** ISO-8601 (Instant), напр. 2026-09-12T10:00:00Z. */
+  scheduledAt?: string;
+}
+
+/** Ответ AI-аудита поста (критик Чарли Мангера через /api/v1/ai/critic/review). */
+export interface CriticReviewResponse {
+  status: string;
+  critic: string;
+  data: Record<string, unknown> | null;
+  error: string | null;
+}
+
+/** Ответ верификации соцсети (этап онбординга): verified=true — страница/канал существует. */
+export interface SocialVerifyResponse {
+  channel: string;
+  reference: string;
+  verified: boolean;
+  provider: string | null;
+  error: string | null;
 }

@@ -1,5 +1,5 @@
 import type { ChannelId } from "@/lib/channels";
-import { CHANNEL_ORDER } from "@/lib/channels";
+import { CONNECTIBLE_CHANNELS } from "@/lib/channels";
 import type { OnboardingState } from "@/lib/onboarding/storage";
 
 export interface SocialLink {
@@ -16,6 +16,16 @@ export interface BusinessProfile {
   phone: string;
   site: string;
   description: string;
+  /** Кому адресован контент — уходит в генерацию как target_audience. */
+  targetAudience: string;
+  /** Тон общения (метка из TONE_LABELS) — уходит в генерацию как tone_of_voice. */
+  toneOfVoice: string;
+  /** Позиционирование — уходит в генерацию как USP (поле brandProfile.positioning). */
+  positioning: string;
+  /** Ссылка или @хэндл Instagram. */
+  instagram: string;
+  /** Ссылка или @хэндл Telegram-канала. */
+  telegram: string;
   workStart: string; // "09:00"
   workEnd: string; // "18:00"
   daysOff: number[]; // 0..6 → Пн..Вс
@@ -37,8 +47,16 @@ export const CATEGORIES = [
   "Другое",
 ];
 
+/** Тон общения: метки экрана совпадают с enum бэка один в один. */
+export const TONE_LABELS = [
+  "Дружелюбный",
+  "Деловой",
+  "Неформальный",
+  "Креативный",
+];
+
 const socials = (connectedIds: ChannelId[]): SocialLink[] =>
-  CHANNEL_ORDER.slice(0, 6).map((id) => ({ id, connected: connectedIds.includes(id) }));
+  CONNECTIBLE_CHANNELS.map((id) => ({ id, connected: connectedIds.includes(id) }));
 
 /** Пустой профиль — пока проекта нет, показывать чужие данные нечестно. */
 export const EMPTY_BUSINESS: BusinessProfile = {
@@ -49,6 +67,11 @@ export const EMPTY_BUSINESS: BusinessProfile = {
   phone: "",
   site: "",
   description: "",
+  targetAudience: "",
+  toneOfVoice: TONE_LABELS[0],
+  positioning: "",
+  instagram: "",
+  telegram: "",
   workStart: "09:00",
   workEnd: "18:00",
   daysOff: [],

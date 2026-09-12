@@ -106,74 +106,11 @@ graph TD
 | **Critic**<br>`POST` | `/api/v1/ai/critic/review` | Инверсионный Pre-Mortem аудит текста (Чарли Мангер) и устранение клише. |
 | **Health**<br>`GET` | `/api/v1/ai/health`<br>`/health`<br>`/` | Проверка статуса AI-шлюза и доступности моделей. |
 | **Trends**<br>`GET` | `/api/v1/ai/trends` | Отдача закешированных недельных трендов ниши (3-5 мс). |
-| **Tariffs**<br>`GET` | `/api/v1/ai/tariffs`<br>`/api/v1/tariffs` | **Матрица тарифов**: лимиты генераций, дни недели и поддерживаемые фичи. |
-| **Quota**<br>`GET` | `/api/v1/ai/clients/{id}/subscription-quota`<br>`/api/v1/subscription/quota` | Проверка квоты клиента и расчет 30-дневного календарного расписания. |
 | **WebSocket**<br>`WS` | `/ws/ai/session/{session_id}` | Real-time стриминг событий онбординга и генерации для фронтенда. |
 
 ---
 
-## 5. Тарифные планы, квотирование и матрица возможностей (Capabilities Matrix)
-
-AI-контур поддерживает динамическое квотирование и адаптацию контента под тариф подписки клиента. Параметр `tier` может передаваться в запросе (`"tier": "BUSINESS"` или внутри `projectContext`):
-
-### 5.1. Сравнительная матрица тарифов платформы
-
-| Возможность / Параметр | `START` (Старт) | `BUSINESS` (Бизнес — Рекомендуемый) | `ENTERPRISE` (Корпоративный) | `CUSTOM` (Индивидуальный) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Лимит постов в месяц** | **12 постов** | **20 постов** | **30 постов (ежедневно)** | **50+ постов** |
-| **Частота в неделю** | 3 раза в неделю | 5 раз в неделю (Пн–Пт) | 7 дней в неделю | 7 дней в неделю |
-| **Разрешенные дни** | Пн, Ср, Пт (`[0, 2, 4]`) | Пн, Вт, Ср, Чт, Пт (`[0..4]`) | Пн–Вс (`[0..6]`) | Пн–Вс (`[0..6]`) |
-| **Студийные фото (ComfyUI)** | ✅ Да (1:1) | ✅ Да (1:1, 9:16, 16:9) | ✅ Да (1:1, 9:16, 16:9, 4:5) | ✅ Да (любые) |
-| **VLM & OCR (Moondream2)** | ❌ Нет | ✅ Да (анализ фото и чеков) | ✅ Да (глубокий анализ) | ✅ Да |
-| **База знаний Clean RAG** | ❌ Нет | ✅ Да (семантический поиск) | ✅ Да (персональная БД) | ✅ Да |
-| **Критик Чарли Мангера** | Базовый (строгость 0.80) | Стандартный (строгость 0.90) | Максимальный (строгость 0.95) | Настраиваемый |
-| **Ракурсы воронки (Хант)** | 1 ракурс | 4 ракурса (`multi_variations`) | 8 ракурсов | 10+ ракурсов |
-| **Каналы публикации** | Telegram | Telegram, VK, Веб-сайт | Telegram, VK, Instagram, OK, MAX | Все каналы |
-| **Видеогенерация LTX-2.3** | ❌ Нет | ❌ Нет (фокус на фото) | ✅ Да (видео со звуком) | ✅ Да |
-| **Приоритет в очереди** | `STANDARD` | `HIGH` | `DEDICATED_REALTIME` | `DEDICATED_REALTIME` |
-
-### 5.2. Пример ответа эндпоинта проверки квоты (`GET /api/v1/ai/clients/{client_id}/subscription-quota?tier=BUSINESS`):
-
-```json
-{
-  "status": "success",
-  "client_id": "client_dentallux_101",
-  "subscription_status": "ACTIVE",
-  "monthly_post_limit": 20,
-  "remaining_quota": 20,
-  "tier": {
-    "tier_name": "BUSINESS",
-    "title": "Бизнес Стандарт (Оптимальный для большинства ниш)",
-    "monthly_post_limit": 20,
-    "posts_per_week": 5,
-    "allowed_days_of_week": [0, 1, 2, 3, 4],
-    "allowed_weekdays_ru": ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"],
-    "media_capabilities": {
-      "studio_photo_comfyui": true,
-      "aspect_ratios": ["1:1", "9:16", "16:9"],
-      "vlm_moondream_ocr": true,
-      "video_generation_ltx23": false,
-      "clean_rag_knowledge_base": true,
-      "charlie_munger_critic_strictness": 0.90,
-      "multi_variations_count": 4,
-      "supported_channels": ["telegram", "vk", "website"]
-    },
-    "queue_priority": "HIGH"
-  },
-  "calendar_slots_count": 20,
-  "calendar_slots": [
-    { "slot_index": 1, "date": "2026-09-01", "time": "10:00", "weekday": "Tuesday", "post_type": "PHOTO_AND_TEXT" },
-    { "slot_index": 2, "date": "2026-09-02", "time": "14:30", "weekday": "Wednesday", "post_type": "PHOTO_AND_TEXT" },
-    { "slot_index": 3, "date": "2026-09-03", "time": "10:00", "weekday": "Thursday", "post_type": "PHOTO_AND_TEXT" },
-    { "slot_index": 4, "date": "2026-09-04", "time": "14:30", "weekday": "Friday", "post_type": "PHOTO_AND_TEXT" },
-    { "slot_index": 5, "date": "2026-09-07", "time": "10:00", "weekday": "Monday", "post_type": "ENGAGING_TEXT" }
-  ]
-}
-```
-
----
-
-## 6. Полный спектр команд генерации контента
+## 5. Полный спектр команд генерации контента
 
 AI-контур поддерживает 8 специализированных команд генерации под любые маркетинговые задачи:
 

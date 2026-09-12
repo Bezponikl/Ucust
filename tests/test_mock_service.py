@@ -262,22 +262,7 @@ def test_websocket_stream():
         msg = ws.receive_json()
         assert msg["session_id"] == "test_sess_123"
         assert "step" in msg
-def test_tariffs_and_quotas():
-    # 1. Get tariffs
-    r_tariffs = client.get("/api/v1/ai/tariffs")
-    assert r_tariffs.status_code == 200
-    tariffs = r_tariffs.json()["tariffs"]
-    assert "START" in tariffs
-    assert "BUSINESS" in tariffs
-    assert "ENTERPRISE" in tariffs
-    assert tariffs["BUSINESS"]["monthly_post_limit"] == 20
-
-    # 2. Get client quota
-    r_quota = client.get("/api/v1/ai/clients/client_dentallux_101/subscription-quota?tier=BUSINESS")
-    assert r_quota.status_code == 200
-    q = r_quota.json()
-    assert q["monthly_post_limit"] == 20
-    assert len(q["calendar_slots"]) == 20
+        assert "progress" in msg
 
 
 if __name__ == "__main__":

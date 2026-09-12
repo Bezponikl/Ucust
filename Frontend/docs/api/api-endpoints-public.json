@@ -13,6 +13,7 @@
         "/api/v0/auth/login",
         "/api/v0/auth/register",
         "/api/v0/auth/refresh",
+        "/api/v0/auth/oauth-bootstrap",
         "/api/v0/auth/forgot-password",
         "/api/v0/auth/reset-password",
         "/api/v0/auth/confirm-email",
@@ -84,6 +85,17 @@
                 "summary": "Обновление refresh токена",
                 "auth": "public",
                 "cookies": ["refreshToken", "required"],
+                "response": "JwtResponse { accessToken: string } + новая кука"
+              },
+              {
+                "method": "POST",
+                "path": "/api/v0/auth/oauth-bootstrap",
+                "summary": "Переустановка refresh-куки после OAuth2 redirect-входа (Firefox dFPI: кука из 302 не видна фронту). Принимает access-токен в Authorization, отдаёт свежую refresh-куку в fetch-контексте.",
+                "auth": "public",
+                "requestHeaders": {
+                  "Authorization": "Bearer <accessToken>"
+                },
+                "cookies": ["refreshToken"],
                 "response": "JwtResponse { accessToken: string } + новая кука"
               },
               {

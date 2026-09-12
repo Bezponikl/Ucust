@@ -43,6 +43,20 @@ export async function refresh(): Promise<string | null> {
   }
 }
 
+/**
+ * OAuth2 redirect-флоу ставит refresh-куку в ответе 302 (top-level на сам api),
+ * из-за чего Firefox-изоляция кук (dFPI) прячет её от фронта ucust.ru. После
+ * получения access-токена из адреса фронт переустанавливает куку этим вызовом:
+ * он идёт обычным кросс-ориджин fetch из партиции ucust.ru, поэтому кука
+ * оказывается там, где её увидит последующий /auth/refresh.
+ */
+export async function oauthBootstrap(accessToken: string): Promise<void> {
+  await apiFetch<void>(endpoints.auth.oauthBootstrap, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 /** Активные сессии текущего пользователя (Bearer). */
 export function getSessions(): Promise<SessionResponse[]> {
   return apiFetch<SessionResponse[]>(endpoints.auth.sessions, { auth: true });

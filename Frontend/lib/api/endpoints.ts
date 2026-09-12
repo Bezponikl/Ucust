@@ -26,6 +26,7 @@ export const endpoints = {
     login: "/auth/login",
     logout: "/auth/logout",
     refresh: "/auth/refresh",
+    oauthBootstrap: "/auth/oauth-bootstrap",
     confirmEmail: (token: string) => withQuery("/auth/confirm-email", { token }),
     resendConfirmation: (email: string) => withQuery("/auth/resend-confirmation", { email }),
     forgotPassword: "/auth/forgot-password",

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthPageChrome from "@/components/auth/AuthPageChrome";
 import Icon from "@/components/ui/Icon";
-import { loginWithYandexToken } from "@/lib/api/auth";
+import { loginWithYandexToken, oauthBootstrap } from "@/lib/api/auth";
 import { setAccessToken } from "@/lib/api/client";
 import { parseOAuthCallback } from "@/lib/api/oauth";
 import { useSession } from "@/lib/session/SessionProvider";
@@ -52,7 +52,7 @@ export default function OAuthCallbackPage() {
     }
 
     setAccessToken(token);
-    void openDashboard();
+    void oauthBootstrap(token).finally(openDashboard);
   }, [reload, router]);
 
   return (

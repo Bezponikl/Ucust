@@ -58,12 +58,23 @@ class SecurityGuard:
     @classmethod
     def check_user_input(cls, user_text: str) -> bool:
         """
-        Проверяет ввод пользователя на попытки взлома, инъекций и запрещенный токсичный контент.
+        Проверяет ввод пользователя на попытки взлома, инъекций, обфускации
+        (раскладка клавиатуры, омоглифы, Base64, спецсимволы) и запрещенный политический/экстремистский контент.
         Возвращает True, если безопасно, и False, если есть подозрения.
         """
         if not user_text:
             return True
-            
+
+        # 1. Полномочный аудит безопасности через PoliticalAndLegalGuard с деобфускацией
+        try:
+            from skills.political_legal_guard import PoliticalAndLegalGuard
+            is_safe, reason = PoliticalAndLegalGuard.validate_content(user_text)
+            if not is_safe:
+                print(f"[SecurityGuard] 🚨 ОТКЛОНЕНО СИСТЕМОЙ БЕЗОПАСНОСТИ: {reason} в запросе пользователя!")
+                return False
+        except Exception as e:
+            print(f"[SecurityGuard] ⚠️ Ошибка проверки через PoliticalAndLegalGuard ({e}), задействован базовый контур...")
+
         text_lower = user_text.lower()
         for kw in cls.FORBIDDEN_KEYWORDS:
             if kw in text_lower:
@@ -75,6 +86,7 @@ class SecurityGuard:
                 print(f"[SecurityGuard] 🚨 ОБНАРУЖЕН ЗАПРЕЩЕННЫЙ/ТОКСИЧНЫЙ КОНТЕНТ: '{hw}'!")
                 return False
         return True
+
 
     @classmethod
     def validate_content_tone_of_voice(cls, content_text: str, custom_forbidden_words: Optional[List[str]] = None) -> tuple[bool, Optional[str]]:

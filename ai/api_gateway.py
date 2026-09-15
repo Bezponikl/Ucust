@@ -283,11 +283,16 @@ class AsyncGenerateTaskRequest(BaseModel):
 
 from contextlib import asynccontextmanager
 from core.queue_manager import AsyncGenerationQueueManager
+from core.vram_scheduler import AutoCalibratingVRAMScheduler
+
+vram_scheduler = AutoCalibratingVRAMScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Старт фонового GPU-воркера очереди при запуске приложения
+    # 1. Старт фонового GPU-воркера очереди при запуске приложения
     await queue_manager.start_worker()
+    # 2. Фоновый прогрев GPU-моделей (Warmup Routine) для исключения холодных OOM
+    asyncio.create_task(vram_scheduler.warmup_gpu_pipelines(orchestrator))
     yield
     # Остановка воркера при выключении
     await queue_manager.stop_worker()
@@ -711,6 +716,22 @@ async def get_frontend_graphs():
         "status": "success",
         "data": graphs_data
     }
+
+
+# ============================================================================
+# ДИАГНОСТИКА VRAM И АДАПТИВНОГО ПЛАНИРОВЩИКА GPU
+# ============================================================================
+
+@app.get("/api/v1/ai/system/gpu-status", tags=["System Diagnostics"])
+@app.get("/gpu-status", tags=["System Diagnostics"])
+async def get_gpu_vram_status():
+    """
+    📊 РЕАЛЬНОЕ СОСТОЯНИЕ ВИДЕОПАМЯТИ И ДИСПЕТЧЕРА VRAM:
+    - Текущее распределение VRAM (Total, Used, Free в GB).
+    - Количество активных GPU-воркеров и параллельных I/O-парсеров.
+    - Самообученные (Auto-Calibrated) веса каждой задачи с учетом EMA и пиковых всплесков.
+    """
+    return vram_scheduler.get_diagnostics()
 
 
 @app.post("/api/v1/ai/generate-image", tags=["Visual & Media"])

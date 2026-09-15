@@ -24,6 +24,7 @@ import httpx
 
 from core.orchestrator import UnifiedOrchestrator
 from core.redis_cache import RedisCacheManager
+from core.vram_scheduler import AutoCalibratingVRAMScheduler
 
 logger = logging.getLogger("queue_manager")
 
@@ -41,6 +42,7 @@ class AsyncGenerationQueueManager:
     """
     Управляет асинхронной очередью генераций для защиты GPU от перегрузок
     и гарантированной доставки результата на Java Backend через HTTP Push.
+    Интегрирован с AutoCalibratingVRAMScheduler для параллельного выполнения задач по VRAM.
     """
 
     _instance: Optional["AsyncGenerationQueueManager"] = None
@@ -51,11 +53,12 @@ class AsyncGenerationQueueManager:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, orchestrator: Optional[UnifiedOrchestrator] = None):
+    def __init__(self, orchestrator: Optional[UnifiedOrchestrator] = None, scheduler: Optional[AutoCalibratingVRAMScheduler] = None):
         if getattr(self, "_initialized", False):
             return
 
         self.orchestrator = orchestrator or UnifiedOrchestrator()
+        self.scheduler = scheduler or AutoCalibratingVRAMScheduler()
         self.redis_cache = RedisCacheManager()
         self.queue: asyncio.Queue = asyncio.Queue()
         self.tasks: Dict[str, Dict[str, Any]] = {}
@@ -63,7 +66,7 @@ class AsyncGenerationQueueManager:
         self.is_running: bool = False
         self.current_task_id: Optional[str] = None
         self._initialized = True
-        logger.info("[QueueManager] 🚀 Инициализирован FastAPI Native Queue Manager.")
+        logger.info("[QueueManager] 🚀 Инициализирован FastAPI Native Queue Manager с AutoCalibratingVRAMScheduler.")
 
     async def start_worker(self):
         """Запускает фонового консьюмера очереди при старте FastAPI."""
@@ -167,82 +170,94 @@ class AsyncGenerationQueueManager:
         return status_copy
 
     def get_queue_stats(self) -> Dict[str, Any]:
-        """Возвращает общую статистику очереди."""
+        """Возвращает общую статистику очереди и VRAM-диспетчера."""
         queued_count = self.queue.qsize()
-        active_task = self.current_task_id
+        vram_diag = self.scheduler.get_diagnostics()
         return {
             "status": "online",
-            "is_busy": active_task is not None,
-            "active_task_id": active_task,
+            "is_busy": vram_diag["active_workers"]["gpu_tasks_running"] > 0,
+            "gpu_tasks_running": vram_diag["active_workers"]["gpu_tasks_running"],
+            "io_scrapers_running": vram_diag["active_workers"]["io_scrapers_running"],
             "queued_tasks_count": queued_count,
-            "total_tracked_tasks": len(self.tasks)
+            "total_tracked_tasks": len(self.tasks),
+            "vram": vram_diag["vram"],
+            "learned_task_costs": vram_diag["learned_task_costs"]
         }
 
     async def _worker_loop(self):
-        """Основной цикл консьюмера: последовательно обрабатывает задачи на GPU."""
+        """
+        Основной цикл консьюмера:
+        Параллельно распределяет задачи через AutoCalibratingVRAMScheduler
+        (I/O парсеры не блокируют GPU, а GPU-генерации масштабируются по свободной VRAM).
+        """
         while self.is_running:
             try:
                 task_id = await self.queue.get()
-                self.current_task_id = task_id
                 task_data = self.tasks.get(task_id)
 
                 if not task_data:
                     self.queue.task_done()
-                    self.current_task_id = None
                     continue
 
-                task_data["status"] = TaskState.PROCESSING
-                task_data["started_at"] = datetime.utcnow().isoformat()
-                await self._persist_task_state(task_id, task_data)
+                payload = task_data.get("payload", {})
+                task_type = payload.get("task_type", "generate_post")
 
-                logger.info(f"\n[QueueManager] ⚙️ [СТАРТ] Выполнение задачи '{task_id}' на GPU...")
-                t0 = time.time()
-
-                try:
-                    payload = task_data.get("payload", {})
-                    task_type = payload.get("task_type", "generate_post")
-
-                    # Выполнение задачи через UnifiedOrchestrator
-                    result = await self.orchestrator.execute_task(
-                        task_type=task_type,
-                        user_data=payload,
-                        session_id=task_data.get("session_id")
-                    )
-
-                    duration = round(time.time() - t0, 2)
-                    task_data["status"] = TaskState.COMPLETED
-                    task_data["completed_at"] = datetime.utcnow().isoformat()
-                    task_data["result"] = result
-                    task_data["duration_seconds"] = duration
-                    logger.info(f"[QueueManager] ✅ [УСПЕХ] Задача '{task_id}' завершена за {duration}с.")
-
-                    # Выполняем Push-коллбек на Java Backend с передачей файла
-                    callback_url = task_data.get("callback_url")
-                    if callback_url:
-                        push_ok = await self._push_result_to_backend(task_id, task_data, result, callback_url)
-                        task_data["push_status"] = TaskState.PUSHED if push_ok else TaskState.PUSH_FAILED
-
-                except Exception as ex:
-                    logger.exception(f"[QueueManager] ❌ [ОШИБКА] Сбой при выполнении задачи '{task_id}': {ex}")
-                    task_data["status"] = TaskState.FAILED
-                    task_data["error"] = str(ex)
-                    task_data["completed_at"] = datetime.utcnow().isoformat()
-
-                    # Отправляем уведомление об ошибке в коллбек, если он указан
-                    callback_url = task_data.get("callback_url")
-                    if callback_url:
-                        await self._push_error_to_backend(task_id, str(ex), callback_url)
-
-                finally:
-                    await self._persist_task_state(task_id, task_data)
-                    self.queue.task_done()
-                    self.current_task_id = None
+                # Запускаем задачу через умный планировщик VRAM в фоновой корутине
+                asyncio.create_task(self._process_task_with_scheduler(task_id, task_type, task_data))
+                self.queue.task_done()
 
             except asyncio.CancelledError:
                 break
             except Exception as loop_ex:
                 logger.error(f"[QueueManager] Ошибка в цикле воркера: {loop_ex}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.5)
+
+    async def _process_task_with_scheduler(self, task_id: str, task_type: str, task_data: Dict[str, Any]):
+        """Обрабатывает одну задачу с контролем VRAM и автоматической калибровкой."""
+        task_data["status"] = TaskState.PROCESSING
+        task_data["started_at"] = datetime.utcnow().isoformat()
+        await self._persist_task_state(task_id, task_data)
+
+        logger.info(f"\n[QueueManager] ⚙️ [СТАРТ] Выполнение задачи '{task_id}' (тип: {task_type})...")
+        t0 = time.time()
+
+        async def _run_task():
+            payload = task_data.get("payload", {})
+            return await self.orchestrator.execute_task(
+                task_type=task_type,
+                user_data=payload,
+                session_id=task_data.get("session_id")
+            )
+
+        try:
+            # Выполнение с отслеживанием спайков VRAM и авто-калибровкой
+            result = await self.scheduler.schedule_and_run(task_id, task_type, _run_task)
+
+            duration = round(time.time() - t0, 2)
+            task_data["status"] = TaskState.COMPLETED
+            task_data["completed_at"] = datetime.utcnow().isoformat()
+            task_data["result"] = result
+            task_data["duration_seconds"] = duration
+            logger.info(f"[QueueManager] ✅ [УСПЕХ] Задача '{task_id}' завершена за {duration}с.")
+
+            # Выполняем Push-коллбек на Java Backend с передачей файла
+            callback_url = task_data.get("callback_url")
+            if callback_url:
+                push_ok = await self._push_result_to_backend(task_id, task_data, result, callback_url)
+                task_data["push_status"] = TaskState.PUSHED if push_ok else TaskState.PUSH_FAILED
+
+        except Exception as ex:
+            logger.exception(f"[QueueManager] ❌ [ОШИБКА] Сбой при выполнении задачи '{task_id}': {ex}")
+            task_data["status"] = TaskState.FAILED
+            task_data["error"] = str(ex)
+            task_data["completed_at"] = datetime.utcnow().isoformat()
+
+            callback_url = task_data.get("callback_url")
+            if callback_url:
+                await self._push_error_to_backend(task_id, str(ex), callback_url)
+
+        finally:
+            await self._persist_task_state(task_id, task_data)
 
     async def _push_result_to_backend(
         self,

@@ -297,7 +297,7 @@ class ComfyCLIRunner:
                 sampler_steps = 30
                 sampler_cfg = 3.2 if has_human else 3.8
                 # Переключение на SDE-семплирование и SGM Uniform / Beta для ликвидации пластикового "мультяшного" света
-                sampler_name = "dpmpp_3m_sde"
+                sampler_name = "dpmpp_2m_sde"
                 sampler_scheduler = "sgm_uniform"
 
                 if node_type == "KSampler":
@@ -427,7 +427,7 @@ class ComfyCLIRunner:
                     if "seed" in inputs:
                         inputs["seed"] = chosen_seed
                     if "sampler_name" in inputs:
-                        inputs["sampler_name"] = "dpmpp_3m_sde"
+                        inputs["sampler_name"] = "dpmpp_2m_sde"
                     if "scheduler" in inputs:
                         inputs["scheduler"] = "sgm_uniform"
 

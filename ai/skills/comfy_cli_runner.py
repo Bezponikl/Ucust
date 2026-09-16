@@ -321,8 +321,7 @@ class ComfyCLIRunner:
 
                 elif node_type == "ClownsharKSampler_Beta":
                     if "widgets_values" in node and len(node["widgets_values"]) >= 8:
-                        node["widgets_values"][1] = sampler_name
-                        node["widgets_values"][2] = sampler_scheduler
+                        # Не перезаписываем sampler_name, сохраняем родной linear/euler от RES4LYF
                         node["widgets_values"][3] = sampler_steps
                         if not is_edit:
                             node["widgets_values"][5] = 1.0 # denoise = 1.0 for generation from noise
@@ -332,10 +331,9 @@ class ComfyCLIRunner:
                         node["widgets_values_named"]["steps"] = sampler_steps
                         node["widgets_values_named"]["cfg"] = sampler_cfg
                         node["widgets_values_named"]["seed"] = chosen_seed
-                        node["widgets_values_named"]["sampler_name"] = sampler_name
-                        node["widgets_values_named"]["scheduler"] = sampler_scheduler
                         if not is_edit:
                             node["widgets_values_named"]["denoise"] = 1.0
+
 
                 # 5b. FreeU (V2) - Разделение низких и высоких частот (физическое дробление бликов и хайлайтов)
                 if node_type in {"FreeU", "FreeU_V2", "FreeUAdvanced"}:
@@ -423,13 +421,21 @@ class ComfyCLIRunner:
                     inputs["width"] = width
                     inputs["height"] = height
 
-                if class_type in {"KSampler", "SamplerCustomAdvanced", "ClownsharKSampler_Beta", "RandomNoise"}:
+                if class_type in {"KSampler", "SamplerCustomAdvanced", "RandomNoise"}:
                     if "seed" in inputs:
                         inputs["seed"] = chosen_seed
                     if "sampler_name" in inputs:
                         inputs["sampler_name"] = "dpmpp_2m_sde"
                     if "scheduler" in inputs:
                         inputs["scheduler"] = "sgm_uniform"
+                elif class_type == "ClownsharKSampler_Beta":
+                    if "seed" in inputs:
+                        inputs["seed"] = chosen_seed
+                    if "steps" in inputs:
+                        inputs["steps"] = 30
+                    if "cfg" in inputs:
+                        inputs["cfg"] = 3.2 if has_human else 3.8
+
 
                 if class_type in {"FreeU", "FreeU_V2", "FreeUAdvanced"}:
                     inputs["b1"] = 1.1

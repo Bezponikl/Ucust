@@ -7,6 +7,7 @@ import random
 import threading
 from typing import Any, Dict, List, Optional, Union
 from skills.competitor_hashtags import NicheCompetitorHashtagEngine
+from skills.political_legal_guard import PoliticalAndLegalGuard
 
 class SaigaLLMSkill:
     """
@@ -106,9 +107,8 @@ class SaigaLLMSkill:
                         return found
         return path_str
 
-from skills.political_legal_guard import PoliticalAndLegalGuard
-
     def _init_prompt(self):
+
         self.system_prompt = (
             "Ты — профессиональный SMM-копирайтер и бренд-редактор. Твои тексты звучат живо, структурированно и убедительно.\n\n"
             "СТАНДАРТ АРХИТЕКТУРЫ ЭМОДЗИ И ТИПОГРАФИКИ (Visual Anchors & Rhythm):\n\n"

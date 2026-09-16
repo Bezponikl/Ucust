@@ -684,8 +684,10 @@ class CinematographyDirector:
         )
         
         if is_human_scene:
+            is_group = any(w in topic_lower or w in subject.lower() for w in ["team", "group", "engineers", "developers", "people", "команд", "разработчик", "инженер", "люди", "коллег"])
+            group_diversity = "(heterogeneous distinct individual facial features:1.25), (diverse unique face shapes and contrasting hairstyles:1.25), distinct non-identical people, " if is_group else ""
             texture_desc = (
-                "(subsurface scattering, raw texture:1.2), (visible skin pores:1.2), peach fuzz, subtle blemishes, "
+                f"{group_diversity}(subsurface scattering, raw texture:1.2), (visible skin pores:1.2), peach fuzz, subtle blemishes, "
                 "uneven natural skin tone, (35mm film grain, ISO 800:1.15), fine individual hair strands, "
                 "messy hair, slightly unkempt, subtle facial asymmetry, natural skin folds, everyday realism"
             )
@@ -945,6 +947,7 @@ class PhotoGeneratorSkill:
         "(flat lighting, HDR, softbox, even illumination, lifted shadows, studio fill light:1.35), "
         "(tone mapping, washed out blacks, washed out shadows, aggressive shadow recovery:1.3), "
         "(fake chroma key blur, abrupt cut-and-paste background, cardboard cutout look, computational fake blur:1.3), "
+        "(identical faces:1.4), (cloned faces:1.4), (twin faces:1.35), (duplicate people:1.3), (same face syndrome:1.35), (cloned facial features:1.35), "
         "(extra fingers, mutated joints, fused fingers:1.3), (deformed knuckles, missing phalanges, melting fingers, hand-object fusion:1.25), (stems penetrating through fingers, objects melting into hands:1.2), "
         "(dense smoke, thick steam plumes, vape smoke overlay, opaque white smoke, cigarette smoke:1.3), "
         "(lamp pointed directly at screen, screen glare, financial stock trading charts on screens, sad depressed expression in retail:1.25), "

@@ -138,6 +138,7 @@ class AdvancedVisualDirector:
         )
 
         negative_prompt = (
+            "identical faces, cloned faces, twin faces, duplicate people, same face syndrome, "
             "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
             "smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, "
             "overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands, watermark"

@@ -97,6 +97,119 @@ class InternalCalendarEngine:
         })
     ]
 
+    SEASONAL_TACTILE_PROPS = {
+        "beauty": {
+            "Зима": {
+                "prop": "holding a rustic handmade snowball with glistening melting ice crystals in cozy cream knit sweater sleeves",
+                "bg_accent": "warm 3000K fairy lights and frosted window patterns in soft background bokeh",
+                "vibe_token": "cozy winter knitwear and crisp frosty ice crystals"
+            },
+            "Осень": {
+                "prop": "delicate ceramic vase with dried amber and scarlet maple leaves in soft background bokeh",
+                "bg_accent": "cozy textured chunky knit sweater sleeve framing the frame",
+                "vibe_token": "warm autumn terracotta ambiance, cozy knitted wool"
+            },
+            "Весна": {
+                "prop": "delicate dewy pussy willow branches with soft velvety buds and fresh cherry blossom petals",
+                "bg_accent": "fresh linen runner and soft pastel botanical studio atmosphere",
+                "vibe_token": "fresh spring floral renewal, dewy petals"
+            },
+            "Лето": {
+                "prop": "sunlit warm travertine stone surface with delicate palm leaf shadow play and subtle gold ring accents",
+                "bg_accent": "crystal clear chilled glass with condensation droplets in soft bokeh",
+                "vibe_token": "radiant summer daylight, sun-kissed textures"
+            }
+        },
+        "horeca": {
+            "Зима": {
+                "prop": "fine dusting of powdered sugar resembling fresh powdery snow, whole cinnamon sticks, star anise, and dense rising steam curls",
+                "bg_accent": "dark slate countertop with powdered sugar scattering, rustic winter kitchen ambiance",
+                "vibe_token": "festive winter spices, snowy powdered sugar dusting, steaming warmth"
+            },
+            "Осень": {
+                "prop": "rustic dark walnut board with whole star anise pods, whole cinnamon sticks, dried orange wheels, and rich salted caramel drizzle",
+                "bg_accent": "frayed natural beige linen runner, golden autumn maple leaves scattering in soft bokeh",
+                "vibe_token": "spiced autumn caramel, dark walnut wood, star anise"
+            },
+            "Весна": {
+                "prop": "delicate edible spring micro-blossoms and fresh dewy mint leaves, bright berry garnish on crisp linen",
+                "bg_accent": "bright morning bistro daylight, pastel ceramic plateware",
+                "vibe_token": "fresh spring botanical garnish, dewy mint, light artisan ceramics"
+            },
+            "Лето": {
+                "prop": "glistening crystal-clear melting ice cubes, fresh citrus wheels with fine translucent micro-droplets, vibrant summer berries",
+                "bg_accent": "sun-drenched outdoor terrace table with crisp defined shadows",
+                "vibe_token": "refreshing summer citrus, melting ice, dewy fruit glaze"
+            }
+        },
+        "detailing": {
+            "Зима": {
+                "prop": "pristine hydrophobic water and frost bead test on deep ceramic coated hood",
+                "bg_accent": "warm 3000K studio softbox contrasting with frosty glass partitions in background",
+                "vibe_token": "hydrophobic frost beads, ceramic coating protection against cold"
+            },
+            "Осень": {
+                "prop": "mirror-like reflection of golden autumn foliage on flawless glossy metallic paintwork",
+                "bg_accent": "warm low-angle golden hour rim light accentuating sharp body contours",
+                "vibe_token": "autumn foliage reflection, warm golden hour gloss"
+            },
+            "Весна": {
+                "prop": "crisp clean spring morning reflection on pristine metallic paintwork, spotless workshop floor",
+                "bg_accent": "bright diffused daylight showing razor-sharp mirror gloss",
+                "vibe_token": "spring renewal, flawless high-gloss clear coat"
+            },
+            "Лето": {
+                "prop": "sharp directional summer sunburst flare accentuating deep multi-stage mirror finish and metallic flake depth",
+                "bg_accent": "scenic asphalt lookout at sunset, pristine showroom reflection",
+                "vibe_token": "brilliant summer sun flare, deep metallic flake clarity"
+            }
+        },
+        "tech": {
+            "Зима": {
+                "prop": "steaming matte ceramic mug emitting delicate translucent vapor, warm ambient monitor glow, subtle string light bokeh in background",
+                "bg_accent": "dimly lit late-night high-tech office with frosty city skyline through panoramic glass",
+                "vibe_token": "winter late-night focus, steaming coffee vapor, cozy tech loft"
+            },
+            "Осень": {
+                "prop": "warm amber desk illumination, ceramic mug of hot spiced espresso, cozy textured throw on ergonomic office chair",
+                "bg_accent": "modern oak desk with falling golden leaves visible outside architectural window blinds",
+                "vibe_token": "productive autumn business season, warm amber task lighting"
+            },
+            "Весна": {
+                "prop": "fresh potted indoor succulent plant on minimalist desk, bright crisp spring daylight streaming across workspace",
+                "bg_accent": "sunlit open-plan digital innovation lab with Scandinavian oak desks",
+                "vibe_token": "spring innovation, clean tech minimalism, fresh energy"
+            },
+            "Лето": {
+                "prop": "minimalist iced cold-brew glass with condensation droplets beside sleek aluminum laptop, bright productive daylight",
+                "bg_accent": "modern glass-partitioned tech headquarters at golden afternoon",
+                "vibe_token": "summer high-velocity growth, iced coffee, clean analytics"
+            }
+        },
+        "general": {
+            "Зима": {
+                "prop": "cozy textured knitted blanket in foreground, delicate frost patterns in soft bokeh",
+                "bg_accent": "warm 3000K interior glow contrasting with cool winter exterior",
+                "vibe_token": "winter warmth, cozy tactile textures"
+            },
+            "Осень": {
+                "prop": "warm ceramic cup, subtle dried autumn botanicals in minimalist ceramic vase",
+                "bg_accent": "soft golden hour sunbeams casting gentle organic room shadows",
+                "vibe_token": "autumn coziness, warm earthy neutrals"
+            },
+            "Весна": {
+                "prop": "fresh botanical greenery, crisp morning daylight on natural textured surface",
+                "bg_accent": "bright airy sunlit interior in soft creamy bokeh",
+                "vibe_token": "spring freshness, soft natural daylight"
+            },
+            "Лето": {
+                "prop": "vibrant natural daylight, crisp defined micro-shadows, warm stone surface",
+                "bg_accent": "sunlit contemporary space with natural airy depth",
+                "vibe_token": "summer energy, bright sunlit clarity"
+            }
+        }
+    }
+
     def __init__(self):
         self.collector = EventHolidayCollector() if EventHolidayCollector else None
         self.last_updated_date: Optional[date] = None
@@ -152,6 +265,16 @@ class InternalCalendarEngine:
             "upcoming_holidays_14d": upcoming_events
         }
         return self.cached_context
+
+    def get_seasonal_tactile_anchor(self, domain: str = "general", target_dt: Optional[datetime] = None) -> Dict[str, str]:
+        ctx = self.refresh(target_dt=target_dt)
+        season_name = ctx["season"]
+        domain_dict = self.SEASONAL_TACTILE_PROPS.get(domain, self.SEASONAL_TACTILE_PROPS["general"])
+        return domain_dict.get(season_name, domain_dict.get("Осень", {
+            "prop": "warm organic ceramic mug and natural linen",
+            "bg_accent": "soft ambient background bokeh",
+            "vibe_token": "natural commercial elegance"
+        }))
 
     def get_visual_lighting_anchor(self, topic: str = "", setting_desc: str = "", target_dt: Optional[datetime] = None) -> str:
         ctx = self.refresh(target_dt=target_dt)

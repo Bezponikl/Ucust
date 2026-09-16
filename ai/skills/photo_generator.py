@@ -507,33 +507,58 @@ class CinematographyDirector:
         from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
-        # 1. МАНИКЮР, НОГТИ И БЬЮТИ МАКРО (3 РАЗНЫХ КАНОНИЧЕСКИХ ПОЗЫ)
         if any(w in topic_lower for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "педикюр", "nail", "manicure"]):
+            curr_season = InternalCalendarEngine.get_instance().cached_context.get("season", "Осень") if InternalCalendarEngine else "Осень"
+            seasonal_anchor = InternalCalendarEngine.get_instance().get_seasonal_tactile_anchor("beauty") if InternalCalendarEngine else {}
+
             if any(w in topic_lower for w in ["сапфир", "синий", "navy", "синем", "голубой"]):
                 color_desc = "deep glossy sapphire-navy gel polish with delicate gold leaf foil accent flakes"
+                lipstick_color = "matching deep berry-fuchsia"
             elif any(w in topic_lower for w in ["бордо", "марсал", "вишн", "burgundy"]):
                 color_desc = "rich glossy deep burgundy wine gel polish with subtle mirror shine"
+                lipstick_color = "matching matte burgundy"
             elif any(w in topic_lower for w in ["шоколад", "кофе", "brown", "коричнев"]):
-                color_desc = "rich glossy warm chocolate-brown and matte nude tones with delicate gold foil leaf art"
-            elif any(w in topic_lower for w in ["нюд", "беж", "пастел", "nude"]):
-                color_desc = "clean minimalist nude milk-bath gel polish with pristine gloss"
+                color_desc = "rich glossy warm chocolate-brown and creamy off-white tones with delicate hand-painted maple leaf art"
+                lipstick_color = "warm nude-chocolate"
+            elif any(w in topic_lower for w in ["фукси", "розов", "fuchsia", "pink"]):
+                color_desc = "vibrant glossy fuchsia gel polish with high-shine mirror finish"
+                lipstick_color = "bold matte fuchsia"
+            elif any(w in topic_lower for w in ["нюд", "беж", "пастел", "nude", "френч", "french"]):
+                color_desc = "natural French manicure with clean white tips and pale glossy base"
+                lipstick_color = "delicate natural nude"
             elif any(w in topic_lower for w in ["терракот", "оранж", "карамел"]):
                 color_desc = "warm autumn terracotta and caramel gloss finish with delicate botanical micro-line art"
+                lipstick_color = "warm terracotta"
             else:
                 color_desc = "rich elegant glossy gel polish with flawless mirror reflection and pristine cuticles"
+                lipstick_color = "matching matte velvet"
 
-            shape_desc = "soft square" if any(w in topic_lower for w in ["квадрат", "square"]) else "flawless almond"
+            shape_desc = "soft square with rounded tips" if any(w in topic_lower for w in ["квадрат", "square"]) else "long elegant almond-shaped"
+
+            # Сезонный физический якорь (Зима: слепленный снежок; Осень: кленовые листья; Весна: верба; Лето: травертин)
+            if curr_season == "Зима":
+                seasonal_pose = f"macro close-up photography of elegantly manicured female hands in cozy cream knit sweater sleeves gently holding a rustic handmade snowball with glistening melting ice crystals, showcasing pristine {shape_desc} nails with {color_desc}, razor-sharp focus on glossy nail plates and neat cuticles, soft winter bokeh"
+            elif curr_season == "Осень":
+                seasonal_pose = f"close-up shot of an elegantly manicured hand with {shape_desc} nails featuring a cohesive autumnal theme, alternating rich deep brown base and creamy beige background with delicate hand-painted maple leaves in orange and amber with fine vein textures, {seasonal_anchor.get('prop', 'delicate ceramic vase with dried maple leaves in background')}"
+            elif curr_season == "Весна":
+                seasonal_pose = f"macro beauty photography of slender hands with {shape_desc} nails with {color_desc} delicately holding fresh dewy pussy willow branches with soft velvety buds, crisp morning studio daylight"
+            else:
+                seasonal_pose = f"macro commercial shot of manicured hand with {shape_desc} nails with {color_desc} resting on sunlit warm travertine stone surface with delicate palm leaf shadow play"
 
             nail_poses = [
-                # Вариация 0: Классический лайфстайл (ладони расслабленно скрещены на свитере)
-                f"extreme macro close-up photography of slender well-manicured female hands gently crossed over a soft cream knit sweater, {shape_desc} shaped nails with {color_desc}, razor-sharp focus on pristine cuticles and smooth nail plates, natural skin texture with visible pores, no full person visible",
-                # Вариация 1: Ладонь (одна рука мягко подогнута к мягкой подушечке ладони)
-                f"macro close-up photography of a single manicured female hand gently curled inward toward palm showing {shape_desc} nails with {color_desc} against soft inner palm skin, clean ring-light studio reflection, crisp cuticle alignment",
-                # Вариация 2: Встречные руки сверху и снизу кадра (как на референсе)
-                f"editorial beauty photography of two manicured hands entering the frame from opposite top and bottom angles with fingers fanned out in parallel symmetry meeting in center, ribbed sweater sleeves framing the frame from above and below, showcasing pristine {shape_desc} nails with {color_desc}"
+                # Вариация 0: Editorial Hand-to-Face (Рука у лица, помада в тон, кольцо с сердцем)
+                f"close-up beauty editorial portrait of a woman with luminous skin, lips painted in {lipstick_color} lipstick accentuating natural texture, her hand with {shape_desc} nails in {color_desc} resting gently against lower cheek and jawline, fingers slightly curved toward lips, delicate silver ring with an openwork heart adorning her ring finger, soft neutral gradient bokeh",
+                # Вариация 1: In-Action Process (Мастер наносит кистью топ/лак, полотенце, решетка вытяжки)
+                f"macro shot of a skilled manicurist's hands delicately applying a translucent glossy layer to a client's fingernail using a fine precision brush, manicurist's left hand holding client's index finger steady while right hand maneuvers brush with precision, client's hand resting on a soft plush white towel draped over a metal nail dust extractor tray with a grid pattern, showcasing {shape_desc} nails with {color_desc}, transparent bottle and nail file in soft blurred background",
+                # Вариация 2: Сезонный предметный якорь (Снежок / Кленовые листья / Верба)
+                seasonal_pose,
+                # Вариация 3: Встречные руки сверху и снизу кадра (Взаимная симметрия)
+                f"editorial beauty photography of two manicured hands entering the frame from opposite top and bottom angles with fingers fanned out in parallel symmetry meeting in center, ribbed sweater sleeves framing the frame from above and below, showcasing pristine {shape_desc} nails with {color_desc}",
+                # Вариация 4: Классический лайфстайл (ладони скрещены на свитере)
+                f"extreme macro close-up photography of slender well-manicured female hands gently crossed over a soft cream knit sweater, {shape_desc} shaped nails with {color_desc}, razor-sharp focus on pristine cuticles and smooth nail plates, natural skin texture with visible pores, no full person visible"
             ]
             subject = nail_poses[var % len(nail_poses)]
-            environment = "warm aesthetic studio background in soft creamy bokeh, cozy autumn ambiance, beautiful textured knitwear in soft focus"
+            environment = f"warm aesthetic studio background in soft creamy bokeh, {seasonal_anchor.get('bg_accent', 'beautiful textured knitwear in soft focus')}"
             persp_key = "macro_nail_close_up"
 
         # 2. КОФЕЙНЯ, КАПУЧИНО, ЛАТТЕ-АРТ (РУКИ, ЧАШКА, ПАР, КРЕМА 40-60%)
@@ -686,17 +711,21 @@ class CinematographyDirector:
             ]
             subject = cookie_archetypes[var % len(cookie_archetypes)]
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
-        elif any(w in topic_lower for w in ["торт", "ганаш", "шоколадн", "чизкейк", "пирог", "срез", "разрез", "начинк", "cake", "ganache"]):
+        elif any(w in topic_lower for w in ["торт", "ганаш", "шоколадн", "чизкейк", "пирог", "срез", "разрез", "начинк", "десерт", "cake", "cheesecake", "ganache", "dessert"]):
+            seasonal_anchor = InternalCalendarEngine.get_instance().get_seasonal_tactile_anchor("horeca") if InternalCalendarEngine else {}
             cake_archetypes = [
-                # Вариация 0: Процесс глазирования (асимметричные подтеки, огибающие ягоды, полив из керамического кувшина)
-                "gourmet artisanal multi-layered chocolate fudge cake on a dark slate board, rich dark chocolate glaze being poured smoothly from a ceramic pitcher corner, asymmetrical luscious glossy drips naturally cascading and deflecting around whole fresh ripe strawberries, delicate chocolate shavings on top, culinary action shot",
-                # Вариация 1: Отрезанный кусочек рядом на фарфоре (демонстрация начинки)
-                "luxurious gourmet chocolate cake on a vintage white porcelain plate with gold rim, with a cleanly cut appetizing single slice placed beside the cake revealing rich moist cocoa sponge layers, creamy mousse filling and glossy fruit confit cross-section, dessert fork resting on linen napkin",
-                # Вариация 2: Целый торт на вращающейся мраморной подставке (Pedestal Stand)
-                "a magnificent whole gourmet celebration cake garnished with fresh berries and chocolate curls, displayed elegantly on an elevated marble rotating cake stand with brass base, blurred warm French pastry boutique in background"
+                # Вариация 0: Multi-Tiered Pedestal Showcase (Чизкейк на ножке + противень с фланами и капкейками + трайфлы)
+                "a rich decadent cheesecake with a smooth creamy white interior and crumbly graham cracker crust on a white ceramic pedestal cake stand, surface generously drizzled with glossy dark chocolate cascading down in thick ribbons, crowned with fresh red strawberries, blueberries, raspberries and delicate edible micro-flowers; in the foreground, a rectangular metal tray holds small round caramel flan cups with whipped cream dollops and chocolate cupcakes with piped swirl frosting; surrounded by chocolate brownies and transparent cups with layered chocolate mousse and brownie pieces on a dark textured slate countertop, warm directional key light from upper-left",
+                # Вариация 1: Dynamic High-Speed Levitation Freeze-Frame (Левитация двух кусков торта, струя меда, парящие ягоды и крошки)
+                "a dynamic high-speed freeze-frame capturing two slices of layered vanilla cake suspended in mid-air frozen in the dramatic moment of separation with thick creamy piped frosting, bottom slice adorned with berries and drizzled with glossy amber honey cascading in slow-motion streams pooling into powdered sugar on a dark countertop, cake crumbs and powdered sugar suspended in the air frozen mid-fall in radial pattern with floating strawberries and blueberries in zero-g, dark modern chef kitchen with stainless steel oven in soft bokeh",
+                # Вариация 2: Разрез с начинкой на фарфоре (демонстрация слоев)
+                f"luxurious gourmet artisanal cake on a vintage white porcelain plate with gold rim, with a cleanly cut appetizing single slice placed beside the cake revealing rich moist sponge layers, creamy mousse filling and glossy fruit confit cross-section, dessert fork resting on linen napkin, {seasonal_anchor.get('prop', 'whole star anise and cinnamon sticks')}",
+                # Вариация 3: Процесс глазирования (асимметричные подтеки, огибающие ягоды)
+                "gourmet artisanal multi-layered chocolate fudge cake on a dark slate board, rich dark chocolate glaze being poured smoothly from a ceramic pitcher corner, asymmetrical luscious glossy drips naturally cascading and deflecting around whole fresh ripe strawberries, delicate chocolate shavings on top, culinary action shot"
             ]
             subject = cake_archetypes[var % len(cake_archetypes)]
-            environment = "cozy sunlit artisan pastry shop, warm morning window light, delicate ambient cafe bokeh"
+            environment = f"cozy dimly lit gourmet restaurant kitchen or artisan pastry boutique, {seasonal_anchor.get('bg_accent', 'dark slate countertop and warm ambient cafe bokeh')}"
+            persp_key = "culinary_macro_eyelevel" if var % 2 == 0 else "culinary_45_slice"
         elif any(w in topic_lower for w in ["сыр", "сыроварн", "фермер", "рынок", "ярмарк", "сырные"]):
             subject = "a cheerful artisan seller wearing a beige knitted sweater and dark apron behind a rustic stall display of soft-ripened cheese wheels with white rinds, crumbly wedges, and crusty sourdough baguettes"
             environment = f"{niche_universe['setting']}, {niche_universe['props']}"
@@ -795,7 +824,8 @@ class CinematographyDirector:
             any(w in topic_lower or w in subject.lower() for w in [
                 "человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет",
                 "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател",
-                "фаундер", "разработчик", "программист", "инженер", "model", "woman", "man",
+                "фаундер", "разработчик", "программист", "инженер", "маникюр", "ногти", "ногт",
+                "nail", "manicure", "hand", "hands", "fingers", "model", "woman", "man",
                 "person", "barista", "doctor", "founder", "florist", "developer", "engineer", "male", "female"
             ]) and not any(w in topic_lower or w in subject.lower() for w in non_human_terms)
         )

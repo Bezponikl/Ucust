@@ -458,12 +458,14 @@ class CinematographyDirector:
         # 4. IT / РАЗРАБОТЧИК / КОМАНДА / DEVPULSE (КОМАНДА, МОНИТОРЫ, ПРАВИЛЬНЫЙ СВЕТ)
         elif any(w in topic_lower for w in ["команд", "team", "стартап", "startup", "devpulse", "ucust"]) and any(w in niche_lower or w in topic_lower for w in ["it", "saas", "martech", "бизнес", "разработк", "маркетинг"]):
             team_archetypes = [
-                # Вариация 0: Командный брейншторм у монитора / архитектурной доски
-                "a dynamic collaborative software development team of 2-3 young energetic engineers collaborating in a modern loft studio office, pointing at a large high-resolution monitor displaying system architecture diagrams and dark-mode code, whiteboard with flowcharts in background, engaged positive atmosphere",
+                # Вариация 0: Фокус на одном главном архитекторе / техлиде (исключает клонирование лиц)
+                "a focused software architect in a charcoal crewneck sweater seated at modern oak desk with a large curved matte monitor displaying glowing AI data telemetry and real-time backend architecture diagrams, candid side-angle profile in deep analytical thought, warm ambient loft lighting, single subject in sharp focus",
                 # Вариация 1: Инженер за рабочим местом с правильным светом (лампа светит на стол, не на экран)
                 "a focused software developer working at modern oak desk with dual high-resolution matte monitors displaying dark-theme IDE code editor with real syntax highlighting, warm desk lamp positioned to illuminate the desk surface without glare on screens, clean cable management, matte ceramic coffee mug",
                 # Вариация 2: POV разработчика (руки на клавиатуре, глубина офиса)
-                "first-person POV over-the-shoulder shot of hands typing on a sleek low-profile mechanical keyboard, crisp dark-mode code terminal running build telemetry on matte monitor, blurred modern open-space tech office with warm ambient lights in background"
+                "first-person POV over-the-shoulder shot of hands typing on a sleek low-profile mechanical keyboard, crisp dark-mode code terminal running build telemetry on matte monitor, blurred modern open-space tech office with warm ambient lights in background",
+                # Вариация 3: Контрастная пара коллег (разный пол, внешность и роли)
+                "two distinct colleagues collaborating in a sunlit tech loft: a female product lead with wavy auburn hair in a beige knit cardigan gesturing toward a sleek laptop screen, and a male backend engineer in glasses listening attentively, distinct unique facial features, clear spatial depth separation between subjects"
             ]
             subject = team_archetypes[var % len(team_archetypes)]
             environment = "modern tech open-space loft office, warm ambient interior lighting, exposed brick and glass partitions in soft bokeh"

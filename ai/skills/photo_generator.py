@@ -133,6 +133,217 @@ class ControlledVarianceEngine:
         return cls.CAMERA_OPTICS_ROSTER[index % len(cls.CAMERA_OPTICS_ROSTER)]
 
 
+class CinematicAestheticCore:
+    """
+    Фундаментальное Ядро Эстетики и Колористики (Hasselblad & Oscar-Grade Cinematography):
+    Обеспечивает бескомпромиссное качество каждого кадра вне зависимости от сферы:
+    - 1. Тотальная колористическая рифма (Герой + Текстиль/Одежда + Шторы/Интерьер в боке)
+    - 2. Объемный свет с мягким спадом (45° Rembrandt key, inverse-square law falloff)
+    - 3. 3-Плановая оптическая сепарация (Extreme Foreground -> Midground Hero -> Background Bokeh)
+    - 4. Аналоговый рендеринг и материальность (Portra 400 ISO 400:1.15, Subsurface scattering, zero-CGI)
+    """
+
+    COLOR_PALETTES = {
+        "sapphire": {
+            "hero": "deep glossy sapphire-navy with subtle specular highlights",
+            "makeup": "matching deep berry-sapphire matte velvet",
+            "garments": [
+                "flowing midnight-navy silk blouse sleeve catching soft ambient light",
+                "crisp tailored charcoal-navy wool blazer cuff with minimalist timepiece",
+                "airy deep-indigo relaxed linen shirt sleeve with tactile weave",
+                "bare wrist with delicate minimalist silver openwork bracelet against travertine",
+                "cozy ribbed deep navy cashmere knitwear"
+            ],
+            "interiors": [
+                "rich navy-sapphire velvet drapes in soft background bokeh",
+                "subtle dark-indigo textured lime-wash interior wall with soft shadow falloff",
+                "minimalist travertine salon arch with deep navy ceramic accents in creamy bokeh",
+                "ambient evening interior with delicate sapphire velvet chair in soft focus"
+            ]
+        },
+        "burgundy": {
+            "hero": "rich glossy deep burgundy wine and marsala with flawless mirror reflection",
+            "makeup": "matching matte burgundy velvet",
+            "garments": [
+                "flowing rich wine-burgundy silk sleeve with soft light sheen",
+                "crisp tailored deep marsala wool blazer cuff",
+                "airy relaxed wine-toned natural linen shirt sleeve",
+                "bare wrist with delicate minimalist gold chain bracelet against travertine",
+                "cozy ribbed dark burgundy cashmere knitwear"
+            ],
+            "interiors": [
+                "heavy burgundy velvet drapes in soft background bokeh",
+                "warm dark marsala textured lime-wash wall with soft ambient light falloff",
+                "aesthetic interior with deep wine-toned ceramic vase in creamy bokeh",
+                "moody luxury lounge corner with soft burgundy upholstery in blurred background"
+            ]
+        },
+        "chocolate": {
+            "hero": "rich glossy warm chocolate-brown and creamy off-white with delicate artisanal art",
+            "makeup": "matching warm nude-chocolate matte velvet",
+            "garments": [
+                "flowing warm mocha silk blouse sleeve catching soft studio light",
+                "crisp tailored dark-chocolate wool blazer cuff",
+                "airy relaxed toasted-almond linen shirt sleeve with tactile grain",
+                "bare wrist with delicate minimalist gold chain against dark oak table",
+                "cozy ribbed warm espresso cashmere knitwear"
+            ],
+            "interiors": [
+                "warm dark chocolate linen drapes in soft background bokeh",
+                "rich dark walnut paneled wall with soft organic light falloff",
+                "minimalist beige travertine counter with dark ceramic vase in creamy bokeh",
+                "cozy boutique interior with warm amber wood accents in soft focus"
+            ]
+        },
+        "fuchsia": {
+            "hero": "vibrant glossy fuchsia-magenta with high-shine mirror finish",
+            "makeup": "bold matching matte fuchsia",
+            "garments": [
+                "flowing vibrant fuchsia-magenta silk blouse sleeve with soft specular sheen",
+                "crisp tailored ivory wool blazer with subtle fuchsia silk pocket square cuff",
+                "airy relaxed rose-hued linen shirt sleeve",
+                "bare wrist with delicate minimalist silver heart ring and openwork bracelet",
+                "cozy ribbed soft berry-fuchsia cashmere knitwear"
+            ],
+            "interiors": [
+                "subtle fuchsia and warm ivory drapery in soft background bokeh",
+                "aesthetic cream lime-wash wall with soft magenta floral accent in soft focus",
+                "minimalist travertine vanity with delicate rose-magenta botanicals in creamy bokeh",
+                "soft neutral background with subtle vibrant berry upholstery in blur"
+            ]
+        },
+        "terracotta": {
+            "hero": "warm autumn terracotta and amber caramel with delicate organic gloss",
+            "makeup": "matching warm terracotta matte",
+            "garments": [
+                "flowing warm terracotta silk blouse sleeve with golden reflections",
+                "crisp tailored warm camel wool blazer cuff",
+                "airy relaxed burnt-orange linen shirt sleeve with tactile weave",
+                "bare wrist with delicate minimalist gold cuff bracelet against stone",
+                "cozy ribbed rustic terracotta cashmere knitwear"
+            ],
+            "interiors": [
+                "warm terracotta linen curtains with sunlight filtering through in soft bokeh",
+                "textured warm clay lime-wash wall casting gentle organic room shadows",
+                "minimalist ceramic vase with dried autumn botanicals in creamy bokeh",
+                "aesthetic warm interior with amber and terracotta elements in soft focus"
+            ]
+        },
+        "emerald": {
+            "hero": "deep glossy emerald-forest green with rich jewel-toned luster",
+            "makeup": "matching deep berry-nude matte velvet with emerald eye accent",
+            "garments": [
+                "flowing deep emerald silk blouse sleeve with lustrous light reflections",
+                "crisp tailored forest-green wool blazer cuff with gold button accent",
+                "airy relaxed olive-emerald natural linen shirt sleeve",
+                "bare wrist with delicate minimalist gold chain bracelet against marble",
+                "cozy ribbed deep pine-green cashmere knitwear"
+            ],
+            "interiors": [
+                "rich emerald velvet drapes in soft background bokeh",
+                "textured dark olive lime-wash wall with soft directional shadow falloff",
+                "minimalist travertine interior with lush monstera foliage in creamy bokeh",
+                "luxury boutique lounge with deep green velvet armchair in blurred background"
+            ]
+        },
+        "nude": {
+            "hero": "clean minimalist milk-bath nude and porcelain with pristine mirror gloss",
+            "makeup": "delicate matching natural nude matte velvet",
+            "garments": [
+                "flowing warm ivory silk blouse sleeve catching soft ambient light",
+                "crisp tailored cream wool blazer cuff",
+                "airy relaxed off-white natural linen shirt sleeve",
+                "bare wrist with delicate minimalist gold band against travertine",
+                "cozy ribbed oat-milk cashmere knitwear"
+            ],
+            "interiors": [
+                "flowing cream linen drapes in soft background bokeh with filtered sunlight",
+                "aesthetic textured ivory lime-wash wall with gentle organic shadow play",
+                "minimalist travertine arches and clean ceramic vase in creamy bokeh",
+                "bright airy studio interior with warm neutral palette in soft focus"
+            ]
+        }
+    }
+
+    @classmethod
+    def resolve_color_rhyme(cls, topic: str, niche: str, var_idx: int) -> Dict[str, str]:
+        text = f"{topic} {niche}".lower()
+        palette_key = "nude"
+        if any(w in text for w in ["сапфир", "синий", "navy", "синем", "голубой", "blue", "sapphire"]):
+            palette_key = "sapphire"
+        elif any(w in text for w in ["бордо", "марсал", "вишн", "burgundy", "marsala", "wine"]):
+            palette_key = "burgundy"
+        elif any(w in text for w in ["шоколад", "кофе", "brown", "коричнев", "chocolate", "mocha", "кориц", "синнабон"]):
+            palette_key = "chocolate"
+        elif any(w in text for w in ["фукси", "розов", "малин", "fuchsia", "pink", "magenta", "berry"]):
+            palette_key = "fuchsia"
+        elif any(w in text for w in ["терракот", "оранж", "карамел", "terracotta", "amber", "янтарь", "осень", "autumn"]):
+            palette_key = "terracotta"
+        elif any(w in text for w in ["изумруд", "зелен", "forest", "emerald", "green", "оливк"]):
+            palette_key = "emerald"
+
+        p_data = cls.COLOR_PALETTES.get(palette_key, cls.COLOR_PALETTES["nude"])
+        garments = p_data["garments"]
+        interiors = p_data["interiors"]
+        return {
+            "hero_color": p_data["hero"],
+            "makeup": p_data["makeup"],
+            "garment": garments[var_idx % len(garments)],
+            "interior": interiors[var_idx % len(interiors)],
+            "palette_key": palette_key
+        }
+
+    @classmethod
+    def build_master_analog_prompt(
+        cls,
+        subject: str,
+        environment: str,
+        surface: str,
+        background: str,
+        foreground_anchor: str,
+        camera_optics: Dict[str, str],
+        lighting_anchor: str,
+        color_rhyme: Dict[str, str],
+        is_human: bool = False,
+        rag_brand_anchors: str = "",
+        optics_extra: str = ""
+    ) -> str:
+        """
+        Собирает 5-слойный эталонный промпт кинематографического уровня (Grammy/Hasselblad Grade).
+        """
+        # Слой 1: Кинематика и Герой с цветовой рифмой
+        hero_block = f"Analog film photograph, candid shot of {subject}{rag_brand_anchors}."
+
+        # Слой 2 & 3: Пространственная глубина и интерьерная рифма
+        depth_block = (
+            f"{foreground_anchor}, "
+            f"shot on {camera_optics['lens']}, {camera_optics['dof']}, "
+            f"{environment}, on {surface}, {background}, with {color_rhyme['interior']}"
+        )
+
+        # Слой 4: Физика света и объемный спад
+        lighting_block = f"crystal clear ambient room air, {lighting_anchor}, soft directional micro-shadows with natural volumetric falloff into rich dark shadows"
+
+        # Слой 5: Аналоговая текстурность, Subsurface Scattering и пленочное зерно Portra 400
+        if is_human:
+            texture_block = (
+                f"{optics_extra}"
+                "(subsurface scattering, authentic real skin texture:1.25), (visible micro skin pores:1.2), "
+                "subtle natural skin blemishes, uneven natural skin tone, (35mm RAW film grain, ISO 400:1.15), "
+                "fine individual hair strands, natural non-plastic skin, subtle facial asymmetry, "
+                "authentic human gaze, unedited analog photography, zero cgi, zero digital art, zero anime"
+            )
+        else:
+            texture_block = (
+                f"{optics_extra}"
+                "(subsurface scattering on organic surfaces:1.2), tactile material micro-texture, "
+                "physical surface imperfections and realistic specular highlights, (35mm RAW film grain, ISO 400:1.15), "
+                "authentic analog depth, zero cgi, zero 3d render, zero plastic sheen"
+            )
+
+        return f"{hero_block} {depth_block}, {lighting_block}, {texture_block}."
+
+
 class CinematographyDirector:
     """
     Интеллектуальный режиссер-постановщик и арт-директор:
@@ -900,16 +1111,19 @@ class CinematographyDirector:
                 elif isinstance(brand_props, str):
                     rag_brand_anchors = f", featuring {brand_props}"
 
-            depth_atmosphere = (
-                f"{foreground_anchor}, "
-                f"shot on {cur_optics['lens']}, {cur_optics['dof']}, "
-                f"crystal clear ambient room air, {cur_light}, soft realistic room shadows"
-            )
-
-            full_prompt = (
-                f"Analog film photograph, candid shot of {subject}{rag_brand_anchors}. "
-                f"{environment}, on {cur_surface}, {cur_bg}, {depth_atmosphere}, {optics_extra}"
-                f"{texture_desc}."
+            color_rhyme = CinematicAestheticCore.resolve_color_rhyme(topic, niche, var)
+            full_prompt = CinematicAestheticCore.build_master_analog_prompt(
+                subject=subject,
+                environment=environment,
+                surface=cur_surface,
+                background=cur_bg,
+                foreground_anchor=foreground_anchor,
+                camera_optics=cur_optics,
+                lighting_anchor=cur_light,
+                color_rhyme=color_rhyme,
+                is_human=True,
+                rag_brand_anchors=rag_brand_anchors,
+                optics_extra=optics_extra
             )
         else:
             # Механизм контролируемой энтропии (Controlled Variance)
@@ -937,10 +1151,6 @@ class CinematographyDirector:
                 elif isinstance(brand_props, str):
                     rag_brand_anchors = f", featuring {brand_props}"
 
-            texture_desc = (
-                "tactile material texture, physical surface imperfections, natural reflections, "
-                "(35mm film grain, ISO 400:1.1), authentic analog depth"
-            )
             # Физический материализованный якорь переднего плана
             if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
                 foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
@@ -961,15 +1171,19 @@ class CinematographyDirector:
             else:
                 foreground_anchor = "(blurred foreground edge in extreme foreground:1.1)"
 
-            depth_atmosphere = (
-                f"{foreground_anchor}, "
-                f"shot on {cur_optics['lens']}, {cur_optics['dof']}, "
-                f"crystal clear ambient room air, {cur_light}, realistic micro-shadows"
-            )
-            full_prompt = (
-                f"Analog film photograph, candid shot of {subject}{rag_brand_anchors}. "
-                f"{environment}, on {cur_surface}, {cur_bg}, {depth_atmosphere}, "
-                f"{lighting}. {perspective}, {texture_desc}."
+            color_rhyme = CinematicAestheticCore.resolve_color_rhyme(topic, niche, var)
+            full_prompt = CinematicAestheticCore.build_master_analog_prompt(
+                subject=subject,
+                environment=environment,
+                surface=cur_surface,
+                background=cur_bg,
+                foreground_anchor=foreground_anchor,
+                camera_optics=cur_optics,
+                lighting_anchor=cur_light,
+                color_rhyme=color_rhyme,
+                is_human=False,
+                rag_brand_anchors=rag_brand_anchors,
+                optics_extra=""
             )
 
         return {

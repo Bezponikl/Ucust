@@ -566,9 +566,9 @@ class CinematographyDirector:
         elif any(w in topic_lower for w in ["команд", "team", "стартап", "startup", "devpulse", "ucust"]) and any(w in niche_lower or w in topic_lower for w in ["it", "saas", "martech", "бизнес", "разработк", "маркетинг"]):
             team_archetypes = [
                 # Вариация 0: Архитектор за двумя мониторами, взгляд строго на код, пар от кофе
-                "authentic candid 35mm photo of a focused software architect in a dark charcoal crewneck sweater seated at modern oak desk with dual high-resolution matte monitors displaying glowing AI data telemetry and real-time backend architecture diagrams, eyes intently locked and reading code directly on the screen, steaming white ceramic coffee mug in foreground emitting delicate translucent curls of rising steam, candid side-angle profile, authentic human skin texture, unedited RAW photograph",
+                "a focused software architect in a dark charcoal crewneck sweater seated at modern desk with dual high-resolution matte monitors displaying glowing AI data telemetry and real-time backend architecture diagrams, eyes intently locked and reading code directly on the screen, steaming white ceramic coffee mug in foreground emitting delicate translucent curls of rising steam, candid side-angle profile, authentic human skin texture, unedited RAW look",
                 # Вариация 1: Инженер за рабочим местом с двумя мониторами и направленным светом
-                "authentic photograph of a focused software developer working at modern oak desk with dual matte frameless monitors displaying dark-theme IDE code editor with real syntax highlighting, eyes concentrated directly on the display panel, warm desk lamp illuminating the wooden desk without screen glare, steaming ceramic mug, clean cable management",
+                "a focused software developer working at modern desk with dual matte frameless monitors displaying dark-theme IDE code editor with real syntax highlighting, eyes concentrated directly on the display panel, warm desk lamp illuminating the desk surface without screen glare, steaming ceramic mug, clean cable management",
                 # Вариация 2: POV разработчика (руки на клавиатуре, два экрана, глубина офиса)
                 "first-person POV over-the-shoulder shot of hands typing on a sleek low-profile mechanical keyboard in front of dual widescreen monitors running data parsing pipelines and code terminal, blurred modern open-space tech office with warm ambient lights in background",
                 # Вариация 3: Контрастная пара коллег (девушка тимлид + разработчик у двух экранов)
@@ -818,7 +818,7 @@ class CinematographyDirector:
                 optics_extra = "sharp full-body frame, crisp clothing fabric texture, "
 
             # Физический материализованный якорь переднего плана (СТРОГАЯ ИЗОЛЯЦИЯ ПО НИШАМ)
-            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кот", "кошк", "котен", "питомц", "puppy", "dog", "cat"]):
+            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
                 foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
                 foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"
@@ -861,12 +861,12 @@ class CinematographyDirector:
 
             depth_atmosphere = (
                 f"{foreground_anchor}, "
-                f"smooth progressive optical focal falloff, authentic depth of field, {cur_optics['lens']}, {cur_optics['dof']}, "
+                f"shot on {cur_optics['lens']}, {cur_optics['dof']}, "
                 f"crystal clear ambient room air, {cur_light}, soft realistic room shadows"
             )
 
             full_prompt = (
-                f"35mm analog photography, candid snapshot of {subject}{rag_brand_anchors}. "
+                f"Analog film photograph, candid shot of {subject}{rag_brand_anchors}. "
                 f"{environment}, on {cur_surface}, {cur_bg}, {depth_atmosphere}, {optics_extra}"
                 f"{texture_desc}."
             )
@@ -898,7 +898,7 @@ class CinematographyDirector:
                 "(35mm film grain, ISO 400:1.1), authentic analog depth"
             )
             # Физический материализованный якорь переднего плана
-            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кот", "кошк", "котен", "питомц", "puppy", "dog", "cat"]):
+            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
                 foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
                 foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"
@@ -919,11 +919,11 @@ class CinematographyDirector:
 
             depth_atmosphere = (
                 f"{foreground_anchor}, "
-                f"smooth progressive optical focal falloff, authentic depth of field, {cur_optics['lens']}, {cur_optics['dof']}, "
+                f"shot on {cur_optics['lens']}, {cur_optics['dof']}, "
                 f"crystal clear ambient room air, {cur_light}, realistic micro-shadows"
             )
             full_prompt = (
-                f"35mm analog photography, candid snapshot of {subject}{rag_brand_anchors}. "
+                f"Analog film photograph, candid shot of {subject}{rag_brand_anchors}. "
                 f"{environment}, on {cur_surface}, {cur_bg}, {depth_atmosphere}, "
                 f"{lighting}. {perspective}, {texture_desc}."
             )

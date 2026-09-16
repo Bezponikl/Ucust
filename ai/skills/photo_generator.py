@@ -718,6 +718,8 @@ class CinematographyDirector:
         from skills.visual_knowledge_researcher import VisualKnowledgeResearcher
         visual_spec = VisualKnowledgeResearcher.research_visual_spec_sync(topic)
 
+        holiday_aesthetic = InternalCalendarEngine.get_instance().get_holiday_aesthetic(topic, niche) if InternalCalendarEngine else None
+
         if any(w in topic_lower for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "педикюр", "nail", "manicure"]):
             curr_season = InternalCalendarEngine.get_instance().cached_context.get("season", "Осень") if InternalCalendarEngine else "Осень"
             seasonal_anchor = InternalCalendarEngine.get_instance().get_seasonal_tactile_anchor("beauty") if InternalCalendarEngine else {}
@@ -746,8 +748,10 @@ class CinematographyDirector:
 
             shape_desc = "soft square with rounded tips" if any(w in topic_lower for w in ["квадрат", "square"]) else "long elegant almond-shaped"
 
-            # Сезонный физический якорь (Зима: слепленный снежок; Осень: кленовые листья; Весна: верба; Лето: травертин)
-            if curr_season == "Зима":
+            # Сезонный и Праздничный физический якорь
+            if holiday_aesthetic and holiday_aesthetic.get("hero_beauty") and holiday_aesthetic.get("match_type") == "keyword":
+                seasonal_pose = holiday_aesthetic["hero_beauty"]
+            elif curr_season == "Зима":
                 seasonal_pose = f"macro close-up photography of elegantly manicured female hands in cozy cream knit sweater sleeves gently holding a rustic handmade snowball with glistening melting ice crystals, showcasing pristine {shape_desc} nails with {color_desc}, razor-sharp focus on glossy nail plates and neat cuticles, soft winter bokeh"
             elif curr_season == "Осень":
                 seasonal_pose = f"close-up shot of an elegantly manicured hand with {shape_desc} nails featuring a cohesive autumnal theme, alternating rich deep brown base and creamy beige background with delicate hand-painted maple leaves in orange and amber with fine vein textures, {seasonal_anchor.get('prop', 'delicate ceramic vase with dried maple leaves in background')}"
@@ -761,7 +765,7 @@ class CinematographyDirector:
                 f"close-up beauty editorial portrait of a woman with luminous skin, lips painted in {lipstick_color} lipstick accentuating natural texture, her hand with {shape_desc} nails in {color_desc} resting gently against lower cheek and jawline, fingers slightly curved toward lips, delicate silver ring with an openwork heart adorning her ring finger, soft neutral gradient bokeh",
                 # Вариация 1: In-Action Process (Мастер наносит кистью топ/лак, полотенце, решетка вытяжки)
                 f"macro shot of a skilled manicurist's hands delicately applying a translucent glossy layer to a client's fingernail using a fine precision brush, manicurist's left hand holding client's index finger steady while right hand maneuvers brush with precision, client's hand resting on a soft plush white towel draped over a metal nail dust extractor tray with a grid pattern, showcasing {shape_desc} nails with {color_desc}, transparent bottle and nail file in soft blurred background",
-                # Вариация 2: Сезонный предметный якорь (Снежок / Кленовые листья / Верба)
+                # Вариация 2: Сезонный / Праздничный предметный якорь
                 seasonal_pose,
                 # Вариация 3: Встречные руки сверху и снизу кадра (Взаимная симметрия)
                 f"editorial beauty photography of two manicured hands entering the frame from opposite top and bottom angles with fingers fanned out in parallel symmetry meeting in center, ribbed sweater sleeves framing the frame from above and below, showcasing pristine {shape_desc} nails with {color_desc}",
@@ -771,6 +775,15 @@ class CinematographyDirector:
             subject = nail_poses[var % len(nail_poses)]
             environment = f"warm aesthetic studio background in soft creamy bokeh, {seasonal_anchor.get('bg_accent', 'beautiful textured knitwear in soft focus')}"
             persp_key = "macro_nail_close_up"
+
+        # 1.5. ПРАЗДНИКИ И ТЕМАТИЧЕСКИЕ ИНФОПОВОДЫ (МАСЛЕНИЦА, ПАСХА, НОВЫЙ ГОД, 8 МАРТА, 14 ФЕВРАЛЯ, ХЭЛЛОУИН, СПАС И ДР.)
+        elif holiday_aesthetic and (
+            holiday_aesthetic.get("match_type") == "keyword" or
+            any(w in topic_lower for w in ["маслениц", "блин", "сырн", "пасх", "кулич", "верб", "новый год", "рождеств", "8 март", "мимоз", "валентин", "хэллоуин", "тыква", "спас", "соты", "праздник", "праздничн"])
+        ):
+            subject = holiday_aesthetic["hero_tabletop"]
+            environment = holiday_aesthetic["background"]
+            persp_key = "tabletop_commercial"
 
         # 2. КОФЕЙНЯ, КАПУЧИНО, ЛАТТЕ-АРТ (РУКИ, ЧАШКА, ПАР, КРЕМА 40-60%)
         elif any(w in topic_lower for w in ["кофе", "капучин", "латте", "эспрессо", "раф", "флэт", "круассан", "coffee", "cappuccino", "latte", "croissant"]):
@@ -1029,17 +1042,20 @@ class CinematographyDirector:
             "печень", "ролл", "выпечк", "стейк", "турбин", "перфоратор", "кот", "кошк", "котик",
             "котен", "собак", "щенок", "щенк", "корги", "шпиц", "померан", "сиба", "хаски",
             "овчарк", "постер", "плакат", "вывеск", "типографик", "билборд", "флэтлей", "flatlay",
-            "блокнот", "конспект", "тетрадь"
+            "блокнот", "конспект", "тетрадь", "блин", "блинчик", "кулич", "пасх", "яйц", "соты",
+            "мед", "мёд", "пирог", "натюрморт", "still life", "tabletop", "bouquet", "букет", "цветы"
         ]
-        is_human_scene = (
-            any(w in topic_lower or w in subject.lower() for w in [
-                "человек", "девушк", "модел", "парень", "мужчин", "женщин", "лицо", "портрет",
-                "мастер", "доктор", "врач", "тренер", "студент", "бариста", "юрист", "основател",
-                "фаундер", "разработчик", "программист", "инженер", "маникюр", "ногти", "ногт",
-                "nail", "manicure", "hand", "hands", "fingers", "model", "woman", "man",
-                "person", "barista", "doctor", "founder", "florist", "developer", "engineer", "male", "female"
-            ]) and not any(w in topic_lower or w in subject.lower() for w in non_human_terms)
-        )
+        
+        # Строгая регулярная проверка человеческих персон с учетом границ слов
+        human_regex = r"\b(человек\w*|девушк\w*|модел\w*|парен\w*|мужчин\w*|женщин\w*|портрет\w*|мастер\w*|доктор\w*|врач\w*|тренер\w*|студент\w*|барист\w*|юрист\w*|основател\w*|фаундер\w*|разработчик\w*|программист\w*|инженер\w*|маникюр\w*|ногт\w*|man|men|woman|women|person|people|model|portrait|doctor|barista|founder|florist|developer|engineer|male|female|fingers)\b"
+        has_human_term = bool(re.search(human_regex, f"{topic_lower} {subject.lower()}"))
+        has_non_human_term = any(w in topic_lower or w in subject.lower() for w in non_human_terms)
+
+        # Если сцена - бьюти/маникюр, руки признаются частью человека
+        if any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "ногт", "nail", "manicure"]):
+            is_human_scene = True
+        else:
+            is_human_scene = has_human_term and not has_non_human_term
         
         if is_human_scene:
             is_group = any(w in topic_lower or w in subject.lower() for w in ["team", "group", "engineers", "developers", "people", "команд", "разработчик", "инженер", "люди", "коллег"])
@@ -1135,12 +1151,21 @@ class CinematographyDirector:
             elif any(k in niche_lower or k in topic_lower for k in ["бьюти", "маникюр", "ногти", "салон", "косметик", "spa", "спа"]):
                 domain = "beauty"
 
-            cur_surface = ControlledVarianceEngine.get_surface(domain, var)
-            cur_bg = ControlledVarianceEngine.get_background(domain, var)
-            if InternalCalendarEngine:
-                cur_light = InternalCalendarEngine.get_instance().get_visual_lighting_anchor(topic, environment)
+            if holiday_aesthetic and (holiday_aesthetic.get("match_type") == "keyword" or any(w in topic_lower for w in ["маслениц", "блин", "сырн", "пасх", "кулич", "верб", "новый год", "рождеств", "8 март", "мимоз", "валентин", "хэллоуин", "тыква", "спас", "соты", "праздник"])):
+                cur_surface = holiday_aesthetic["surface"]
+                cur_bg = holiday_aesthetic["background"]
+                cur_light = holiday_aesthetic["window_lighting"]
+                foreground_anchor = holiday_aesthetic["foreground_anchor"]
+                palette_choice = holiday_aesthetic.get("palette_key", "terracotta")
             else:
-                cur_light = ControlledVarianceEngine.get_lighting(var)
+                cur_surface = ControlledVarianceEngine.get_surface(domain, var)
+                cur_bg = ControlledVarianceEngine.get_background(domain, var)
+                if InternalCalendarEngine:
+                    cur_light = InternalCalendarEngine.get_instance().get_visual_lighting_anchor(topic, environment)
+                else:
+                    cur_light = ControlledVarianceEngine.get_lighting(var)
+                palette_choice = niche
+
             cur_optics = ControlledVarianceEngine.get_camera_optics(var)
 
             # RAG Brand Identity injection
@@ -1151,27 +1176,28 @@ class CinematographyDirector:
                 elif isinstance(brand_props, str):
                     rag_brand_anchors = f", featuring {brand_props}"
 
-            # Физический материализованный якорь переднего плана
-            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
-                foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
-                foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["кофе", "капучин", "латте", "эспрессо", "круассан", "coffee", "cappuccino", "croissant"]):
-                foreground_anchor = "(blurred edge of rustic ceramic saucer in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["стейк", "рибай", "шеф", "повар", "мясо", "steak", "ribeye", "кулинар"]):
-                foreground_anchor = "(blurred wine glass stem and edge of walnut board in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer", "команд", "startup", "devpulse"]):
-                foreground_anchor = "(blurred edge of modern desk and steaming ceramic mug in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["десерт", "торт", "мусс", "пирожн", "чизкейк", "выпечк", "синнабон", "dessert", "pastry", "cake"]):
-                foreground_anchor = "(blurred vintage dessert fork and linen napkin in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
-                foreground_anchor = "(blurred dewy flower petal and craft twine in extreme foreground:1.2)"
-            elif any(w in topic_lower or w in subject.lower() for w in ["плата", "esp32", "пайк", "электроник"]):
-                foreground_anchor = "(blurred precision tweezers and wire spool in extreme foreground:1.2)"
-            else:
-                foreground_anchor = "(blurred foreground edge in extreme foreground:1.1)"
+            # Физический материализованный якорь переднего плана (если не переопределен праздником)
+            if not (holiday_aesthetic and holiday_aesthetic.get("match_type") == "keyword"):
+                if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
+                    foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
+                    foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["кофе", "капучин", "латте", "эспрессо", "круассан", "coffee", "cappuccino", "croissant"]):
+                    foreground_anchor = "(blurred edge of rustic ceramic saucer in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["стейк", "рибай", "шеф", "повар", "мясо", "steak", "ribeye", "кулинар"]):
+                    foreground_anchor = "(blurred wine glass stem and edge of walnut board in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer", "команд", "startup", "devpulse"]):
+                    foreground_anchor = "(blurred edge of modern desk and steaming ceramic mug in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["десерт", "торт", "мусс", "пирожн", "чизкейк", "выпечк", "синнабон", "dessert", "pastry", "cake"]):
+                    foreground_anchor = "(blurred vintage dessert fork and linen napkin in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
+                    foreground_anchor = "(blurred dewy flower petal and craft twine in extreme foreground:1.2)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["плата", "esp32", "пайк", "электроник"]):
+                    foreground_anchor = "(blurred precision tweezers and wire spool in extreme foreground:1.2)"
+                else:
+                    foreground_anchor = "(blurred foreground edge in extreme foreground:1.1)"
 
-            color_rhyme = CinematicAestheticCore.resolve_color_rhyme(topic, niche, var)
+            color_rhyme = CinematicAestheticCore.resolve_color_rhyme(topic, palette_choice, var)
             full_prompt = CinematicAestheticCore.build_master_analog_prompt(
                 subject=subject,
                 environment=environment,

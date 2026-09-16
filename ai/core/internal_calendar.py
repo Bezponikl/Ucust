@@ -210,6 +210,185 @@ class InternalCalendarEngine:
         }
     }
 
+    HOLIDAY_AESTHETIC_SETS = {
+        "maslenitsa": {
+            "title": "Масленица (Блинная неделя)",
+            "keywords": ["маслениц", "блин", "блинчик", "сырн", "масленичн", "maslenitsa", "blini", "pancake", "crepe"],
+            "date_ranges": [(2, 15, 3, 20)],  # Примерный диапазон Масленицы (февраль-март)
+            "hero_tabletop": (
+                "a towering golden stack of delicate paper-thin Russian blini with lacy crisp edges, "
+                "a melting dollop of creamy farm butter slowly cascading down the glistening golden sides, "
+                "drizzled with glossy amber honey pooling onto a handcrafted ceramic plate, "
+                "accompanied by a sheaf of golden ripe wheat sprigs, a half-emptied rustic glass carafe with rich whole farm milk, "
+                "and a delicate dusting of unrefined flour artistically scattered across a textured dark wooden table"
+            ),
+            "hero_beauty": (
+                "macro close-up photography of elegantly manicured hands with natural glossy nails gently holding a handcrafted ceramic teacup, "
+                "resting beside a warm stack of golden lacy blini drizzled with honey, golden wheat sprigs and a rustic milk carafe in soft morning sunrise light"
+            ),
+            "surface": "rustic aged dark wooden table with delicate unrefined flour scatter and frayed linen runner",
+            "background": "cozy rustic country kitchen with morning sunrise dawn daylight streaming through window in background, soft floating dust motes in sunbeams, ceramic jars in soft bokeh",
+            "window_lighting": "soft morning sunrise dawn daylight streaming through window in background with warm angled sunbeams and glowing specular highlights",
+            "foreground_anchor": "(delicate sheaf of golden wheat ears, half-emptied glass milk carafe, and light flour dusting in extreme blurred foreground:1.25)",
+            "vibe_token": "traditional Maslenitsa feast, golden blini, melting farm butter, wheat ears, morning dawn sunrise",
+            "palette_key": "terracotta"
+        },
+        "easter": {
+            "title": "Пасха (Светлое Воскресение)",
+            "keywords": ["пасх", "кулич", "пасхальн", "верб", "яйц", "easter", "kulich"],
+            "date_ranges": [(4, 1, 5, 10)],  # Примерный диапазон Пасхи (апрель-май)
+            "hero_tabletop": (
+                "a tall artisanal traditional Easter Kulich bread crowned with thick glossy white meringue fondant glaze with slow-moving drips down its golden-brown crust, "
+                "artfully decorated with dried candied cranberries, crushed pistachios, and delicate flakes of edible gold leaf, "
+                "surrounded by a rustic woven twig nest holding naturally dyed terracotta, onion-skin amber, and pastel speckled Easter eggs, "
+                "accompanied by several fresh fluffy pussy willow branches with soft velvety silver-grey catkins in a minimalist artisan ceramic jug"
+            ),
+            "hero_beauty": (
+                "macro beauty photography of slender female hands with delicate pastel-glazed nails gently cradling a naturally dyed pastel terracotta Easter egg, "
+                "with fluffy velvet pussy willow branches, frayed natural linen runner, and a glazed mini kulich in soft creamy background bokeh with spring morning window light"
+            ),
+            "surface": "natural textured light oak table with a frayed beige organic linen runner",
+            "background": "bright serene dining room with diffused morning spring window daylight, pussy willow vase and pastel ceramics in creamy soft bokeh",
+            "window_lighting": "soft diffused morning spring window daylight with delicate airy sunbeams and gentle organic micro-shadows",
+            "foreground_anchor": "(fluffy velvet pussy willow catkins and speckled pastel egg in extreme blurred foreground:1.25)",
+            "vibe_token": "peaceful Easter morning, artisanal glazed kulich, dyed eggs in nest, fluffy pussy willow branches",
+            "palette_key": "nude"
+        },
+        "new_year": {
+            "title": "Новый год и Рождество",
+            "keywords": ["новый год", "новогодн", "рождеств", "рождественск", "елка", "елочн", "christmas", "new year", "xmas"],
+            "date_ranges": [(12, 15, 1, 15)],
+            "hero_tabletop": (
+                "a festive winter holiday setting with fresh fragrant pine and blue spruce branches adorned with delicate frosty snow crystals, "
+                "whole cinnamon sticks, whole star anise pods, dried orange wheels, a handcrafted beeswax candle with a gentle flickering warm flame, "
+                "steaming ceramic mugs emitting delicate curls of spice vapor, and warm 3000K fairy lights sparkling in deep bokeh"
+            ),
+            "hero_beauty": (
+                "macro close-up photography of elegantly manicured hands in cozy cream knit sweater sleeves gently cupping a steaming ceramic mug or holding a rustic handmade snowball with glistening ice crystals, "
+                "surrounded by fresh pine needles, cinnamon sticks, and magical twinkling fairy lights in soft focus"
+            ),
+            "surface": "dark rustic walnut table with fine powdered sugar dusting and pine needles",
+            "background": "cozy festive holiday living room with warm 3000K fairy lights bokeh and soft winter twilight outside frosted window pane",
+            "window_lighting": "warm 3000K interior candle and fairy light glow contrasting with cool winter twilight outside frosted window pane",
+            "foreground_anchor": "(blurred pine needle sprig, star anise pod, and whole cinnamon stick in extreme foreground:1.25)",
+            "vibe_token": "festive New Year Christmas warmth, pine needles, fairy lights bokeh, winter spices",
+            "palette_key": "emerald"
+        },
+        "womens_day": {
+            "title": "8 Марта (Международный женский день)",
+            "keywords": ["8 март", "восьмое март", "женский день", "мимоз", "тюльпан"],
+            "date_ranges": [(3, 1, 3, 10)],
+            "hero_tabletop": (
+                "a lush spring celebration arrangement featuring a vibrant bouquet of fluffy yellow mimosa blossoms with delicate powdery texture "
+                "and pastel pink and cream tulips with sparkling fresh morning dewdrops, wrapped in natural crinkled craft paper and tied with raw silk ribbon, "
+                "resting beside a delicate porcelain teacup on a crisp linen tablecloth under radiant morning sunbeams"
+            ),
+            "hero_beauty": (
+                "macro beauty portrait of manicured hands with radiant glossy nails holding a delicate sprig of fluffy yellow mimosa and dewy tulip petal, "
+                "soft luminous skin, natural spring daylight streaming through sheer white curtains in background"
+            ),
+            "surface": "crisp white and pastel linen runner on polished marble or light wood tabletop",
+            "background": "bright airy sunlit room with sheer curtains floating in spring breeze, soft pastel floral bouquets in creamy bokeh",
+            "window_lighting": "bright radiant spring morning window daylight with warm sunbeams and crisp fresh highlights",
+            "foreground_anchor": "(soft blurred yellow mimosa blossom and dewy tulip petal in extreme foreground:1.25)",
+            "vibe_token": "spring celebration 8 March, fluffy yellow mimosa, dewy tulips, raw silk ribbon, morning sunshine",
+            "palette_key": "fuchsia"
+        },
+        "valentines": {
+            "title": "14 Февраля (День всех влюбленных)",
+            "keywords": ["14 феврал", "валентин", "влюблен", "романтик", "день святого валентина", "valentine"],
+            "date_ranges": [(2, 10, 2, 16)],
+            "hero_tabletop": (
+                "an intimate romantic luxury setting featuring velvety deep crimson rose petals scattered across dark polished wood, "
+                "two vintage crystal coupe glasses filled with effervescent champagne with rising micro-fizz bubbles, "
+                "a plate of fresh plump strawberries dipped in glossy dark chocolate, and natural beeswax taper candles casting a warm intimate amber glow"
+            ),
+            "hero_beauty": (
+                "macro beauty shot of slender female hands with crimson/berry nails resting gracefully beside vintage crystal champagne coupe and fresh velvet rose petals, "
+                "delicate openwork ring, warm candlelight reflections in background"
+            ),
+            "surface": "dark polished mahogany or smoked mirror surface reflecting warm candlelight",
+            "background": "moody romantic luxury lounge with warm candlelight glow and soft city twilight skyline bokeh outside window",
+            "window_lighting": "warm intimate 2700K candlelight illumination with soft dramatic falloff into deep evening twilight shadows",
+            "foreground_anchor": "(blurred vintage crystal coupe rim and deep crimson rose petal in extreme foreground:1.25)",
+            "vibe_token": "romantic Valentine ambiance, velvet rose petals, champagne micro-fizz, warm candlelight",
+            "palette_key": "burgundy"
+        },
+        "defenders": {
+            "title": "23 Февраля (День защитника Отечества)",
+            "keywords": ["23 феврал", "защитник", "отечеств", "мужской день"],
+            "date_ranges": [(2, 20, 2, 25)],
+            "hero_tabletop": (
+                "a sophisticated masculine still life featuring handcrafted dark full-grain leather accessories, a brushed titanium timepiece, "
+                "a double espresso with dense golden crema in a matte charcoal ceramic cup, and a vintage fountain pen on solid smoked oak"
+            ),
+            "hero_beauty": (
+                "macro commercial shot of well-groomed hands with clean matte nails adjusting a luxury timepiece on smoked oak table under directional studio lighting"
+            ),
+            "surface": "solid smoked oak table with natural tactile wood grain",
+            "background": "minimalist architectural loft with dark steel and concrete elements in moody soft bokeh",
+            "window_lighting": "moody low-key 45-degree directional light with high contrast and deep natural chiaroscuro shadows",
+            "foreground_anchor": "(blurred dark full-grain leather edge and smoked glass in extreme foreground:1.2)",
+            "vibe_token": "brutal masculine elegance, dark leather, titanium, espresso crema, smoked oak",
+            "palette_key": "sapphire"
+        },
+        "knowledge_day": {
+            "title": "1 Сентября (День знаний)",
+            "keywords": ["1 сентябр", "день знани", "первое сентябр", "школ", "знаний", "учебн"],
+            "date_ranges": [(8, 25, 9, 5)],
+            "hero_tabletop": (
+                "a nostalgic academic autumn still life featuring a stack of vintage clothbound hardcover books with embossed spines, "
+                "an elegant brass fountain pen, a crisp polished red garden apple with natural dewdrops, and a ceramic vase with autumn dahlias and asters, "
+                "bathed in warm golden September afternoon sunlight streaming through a study window"
+            ),
+            "hero_beauty": (
+                "macro beauty shot of manicured hands in cozy cardigan sleeve gently opening a vintage clothbound book with a brass bookmark, warm autumn sunlight on oak desk"
+            ),
+            "surface": "classic polished dark oak library desk with subtle natural patina",
+            "background": "warm scholarly study or library interior with floor-to-ceiling bookshelves and soft autumn sunbeams in bokeh",
+            "window_lighting": "warm golden September afternoon daylight streaming through large window casting long gentle room shadows",
+            "foreground_anchor": "(soft blurred brass pen tip, book edge, and autumn dahlia petal in extreme foreground:1.2)",
+            "vibe_token": "Knowledge Day September 1st, vintage books, brass pen, ripe apple, autumn flowers",
+            "palette_key": "chocolate"
+        },
+        "halloween": {
+            "title": "Хэллоуин / Самайн (Осенний урожай)",
+            "keywords": ["хэллоуин", "halloween", "тыква", "тыкв", "самайн", "autumn harvest"],
+            "date_ranges": [(10, 20, 11, 2)],
+            "hero_tabletop": (
+                "a moody rustic autumn harvest still life featuring heirloom ribbed butternut and mini white ghost pumpkins with matte velvety rind, "
+                "dripping beeswax taper candles casting long warm dramatic shadows, dried wheat sheaves, autumn maple leaves, and aged dark wood"
+            ),
+            "hero_beauty": (
+                "macro beauty photography of manicured dark terracotta nails resting gently on a textured velvet pumpkin with dripping beeswax candle in soft bokeh"
+            ),
+            "surface": "aged rustic dark wood plank surface with dried leaves and wax drops",
+            "background": "moody dark rustic interior with glowing amber candlelight and mysterious soft shadow depth",
+            "window_lighting": "moody low-key warm amber candle glow casting dramatic chiaroscuro shadows with cool nocturnal twilight in background",
+            "foreground_anchor": "(blurred mini white pumpkin and flickering candle flame in extreme foreground:1.25)",
+            "vibe_token": "mystical Halloween harvest, heirloom pumpkins, dripping beeswax, amber candlelight",
+            "palette_key": "terracotta"
+        },
+        "spas": {
+            "title": "Спас (Яблочный и Медовый Спас)",
+            "keywords": ["спас", "яблочный спас", "медовый спас", "ореховый спас", "соты", "мед", "мёд"],
+            "date_ranges": [(8, 10, 8, 30)],
+            "hero_tabletop": (
+                "a radiant rustic harvest still life featuring a freshly cut section of natural golden honeycomb with rich amber honey slowly dripping into a handcrafted terracotta bowl, "
+                "surrounded by crisp ripe red garden apples with fresh dewdrops, cracked walnuts and hazelnuts in an artisan wooden dish, and golden ears of wheat on coarse natural linen"
+            ),
+            "hero_beauty": (
+                "macro beauty shot of manicured hands holding a fresh dewy red garden apple beside dripping honeycomb and golden wheat stalks in radiant late-summer sunbeams"
+            ),
+            "surface": "rustic unvarnished pine table with coarse unbleached natural linen runner",
+            "background": "sunlit country veranda with lush green garden foliage and golden hour sunbeams in soft creamy bokeh",
+            "window_lighting": "radiant late-summer golden hour sunbeams casting warm glowing rim highlights and soft natural shadows",
+            "foreground_anchor": "(glistening amber honey drizzle droplet, wheat ear, and apple leaf in extreme foreground:1.25)",
+            "vibe_token": "traditional Spas harvest, dripping golden honeycomb, crisp apples, rustic wood",
+            "palette_key": "chocolate"
+        }
+    }
+
     def __init__(self):
         self.collector = EventHolidayCollector() if EventHolidayCollector else None
         self.last_updated_date: Optional[date] = None
@@ -265,6 +444,29 @@ class InternalCalendarEngine:
             "upcoming_holidays_14d": upcoming_events
         }
         return self.cached_context
+
+    def get_holiday_aesthetic(self, topic: str = "", niche: str = "", target_dt: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
+        """
+        Определяет праздничную эстетику и тактильные предметные сеты по теме поста или текущей дате.
+        """
+        combined_text = f"{topic} {niche}".lower()
+        now = target_dt or datetime.now()
+        month, day = now.month, now.day
+
+        # 1. Поиск по ключевым словам темы
+        for h_key, h_data in self.HOLIDAY_AESTHETIC_SETS.items():
+            if any(re.search(rf"\b{re.escape(kw)}", combined_text) for kw in h_data["keywords"]):
+                return {**h_data, "holiday_key": h_key, "match_type": "keyword"}
+
+        # 2. Поиск по дате календаря (если праздник выпадает на текущий период)
+        for h_key, h_data in self.HOLIDAY_AESTHETIC_SETS.items():
+            for (sm, sd, em, ed) in h_data.get("date_ranges", []):
+                # Проверка попадания даты в диапазон
+                if (sm == em and sm == month and sd <= day <= ed) or \
+                   (sm != em and ((month == sm and day >= sd) or (month == em and day <= ed))):
+                    return {**h_data, "holiday_key": h_key, "match_type": "calendar_date"}
+
+        return None
 
     def get_seasonal_tactile_anchor(self, domain: str = "general", target_dt: Optional[datetime] = None) -> Dict[str, str]:
         ctx = self.refresh(target_dt=target_dt)

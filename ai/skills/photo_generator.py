@@ -455,17 +455,17 @@ class CinematographyDirector:
             environment = "dimly lit professional gourmet restaurant open kitchen or artisan butcher workshop, warm dramatic Rembrandt chiaroscuro lighting, stainless steel accents and wine bottles in deep atmospheric bokeh"
             persp_key = "culinary_macro_eyelevel" if var % 2 == 0 else "culinary_45_slice"
 
-        # 4. IT / РАЗРАБОТЧИК / КОМАНДА / DEVPULSE (КОМАНДА, МОНИТОРЫ, ПРАВИЛЬНЫЙ СВЕТ)
+        # 4. IT / РАЗРАБОТЧИК / КОМАНДА / DEVPULSE (КОМАНДА, ДВА МОНИТОРА, ПАР ОТ КОФЕ, ВЗГЛЯД В ЭКРАН)
         elif any(w in topic_lower for w in ["команд", "team", "стартап", "startup", "devpulse", "ucust"]) and any(w in niche_lower or w in topic_lower for w in ["it", "saas", "martech", "бизнес", "разработк", "маркетинг"]):
             team_archetypes = [
-                # Вариация 0: Фокус на одном главном архитекторе / техлиде (исключает клонирование лиц)
-                "a focused software architect in a charcoal crewneck sweater seated at modern oak desk with a large curved matte monitor displaying glowing AI data telemetry and real-time backend architecture diagrams, candid side-angle profile in deep analytical thought, warm ambient loft lighting, single subject in sharp focus",
-                # Вариация 1: Инженер за рабочим местом с правильным светом (лампа светит на стол, не на экран)
-                "a focused software developer working at modern oak desk with dual high-resolution matte monitors displaying dark-theme IDE code editor with real syntax highlighting, warm desk lamp positioned to illuminate the desk surface without glare on screens, clean cable management, matte ceramic coffee mug",
-                # Вариация 2: POV разработчика (руки на клавиатуре, глубина офиса)
-                "first-person POV over-the-shoulder shot of hands typing on a sleek low-profile mechanical keyboard, crisp dark-mode code terminal running build telemetry on matte monitor, blurred modern open-space tech office with warm ambient lights in background",
-                # Вариация 3: Контрастная пара коллег (разный пол, внешность и роли)
-                "two distinct colleagues collaborating in a sunlit tech loft: a female product lead with wavy auburn hair in a beige knit cardigan gesturing toward a sleek laptop screen, and a male backend engineer in glasses listening attentively, distinct unique facial features, clear spatial depth separation between subjects"
+                # Вариация 0: Архитектор за двумя мониторами, взгляд строго на код, пар от кофе
+                "authentic candid 35mm photo of a focused software architect in a dark charcoal crewneck sweater seated at modern oak desk with dual high-resolution matte monitors displaying glowing AI data telemetry and real-time backend architecture diagrams, eyes intently locked and reading code directly on the screen, steaming white ceramic coffee mug in foreground emitting delicate translucent curls of rising steam, candid side-angle profile, authentic human skin texture, unedited RAW photograph",
+                # Вариация 1: Инженер за рабочим местом с двумя мониторами и направленным светом
+                "authentic photograph of a focused software developer working at modern oak desk with dual matte frameless monitors displaying dark-theme IDE code editor with real syntax highlighting, eyes concentrated directly on the display panel, warm desk lamp illuminating the wooden desk without screen glare, steaming ceramic mug, clean cable management",
+                # Вариация 2: POV разработчика (руки на клавиатуре, два экрана, глубина офиса)
+                "first-person POV over-the-shoulder shot of hands typing on a sleek low-profile mechanical keyboard in front of dual widescreen monitors running data parsing pipelines and code terminal, blurred modern open-space tech office with warm ambient lights in background",
+                # Вариация 3: Контрастная пара коллег (девушка тимлид + разработчик у двух экранов)
+                "two distinct colleagues collaborating in a sunlit tech loft in front of dual monitors: a female product lead with wavy auburn hair in a beige knit cardigan pointing at real-time metrics on screen, and a male backend engineer in glasses looking intently at the monitor panel, distinct unique facial features, natural realistic skin"
             ]
             subject = team_archetypes[var % len(team_archetypes)]
             environment = "modern tech open-space loft office, warm ambient interior lighting, exposed brick and glass partitions in soft bokeh"
@@ -689,9 +689,9 @@ class CinematographyDirector:
             is_group = any(w in topic_lower or w in subject.lower() for w in ["team", "group", "engineers", "developers", "people", "команд", "разработчик", "инженер", "люди", "коллег"])
             group_diversity = "(heterogeneous distinct individual facial features:1.25), (diverse unique face shapes and contrasting hairstyles:1.25), distinct non-identical people, " if is_group else ""
             texture_desc = (
-                f"{group_diversity}(subsurface scattering, raw texture:1.2), (visible skin pores:1.2), peach fuzz, subtle blemishes, "
-                "uneven natural skin tone, (35mm film grain, ISO 800:1.15), fine individual hair strands, "
-                "messy hair, slightly unkempt, subtle facial asymmetry, natural skin folds, everyday realism"
+                f"{group_diversity}(subsurface scattering, authentic real skin texture:1.25), (visible micro skin pores:1.2), subtle natural skin blemishes, "
+                "uneven natural skin tone, (35mm RAW film grain, ISO 400:1.15), fine individual hair strands, "
+                "natural non-plastic skin, subtle facial asymmetry, authentic human gaze intently locked on screen, unedited analog photography, zero cgi, zero digital art, zero anime"
             )
             # Направленный свет с глубокими микротенями для проявления текстуры
             if light_key in {"high_key", "soft_diffused", "rembrandt"}:
@@ -716,11 +716,11 @@ class CinematographyDirector:
             elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
                 foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["кофе", "капучин", "латте", "эспрессо", "круассан", "coffee", "cappuccino", "croissant"]):
-                foreground_anchor = "(blurred edge of rustic ceramic saucer in extreme foreground:1.2)"
+                foreground_anchor = "(blurred edge of rustic ceramic saucer with gentle rising steam in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["стейк", "рибай", "шеф", "повар", "мясо", "steak", "ribeye", "кулинар"]):
                 foreground_anchor = "(blurred wine glass stem and edge of walnut board in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer", "команд", "startup", "devpulse"]):
-                foreground_anchor = "(blurred edge of modern desk and ceramic mug in extreme foreground:1.2)"
+                foreground_anchor = "(blurred edge of modern desk and steaming ceramic mug with delicate rising translucent vapor in extreme foreground:1.25)"
             elif any(w in topic_lower or w in subject.lower() for w in ["десерт", "торт", "мусс", "пирожн", "чизкейк", "выпечк", "синнабон", "dessert", "pastry", "cake"]):
                 foreground_anchor = "(blurred vintage dessert fork and linen napkin in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
@@ -949,6 +949,8 @@ class PhotoGeneratorSkill:
         "(flat lighting, HDR, softbox, even illumination, lifted shadows, studio fill light:1.35), "
         "(tone mapping, washed out blacks, washed out shadows, aggressive shadow recovery:1.3), "
         "(fake chroma key blur, abrupt cut-and-paste background, cardboard cutout look, computational fake blur:1.3), "
+        "(cartoon:1.4), (anime:1.4), (digital painting:1.35), (digital illustration:1.35), (concept art:1.3), (stylized:1.35), (3d render:1.3), (smooth render:1.35), "
+        "(looking away from screen:1.3), (wandering gaze:1.3), (cross-eyed:1.25), (unfocused eyes:1.25), "
         "(identical faces:1.4), (cloned faces:1.4), (twin faces:1.35), (duplicate people:1.3), (same face syndrome:1.35), (cloned facial features:1.35), "
         "(extra fingers, mutated joints, fused fingers:1.3), (deformed knuckles, missing phalanges, melting fingers, hand-object fusion:1.25), (stems penetrating through fingers, objects melting into hands:1.2), "
         "(dense smoke, thick steam plumes, vape smoke overlay, opaque white smoke, cigarette smoke:1.3), "

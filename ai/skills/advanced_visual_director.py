@@ -138,10 +138,12 @@ class AdvancedVisualDirector:
         )
 
         negative_prompt = (
+            "volumetric fog, cinematic haze, floating dust motes, cyan and orange contrast lighting, cyberpunk neon, plastic skin, "
+            "multiple people staring at screen, unnatural forced smiles, CGI, 3D render, oversaturated, dark basement, cluttered desk, artificial blue lighting, "
             "identical faces, cloned faces, twin faces, duplicate people, same face syndrome, "
-            "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, plastic skin, "
+            "staged studio photoshoot, heavy artificial studio strobes, studio softboxes, "
             "smooth skin, airbrushed, wax figure, mannequin, 3d render, cgi, cartoon, anime, illustration, "
-            "overly smooth, fake lighting, high contrast, oversaturated, perfect skin, bad anatomy, deformed hands, watermark"
+            "overly smooth, fake lighting, high contrast, perfect skin, bad anatomy, deformed hands, watermark"
         )
 
         return {

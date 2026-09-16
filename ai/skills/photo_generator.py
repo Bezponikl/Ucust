@@ -732,10 +732,8 @@ class CinematographyDirector:
 
             depth_atmosphere = (
                 f"{foreground_anchor}, "
-                "smooth progressive focal falloff, f/1.2 depth of field, anamorphic bokeh, "
-                "volumetric lighting, subtle atmospheric haze, floating dust particles, cinematic atmosphere, "
-                "warm foreground key lighting contrasting with subtle cool background ambient light, "
-                "strong directional side light, Rembrandt lighting, deep micro-shadows, dramatic light falloff"
+                "smooth progressive optical focal falloff, authentic depth of field, 35mm lens, f/2.8, "
+                "crystal clear ambient room air, natural directional window daylight, soft realistic room shadows"
             )
 
             full_prompt = (
@@ -758,7 +756,7 @@ class CinematographyDirector:
             elif any(w in topic_lower or w in subject.lower() for w in ["стейк", "рибай", "шеф", "повар", "мясо", "steak", "ribeye", "кулинар"]):
                 foreground_anchor = "(blurred wine glass stem and edge of walnut board in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["разработчик", "программист", "терминал", "ide", "ноутбук", "клавиатур", "developer", "команд", "startup", "devpulse"]):
-                foreground_anchor = "(blurred edge of modern desk and ceramic mug in extreme foreground:1.2)"
+                foreground_anchor = "(blurred edge of modern desk and steaming ceramic mug in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["десерт", "торт", "мусс", "пирожн", "чизкейк", "выпечк", "синнабон", "dessert", "pastry", "cake"]):
                 foreground_anchor = "(blurred vintage dessert fork and linen napkin in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["букет", "пион", "флорист", "цвет"]):
@@ -770,10 +768,8 @@ class CinematographyDirector:
 
             depth_atmosphere = (
                 f"{foreground_anchor}, "
-                "smooth progressive focal falloff, f/1.2 depth of field, anamorphic bokeh, "
-                "volumetric lighting, subtle atmospheric haze, floating dust particles, cinematic atmosphere, "
-                "warm foreground key lighting contrasting with subtle cool background ambient light, "
-                "strong directional side lighting, deep chiaroscuro micro-shadows, dramatic light falloff"
+                "smooth progressive optical focal falloff, authentic depth of field, 35mm lens, f/2.8, "
+                "crystal clear ambient room air, natural diffused daylight, realistic micro-shadows"
             )
             full_prompt = (
                 f"35mm analog photography, candid snapshot of {subject}. "
@@ -946,10 +942,12 @@ class PhotoGeneratorSkill:
     }
 
     DEFAULT_NEGATIVE_PROMPT = (
+        "volumetric fog, cinematic haze, floating dust motes, cyan and orange contrast lighting, cyberpunk neon, plastic skin, "
+        "multiple people staring at screen, unnatural forced smiles, CGI, 3D render, oversaturated, dark basement, cluttered desk, artificial blue lighting, "
         "(flat lighting, HDR, softbox, even illumination, lifted shadows, studio fill light:1.35), "
         "(tone mapping, washed out blacks, washed out shadows, aggressive shadow recovery:1.3), "
         "(fake chroma key blur, abrupt cut-and-paste background, cardboard cutout look, computational fake blur:1.3), "
-        "(cartoon:1.4), (anime:1.4), (digital painting:1.35), (digital illustration:1.35), (concept art:1.3), (stylized:1.35), (3d render:1.3), (smooth render:1.35), "
+        "(cartoon:1.4), (anime:1.4), (digital painting:1.35), (digital illustration:1.35), (concept art:1.3), (stylized:1.35), (smooth render:1.35), "
         "(looking away from screen:1.3), (wandering gaze:1.3), (cross-eyed:1.25), (unfocused eyes:1.25), "
         "(identical faces:1.4), (cloned faces:1.4), (twin faces:1.35), (duplicate people:1.3), (same face syndrome:1.35), (cloned facial features:1.35), "
         "(extra fingers, mutated joints, fused fingers:1.3), (deformed knuckles, missing phalanges, melting fingers, hand-object fusion:1.25), (stems penetrating through fingers, objects melting into hands:1.2), "

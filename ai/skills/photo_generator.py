@@ -21,6 +21,110 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
+class ControlledVarianceEngine:
+    """
+    Механизм контролируемой энтропии (Controlled Variance & Dynamic RAG Identity):
+    Исключает визуальную гомогенизацию и стоковые дубликаты лент у разных клиентов в одной нише.
+    - 1. Параметрические матрицы (Wildcards: Surfaces, Backgrounds, Lighting)
+    - 2. Интеграция визуальных якорей бренда (RAG Identity Injection)
+    - 3. Ротация оптики и ракурсов (Macro 85mm, Medium 50mm, Wide 35mm)
+    """
+
+    SURFACES = {
+        "tech": [
+            "scandinavian light oak desk",
+            "deep dark walnut wood table",
+            "matte polished concrete surface",
+            "industrial blackened steel desk",
+            "white terrazzo desk",
+            "minimalist brushed aluminum workspace"
+        ],
+        "horeca": [
+            "rustic solid oak table",
+            "textured dark walnut board",
+            "rough natural slate slab",
+            "aged reclaimed wood surface",
+            "crinkled brown craft parchment",
+            "cream handmade linen runner"
+        ],
+        "beauty": [
+            "warm travertine marble surface",
+            "minimalist ivory stone pedestal",
+            "textured light beige oak table",
+            "soft neutral matte ceramic vanity",
+            "cream ribbed knit fabric surface"
+        ],
+        "general": [
+            "contemporary matte oak table",
+            "refined dark walnut wood",
+            "clean stone surface",
+            "authentic natural desk"
+        ]
+    }
+
+    BACKGROUNDS = {
+        "tech": [
+            "minimalist architectural window blinds with soft daylight",
+            "modern open steel bookshelf with tech books and indoor greenery",
+            "frosted glass partition with subtle blurred office reflections",
+            "weathered warm red brick loft wall in soft bokeh",
+            "sunlit modern glass-partitioned meeting room in background"
+        ],
+        "horeca": [
+            "warm open wooden display shelves with ceramic jars in soft bokeh",
+            "cozy coffee boutique interior with soft circular golden bokeh",
+            "rustic brick archway with soft natural daylight",
+            "artisan kitchen background with hanging copper cookware in soft focus"
+        ],
+        "beauty": [
+            "minimalist aesthetic salon background with soft round mirrors and travertine arches in creamy bokeh",
+            "sunlit botanical atelier corner with soft green foliage",
+            "warm neutral beige background with delicate dried botanicals in soft focus"
+        ],
+        "general": [
+            "bright minimalist sunlit room in soft bokeh",
+            "aesthetic textured architectural wall with natural shadow play",
+            "warm ambient background with gentle depth of field"
+        ]
+    }
+
+    LIGHTING_SCENARIOS = [
+        "gentle morning window daylight with soft ambient room shadows",
+        "soft overcast neutral ambient daylight with realistic micro-shadows",
+        "subtle golden hour window sunbeams casting gentle organic room shadows",
+        "soft diffused 4500K ceiling task illumination with realistic room shadows"
+    ]
+
+    CAMERA_OPTICS_ROSTER = [
+        # 0: Macro (Детали и текстуры продукта)
+        {"lens": "85mm f/1.8 macro lens", "perspective": "extreme close-up macro photography", "dof": "creamy shallow depth of field, blurred background bokeh"},
+        # 1: Medium (Контекст и сбалансированная композиция)
+        {"lens": "50mm f/2.8 prime lens", "perspective": "candid eye-level medium perspective", "dof": "natural progressive optical depth of field"},
+        # 2: Wide (Общий план воркспейса / интерьер)
+        {"lens": "35mm f/4.0 lens", "perspective": "wide-angle contextual workspace shot", "dof": "layered spatial depth from foreground to background"},
+        # 3: Tabletop 45°
+        {"lens": "50mm f/2.8 lens", "perspective": "45-degree angle tabletop perspective", "dof": "crisp subject focus with smooth rear falloff"}
+    ]
+
+    @classmethod
+    def get_surface(cls, domain: str, index: int) -> str:
+        pool = cls.SURFACES.get(domain, cls.SURFACES["general"])
+        return pool[index % len(pool)]
+
+    @classmethod
+    def get_background(cls, domain: str, index: int) -> str:
+        pool = cls.BACKGROUNDS.get(domain, cls.BACKGROUNDS["general"])
+        return pool[index % len(pool)]
+
+    @classmethod
+    def get_lighting(cls, index: int) -> str:
+        return cls.LIGHTING_SCENARIOS[index % len(cls.LIGHTING_SCENARIOS)]
+
+    @classmethod
+    def get_camera_optics(cls, index: int) -> Dict[str, str]:
+        return cls.CAMERA_OPTICS_ROSTER[index % len(cls.CAMERA_OPTICS_ROSTER)]
+
+
 class CinematographyDirector:
     """
     Интеллектуальный режиссер-постановщик и арт-директор:
@@ -131,11 +235,14 @@ class CinematographyDirector:
         niche: str = "бизнес",
         brand_colors: Optional[List[str]] = None,
         variation_index: int = 0,
-        routing: Optional[Any] = None
+        routing: Optional[Any] = None,
+        brand_props: Optional[List[str]] = None,
+        brand_profile: Optional[Dict[str, Any]] = None
     ) -> Dict[str, str]:
         """
         Генерирует высокохудожественный промпт для ComfyUI Realism 2.0
-        с учетом психологии света, композиции, цвета и номера перегенерации (variation_index).
+        с учетом механизма контролируемой энтропии (Controlled Variance),
+        RAG-якорей бренда и ротации оптики/ракурсов.
         """
         topic_lower = topic.lower()
         niche_lower = (niche or "").lower()
@@ -730,18 +837,62 @@ class CinematographyDirector:
             else:
                 foreground_anchor = "(blurred foreground edge in extreme foreground:1.1)"
 
+            # Механизм контролируемой энтропии (Controlled Variance)
+            domain = "general"
+            if any(k in niche_lower or k in topic_lower for k in ["martech", "маркетинг", "saas", "it", "ии", "разработ", "программист", "инженер", "tech"]):
+                domain = "tech"
+            elif any(k in niche_lower or k in topic_lower for k in ["кофе", "ресторан", "пекарн", "кондитер", "десерт", "стейк", "кулинар", "сыр", "еда"]):
+                domain = "horeca"
+            elif any(k in niche_lower or k in topic_lower for k in ["бьюти", "маникюр", "ногти", "салон", "косметик", "spa", "спа"]):
+                domain = "beauty"
+
+            cur_surface = ControlledVarianceEngine.get_surface(domain, var)
+            cur_bg = ControlledVarianceEngine.get_background(domain, var)
+            cur_light = ControlledVarianceEngine.get_lighting(var)
+            cur_optics = ControlledVarianceEngine.get_camera_optics(var)
+
+            # RAG Brand Identity injection
+            rag_brand_anchors = ""
+            if brand_props:
+                if isinstance(brand_props, list):
+                    rag_brand_anchors = f", featuring {', '.join(brand_props)}"
+                elif isinstance(brand_props, str):
+                    rag_brand_anchors = f", featuring {brand_props}"
+
             depth_atmosphere = (
                 f"{foreground_anchor}, "
-                "smooth progressive optical focal falloff, authentic depth of field, 35mm lens, f/2.8, "
-                "crystal clear ambient room air, natural directional window daylight, soft realistic room shadows"
+                f"smooth progressive optical focal falloff, authentic depth of field, {cur_optics['lens']}, {cur_optics['dof']}, "
+                f"crystal clear ambient room air, {cur_light}, soft realistic room shadows"
             )
 
             full_prompt = (
-                f"35mm analog photography, candid snapshot of {subject}. "
-                f"{environment}, {depth_atmosphere}, {optics_extra}"
+                f"35mm analog photography, candid snapshot of {subject}{rag_brand_anchors}. "
+                f"{environment}, on {cur_surface}, {cur_bg}, {depth_atmosphere}, {optics_extra}"
                 f"{texture_desc}."
             )
         else:
+            # Механизм контролируемой энтропии (Controlled Variance)
+            domain = "general"
+            if any(k in niche_lower or k in topic_lower for k in ["martech", "маркетинг", "saas", "it", "ии", "разработ", "программист", "инженер", "tech"]):
+                domain = "tech"
+            elif any(k in niche_lower or k in topic_lower for k in ["кофе", "ресторан", "пекарн", "кондитер", "десерт", "стейк", "кулинар", "сыр", "еда"]):
+                domain = "horeca"
+            elif any(k in niche_lower or k in topic_lower for k in ["бьюти", "маникюр", "ногти", "салон", "косметик", "spa", "спа"]):
+                domain = "beauty"
+
+            cur_surface = ControlledVarianceEngine.get_surface(domain, var)
+            cur_bg = ControlledVarianceEngine.get_background(domain, var)
+            cur_light = ControlledVarianceEngine.get_lighting(var)
+            cur_optics = ControlledVarianceEngine.get_camera_optics(var)
+
+            # RAG Brand Identity injection
+            rag_brand_anchors = ""
+            if brand_props:
+                if isinstance(brand_props, list):
+                    rag_brand_anchors = f", featuring {', '.join(brand_props)}"
+                elif isinstance(brand_props, str):
+                    rag_brand_anchors = f", featuring {brand_props}"
+
             texture_desc = (
                 "tactile material texture, physical surface imperfections, natural reflections, "
                 "(35mm film grain, ISO 400:1.1), authentic analog depth"
@@ -768,12 +919,12 @@ class CinematographyDirector:
 
             depth_atmosphere = (
                 f"{foreground_anchor}, "
-                "smooth progressive optical focal falloff, authentic depth of field, 35mm lens, f/2.8, "
-                "crystal clear ambient room air, natural diffused daylight, realistic micro-shadows"
+                f"smooth progressive optical focal falloff, authentic depth of field, {cur_optics['lens']}, {cur_optics['dof']}, "
+                f"crystal clear ambient room air, {cur_light}, realistic micro-shadows"
             )
             full_prompt = (
-                f"35mm analog photography, candid snapshot of {subject}. "
-                f"{environment}, {depth_atmosphere}, "
+                f"35mm analog photography, candid snapshot of {subject}{rag_brand_anchors}. "
+                f"{environment}, on {cur_surface}, {cur_bg}, {depth_atmosphere}, "
                 f"{lighting}. {perspective}, {texture_desc}."
             )
 
@@ -983,10 +1134,14 @@ class PhotoGeneratorSkill:
         brand_colors: Optional[List[str]] = None,
         style: str = "candid_iphone",
         custom_prompt: Optional[str] = None,
-        variation_index: int = 0
+        variation_index: int = 0,
+        routing: Optional[Any] = None,
+        brand_props: Optional[List[str]] = None,
+        brand_profile: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Составляет высокохудожественный промпт для ComfyUI через CinematographyDirector с учетом номера перегенерации.
+        Составляет высокохудожественный промпт для ComfyUI через CinematographyDirector с учетом номера перегенерации,
+        Controlled Variance и RAG Brand Identity.
         """
         if custom_prompt and len(custom_prompt.strip()) > 30 and not custom_prompt.startswith("Authentic candid photo of a small tech") and not custom_prompt.startswith("Cinematic emotional culinary"):
             positive_prompt = custom_prompt
@@ -995,7 +1150,10 @@ class PhotoGeneratorSkill:
                 topic=topic,
                 niche=niche,
                 brand_colors=brand_colors,
-                variation_index=variation_index
+                variation_index=variation_index,
+                routing=routing,
+                brand_props=brand_props,
+                brand_profile=brand_profile
             )
             positive_prompt = cinematic_res["prompt"]
 
@@ -1054,7 +1212,10 @@ class PhotoGeneratorSkill:
         company_name: str = "UCust",
         attachments: Optional[List[Any]] = None,
         custom_prompt: Optional[str] = None,
-        variation_index: int = 0
+        variation_index: int = 0,
+        routing: Optional[Any] = None,
+        brand_props: Optional[List[str]] = None,
+        brand_profile: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Полный цикл генерации профессиональной SMM фотографии и коммерческого визуала (с поддержкой перегенерации).
@@ -1065,7 +1226,10 @@ class PhotoGeneratorSkill:
             aspect_ratio=aspect_ratio,
             brand_colors=brand_colors,
             style=style,
-            variation_index=variation_index
+            variation_index=variation_index,
+            routing=routing,
+            brand_props=brand_props,
+            brand_profile=brand_profile
         )
         if custom_prompt and len(custom_prompt.strip()) > 30:
             prompt_data["positive_prompt"] = custom_prompt

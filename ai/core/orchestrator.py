@@ -1215,7 +1215,10 @@ class UnifiedOrchestrator:
                 topic=prompt,
                 niche=niche,
                 brand_colors=brand_colors_input,
-                variation_index=variation_index
+                variation_index=variation_index,
+                routing=routing_directive,
+                brand_props=user_data.get("brand_props") or user_data.get("visual_anchors"),
+                brand_profile=brand_profile
             )
             
             # Контекст визуала для копирайтера (Сайги), чтобы текст 100% совпадал с картинкой
@@ -1329,7 +1332,10 @@ class UnifiedOrchestrator:
                         brand_colors=brand_colors_input,
                         attachments=ordered_atts,
                         custom_prompt=custom_visual_prompt,
-                        variation_index=variation_index
+                        variation_index=variation_index,
+                        routing=routing_directive,
+                        brand_props=user_data.get("brand_props") or user_data.get("visual_anchors"),
+                        brand_profile=brand_profile
                     )
                     image_url = photo_res.get("image_url")
                     t_photo_duration = round(time.time() - t_photo_start, 2) if image_url else None

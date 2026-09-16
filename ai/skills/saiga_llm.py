@@ -9,6 +9,14 @@ from typing import Any, Dict, List, Optional, Union
 from skills.competitor_hashtags import NicheCompetitorHashtagEngine
 from skills.political_legal_guard import PoliticalAndLegalGuard
 
+try:
+    from core.internal_calendar import InternalCalendarEngine
+except ImportError:
+    try:
+        from ai.core.internal_calendar import InternalCalendarEngine
+    except ImportError:
+        InternalCalendarEngine = None
+
 class SaigaLLMSkill:
     """
     Интеграция с локальной LLM Сайга (Saiga NeMo 12B BF16).
@@ -525,6 +533,13 @@ class SaigaLLMSkill:
         cta_info = f"\nЦЕЛЕВОЕ ДЕЙСТВИЕ (CTA): {primary_cta}\n" if primary_cta else ""
         lang_info = f"\nЯЗЫК ТЕКСТА: {language}\n" if language and language != "ru" else ""
 
+        temporal_info = ""
+        if InternalCalendarEngine:
+            try:
+                temporal_info = f"\n{InternalCalendarEngine.get_instance().get_copywriting_temporal_prompt()}\n"
+            except Exception:
+                pass
+
         # Если загружена реальная модель llama-cpp
         if self._is_loaded and self._llm and os.getenv("DISABLE_LOCAL_LLM", "").lower() not in ["1", "true", "yes"]:
             try:
@@ -564,7 +579,7 @@ class SaigaLLMSkill:
                     f"7. ТОНАЛЬНОСТЬ: {tone}.\n"
                     f"8. ОБЪЕМ: 400-700 символов, живой человеческий ритм.\n"
                     f"{routing_funnel_rules}\n"
-
+                    f"{temporal_info}"
                     f"{guidelines_info}"
                     f"{products_info}"
                     f"{benefits_info}"

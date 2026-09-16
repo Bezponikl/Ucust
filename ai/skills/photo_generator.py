@@ -21,6 +21,14 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
+try:
+    from core.internal_calendar import InternalCalendarEngine
+except ImportError:
+    try:
+        from ai.core.internal_calendar import InternalCalendarEngine
+    except ImportError:
+        InternalCalendarEngine = None
+
 class ControlledVarianceEngine:
     """
     Механизм контролируемой энтропии (Controlled Variance & Dynamic RAG Identity):
@@ -848,7 +856,10 @@ class CinematographyDirector:
 
             cur_surface = ControlledVarianceEngine.get_surface(domain, var)
             cur_bg = ControlledVarianceEngine.get_background(domain, var)
-            cur_light = ControlledVarianceEngine.get_lighting(var)
+            if InternalCalendarEngine:
+                cur_light = InternalCalendarEngine.get_instance().get_visual_lighting_anchor(topic, environment)
+            else:
+                cur_light = ControlledVarianceEngine.get_lighting(var)
             cur_optics = ControlledVarianceEngine.get_camera_optics(var)
 
             # RAG Brand Identity injection
@@ -882,7 +893,10 @@ class CinematographyDirector:
 
             cur_surface = ControlledVarianceEngine.get_surface(domain, var)
             cur_bg = ControlledVarianceEngine.get_background(domain, var)
-            cur_light = ControlledVarianceEngine.get_lighting(var)
+            if InternalCalendarEngine:
+                cur_light = InternalCalendarEngine.get_instance().get_visual_lighting_anchor(topic, environment)
+            else:
+                cur_light = ControlledVarianceEngine.get_lighting(var)
             cur_optics = ControlledVarianceEngine.get_camera_optics(var)
 
             # RAG Brand Identity injection

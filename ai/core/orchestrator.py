@@ -161,6 +161,17 @@ class UnifiedOrchestrator:
         except Exception:
             pass
 
+        # 2. Инициализация внутреннего календаря и временного якоря
+        try:
+            from core.internal_calendar import InternalCalendarEngine
+            InternalCalendarEngine.get_instance().refresh()
+        except Exception:
+            try:
+                from ai.core.internal_calendar import InternalCalendarEngine
+                InternalCalendarEngine.get_instance().refresh()
+            except Exception:
+                pass
+
     def _hash_payload(self, payload: Any) -> str:
         payload_str = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(payload_str.encode('utf-8')).hexdigest()

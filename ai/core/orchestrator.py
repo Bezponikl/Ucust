@@ -1229,7 +1229,7 @@ class UnifiedOrchestrator:
                 variation_index=variation_index,
                 routing=routing_directive,
                 brand_props=user_data.get("brand_props") or user_data.get("visual_anchors"),
-                brand_profile=brand_profile
+                brand_profile=user_data.get("brand_profile")
             )
             
             # Контекст визуала для копирайтера (Сайги), чтобы текст 100% совпадал с картинкой

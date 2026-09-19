@@ -240,6 +240,354 @@
         }
       }
     },
+    "/api/v1/parser/analyze": {
+      "post": {
+        "tags": [
+          "Projects Onboarding (HITL)"
+        ],
+        "summary": "Analyze Project Draft",
+        "description": "ФАЗА 1: Анализ и предзаполнение черновика проекта (5 экранов UI).\nВекторы в базу данных НЕ записываются. SMM-специалист получает структурированный JSON для валидации.",
+        "operationId": "analyze_project_draft_api_v1_parser_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectAnalyzeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/analyze": {
+      "post": {
+        "tags": [
+          "Projects Onboarding (HITL)"
+        ],
+        "summary": "Analyze Project Draft",
+        "description": "ФАЗА 1: Анализ и предзаполнение черновика проекта (5 экранов UI).\nВекторы в базу данных НЕ записываются. SMM-специалист получает структурированный JSON для валидации.",
+        "operationId": "analyze_project_draft_api_v1_projects_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectAnalyzeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/commit": {
+      "post": {
+        "tags": [
+          "Projects Onboarding (HITL)"
+        ],
+        "summary": "Commit Project Knowledge",
+        "description": "ФАЗА 2: Фиксация и векторизация утвержденного человеком профиля (5 экранов).\nСтрогая изоляция семантических векторов в pgvector под уникальным project_id.",
+        "operationId": "commit_project_knowledge_api_v1_projects_commit_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCommitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectCommitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/commit": {
+      "post": {
+        "tags": [
+          "Projects Onboarding (HITL)"
+        ],
+        "summary": "Commit Project Knowledge",
+        "description": "ФАЗА 2: Фиксация и векторизация утвержденного человеком профиля (5 экранов).\nСтрогая изоляция семантических векторов в pgvector под уникальным project_id.",
+        "operationId": "commit_project_knowledge_api_v1_projects__project_id__commit_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCommitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectCommitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/knowledge": {
+      "post": {
+        "tags": [
+          "Projects Onboarding (HITL)"
+        ],
+        "summary": "Commit Project Knowledge",
+        "description": "ФАЗА 2: Фиксация и векторизация утвержденного человеком профиля (5 экранов).\nСтрогая изоляция семантических векторов в pgvector под уникальным project_id.",
+        "operationId": "commit_project_knowledge_api_v1_projects__project_id__knowledge_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCommitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectCommitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orchestration/generate": {
       "post": {
         "tags": [
@@ -2072,6 +2420,49 @@
   },
   "components": {
     "schemas": {
+      "AboutScreen": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Название бренда/компании",
+            "example": "Кофейня Аромат Зерен"
+          },
+          "niche": {
+            "type": "string",
+            "title": "Niche",
+            "description": "Сфера деятельности / ниша",
+            "example": "Кофейня спешелти и выпечка"
+          },
+          "positioning": {
+            "type": "string",
+            "title": "Positioning",
+            "description": "УТП и позиционирование бренда",
+            "example": "Свежая обжарка и крафтовые десерты в уютной атмосфере"
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "description": "Город присутствия",
+            "default": "Москва",
+            "example": "Санкт-Петербург"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Краткое описание бизнеса",
+            "default": "",
+            "example": "Спешелти-кофейня третьей волны с собственной пекарней"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "niche",
+          "positioning"
+        ],
+        "title": "AboutScreen"
+      },
       "AchievementBroadcastRequest": {
         "properties": {
           "title": {
@@ -3160,6 +3551,28 @@
         ],
         "title": "GeoAnalyzeRequest"
       },
+      "GoalsScreen": {
+        "properties": {
+          "content_goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Content Goals",
+            "description": "Цели ведения соцсетей (лидогенерация, удержание, охват)"
+          },
+          "tone_of_voice": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tone Of Voice",
+            "description": "Тональность коммуникации"
+          }
+        },
+        "type": "object",
+        "title": "GoalsScreen"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3264,6 +3677,44 @@
         ],
         "title": "LocationBranch"
       },
+      "MarketScreen": {
+        "properties": {
+          "competitors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Competitors",
+            "description": "Список конкурентов и бенчмарков"
+          },
+          "geography": {
+            "type": "string",
+            "title": "Geography",
+            "description": "Географический охват",
+            "default": "Локально",
+            "example": "Санкт-Петербург, Центральный район"
+          },
+          "audience_segment": {
+            "type": "string",
+            "title": "Audience Segment",
+            "description": "Сегмент целевой аудитории",
+            "example": "Жители и гости района 20-45 лет, ценящие вкус и атмосферу"
+          },
+          "trends": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Trends",
+            "description": "Актуальные тренды в нише"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audience_segment"
+        ],
+        "title": "MarketScreen"
+      },
       "OnboardingAsyncRequest": {
         "properties": {
           "company_name": {
@@ -3363,8 +3814,8 @@
           "task_type": {
             "type": "string",
             "title": "Task Type",
-            "description": "Тип задачи: 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'parse_telegram', 'parse_vk', 'parse_geo', 'parse_website', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'",
-            "example": "generate_post"
+            "description": "Тип задачи: 'analyze_brand', 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'parse_telegram', 'parse_vk', 'parse_geo', 'parse_website', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'",
+            "example": "analyze_brand"
           },
           "user_id": {
             "type": "string",
@@ -3372,6 +3823,19 @@
             "description": "Идентификатор пользователя",
             "default": "default_user",
             "example": "usr_94812"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id",
+            "description": "Идентификатор проекта (tenant_id)",
+            "example": "temp_proj_123"
           },
           "session_id": {
             "anyOf": [
@@ -3542,6 +4006,130 @@
           "name"
         ],
         "title": "ProductItem"
+      },
+      "ProjectAnalyzeRequest": {
+        "properties": {
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Ссылка на Telegram-канал, сайт или группу VK",
+            "example": "https://t.me/kofeina_aromat"
+          },
+          "niche_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche Hint",
+            "description": "Подсказка ниши от пользователя",
+            "example": "Кофейня"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "Город",
+            "default": "Москва",
+            "example": "Санкт-Петербург"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files",
+            "description": "Список путей к загруженным файлам (PDF, DOCX)"
+          }
+        },
+        "type": "object",
+        "title": "ProjectAnalyzeRequest"
+      },
+      "ProjectAnalyzeResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "success"
+          },
+          "project_profile_draft": {
+            "$ref": "#/components/schemas/ProjectProfileDraft"
+          },
+          "raw_character_count": {
+            "type": "integer",
+            "title": "Raw Character Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_profile_draft"
+        ],
+        "title": "ProjectAnalyzeResponse"
+      },
+      "ProjectCommitRequest": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectProfileDraft",
+            "description": "Отредактированный человеком финальный 5-экранный профиль"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ProjectCommitRequest"
+      },
+      "ProjectCommitResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "success"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "chunks_indexed": {
+            "type": "integer",
+            "title": "Chunks Indexed"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "База знаний проекта успешно сформирована и векторизована в pgvector"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "chunks_indexed"
+        ],
+        "title": "ProjectCommitResponse"
       },
       "ProjectContext": {
         "properties": {
@@ -3855,6 +4443,37 @@
         "type": "object",
         "title": "ProjectContext"
       },
+      "ProjectProfileDraft": {
+        "properties": {
+          "about": {
+            "$ref": "#/components/schemas/AboutScreen"
+          },
+          "market": {
+            "$ref": "#/components/schemas/MarketScreen"
+          },
+          "swot": {
+            "$ref": "#/components/schemas/SWOTScreen"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceItem"
+            },
+            "type": "array",
+            "title": "Services"
+          },
+          "goals": {
+            "$ref": "#/components/schemas/GoalsScreen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "about",
+          "market",
+          "swot",
+          "goals"
+        ],
+        "title": "ProjectProfileDraft"
+      },
       "QuickVisionAnalysisRequest": {
         "properties": {
           "user_id": {
@@ -3965,6 +4584,73 @@
           "query"
         ],
         "title": "RAGQueryRequest"
+      },
+      "SWOTScreen": {
+        "properties": {
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths",
+            "description": "Сильные стороны (Strengths)"
+          },
+          "weaknesses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weaknesses",
+            "description": "Слабые стороны (Weaknesses)"
+          },
+          "opportunities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Opportunities",
+            "description": "Возможности (Opportunities)"
+          },
+          "threats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Threats",
+            "description": "Угрозы (Threats)"
+          }
+        },
+        "type": "object",
+        "title": "SWOTScreen"
+      },
+      "ServiceItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Название услуги / продукта",
+            "example": "Фирменный капучино"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Описание позиции",
+            "default": "",
+            "example": "На зерне двойной ферментации с овсяным молоком"
+          },
+          "price": {
+            "type": "string",
+            "title": "Price",
+            "description": "Стоимость",
+            "default": "по запросу",
+            "example": "290 руб."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ServiceItem"
       },
       "StrategyGenerateRequest": {
         "properties": {

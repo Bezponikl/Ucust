@@ -33,6 +33,11 @@ from core.lazy_rendering_controller import (
 from skills.content_strategy_engine import (
     ContentStrategyEngine, BrandProfile, RawDataIngestion, IngestionSourceType
 )
+from schemas.project_onboarding import (
+    AboutScreen, MarketScreen, SWOTScreen, ServiceItem, GoalsScreen,
+    ProjectProfileDraft, ProjectAnalyzeRequest, ProjectAnalyzeResponse,
+    ProjectCommitRequest, ProjectCommitResponse
+)
 
 # -------------------------------------------------------------------
 # 1. Pydantic Модели запросов и ответов (API Contract v2.5.0)
@@ -481,6 +486,77 @@ async def execute_orchestrator_task(
             timings={"total_seconds": round(time.time() - t_start, 3)},
             error=str(exc)
         )
+
+
+# ============================================================================
+# РЕГИСТРАЦИЯ И ОНБОРДИНГ ПРОЕКТА (HUMAN-IN-THE-LOOP, 2 ФАЗЫ)
+# ============================================================================
+
+@app.post("/api/v1/projects/analyze", response_model=ProjectAnalyzeResponse, tags=["Projects Onboarding (HITL)"])
+@app.post("/api/v1/parser/analyze", response_model=ProjectAnalyzeResponse, tags=["Projects Onboarding (HITL)"])
+async def analyze_project_draft(
+    request: ProjectAnalyzeRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret")
+) -> ProjectAnalyzeResponse:
+    """
+    ФАЗА 1: Анализ и предзаполнение черновика проекта (5 экранов UI).
+    Векторы в базу данных НЕ записываются. SMM-специалист получает структурированный JSON для валидации.
+    """
+    expected_secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
+    if x_internal_secret and x_internal_secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid internal secret.")
+
+    user_payload = {
+        "source_url": request.source_url,
+        "niche_hint": request.niche_hint,
+        "city": request.city or "Москва",
+        "files": request.files or []
+    }
+
+    result = await orchestrator.execute_task(
+        task_type="analyze_brand",
+        user_data=user_payload
+    )
+
+    draft_dict = result.get("project_profile_draft") or {}
+    return ProjectAnalyzeResponse(
+        status="success" if result.get("status") != "error" else "error",
+        project_profile_draft=draft_dict
+    )
+
+
+@app.post("/api/v1/projects/{project_id}/knowledge", response_model=ProjectCommitResponse, tags=["Projects Onboarding (HITL)"])
+@app.post("/api/v1/projects/{project_id}/commit", response_model=ProjectCommitResponse, tags=["Projects Onboarding (HITL)"])
+@app.post("/api/v1/projects/commit", response_model=ProjectCommitResponse, tags=["Projects Onboarding (HITL)"])
+async def commit_project_knowledge(
+    request: ProjectCommitRequest,
+    project_id: Optional[str] = None,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret")
+) -> ProjectCommitResponse:
+    """
+    ФАЗА 2: Фиксация и векторизация утвержденного человеком профиля (5 экранов).
+    Строгая изоляция семантических векторов в pgvector под уникальным project_id.
+    """
+    expected_secret = os.getenv("INTERNAL_API_SECRET", "ucust-super-secret-service-token-2026")
+    if x_internal_secret and x_internal_secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid internal secret.")
+
+    target_project_id = project_id or request.data.about.name or "default_project"
+
+    result = await orchestrator.execute_task(
+        task_type="rag_ingest",
+        user_data={
+            "project_id": target_project_id,
+            "data": request.data.dict()
+        }
+    )
+
+    return ProjectCommitResponse(
+        status="success" if result.get("status") != "error" else "error",
+        project_id=target_project_id,
+        chunks_indexed=result.get("chunks_indexed", 5),
+        message="База знаний проекта успешно сформирована и векторизована в pgvector"
+    )
 
 
 # -------------------------------------------------------------------

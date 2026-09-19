@@ -165,8 +165,8 @@ async def test_lazy_rendering_state_machine():
     print("   🚀 Запуск триггера рендера (trigger_render)...")
     await controller.trigger_render(draft_post.post_id, trigger_source="user_approved_click")
 
-    # Ждем завершения асинхронного воркера
-    await asyncio.sleep(0.2)
+    # Ждем завершения асинхронного воркера (3 изображения по 0.05с)
+    await asyncio.sleep(0.6)
 
     updated_post = controller.posts_db[draft_post.post_id]
     print(f"   ✅ Итоговый статус поста: {updated_post.status.value}")

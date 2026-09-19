@@ -265,7 +265,51 @@ class OCREntityExtractor:
 
 
 # ==============================================================================
-# 4. ОСНОВНОЙ ДВИЖОК СТРАТЕГИИ И ПЛАНИРОВАНИЯ
+# 4. ШАБЛОНИЗАТОР ПРОМПТОВ (PROMPT ENGINE)
+# ==============================================================================
+
+class PromptEngine:
+    """Шаблонизатор для сборки системного и пользовательского промпта LLM (Сайга/Llama-3)."""
+
+    @classmethod
+    def build_messages(
+        cls,
+        company_name: str,
+        brand_props: List[str],
+        rag_context: List[str],
+        ocr_text: str,
+        tov_instruction: str,
+        industry: IndustryArchetype
+    ) -> List[Dict[str, str]]:
+        
+        industry_role = "Senior B2B Copywriter" if industry == IndustryArchetype.B2B_CORPORATE else (
+            "Senior Expert Consultant & Storyteller" if industry == IndustryArchetype.EXPERT_SERVICES else "Senior Lifestyle & Brand Copywriter"
+        )
+
+        system_prompt = f"""Ты — {industry_role}. Твоя задача — написать профессиональный пост для Telegram-канала компании "{company_name}".
+
+ТВОИ ЖЕСТКИЕ ПРАВИЛА (СТРОГО):
+1. Структура: Первая строка — цепляющий хук без приветствий. Далее главная мысль или раскрывающийся блок (используй символ > в начале цитаты). В конце — закрытый призыв к действию (CTA).
+2. Tone of Voice на сегодня: {tov_instruction}
+3. Запрещено: использовать спам-хэштеги, emoji больше 3 штук на весь пост, фейковые цифры, клише ("В этом динамично развивающемся мире").
+4. Не здоровайся и не прощайся. Выдавай ТОЛЬКО готовый текст поста для Telegram.
+
+БАЗА ЗНАНИЙ БРЕНДА (ФАКТЫ И УТП):
+{" | ".join(rag_context) if rag_context else "Используй общую высокую экспертизу в нише."}
+"""
+
+        user_prompt = f"Напиши готовый пост для {company_name}."
+        if ocr_text:
+            user_prompt += f"\nОБЯЗАТЕЛЬНО включи в текст следующие коммерческие позиции и цены из меню/прайса/документа: {ocr_text}"
+
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+
+
+# ==============================================================================
+# 5. ОСНОВНОЙ ДВИЖОК СТРАТЕГИИ И ПЛАНИРОВАНИЯ
 # ==============================================================================
 
 class ContentStrategyEngine:
@@ -273,8 +317,19 @@ class ContentStrategyEngine:
     Движок генерации контент-плана и черновиков постов.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, dev_mode: bool = True):
+        try:
+            from core.llm_provider import SaigaLLMSkill
+        except ImportError:
+            try:
+                from ai.core.llm_provider import SaigaLLMSkill
+            except ImportError:
+                SaigaLLMSkill = None
+
+        if SaigaLLMSkill:
+            self.llm_skill = SaigaLLMSkill(dev_mode=dev_mode)
+        else:
+            self.llm_skill = None
 
     def _get_day_key(self, target_date: datetime) -> str:
         weekday = target_date.weekday()
@@ -371,35 +426,51 @@ class ContentStrategyEngine:
         format_type: ContentFormat
     ) -> str:
         """
-        Генерирует текст поста (в реальной системе вызывает Сайгу/LLM, здесь возвращает детерминированный каркас).
+        Вызов локальной LLM Сайга (через PromptEngine и SaigaLLMSkill) для синтеза текста.
+        0 GPU cost — только текстовый инференс.
         """
         compact_ocr = OCREntityExtractor.extract_compact_entities(raw_input.ocr_raw_text)
-        ocr_context_str = f" [Факты из меню/документа: {compact_ocr}]" if compact_ocr else ""
+        
+        messages = PromptEngine.build_messages(
+            company_name=brand.company_name,
+            brand_props=brand.brand_props,
+            rag_context=raw_input.rag_context_snippets,
+            ocr_text=compact_ocr,
+            tov_instruction=tov_instruction,
+            industry=brand.industry
+        )
+
+        if self.llm_skill:
+            try:
+                return self.llm_skill.generate_chat(messages=messages, max_tokens=600)
+            except Exception as e:
+                logger.error(f"⚠️ Сбой вызова SaigaLLMSkill: {e}")
+
+        # Детерминированный Fallback каркас
+        ocr_context_str = f" [Позиции меню/документа: {compact_ocr}]" if compact_ocr else ""
         rag_facts_str = f" [УТП: {', '.join(raw_input.rag_context_snippets[:2])}]" if raw_input.rag_context_snippets else ""
 
         if brand.industry == IndustryArchetype.B2B_CORPORATE:
             hook = f"📊 Анализ и стандарты: как {brand.company_name} обеспечивает надежность процессов"
             body = (
                 f"В корпоративном сегменте ключевое значение имеет прозрачность и минимизация рисков.\n"
-                f"**> {tov_instruction}{ocr_context_str}{rag_facts_str}\n"
+                f"> {tov_instruction}{ocr_context_str}{rag_facts_str}\n"
                 f"Мы внедряем строгий аудит на каждом этапе сотрудничества."
             )
             cta = "📩 Ознакомьтесь с подробным регламентом по ссылке в профиле или запросите аудит в директ."
-
         elif brand.industry == IndustryArchetype.EXPERT_SERVICES:
             hook = f"💡 Разбор практики: ключевые нюансы в работе {brand.company_name}"
             body = (
                 f"Частая ошибка клиентов — попытка решить сложную задачу типовыми методами.\n"
-                f"**> {tov_instruction}{ocr_context_str}\n"
+                f"> {tov_instruction}{ocr_context_str}\n"
                 f"Пошаговый алгоритм позволяет сэкономить ресурсы и гарантировать результат."
             )
             cta = "📌 Сохраните этот чек-лист в закладки или запишитесь на персональный разбор."
-
-        else:  # B2C_LIFESTYLE
+        else:
             hook = f"☕ Атмосфера и детали: утро вместе с {brand.company_name}"
             body = (
                 f"Каждая деталь имеет значение, когда речь идет о настоящем вкусе и тактильном комфорте.\n"
-                f"**> {tov_instruction}{ocr_context_str}\n"
+                f"> {tov_instruction}{ocr_context_str}\n"
                 f"Создаем моменты, к которым хочется возвращаться каждый день."
             )
             cta = "👉 Выберите свой любимый вариант по ссылке в описании профиля."
@@ -423,9 +494,9 @@ class ContentStrategyEngine:
 
         # 2. Определение ToV дня по матрице драматургии
         day_key = self._get_day_key(target_date)
-        day_tov_instruction = DRAMATURGY_MATRIX[brand.industry].get(day_key, "Качественный пост")
+        day_tov_instruction = DRAMATURGY_MATRIX[brand.industry].get(day_key, "Качественный экспертный пост")
 
-        # 3. Синтез текста (0 GPU)
+        # 3. Синтез текста (0 GPU, LLM инференс)
         text_content = self._llm_generate_text(
             brand=brand,
             raw_input=raw_input,
@@ -455,3 +526,4 @@ class ContentStrategyEngine:
         # 6. Расчет предварительной стоимости VRAM
         post.vram_cost_mb = VRAMCostCalculator.calculate_total_post_vram(post, dev_simulation_mode=True)
         return post
+

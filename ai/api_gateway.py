@@ -25,6 +25,13 @@ from storage.db import DatabaseFactory
 from core.orchestrator import UnifiedOrchestrator, SecurityGuard
 from rag.pipeline import CleanRAGPipeline
 from rag.models import Document
+from core.lazy_rendering_controller import (
+    LazyRenderingController, PostDraft, SubscriptionTier, 
+    IndustryArchetype, ContentFormat, PostLifecycleStatus, ImageGenerationSpec
+)
+from skills.content_strategy_engine import (
+    ContentStrategyEngine, BrandProfile, RawDataIngestion, IngestionSourceType
+)
 
 # -------------------------------------------------------------------
 # 1. Pydantic Модели запросов и ответов (API Contract v2.5.0)
@@ -329,6 +336,8 @@ db_session = SessionLocal()
 orchestrator = UnifiedOrchestrator(db_session=db_session)
 rag_pipeline = CleanRAGPipeline(min_confidence_threshold=0.65)
 queue_manager = AsyncGenerationQueueManager(orchestrator=orchestrator)
+content_strategy_engine = ContentStrategyEngine(dev_mode=True)
+lazy_controller = LazyRenderingController(dev_simulation_mode=True)
 
 
 # ============================================================================
@@ -1243,6 +1252,174 @@ async def websocket_onboarding_stream(websocket: WebSocket, session_id: str):
             payload={"error": str(e)}
         )
         ws_manager.disconnect(session_id)
+
+
+# ============================================================================
+# 5. СТРАТЕГИЯ КОНТЕНТА И ОТЛОЖЕННЫЙ РЕНДЕР (LAZY RENDERING & CONTENT STRATEGY)
+# ============================================================================
+
+class ContentDraftApiRequest(BaseModel):
+    brand_id: str = Field(..., example="brand_102", description="Уникальный ID бренда")
+    company_name: str = Field("UCust", example="Specialty Coffee", description="Название компании")
+    industry: str = Field("b2c_lifestyle", example="b2c_lifestyle", description="b2c_lifestyle | b2b_corporate | expert_services")
+    tier: str = Field("pro", example="pro", description="starter | pro | enterprise")
+    brand_props: List[str] = Field(default_factory=list, example=["dark oak desk", "matte brass"])
+    tone_of_voice: Optional[str] = Field("Экспертный, лаконичный", description="Tone of Voice")
+    source_type: Optional[str] = Field("hybrid", description="user_photo | document_ocr | rag_facts_only | hybrid")
+    vlm_visual_anchors: Optional[List[str]] = Field(default_factory=list, description="Якоря с фото пользователя")
+    ocr_raw_text: Optional[str] = Field(None, description="Сырой распознанный текст меню или документа")
+    rag_context_snippets: Optional[List[str]] = Field(default_factory=list, description="Факты из базы знаний")
+    calendar_event: Optional[str] = Field(None, description="Праздник или инфоповод")
+    user_raw_intent: Optional[str] = Field(None, description="Намерение / тема от пользователя")
+    target_date: Optional[str] = Field(None, description="Целевая дата ISO: YYYY-MM-DD")
+    format: Optional[str] = Field(None, description="single_shot | carousel_light | carousel_heavy | cryptex_puzzle")
+
+
+class WeekPlanApiRequest(BaseModel):
+    brand_id: str = Field(..., example="brand_102")
+    company_name: str = Field("UCust", example="Specialty Coffee")
+    industry: str = Field("b2c_lifestyle", example="b2c_lifestyle")
+    tier: str = Field("pro", example="pro")
+    brand_props: List[str] = Field(default_factory=list)
+    days_count: int = Field(7, ge=1, le=30)
+    start_date: Optional[str] = Field(None, description="Начальная дата (YYYY-MM-DD)")
+
+
+@app.post("/api/v1/content/draft", tags=["Content Strategy & Lazy Rendering"])
+async def create_content_draft(payload: ContentDraftApiRequest):
+    """
+    Генерация черновика поста со статусом DRAFT_TEXT (0 GPU cost).
+    Синтезирует текст через Сайгу и строит спецификации промптов без запуска ComfyUI.
+    """
+    try:
+        industry_enum = IndustryArchetype(payload.industry.lower())
+    except ValueError:
+        industry_enum = IndustryArchetype.B2C_LIFESTYLE
+
+    try:
+        tier_enum = SubscriptionTier(payload.tier.lower())
+    except ValueError:
+        tier_enum = SubscriptionTier.PRO
+
+    brand = BrandProfile(
+        brand_id=payload.brand_id,
+        company_name=payload.company_name,
+        industry=industry_enum,
+        tier=tier_enum,
+        brand_props=payload.brand_props,
+        tone_of_voice=payload.tone_of_voice or "Уверенный"
+    )
+
+    try:
+        src_type_enum = IngestionSourceType(payload.source_type.lower()) if payload.source_type else IngestionSourceType.HYBRID
+    except ValueError:
+        src_type_enum = IngestionSourceType.HYBRID
+
+    raw_input = RawDataIngestion(
+        source_type=src_type_enum,
+        vlm_visual_anchors=payload.vlm_visual_anchors or [],
+        ocr_raw_text=payload.ocr_raw_text,
+        rag_context_snippets=payload.rag_context_snippets or [],
+        calendar_event=payload.calendar_event,
+        user_raw_intent=payload.user_raw_intent
+    )
+
+    t_date = datetime.fromisoformat(payload.target_date) if payload.target_date else datetime.now()
+    forced_fmt = ContentFormat(payload.format.lower()) if payload.format else None
+
+    draft = content_strategy_engine.generate_post_draft(
+        brand=brand,
+        raw_input=raw_input,
+        target_date=t_date,
+        forced_format=forced_fmt
+    )
+
+    # Регистрация черновика в стейт-машине
+    lazy_controller.register_draft(draft, dev_simulation_mode=True)
+    return draft.dict()
+
+
+@app.post("/api/v1/content/week-plan", tags=["Content Strategy & Lazy Rendering"])
+async def generate_week_plan_drafts(payload: WeekPlanApiRequest):
+    """
+    Пакетная генерация недельного плана (DRAFT_TEXT).
+    0 GPU-затрат — мгновенный возврат расписания с текстами и ToV днями.
+    """
+    from datetime import timedelta
+    start = datetime.fromisoformat(payload.start_date) if payload.start_date else datetime.now()
+
+    try:
+        industry_enum = IndustryArchetype(payload.industry.lower())
+    except ValueError:
+        industry_enum = IndustryArchetype.B2C_LIFESTYLE
+
+    try:
+        tier_enum = SubscriptionTier(payload.tier.lower())
+    except ValueError:
+        tier_enum = SubscriptionTier.PRO
+
+    brand = BrandProfile(
+        brand_id=payload.brand_id,
+        company_name=payload.company_name,
+        industry=industry_enum,
+        tier=tier_enum,
+        brand_props=payload.brand_props,
+        tone_of_voice="Экспертный, лаконичный"
+    )
+
+    raw_input = RawDataIngestion(
+        source_type=IngestionSourceType.RAG_FACTS_ONLY,
+        rag_context_snippets=[f"Ведущая экспертиза в нише {payload.company_name}"]
+    )
+
+    drafts = []
+    for i in range(payload.days_count):
+        cur_date = start + timedelta(days=i)
+        draft = content_strategy_engine.generate_post_draft(
+            brand=brand,
+            raw_input=raw_input,
+            target_date=cur_date
+        )
+        lazy_controller.register_draft(draft, dev_simulation_mode=True)
+        drafts.append(draft.dict())
+
+    return {
+        "status": "success",
+        "brand_id": payload.brand_id,
+        "total_posts": len(drafts),
+        "posts": drafts
+    }
+
+
+@app.post("/api/v1/content/render/{post_id}", tags=["Content Strategy & Lazy Rendering"])
+async def trigger_post_render(post_id: str, trigger_source: str = "manual_approve"):
+    """
+    Триггер асинхронного GPU-рендера поста (переход DRAFT_TEXT -> AWAITING_RENDER -> RENDERING -> RENDERED).
+    """
+    try:
+        post = await lazy_controller.trigger_render(post_id, trigger_source=trigger_source)
+        return {
+            "status": "success",
+            "post_id": post.post_id,
+            "lifecycle_status": post.status.value,
+            "vram_cost_mb": post.vram_cost_mb,
+            "message": "Задача рендера успешно поставлена в очередь GPU"
+        }
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/content/post/{post_id}", tags=["Content Strategy & Lazy Rendering"])
+async def get_post_lifecycle_status(post_id: str):
+    """
+    Проверка статуса поста и получение ссылок на сгенерированные изображения.
+    """
+    post = lazy_controller.posts_db.get(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail=f"Пост {post_id} не найден в базе черновиков.")
+    return post.dict()
 
 
 if __name__ == "__main__":

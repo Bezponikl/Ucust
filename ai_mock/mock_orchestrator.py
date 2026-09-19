@@ -110,16 +110,41 @@ class MockUnifiedOrchestrator:
             res["session_id"] = sid
             return res
 
-        # 8. Brand Onboarding
-        elif task_type == "onboard_user" or task_type == "analyze_brand":
+        # 8. Brand Onboarding & 5-Screen Project Flow
+        elif task_type in ["onboard_user", "analyze_brand", "project_analyze"]:
+            from ai_mock.mock_responses import get_mock_project_profile_draft
+            profile_draft = get_mock_project_profile_draft(
+                company_name=user_data.get("company_name"),
+                niche=user_data.get("niche"),
+                website_url=user_data.get("website_url"),
+                telegram_channel=user_data.get("telegram_channel"),
+                raw_notes=user_data.get("raw_notes")
+            )
             return {
                 "status": "success",
-                "company_name": user_data.get("company_name", "Новый Бренд"),
-                "brand_voice": "FRIENDLY / EXPERT",
-                "brand_palette": ["#1E293B", "#3B82F6", "#F1F5F9"],
-                "usps": ["Индивидуальный подход", "Гарантированный результат за 24 часа"],
-                "recommended_rubrics": ["EXPERT", "PRODUCT", "CASE", "PROMO"],
+                "profile_draft": profile_draft,
                 "timings": {"onboard_seconds": 0.22, "total_seconds": round(time.time() - t_start, 3)}
+            }
+
+        elif task_type in ["project_commit", "rag_commit"]:
+            project_id = user_data.get("project_id", "project_default")
+            return {
+                "status": "success",
+                "project_id": project_id,
+                "message": f"База знаний проекта '{project_id}' успешно обновлена и проиндексирована в Clean RAG",
+                "indexed_chunks": 5,
+                "timings": {"commit_seconds": 0.08, "total_seconds": round(time.time() - t_start, 3)}
+            }
+
+        elif task_type in ["render_post", "lazy_render"]:
+            post_id = user_data.get("post_id", f"post_{uuid.uuid4().hex[:8]}")
+            img_url = f"{self.host}/output/photos/gen_render_{random.randint(1000, 9999)}.png"
+            return {
+                "status": "success",
+                "post_id": post_id,
+                "rendered_image_urls": [img_url],
+                "vram_cost_mb": 6500,
+                "timings": {"render_seconds": 0.15, "total_seconds": round(time.time() - t_start, 3)}
             }
 
         # 9. RAG Query

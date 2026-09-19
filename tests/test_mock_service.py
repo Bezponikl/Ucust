@@ -237,11 +237,15 @@ def test_rag_knowledge_base():
         "/api/v1/ai/rag/query",
         json={"query": "Каковы условия гарантии?"}
     )
+    assert r_q.status_code == 200
+    assert "answer" in r_q.json()
+
+
 def test_publish_and_broadcast():
     # 1. Achievement broadcast
     r_broad = client.post(
         "/api/v1/ai/broadcast/achievement",
-        json={"title": "Релиз 2.5.0", "description": "Запуск мок-сервера", "channel": "@UcustAi"},
+        json={"title": "Релиз 2.6.0", "description": "Запуск мок-сервера", "channel": "@UcustAi"},
         headers=SECRET_HEADER
     )
     assert r_broad.status_code == 200
@@ -255,6 +259,52 @@ def test_publish_and_broadcast():
     )
     assert r_pub.status_code == 200
     assert r_pub.json()["published"] is True
+
+
+def test_hitl_project_onboarding_and_render():
+    # 1. POST /api/v1/projects/analyze
+    r_analyze = client.post(
+        "/api/v1/projects/analyze",
+        json={
+            "company_name": "Specialty Coffee Roasters",
+            "niche": "Спешелти кофейня",
+            "website_url": "https://coffee.ru",
+            "telegram_channel": "https://t.me/coffee_spb"
+        },
+        headers=SECRET_HEADER
+    )
+    assert r_analyze.status_code == 200
+    draft = r_analyze.json()["profile_draft"]
+    assert "about" in draft
+    assert "market" in draft
+    assert "swot" in draft
+    assert "services" in draft
+    assert "goals" in draft
+
+    # 2. POST /api/v1/projects/{project_id}/knowledge
+    r_commit = client.post(
+        "/api/v1/projects/proj_mock_99/knowledge",
+        json={"project_id": "proj_mock_99", "profile": draft},
+        headers=SECRET_HEADER
+    )
+    assert r_commit.status_code == 200
+    assert r_commit.json()["status"] == "success"
+    assert r_commit.json()["indexed_chunks"] >= 1
+
+    # 3. POST /api/v1/tasks/render/{post_id}
+    r_render = client.post(
+        "/api/v1/tasks/render/post_mock_123",
+        headers=SECRET_HEADER
+    )
+    assert r_render.status_code == 200
+    assert "rendered_image_urls" in r_render.json()
+
+
+def test_prometheus_metrics():
+    r = client.get("/metrics")
+    assert r.status_code == 200
+    assert "ucust_http_requests_total" in r.text
+    assert "ucust_celery_queue_depth" in r.text
 
 
 def test_websocket_stream():

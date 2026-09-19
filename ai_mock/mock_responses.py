@@ -26,71 +26,136 @@ def generate_mock_post_text(
     cta = (primary_cta or "BUY").upper()
     
     cta_texts = {
-        "BUY": f"👉 Оформляйте заказ прямо сейчас по ссылке в профиле и используйте промокод {code} для приятной выгоды!",
+        "BUY": f"👉 Оформляйте заказ прямо сейчас по ссылке в профиле. Промокод: <code>{code}</code>",
         "BOOK": f"📅 Забронируйте удобное время онлайн или напишите нам в директ прямо сейчас!",
         "COMMENT": "💬 А какой вариант выбираете вы? Поделитесь своим мнением в комментариях ниже 👇",
         "CHAT": "📩 Напишите нам в личные сообщения слово «СТАРТ», чтобы получить персональную консультацию!",
-        "PROMO": f"🎁 Назовите промокод {code} при покупке и получите скидку 15% до конца недели!"
+        "PROMO": f"🎁 Назовите промокод <code>{code}</code> при покупке и получите скидку 15% до конца недели!"
     }
     cta_phrase = cta_texts.get(cta, cta_texts["BUY"])
 
     if language.lower().startswith("en"):
         return (
-            f"✨ Elevate your experience with {brand}!\n\n"
-            f"Looking for the perfect balance of quality and innovation in {niche or 'our industry'}? "
-            f"We are excited to present our latest update: {topic_clean}.\n\n"
-            f"🔹 Crafted with attention to every single detail\n"
-            f"🔹 Transparent service and unmatched reliability\n"
-            f"🔹 Designed specifically to save your valuable time\n\n"
+            f"✨ <b>Elevate your experience with {brand}!</b>\n\n"
+            f"Looking for the perfect balance of quality and innovation in {niche or 'our industry'}?\n\n"
+            f"<blockquote expandable>\n"
+            f"We are excited to present our latest release: {topic_clean}.\n"
+            f"• Crafted with attention to every single detail\n"
+            f"• Transparent service and unmatched reliability\n"
+            f"• Designed specifically to save your valuable time\n"
+            f"</blockquote>\n\n"
             f"{cta_phrase}\n\n"
             f"#brand #innovation #quality #{brand.lower().replace(' ', '')}"
         )
 
-    # Russian templates by rubric
+    # Russian templates by rubric with Telegram 7.2+ tags
     if rubric_clean == "EXPERT":
         return (
-            f"💡 3 критические ошибки в нише «{niche or 'бизнес'}», которые съедают ваш бюджет\n\n"
-            f"Многие считают, что в теме «{topic_clean}» главное — просто делать больше действий. "
-            f"Но опыт команды {brand} показывает обратное:\n\n"
-            f"1️⃣ Отсутствие системности и четкого позиционирования.\n"
-            f"2️⃣ Игнорирование запросов реальной аудитории.\n"
-            f"3️⃣ Экономия на инструментах автоматизации.\n\n"
-            f"Когда вы внедряете прозрачные процессы, результат вырастает в 2–3 раза без лишних затрат.\n\n"
+            f"💡 <b>3 критические ошибки в нише «{niche or 'бизнес'}», которые съедают бюджет</b>\n\n"
+            f"Многие считают, что в теме «{topic_clean}» главное — просто делать больше рутинных действий. "
+            f"Но опыт команды <b>{brand}</b> показывает обратное:\n\n"
+            f"<blockquote expandable>\n"
+            f"1️⃣ Отсутствие системности и четкого позиционирования бренда.\n"
+            f"2️⃣ Игнорирование болей и запросов реальной целевой аудитории.\n"
+            f"3️⃣ Экономия на инструментах автоматизации и контроле качества.\n"
+            f"</blockquote>\n\n"
+            f"Когда вы внедряете прозрачные стандарты, конверсия вырастает в 2–3 раза без раздувания бюджета.\n\n"
             f"{cta_phrase}\n\n"
             f"#экспертиза #бизнес #{brand.lower().replace(' ', '')} #развитие"
         )
     elif rubric_clean == "CASE":
         return (
-            f"📈 Кейс: Как тема «{topic_clean}» принесла +40% к ключевым метрикам\n\n"
-            f"К нам в {brand} часто обращаются с вопросом: как быстро перестроить процессы и масштабировать результат в сфере {niche or 'услуг'}?\n\n"
-            f"Что мы сделали:\n"
-            f"✔️ Провели полный аудит узких мест\n"
+            f"📈 <b>Кейс: Как тема «{topic_clean}» принесла +42% к выручке</b>\n\n"
+            f"К нам в <b>{brand}</b> часто обращаются с вопросом: как быстро перестроить процессы и масштабировать результат в сфере {niche or 'услуг'}?\n\n"
+            f"<blockquote expandable>\n"
+            f"✔️ Провели полный аудит узких мест воронки\n"
             f"✔️ Внедрили персональный сценарий взаимодействия\n"
-            f"✔️ Устранили рутину за счет автоматизации\n\n"
+            f"✔️ Устранили рутину за счет автоматизации\n"
+            f"</blockquote>\n\n"
             f"Итог: рост конверсии на 42% и стабильный поток лояльных клиентов.\n\n"
             f"{cta_phrase}\n\n"
             f"#кейс #результаты #{brand.lower().replace(' ', '')} #маркетинг"
         )
     elif rubric_clean == "PROMO":
         return (
-            f"🔥 Специальное предложение от {brand}!\n\n"
-            f"Только на этой неделе — {topic_clean} с максимальной выгодой.\n\n"
-            f"🎁 Используйте промокод «{code}» и получите эксклюзивные условия обслуживания.\n\n"
-            f"⏳ Предложение действует ограниченное время. Не откладывайте!\n\n"
+            f"🔥 <b>Специальное предложение от {brand}!</b>\n\n"
+            f"Только на этой неделе — <i>{topic_clean}</i> с максимальной выгодой.\n\n"
+            f"<blockquote expandable>\n"
+            f"Используйте промокод <code>{code}</code> и получите эксклюзивные условия обслуживания до конца месяца.\n"
+            f"</blockquote>\n\n"
+            f"⏳ Предложение действует ограниченное время.\n\n"
             f"{cta_phrase}\n\n"
             f"#скидки #акция #промокод #{brand.lower().replace(' ', '')}"
         )
     else:  # PRODUCT / DEFAULT
         return (
-            f"Невесомый баланс эстетики и безупречного качества от {brand} ✨\n\n"
-            f"Представляем: {topic_clean}.\n\n"
-            f"Мы продумали каждую деталь, чтобы вы получали истинное удовольствие от каждого момента:\n"
-            f"🌿 Только премиальные ингредиенты и проверенные материалы\n"
-            f"💎 Авторский подход и внимание к вашим пожеланиям\n"
-            f"⚡️ Быстрая подача и заботливый сервис\n\n"
+            f"☕ <b>{topic_clean}</b> — авторские стандарты от <b>{brand}</b> ✨\n\n"
+            f"<blockquote expandable>\n"
+            f"Мы продумали каждую деталь, чтобы вы получали безупречный результат:\n"
+            f"🌿 Только проверенные ингредиенты и премиальные материалы\n"
+            f"💎 Авторский подход и внимание к пожеланиям каждого гостя\n"
+            f"⚡️ Быстрая подача и заботливый сервис\n"
+            f"</blockquote>\n\n"
             f"{cta_phrase}\n\n"
             f"#новинка #качество #стиль #{brand.lower().replace(' ', '')} #рекомендация"
         )
+
+
+def get_mock_project_profile_draft(
+    company_name: Optional[str] = None,
+    niche: Optional[str] = None,
+    website_url: Optional[str] = None,
+    telegram_channel: Optional[str] = None,
+    raw_notes: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Генерирует реалистичный 5-экранный черновик профиля проекта для Human-in-the-Loop онбординга.
+    """
+    name = company_name or "Specialty Coffee Roasters"
+    niche_val = niche or "Спешелти кофейня и обжарка зерна"
+    site = website_url or "https://coffee-example.ru"
+    tg = telegram_channel or "https://t.me/coffee_roasters_spb"
+
+    return {
+        "about": {
+            "name": name,
+            "niche": niche_val,
+            "positioning": f"Флагманский проект в сфере «{niche_val}» со строгим контролем качества",
+            "website_url": site,
+            "telegram_channel": tg
+        },
+        "market": {
+            "target_audience": "Платежеспособная аудитория 22–45 лет, ценящая персональный подход и экспертный сервис",
+            "audience_segments": ["Постоянные локальные клиенты", "B2B клиенты и корпоративные заказы", "Онлайн-покупатели"],
+            "key_pain_points": ["Низкое качество масс-маркет решений", "Непрозрачные цены и срывы сроков", "Слабый клиентский сервис"],
+            "competitors": ["Surf Coffee", "Даблби", "Локальные сетевые конкуренты"]
+        },
+        "swot": {
+            "strengths": ["Прямые контракты с поставщиками", "Собственное производство и контроль качества", "Высокий NPS и LTV гостей"],
+            "weaknesses": ["Ограниченная физическая площадь локаций", "Зависимость от курса импортного сырья"],
+            "opportunities": ["Запуск собственной линейки подписки", "Масштабирование по франшизе", "Корпоративные B2B поставки"],
+            "threats": ["Демпинг со стороны крупных дискаунтеров", "Удорожание логистики"]
+        },
+        "services": [
+            {
+                "name": "Флагманский продукт / услуга",
+                "description": f"Премиальное предложение в категории «{niche_val}» с гарантией результата",
+                "price_range": "От 850 до 3 500 ₽",
+                "usp": "100% натуральные компоненты и индивидуальная адаптация"
+            },
+            {
+                "name": "Сезонное авторское меню",
+                "description": "Эксклюзивные новинки с лимитированным тиражом",
+                "price_range": "380–650 ₽",
+                "usp": "Собственные авторские рецептуры"
+            }
+        ],
+        "goals": {
+            "content_goals": ["Рост узнаваемости бренда в локации", "Увеличение повторных продаж и среднего чека", "Привлечение подписчиков в Telegram-канал"],
+            "tone_of_voice": ["Экспертный", "Теплый", "Гостеприимный", "Уверенный"],
+            "forbidden_topics": ["Политика и скандалы", "Сравнение в лоб с конкурентами", "Агрессивный навязчивый маркетинг"]
+        }
+    }
 
 
 def get_mock_post_result(payload: Dict[str, Any], host: str = "http://localhost:8000") -> Dict[str, Any]:

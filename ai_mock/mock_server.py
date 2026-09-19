@@ -239,6 +239,64 @@ class AchievementBroadcastRequest(BaseModel):
     channel: Optional[str] = "@UcustAi"
 
 
+# --- 5-Screen Human-in-the-Loop Onboarding Models ---
+class AboutScreen(BaseModel):
+    name: str = Field(..., description="Название бренда / проекта")
+    niche: str = Field(..., description="Ниша / сфера деятельности")
+    positioning: str = Field(..., description="Ключевое позиционирование")
+    website_url: Optional[str] = None
+    telegram_channel: Optional[str] = None
+
+
+class MarketScreen(BaseModel):
+    target_audience: str = Field(..., description="Описание целевой аудитории")
+    audience_segments: List[str] = Field(default_factory=list)
+    key_pain_points: List[str] = Field(default_factory=list)
+    competitors: List[str] = Field(default_factory=list)
+
+
+class SWOTScreen(BaseModel):
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)
+    opportunities: List[str] = Field(default_factory=list)
+    threats: List[str] = Field(default_factory=list)
+
+
+class ServiceItem(BaseModel):
+    name: str = Field(...)
+    description: str = Field(...)
+    price_range: Optional[str] = None
+    usp: Optional[str] = None
+
+
+class GoalsScreen(BaseModel):
+    content_goals: List[str] = Field(default_factory=list)
+    tone_of_voice: List[str] = Field(default_factory=list)
+    forbidden_topics: List[str] = Field(default_factory=list)
+
+
+class ProjectProfileDraft(BaseModel):
+    about: AboutScreen
+    market: MarketScreen
+    swot: SWOTScreen
+    services: List[ServiceItem]
+    goals: GoalsScreen
+
+
+class ProjectAnalyzeRequest(BaseModel):
+    company_name: Optional[str] = None
+    niche: Optional[str] = None
+    website_url: Optional[str] = None
+    telegram_channel: Optional[str] = None
+    document_paths: Optional[List[str]] = None
+    raw_notes: Optional[str] = None
+
+
+class ProjectCommitRequest(BaseModel):
+    project_id: str
+    profile: Optional[ProjectProfileDraft] = None
+
+
 # -------------------------------------------------------------------
 # 2. FastAPI Application Setup
 # -------------------------------------------------------------------
@@ -580,7 +638,62 @@ async def publish_post(
     }
 
 
-# --- 3.19. Health & Diagnostic Endpoints ---
+# --- 3.20. Human-in-the-Loop Project Onboarding Endpoints ---
+@app.post("/api/v1/projects/analyze", tags=["Project Onboarding (HITL)"])
+@app.post("/api/v1/parser/analyze", tags=["Project Onboarding (HITL)"])
+async def analyze_project(
+    request: ProjectAnalyzeRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret")
+):
+    check_auth(x_internal_secret)
+    return await orchestrator.execute_task(task_type="project_analyze", user_data=request.model_dump())
+
+
+@app.post("/api/v1/projects/{project_id}/knowledge", tags=["Project Onboarding (HITL)"])
+@app.post("/api/v1/projects/commit", tags=["Project Onboarding (HITL)"])
+async def commit_project_knowledge(
+    project_id: str,
+    request: Optional[ProjectCommitRequest] = None,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret")
+):
+    check_auth(x_internal_secret)
+    data = request.model_dump() if request else {}
+    data["project_id"] = project_id
+    return await orchestrator.execute_task(task_type="project_commit", user_data=data)
+
+
+# --- 3.21. Lazy Rendering Trigger ---
+@app.post("/api/v1/ai/tasks/render/{post_id}", tags=["Lazy Rendering Engine"])
+@app.post("/api/v1/tasks/render/{post_id}", tags=["Lazy Rendering Engine"])
+async def render_post(
+    post_id: str,
+    x_internal_secret: Optional[str] = Header(None, alias="X-Internal-Secret")
+):
+    check_auth(x_internal_secret)
+    return await orchestrator.execute_task(task_type="render_post", user_data={"post_id": post_id})
+
+
+# --- 3.22. Observability & OpenMetrics ---
+@app.get("/metrics", tags=["Health & Diagnostics"])
+async def prometheus_metrics():
+    from fastapi.responses import PlainTextResponse
+    metrics_text = (
+        "# HELP ucust_http_requests_total Total number of HTTP requests processed by AI Gateway\n"
+        "# TYPE ucust_http_requests_total counter\n"
+        'ucust_http_requests_total{endpoint="/api/v1/task/execute",method="POST",status_code="200"} 42\n'
+        'ucust_http_requests_total{endpoint="/api/v1/projects/analyze",method="POST",status_code="200"} 15\n'
+        "# HELP ucust_celery_queue_depth Current pending task count in Celery queue\n"
+        "# TYPE ucust_celery_queue_depth gauge\n"
+        'ucust_celery_queue_depth{queue="ucust_ai_queue"} 0\n'
+        'ucust_celery_queue_depth{queue="ucust_gpu_render"} 0\n'
+        "# HELP ucust_active_vram_allocation_mb Estimated active VRAM allocation in Megabytes\n"
+        "# TYPE ucust_active_vram_allocation_mb gauge\n"
+        "ucust_active_vram_allocation_mb 0\n"
+    )
+    return PlainTextResponse(content=metrics_text, media_type="text/plain; version=0.0.4")
+
+
+# --- 3.23. Health & Diagnostic Endpoints ---
 @app.get("/api/v1/ai/health", tags=["Health & Diagnostics"])
 @app.get("/health", tags=["Health & Diagnostics"])
 @app.get("/", tags=["Health & Diagnostics"])
@@ -588,7 +701,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "UCust AI Service Gateway (Mock Replica)",
-        "version": "2.5.0-mock",
+        "version": "2.6.0-mock",
         "gpu_mode": "MOCK_CPU_FAST",
         "timestamp": time.time(),
         "models": {
@@ -600,7 +713,7 @@ async def health_check():
     }
 
 
-# --- 3.20. Real-Time WebSocket Session Streamer ---
+# --- 3.24. Real-Time WebSocket Session Streamer ---
 @app.websocket("/ws/ai/session/{session_id}")
 async def websocket_session_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()

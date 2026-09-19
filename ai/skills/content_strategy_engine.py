@@ -1,229 +1,457 @@
-# File: skills/content_strategy_engine.py
 """
-Content Strategy & User Persona Engine for UCust.AI.
-Generates full-funnel marketing strategies (TOFU/MOFU/BOFU), hook libraries, and deep buyer personas.
+File: ai/skills/content_strategy_engine.py
+Content Strategy & User Persona Engine for UCust AI.
+Реализует динамическую драматургию по отраслям (B2C, B2B, Expert),
+контроль тарифов (Tier-based access), разрешение семантических конфликтов (VLM vs RAG),
+сжатие OCR-сущностей и генерацию черновиков DRAFT_TEXT (0 GPU overhead).
 """
 
 from __future__ import annotations
+
+import re
+import uuid
+import logging
+from datetime import datetime
+from enum import Enum
 from typing import Dict, Any, List, Optional
 
+try:
+    from core.lazy_rendering_controller import (
+        SubscriptionTier,
+        IndustryArchetype,
+        ContentFormat,
+        PostLifecycleStatus,
+        ImageGenerationSpec,
+        PostDraft,
+        VRAMCostCalculator
+    )
+except ImportError:
+    try:
+        from ai.core.lazy_rendering_controller import (
+            SubscriptionTier,
+            IndustryArchetype,
+            ContentFormat,
+            PostLifecycleStatus,
+            ImageGenerationSpec,
+            PostDraft,
+            VRAMCostCalculator
+        )
+    except ImportError:
+        # Fallback Enums if imported standalone
+        class SubscriptionTier(str, Enum):
+            STARTER = "starter"
+            PRO = "pro"
+            ENTERPRISE = "enterprise"
+
+        class IndustryArchetype(str, Enum):
+            B2C_LIFESTYLE = "b2c_lifestyle"
+            B2B_CORPORATE = "b2b_corporate"
+            EXPERT_SERVICES = "expert_services"
+
+        class ContentFormat(str, Enum):
+            SINGLE_SHOT = "single_shot"
+            CAROUSEL_LIGHT = "carousel_light"
+            CAROUSEL_HEAVY = "carousel_heavy"
+            CRYPTEX_PUZZLE = "cryptex_puzzle"
+
+        class PostLifecycleStatus(str, Enum):
+            DRAFT_TEXT = "draft_text"
+            AWAITING_RENDER = "awaiting_render"
+            RENDERING = "rendering"
+            RENDERED = "rendered"
+            PUBLISHED = "published"
+            FAILED = "failed"
+
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger("ContentStrategyEngine")
+
+
+class IngestionSourceType(str, Enum):
+    USER_PHOTO = "user_photo"          # Фотография от пользователя (блюдо, цех, руки, товар)
+    DOCUMENT_OCR = "document_ocr"      # Меню, прайс-лист, скан договора, сертификат
+    RAG_FACTS_ONLY = "rag_facts_only"  # Генерация на основе базы знаний бренда без фото
+    HYBRID = "hybrid"                  # Фото пользователя + RAG факты + Инфоповод
+
+
+class BrandProfile(BaseModel):
+    brand_id: str
+    company_name: str
+    industry: IndustryArchetype
+    tier: SubscriptionTier
+    brand_props: List[str] = Field(default_factory=list, description="RAG визуальные якоря (материалы, цвета, стиль)")
+    tone_of_voice: str = Field(default="Уверенный, лаконичный, экспертный", description="Инструкции по тексту и стилю")
+
+
+class RawDataIngestion(BaseModel):
+    ingestion_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    source_type: IngestionSourceType = IngestionSourceType.HYBRID
+    
+    # Мультимодальные данные (Moondream2 / VLM)
+    vlm_description: Optional[str] = Field(default=None, description="Сырое описание сцены от Moondream2")
+    vlm_visual_anchors: List[str] = Field(default_factory=list, description="Извлеченные физические якоря")
+    
+    # Текстовое зрение (EasyOCR / OCR Engine)
+    ocr_raw_text: Optional[str] = Field(default=None, description="Распознанный текст с изображения")
+    
+    # Контекст бренда (RAG & Knowledge Base)
+    rag_context_snippets: List[str] = Field(default_factory=list, description="Релевантные факты о компании и УТП")
+    
+    # Календарный якорь и намерение пользователя
+    calendar_event: Optional[str] = Field(default=None, description="Праздник или отраслевое событие")
+    user_raw_intent: Optional[str] = Field(default=None, description="Прямое указание от пользователя")
+
+
+# ==============================================================================
+# 1. МАТРИЦА ДРАМАТУРГИИ ПО ОТРАСЛЯМ (ДИНАМИЧЕСКИЙ ToV)
+# ==============================================================================
+
+DRAMATURGY_MATRIX: Dict[IndustryArchetype, Dict[str, str]] = {
+    IndustryArchetype.B2C_LIFESTYLE: {
+        "MON": "Эмоция, сенсорика, эстетика, легкий муд. Запуск энергии недели.",
+        "TUE": "Сенсорика продукта (вкус, текстура, материалы, тактильность).",
+        "WED": "Атмосфера заведения, закулисье команды, детали интерьера.",
+        "THU": "UGC, социальное доказательство, отзывы гостей.",
+        "FRI": "Пятничный релакс, планы на выходные. Закрытый CTA (опрос/ссылка).",
+        "WEEKEND": "Эстетичный лайфстайл-кадр без прямой агрессивной продажи."
+    },
+    IndustryArchetype.B2B_CORPORATE: {
+        "MON": "Анализ рынка, стандарты, регуляторика, сводка недельных трендов.",
+        "TUE": "Технологический процесс: контроль качества, этапы производства, M&A.",
+        "WED": "Кейс внедрения: измеримые цифры (ROI, сокращение сроков, аудит).",
+        "THU": "Разбор рисков: как не потерять бюджет при выборе подрядчика.",
+        "FRI": "Итоги недели в отрасли: экспертное резюме, сухая аналитика.",
+        "WEEKEND": "Тишина в эфире (отсутствие публикаций) или дайджест прессы."
+    },
+    IndustryArchetype.EXPERT_SERVICES: {
+        "MON": "Разбор заблуждения: ключевые мифы в нише, с чем приходят клиенты.",
+        "TUE": "Клинический/Рабочий случай: архитектура решения проблемы клиента.",
+        "WED": "Пошаговый чеклист: как клиенту избежать ошибки на старте.",
+        "THU": "Ответ на частый вопрос (FAQ): логическое снятие ключевого возражения.",
+        "FRI": "Личный инсайт: суровый профессиональный опыт и выводы.",
+        "WEEKEND": "Вдохновляющий профессиональный кейс, размышления о стандартах профессии."
+    }
+}
+
+
+def get_available_formats(tier: SubscriptionTier) -> List[ContentFormat]:
+    """
+    Возвращает разрешенные форматы генерации на основе тарифа подписки.
+    Предотвращает постановку тяжелых задач (каруселей/пазлов) от базовых пользователей.
+    """
+    tier_limits = {
+        SubscriptionTier.STARTER: [
+            ContentFormat.SINGLE_SHOT
+        ],
+        SubscriptionTier.PRO: [
+            ContentFormat.SINGLE_SHOT, 
+            ContentFormat.CAROUSEL_LIGHT
+        ],
+        SubscriptionTier.ENTERPRISE: [
+            ContentFormat.SINGLE_SHOT, 
+            ContentFormat.CAROUSEL_LIGHT, 
+            ContentFormat.CAROUSEL_HEAVY, 
+            ContentFormat.CRYPTEX_PUZZLE
+        ]
+    }
+    return tier_limits.get(tier, [ContentFormat.SINGLE_SHOT])
+
+
+# ==============================================================================
+# 2. РЕЗОЛВЕР СЕМАНТИЧЕСКИХ КОНФЛИКТОВ (BILINGUAL VLM vs RAG)
+# ==============================================================================
+
+class SemanticConflictResolver:
+    """
+    Двуязычный (RU/EN) резолвер конфликтов между VLM-зрением и RAG-профилем бренда.
+    Блокирует попадание бытовых дефектов и мусора в итоговый аналоговый промпт.
+    """
+
+    FORBIDDEN_VLM_CONTAMINANTS_BILINGUAL = {
+        # Английские токены
+        "plastic", "cheap", "cluttered", "trash", "dirty", "lowres", "messy", 
+        "window sill", "radiator", "socket", "wire", "poor lighting", "blurry",
+        # Русские токены (и стеммы)
+        "пластик", "пластиковый", "дешевый", "дешево", "грязь", "грязный", "мусор",
+        "подоконник", "батарея", "розетка", "провод", "кабель", "хлам", "бардак",
+        "плохое освещение", "размытый", "шум", "кривой", "облезлый", "линолеум"
+    }
+
+    @classmethod
+    def resolve_visual_anchors(cls, vlm_anchors: List[str], brand_props: List[str]) -> List[str]:
+        cleaned_vlm = []
+        for anchor in vlm_anchors:
+            anchor_lower = anchor.lower().strip()
+            if not anchor_lower:
+                continue
+
+            # Проверка на наличие стоп-слов из обоих языков
+            is_contaminated = any(
+                stop_word in anchor_lower 
+                for stop_word in cls.FORBIDDEN_VLM_CONTAMINANTS_BILINGUAL
+            )
+
+            if not is_contaminated:
+                cleaned_vlm.append(anchor)
+
+        # Безусловный приоритет у RAG-якорей бренда (идут первыми в промпте)
+        combined = list(dict.fromkeys(brand_props + cleaned_vlm[:3]))
+        return combined
+
+
+# ==============================================================================
+# 3. ЭКСТРАКТОР КОММЕРЧЕСКИХ СУЩНОСТЕЙ ИЗ OCR
+# ==============================================================================
+
+class OCREntityExtractor:
+    """
+    Интеллектуальный экстрактор цен, позиций меню и ключевых офферов из сырого OCR.
+    Отсекает юридический мусор (ИНН, адреса, реквизиты) и сохраняет только коммерческие факты.
+    """
+
+    NOISE_PATTERNS = [
+        r'\b(?:инн|кпп|огрн|огрнип|бик|р/с|к/с|окпо)\b[:\s]*\d+',
+        r'\b(?:ооо|зао|пао|ип|г\.|ул\.|д\.|стр\.|пом\.|тел|факс)\b[^\n]*',
+        r'[-_—=]{3,}',                          # Разделительные линии
+        r'^\s*\d+\s*$',                          # Одиночные номера страниц
+    ]
+
+    PRICE_PATTERNS = [
+        r'([A-Za-zА-Яа-яЁё\s\-\"\'«»]{3,45})\s+[\.\-—–\s]*\s+(\d{2,6})\s*(?:руб|рублей|₽|k|\$|€)',
+        r'(\d{2,6})\s*(?:руб|рублей|₽)\s*[-—–]\s*([A-Za-zА-Яа-яЁё\s\-\"\'«»]{3,45})'
+    ]
+
+    @classmethod
+    def extract_compact_entities(cls, raw_ocr_text: Optional[str]) -> str:
+        if not raw_ocr_text:
+            return ""
+
+        cleaned_text = raw_ocr_text
+        for noise_pat in cls.NOISE_PATTERNS:
+            cleaned_text = re.sub(noise_pat, '', cleaned_text, flags=re.IGNORECASE)
+
+        extracted_items = []
+
+        # 1. Поиск структурированных пар: Товар/Услуга + Цена
+        for line in cleaned_text.split('\n'):
+            line_str = line.strip()
+            if not line_str or len(line_str) < 3:
+                continue
+
+            for price_pat in cls.PRICE_PATTERNS:
+                matches = re.findall(price_pat, line_str, flags=re.IGNORECASE)
+                for match in matches:
+                    if isinstance(match, tuple):
+                        item, price = match[0].strip(), match[1].strip()
+                        if item.isdigit():
+                            item, price = price, item
+                        if len(item) > 2 and not item.isdigit():
+                            extracted_items.append(f"{item}: {price}₽")
+
+        # 2. Если регулярки не нашли явных пар (например, B2B скан договора без цен)
+        if not extracted_items:
+            meaningful_lines = [
+                line.strip() for line in cleaned_text.split('\n')
+                if len(line.strip()) > 10 and not any(w in line.lower() for w in ['страница', 'подпись', 'печать', 'договор'])
+            ]
+            extracted_items = meaningful_lines[:5]
+
+        # Ограничиваем итоговую сводку 350 символами
+        summary = " | ".join(dict.fromkeys(extracted_items[:8]))
+        if len(summary) > 350:
+            summary = summary[:350] + "..."
+
+        return summary
+
+
+# ==============================================================================
+# 4. ОСНОВНОЙ ДВИЖОК СТРАТЕГИИ И ПЛАНИРОВАНИЯ
+# ==============================================================================
+
 class ContentStrategyEngine:
+    """
+    Движок генерации контент-плана и черновиков постов.
+    """
+
     def __init__(self):
         pass
 
-    def generate_strategy(self, company_name: str, niche: str, target_audience: str = "", key_usp: str = "") -> Dict[str, Any]:
-        buyer_persona = {
-            "core_demographics": target_audience or "Предприниматели, руководители и B2B/B2C клиенты 25-50 лет",
-            "jobs_to_be_done": [
-                "Сэкономить время и деньги на рутинных задачах",
-                "Получить предсказуемый и надежный результат без срывов сроков",
-                "Быстро масштабировать продажи или бизнес-процессы"
-            ],
-            "primary_pains": [
-                "Высокие цены при непонятном качестве услуг",
-                "Срыв дедлайнов и отсутствие гарантий",
-                "Сложные громоздкие решения, в которых трудно разобраться"
-            ],
-            "buying_triggers": [
-                "Наглядные кейсы с измеримыми цифрами (было / стало)",
-                "Бесплатный тест / демо / консультация без обязательств",
-                "Прозрачная фиксированная цена и гарантия возврата"
-            ]
-        }
+    def _get_day_key(self, target_date: datetime) -> str:
+        weekday = target_date.weekday()
+        if weekday == 0:
+            return "MON"
+        elif weekday == 1:
+            return "TUE"
+        elif weekday == 2:
+            return "WED"
+        elif weekday == 3:
+            return "THU"
+        elif weekday == 4:
+            return "FRI"
+        else:
+            return "WEEKEND"
 
-        funnel_matrix = {
-            "tofu_awareness": {
-                "goal": "Привлечение широкого охвата и новой аудитории",
-                "formats": ["Вирусные Shorts/Reels", "Инфографика", "Посты-разборы ошибок"],
-                "topics": [
-                    f"«5 фатальных ошибок в сфере {niche}, которые сжигают бюджет»",
-                    f"«Как устроена внутренняя кухня в {company_name}: закулисье работы»"
-                ]
-            },
-            "mofu_consideration": {
-                "goal": "Прогрев доверия, снятие возражений и демонстрация экспертности",
-                "formats": ["Кейсы клиентов", "Сравнения до/после", "Пошаговые гайды"],
-                "topics": [
-                    f"«Реальный кейс {company_name}: как мы решили сложную задачу клиента за 3 дня»",
-                    "«Почему дешевые альтернативы выходят в 3 раза дороже (честный расчет)»"
-                ]
-            },
-            "bofu_conversion": {
-                "goal": "Прямые продажи и закрытие на заявку / покупку",
-                "formats": ["Спецпредложения", "Ограниченные акции", "Демонстрация продукта в действии"],
-                "topics": [
-                    f"«Специальное предложение от {company_name}: получите аудит бесплатно»",
-                    "«Осталось 3 свободных слота на этой неделе: напишите в директ для брони»"
-                ]
-            }
-        }
-
-        hooks_arsenal = [
-            f"«Если вы работаете в {niche}, перестаньте делать это немедленно...»",
-            f"«3 вещи, которые клиенты {company_name} узнают на 1-й день работы»",
-            "«Секрет, который скрывают 90% экспертов на рынке...»",
-            f"«Как получить максимум пользы от {company_name} уже сегодня: инструкция»"
-        ]
-
-        return {
-            "status": "success",
-            "company_name": company_name,
-            "niche": niche,
-            "buyer_persona": buyer_persona,
-            "funnel_matrix": funnel_matrix,
-            "hooks_arsenal": hooks_arsenal,
-            "summary_plan": f"Стратегия для {company_name} ({niche}): 3 уровня воронки (TOFU/MOFU/BOFU) + 4 виральных хука."
-        }
-
-    def generate_content_plan(
+    def _compose_image_specs(
         self,
-        company_name: str,
-        niche: str,
-        visual_grid_dna: Optional[Dict[str, Any]] = None,
-        rag_insights: Optional[Dict[str, Any]] = None,
-        days_count: int = 7,
-        country: str = "Россия",
-        city: str = "Москва",
-        start_date: Optional[datetime] = None,
-        feedback_insights: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        brand: BrandProfile,
+        raw_input: RawDataIngestion,
+        format_type: ContentFormat
+    ) -> List[ImageGenerationSpec]:
         """
-        Генерирует контент-план на N дней, привязанный к болям аудитории из RAG,
-        сопоставленный со слотами 3x3 визуальной сетки ленты, обогащенный
-        праздниками и динамически адаптированный под обратную связь аудитории.
+        Составляет список спецификаций генерации изображений с разрешением конфликтов.
         """
-        from collectors.event_holiday_collector import EventHolidayCollector
-
-        grid_slots = (visual_grid_dna or {}).get("grid_3x3_slots", [])
-        brand_colors = (visual_grid_dna or {}).get("brand_hex_palette", ["#1F2937", "#3B82F6", "#F3F4F6"])
-        pains = (rag_insights or {}).get("pain_points", [
-            "Страх некачественного результата",
-            "Высокие цены и скрытые переплаты",
-            "Нехватка времени и сложный процесс"
-        ])
-
-        # Интеграция реальных возражений и вопросов из Feedback Loop
-        feedback_objections = (feedback_insights or {}).get("identified_objections", [])
-        feedback_questions = (feedback_insights or {}).get("identified_questions", [])
-
-        if feedback_objections:
-            pains = feedback_objections + pains
-
-        # 1. Поиск праздников и инфоповодов на заданный период
-        holiday_collector = EventHolidayCollector()
-        events_list = holiday_collector.get_calendar_events(
-            country=country,
-            city=city,
-            niche=niche,
-            start_date=start_date,
-            days_count=days_count
+        resolved_anchors = SemanticConflictResolver.resolve_visual_anchors(
+            vlm_anchors=raw_input.vlm_visual_anchors,
+            brand_props=brand.brand_props
         )
-        # Словарь событий по номеру дня (1..days_count)
-        events_by_day = {e["day_number"]: e for e in events_list}
+        anchors_str = ", ".join(resolved_anchors) if resolved_anchors else "natural authentic materials"
 
-        stages = ["TOFU", "MOFU", "BOFU", "TOFU", "MOFU", "BOFU", "MOFU"]
-        plan_items = []
+        base_analog_formula = (
+            "Shot on Hasselblad H6D-100c, 85mm prime lens f/2.8, camera angled downwards at 35 degrees tilt, "
+            "authentic 35mm RAW color photo with natural fine organic film grain Kodak Portra 400 ISO 400:1.15, "
+            "soft directional morning window daylight 5600K, hyper-realistic physical materials, zero CGI"
+        )
 
-        # 2. Интеграция Маркетинговых Фреймворков и Лестницы Ханта
-        from skills.marketing_frameworks import MarketingFrameworkDirector, HuntStage, MarketingFramework, PsychologicalTrigger
+        specs: List[ImageGenerationSpec] = []
 
-        for day in range(1, days_count + 1):
-            slot_idx = (day - 1) % (len(grid_slots) if grid_slots else 9)
-            slot_info = grid_slots[slot_idx] if grid_slots and slot_idx < len(grid_slots) else {
-                "slot": slot_idx + 1,
-                "type": "lifestyle",
-                "title": "Брендовый кадр",
-                "description": "Эстетичный кадр с фирменными цветами"
-            }
-            pain = pains[(day - 1) % len(pains)]
-
-            # Определение ступени прогрева по лестнице Ханта
-            hunt_stage = MarketingFrameworkDirector.get_stage_for_day(day - 1, total_days=days_count)
-            stage_strategy = MarketingFrameworkDirector.HUNT_STAGE_STRATEGIES[hunt_stage]
-            framework = stage_strategy["framework"]
-            trigger = stage_strategy["trigger"]
-
-            # Проверка, выпадает ли на этот день праздник
-            holiday_event = events_by_day.get(day)
-
-            if holiday_event:
-                stage = "BOFU" if "подарок" in holiday_event["vibe"].lower() or "скидк" in holiday_event["vibe"].lower() else "TOFU"
-                h_title = holiday_event["title"]
-                topic = f"🎉 [Праздник: {h_title}] Поздравление от «{company_name}» и праздничный комплимент клиентам"
-                format_type = "Праздничный ситуативный пост + Поздравление + Промокод"
-                target_pain = f"Праздничное настроение и забота о клиентах: {h_title} ({holiday_event['vibe']})"
-                framework = MarketingFramework.AIDA
-                trigger = PsychologicalTrigger.RECIPROCITY
-            else:
-                stage = stages[(day - 1) % len(stages)]
-                # Если есть реальный вопрос аудитории и день четный — делаем пост-ответ
-                if feedback_questions and day % 2 == 0 and (day // 2 - 1) < len(feedback_questions):
-                    actual_q = feedback_questions[day // 2 - 1]
-                    topic = f"Отвечаем на частый вопрос клиентов: «{actual_q}» — честный разбор от {company_name}"
-                    format_type = "Пост-ответ на вопрос аудитории + Экспертный разбор"
-                    target_pain = f"Вопрос от реальных подписчиков: {actual_q}"
-                    framework = MarketingFramework.FAB
-                    trigger = PsychologicalTrigger.AUTHORITY
-                elif stage == "TOFU":
-                    topic = f"Как избежать главной ошибки в {niche}: секреты профессионалов"
-                    format_type = "Пост-разбор + Вопрос в комментариях"
-                    target_pain = pain
-                    framework = MarketingFramework.BAB
-                    trigger = PsychologicalTrigger.RECIPROCITY
-                elif stage == "MOFU":
-                    topic = f"Честно о том, как мы закрываем проблему «{pain}» в {company_name}"
-                    format_type = "Кейс До/После + Демонстрация процесса"
-                    target_pain = pain
-                    framework = MarketingFramework.PAS
-                    trigger = PsychologicalTrigger.RISK_REVERSAL
-                else: # BOFU
-                    topic = f"Специальное предложение от «{company_name}»: гарантия качества и выгода"
-                    format_type = "Продающий оффер + Промокод + CTA"
-                    target_pain = pain
-                    framework = MarketingFramework.FOUR_P
-                    trigger = PsychologicalTrigger.SCARCITY_FOMO
-
-            # Генерация точной промпт-директивы для нейросети
-            prompt_directive = MarketingFrameworkDirector.construct_marketing_prompt(
-                company_name=company_name,
-                niche=niche,
-                topic=topic,
-                framework=framework,
-                hunt_stage=hunt_stage,
-                trigger=trigger,
-                pain_points=[target_pain]
+        if format_type == ContentFormat.SINGLE_SHOT:
+            prompt = (
+                f"Commercial hero shot for {brand.company_name}. "
+                f"Featuring {anchors_str}. "
+                f"{base_analog_formula}."
             )
+            specs.append(ImageGenerationSpec(
+                prompt=prompt,
+                aspect_ratio="1:1",
+                width=1024,
+                height=1024
+            ))
 
-            plan_items.append({
-                "day": day,
-                "stage": stage,
-                "hunt_stage": hunt_stage.value,
-                "marketing_framework": framework.value,
-                "framework_name": prompt_directive["framework_name"],
-                "psychological_trigger": trigger.value,
-                "topic": topic,
-                "target_pain_point": target_pain,
-                "format": format_type,
-                "is_holiday": bool(holiday_event),
-                "holiday_info": holiday_event,
-                "prompt_directive": prompt_directive["full_marketing_prompt"],
-                "grid_slot": {
-                    "slot_number": slot_info.get("slot", slot_idx + 1),
-                    "shot_type": slot_info.get("type"),
-                    "visual_title": slot_info.get("title"),
-                    "visual_guidance": f"Съемка в стиле '{slot_info.get('title')}'. Палитра: {', '.join(brand_colors[:2])}."
-                }
-            })
+        elif format_type == ContentFormat.CAROUSEL_LIGHT:
+            # 3 слайда: Окружение -> Макро деталь -> В действии
+            angles = [
+                ("Hero establishing view", "1:1", 1024, 1024),
+                ("Sensory extreme close-up macro texture", "1:1", 1024, 1024),
+                ("Human interaction and use context", "1:1", 1024, 1024)
+            ]
+            for angle_name, aspect, w, h in angles:
+                p = f"{angle_name} of {brand.company_name} presentation. Featuring {anchors_str}. {base_analog_formula}."
+                specs.append(ImageGenerationSpec(prompt=p, aspect_ratio=aspect, width=w, height=h))
 
-        return {
-            "status": "success",
-            "company_name": company_name,
-            "niche": niche,
-            "country": country,
-            "city": city,
-            "total_days": days_count,
-            "holidays_included_count": len(events_by_day),
-            "plan_days": plan_items,
-            "brand_palette": brand_colors,
-            "summary": f"Контент-план на {days_count} дней успешно сбалансирован: внедрено {len(events_by_day)} праздничных инфоповодов для г. {city} ({country})."
-        }
+        elif format_type == ContentFormat.CRYPTEX_PUZZLE:
+            # 4 слайда под нарезку Y = 0-22%, 22-44%, 44-76%, 76-100%
+            for i in range(4):
+                p = (
+                    f"Seamless vertical slice layer {i+1} presentation for {brand.company_name}. "
+                    f"Featuring {anchors_str}. {base_analog_formula}."
+                )
+                specs.append(ImageGenerationSpec(
+                    prompt=p,
+                    aspect_ratio="4:5",
+                    width=1080,
+                    height=1350
+                ))
+
+        else:
+            # Fallback
+            specs.append(ImageGenerationSpec(
+                prompt=f"Commercial photo for {brand.company_name}. {anchors_str}. {base_analog_formula}.",
+                aspect_ratio="1:1",
+                width=1024,
+                height=1024
+            ))
+
+        return specs
+
+    def _llm_generate_text(
+        self,
+        brand: BrandProfile,
+        raw_input: RawDataIngestion,
+        tov_instruction: str,
+        format_type: ContentFormat
+    ) -> str:
+        """
+        Генерирует текст поста (в реальной системе вызывает Сайгу/LLM, здесь возвращает детерминированный каркас).
+        """
+        compact_ocr = OCREntityExtractor.extract_compact_entities(raw_input.ocr_raw_text)
+        ocr_context_str = f" [Факты из меню/документа: {compact_ocr}]" if compact_ocr else ""
+        rag_facts_str = f" [УТП: {', '.join(raw_input.rag_context_snippets[:2])}]" if raw_input.rag_context_snippets else ""
+
+        if brand.industry == IndustryArchetype.B2B_CORPORATE:
+            hook = f"📊 Анализ и стандарты: как {brand.company_name} обеспечивает надежность процессов"
+            body = (
+                f"В корпоративном сегменте ключевое значение имеет прозрачность и минимизация рисков.\n"
+                f"**> {tov_instruction}{ocr_context_str}{rag_facts_str}\n"
+                f"Мы внедряем строгий аудит на каждом этапе сотрудничества."
+            )
+            cta = "📩 Ознакомьтесь с подробным регламентом по ссылке в профиле или запросите аудит в директ."
+
+        elif brand.industry == IndustryArchetype.EXPERT_SERVICES:
+            hook = f"💡 Разбор практики: ключевые нюансы в работе {brand.company_name}"
+            body = (
+                f"Частая ошибка клиентов — попытка решить сложную задачу типовыми методами.\n"
+                f"**> {tov_instruction}{ocr_context_str}\n"
+                f"Пошаговый алгоритм позволяет сэкономить ресурсы и гарантировать результат."
+            )
+            cta = "📌 Сохраните этот чек-лист в закладки или запишитесь на персональный разбор."
+
+        else:  # B2C_LIFESTYLE
+            hook = f"☕ Атмосфера и детали: утро вместе с {brand.company_name}"
+            body = (
+                f"Каждая деталь имеет значение, когда речь идет о настоящем вкусе и тактильном комфорте.\n"
+                f"**> {tov_instruction}{ocr_context_str}\n"
+                f"Создаем моменты, к которым хочется возвращаться каждый день."
+            )
+            cta = "👉 Выберите свой любимый вариант по ссылке в описании профиля."
+
+        return f"{hook}\n\n{body}\n\n{cta}"
+
+    def generate_post_draft(
+        self,
+        brand: BrandProfile,
+        raw_input: RawDataIngestion,
+        target_date: datetime,
+        forced_format: Optional[ContentFormat] = None
+    ) -> PostDraft:
+        """
+        Основной метод создания черновика поста (DRAFT_TEXT).
+        Выполняется за миллисекунды, расходует 0 GPU-ресурсов.
+        """
+        # 1. Проверка доступных форматов по тарифу подписки
+        allowed_formats = get_available_formats(brand.tier)
+        selected_format = forced_format if (forced_format in allowed_formats) else allowed_formats[0]
+
+        # 2. Определение ToV дня по матрице драматургии
+        day_key = self._get_day_key(target_date)
+        day_tov_instruction = DRAMATURGY_MATRIX[brand.industry].get(day_key, "Качественный пост")
+
+        # 3. Синтез текста (0 GPU)
+        text_content = self._llm_generate_text(
+            brand=brand,
+            raw_input=raw_input,
+            tov_instruction=day_tov_instruction,
+            format_type=selected_format
+        )
+
+        # 4. Формирование спецификаций изображений с фильтром конфликтов
+        image_specs = self._compose_image_specs(
+            brand=brand,
+            raw_input=raw_input,
+            format_type=selected_format
+        )
+
+        # 5. Сборка PostDraft
+        post = PostDraft(
+            post_id=str(uuid.uuid4()),
+            brand_id=brand.brand_id,
+            target_date=target_date,
+            format=selected_format,
+            status=PostLifecycleStatus.DRAFT_TEXT,
+            text_content=text_content,
+            image_specs=image_specs,
+            rendered_image_urls=[]
+        )
+
+        # 6. Расчет предварительной стоимости VRAM
+        post.vram_cost_mb = VRAMCostCalculator.calculate_total_post_vram(post, dev_simulation_mode=True)
+        return post

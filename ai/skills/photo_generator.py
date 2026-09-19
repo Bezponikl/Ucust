@@ -384,12 +384,14 @@ class CinematographyDirector:
         "symmetry": "Balanced centered framing",
         "leading_lines": "Natural leading lines through the environment",
         "framing": "Natural framing through environmental elements",
+        "diagonal_framing": "Diagonal dynamic leading lines across the frame with natural organic foreground framing element on one side creating rich three-dimensional spatial depth and an accent color sliver in the opposite corner",
         "negative_space": "Uncluttered composition with natural negative space",
         "triangles": "Natural triangular arrangement of scene elements",
         "golden_spiral": "Natural flowing compositional curve guiding the eye"
     }
 
     PERSPECTIVES = {
+        "diagonal_organic_framing": "slightly elevated diagonal perspective looking down at the subject with standard prime lens, shallow depth of field with vibrant organic green foliage partially framing the frame from the left in soft blur, creamy background bokeh with subtle accent color in upper corner",
         "bokeh_shallow": "smooth progressive focal falloff, authentic optical lens blur, f/1.2 depth of field, blurred object in extreme foreground creating layered 3D depth, creamy natural background falloff",
         "low_angle_heroic": "slightly low-angle perspective, smooth progressive optical focal falloff, f/1.2 lens blur",
         "tabletop_commercial": "45-degree angle tabletop view, smooth progressive optical focal falloff, f/1.4 lens blur, blurred foreground edge framing the subject",
@@ -761,20 +763,22 @@ class CinematographyDirector:
                 seasonal_pose = f"macro commercial shot of manicured hand with {shape_desc} nails with {color_desc} resting on sunlit warm travertine stone surface with delicate palm leaf shadow play"
 
             nail_poses = [
-                # Вариация 0: Editorial Hand-to-Face (Рука у лица, помада в тон, кольцо с сердцем)
+                # Вариация 0: Diagonal Organic Framing (Эталонный Pinterest-архетип: диагональ, лист слева, микро-глиттер, акцент в углу)
+                f"close-up diagonal commercial beauty shot of a hand with slender well-manicured fingers gently curved in a relaxed natural pose, showcasing fingernails in {shape_desc} shape with {color_desc}, middle finger featuring a delicate fine glitter dusting catching the light with subtle sparkle, natural soft human skin texture with faint lines and creases around knuckles and fingertips, hand positioned slightly diagonally across frame with thumb and pinky slightly out of focus, in the foreground to the left a vibrant green leaf with serrated edges and glossy surface partially frames the shot, background softly blurred off-white surface with faint circular indentation and a thin curved line suggesting modern ceramic decor, with a subtle sliver of bright warm yellow accent in the upper right corner",
+                # Вариация 1: Editorial Hand-to-Face (Рука у лица, помада в тон, кольцо с сердцем)
                 f"close-up beauty editorial portrait of a woman with luminous skin, lips painted in {lipstick_color} lipstick accentuating natural texture, her hand with {shape_desc} nails in {color_desc} resting gently against lower cheek and jawline, fingers slightly curved toward lips, delicate silver ring with an openwork heart adorning her ring finger, soft neutral gradient bokeh",
-                # Вариация 1: In-Action Process (Мастер наносит кистью топ/лак, полотенце, решетка вытяжки)
+                # Вариация 2: In-Action Process (Мастер наносит кистью топ/лак, полотенце, решетка вытяжки)
                 f"macro shot of a skilled manicurist's hands delicately applying a translucent glossy layer to a client's fingernail using a fine precision brush, manicurist's left hand holding client's index finger steady while right hand maneuvers brush with precision, client's hand resting on a soft plush white towel draped over a metal nail dust extractor tray with a grid pattern, showcasing {shape_desc} nails with {color_desc}, transparent bottle and nail file in soft blurred background",
-                # Вариация 2: Сезонный / Праздничный предметный якорь
+                # Вариация 3: Сезонный / Праздничный предметный якорь
                 seasonal_pose,
-                # Вариация 3: Встречные руки сверху и снизу кадра (Взаимная симметрия)
+                # Вариация 4: Встречные руки сверху и снизу кадра (Взаимная симметрия)
                 f"editorial beauty photography of two manicured hands entering the frame from opposite top and bottom angles with fingers fanned out in parallel symmetry meeting in center, ribbed sweater sleeves framing the frame from above and below, showcasing pristine {shape_desc} nails with {color_desc}",
-                # Вариация 4: Классический лайфстайл (ладони скрещены на свитере)
+                # Вариация 5: Классический лайфстайл (ладони скрещены на свитере)
                 f"extreme macro close-up photography of slender well-manicured female hands gently crossed over a soft cream knit sweater, {shape_desc} shaped nails with {color_desc}, razor-sharp focus on pristine cuticles and smooth nail plates, natural skin texture with visible pores, no full person visible"
             ]
             subject = nail_poses[var % len(nail_poses)]
             environment = f"warm aesthetic studio background in soft creamy bokeh, {seasonal_anchor.get('bg_accent', 'beautiful textured knitwear in soft focus')}"
-            persp_key = "macro_nail_close_up"
+            persp_key = "diagonal_organic_framing" if var % 2 == 0 else "macro_nail_close_up"
 
         # 1.5. ПРАЗДНИКИ И ТЕМАТИЧЕСКИЕ ИНФОПОВОДЫ (МАСЛЕНИЦА, ПАСХА, НОВЫЙ ГОД, 8 МАРТА, 14 ФЕВРАЛЯ, ХЭЛЛОУИН, СПАС И ДР.)
         elif holiday_aesthetic and (
@@ -793,16 +797,18 @@ class CinematographyDirector:
             cup_desc = "handcrafted matte ceramic sage-green or earthy cup" if any(w in topic_lower for w in ["керамик", "чашк", "кружк", "cup", "ceramic"]) else "artisan ceramic cup"
 
             coffee_archetypes = [
-                # Вариация 0: Руки греются об чашку (эмоция уюта)
+                # Вариация 0: Diagonal Organic Framing (Диагональная подача, лист кофе/растения слева, срез салфетки в углу)
+                f"close-up diagonal commercial tabletop photo of an artisan {cup_desc} with {latte_art} and a contrasting dark espresso rim resting on a smooth off-white travertine surface, in the foreground to the left a vibrant glossy green leaf with serrated edges partially frames the shot in soft blur, subtle sliver of warm golden-yellow natural linen in the upper right corner, soft natural diffused window daylight, delicate wisps of rising steam",
+                # Вариация 1: Руки греются об чашку (эмоция уюта)
                 f"candid close-up lifestyle photo of female hands in cozy knitted sweater sleeves gently cupping a warm {cup_desc} with both palms to warm up, {latte_art} with contrasting dark espresso rim, whisper of translucent warm vapor rising, on a {table_desc}",
-                # Вариация 1: Хват за ручку (момент дегустации)
+                # Вариация 2: Хват за ручку (момент дегустации)
                 f"candid side-angle photo of a clean hand holding the {cup_desc} by its handle lifting it slightly above ceramic saucer{pastry_desc}, glossy espresso crema and microfoam, subtle translucent heat shimmer rising, morning sunlight on {table_desc}",
-                # Вариация 2: Стол без людей (предметный вид: крема 40-60% или ровный арт)
+                # Вариация 3: Стол без людей (предметный вид: крема 40-60% или ровный арт)
                 f"macro commercial tabletop photography of a steaming {cup_desc} with golden-brown crema and microfoam covering 50% of surface, placed on a {table_desc} beside roasted coffee beans and a ceramic saucer, subtle translucent heat shimmer"
             ]
             subject = coffee_archetypes[var % len(coffee_archetypes)]
             environment = "cozy sunlit specialty craft coffee shop, warm morning sunbeams streaming through window, soft golden bokeh in background"
-            persp_key = "culinary_macro_eyelevel" if var % 2 == 0 else "tabletop_commercial"
+            persp_key = "diagonal_organic_framing" if var % 2 == 0 else "culinary_macro_eyelevel"
 
         # 3. КУЛИНАРИЯ: ШЕФ-ПОВАР, СТЕЙК, МЯСНОЙ БУТИК (ПРАВИЛЬНЫЙ ХВАТ, ШПАГАТ, ОВОЩИ-ГРИЛЬ)
         elif any(w in topic_lower for w in ["стейк", "рибай", "мясо", "steak", "ribeye", "bbq", "барбекю", "мясн"]) or (any(w in topic_lower for w in ["шеф", "повар", "chef"]) and any(w in topic_lower for w in ["кухн", "кулинар", "нарез", "жар", "блюд"])):
@@ -1083,7 +1089,9 @@ class CinematographyDirector:
                 optics_extra = "sharp full-body frame, crisp clothing fabric texture, "
 
             # Физический материализованный якорь переднего плана (СТРОГАЯ ИЗОЛЯЦИЯ ПО НИШАМ)
-            if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
+            if "leaf with serrated edges" in subject.lower() or persp_key == "diagonal_organic_framing":
+                foreground_anchor = "(vibrant green leaf with serrated edges and glossy surface in extreme blurred foreground framing the shot from the left:1.25)"
+            elif any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
                 foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
             elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
                 foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"
@@ -1178,7 +1186,9 @@ class CinematographyDirector:
 
             # Физический материализованный якорь переднего плана (если не переопределен праздником)
             if not (holiday_aesthetic and holiday_aesthetic.get("match_type") == "keyword"):
-                if any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
+                if "leaf with serrated edges" in subject.lower() or persp_key == "diagonal_organic_framing":
+                    foreground_anchor = "(vibrant green leaf with serrated edges and glossy surface in extreme blurred foreground framing the shot from the left:1.25)"
+                elif any(w in topic_lower or w in subject.lower() for w in ["корги", "щенок", "щенк", "собак", "кошк", "котен", "питомц", "puppy", "kitten"]) or any(re.search(rf'\b{w}\b', topic_lower) or re.search(rf'\b{w}\b', subject.lower()) for w in ["кот", "коты", "dog", "cat", "пес", "пёс"]):
                     foreground_anchor = "(blurred edge of cozy knit blanket in extreme foreground:1.2)"
                 elif any(w in topic_lower or w in subject.lower() for w in ["маникюр", "ногти", "гель-лак", "нейл", "ногот", "nail", "manicure"]):
                     foreground_anchor = "(blurred edge of soft knitwear sleeve in extreme foreground:1.2)"

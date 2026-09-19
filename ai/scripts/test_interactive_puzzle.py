@@ -21,6 +21,7 @@ if AI_DIR not in sys.path:
 from skills.interactive_puzzle_generator import (
     InteractivePuzzleSlicer,
     CinematographyDirectorPuzzleExtension,
+    PuzzleTriggerEvaluator,
     PUZZLE_PRESETS
 )
 
@@ -63,7 +64,31 @@ def create_mock_scene_image(scene_idx: int, width: int = 1024, height: int = 102
 
 
 def main():
-    print("🚀 [1/3] Проверка генератора промптов CinematographyDirectorPuzzleExtension для всех ниш...")
+    print("🧠 [0/3] Проверка логики интеллектуального оценщика триггеров (PuzzleTriggerEvaluator)...")
+    test_cases = [
+        {"name": "Coffee Like", "niche": "Сеть кофеен", "goal": "engagement_boost", "dow": 0, "hour": 8, "drop": True},
+        {"name": "Nail Couture", "niche": "Салон маникюра", "goal": "choice_paralysis", "dow": 4, "hour": 17, "drop": False},
+        {"name": "Prime Legal Partners", "niche": "Адвокатское бюро", "goal": "b2b_explainer", "dow": 2, "hour": 13, "drop": False},
+        {"name": "Apex Private Wealth", "niche": "Управление активами и банк", "goal": "expert_status", "dow": 1, "hour": 11, "drop": False},
+        {"name": "Standard Store", "niche": "Бытовая химия", "goal": "routine_post", "dow": 2, "hour": 12, "drop": False},
+    ]
+
+    for tc in test_cases:
+        decision = PuzzleTriggerEvaluator.evaluate(
+            company_name=tc["name"],
+            niche=tc["niche"],
+            post_goal=tc["goal"],
+            day_of_week=tc["dow"],
+            hour=tc["hour"],
+            recent_engagement_drop=tc["drop"]
+        )
+        print(f"\n🏢 Клиент: {tc['name']} | Ниша: {tc['niche']}")
+        print(f"   🎯 Решение: {'✅ ПУБЛИКОВАТЬ ПАЗЛ' if decision.should_use_puzzle else '❌ Обычный пост'} (Score: {decision.relevance_score})")
+        print(f"   📌 Ситуация: {decision.situation_type} | Пресет: {decision.recommended_preset}")
+        print(f"   💡 Обоснование: {decision.rationale}")
+        print(f"   ⏰ Окно постинга: {decision.optimal_time_window}")
+
+    print("\n🚀 [1/3] Проверка генератора промптов CinematographyDirectorPuzzleExtension для всех ниш...")
     for niche in ("coffee", "beauty", "legal", "banking"):
         preset = PUZZLE_PRESETS[niche]
         print(f"\n==================== НИША: {preset.niche} ({preset.title}) ====================")

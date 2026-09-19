@@ -185,6 +185,125 @@ PUZZLE_PRESETS: Dict[str, PuzzlePreset] = {
 }
 
 
+@dataclass
+class PuzzleDecision:
+    """Решение оценщика триггеров: уместен ли интерактивный пазл."""
+    should_use_puzzle: bool
+    relevance_score: float  # от 0.0 до 1.0
+    recommended_preset: str
+    situation_type: str
+    rationale: str
+    suggested_cta: str
+    optimal_time_window: str
+
+
+class PuzzleTriggerEvaluator:
+    """
+    Интеллектуальный оценщик уместности интерактивного пазл-поста.
+    Анализирует нишу, день недели, время, цели кампании и метрики вовлечения.
+    """
+
+    NICHE_MAPPING = {
+        "coffee": ["кофе", "кофейня", "specialty coffee", "кофейный", "кафе", "cafe", "бариста", "horeca", "чай", "пекарня"],
+        "beauty": ["ногти", "маникюр", "бьюти", "beauty", "салон красоты", "nail", "нейл", "косметика", "стилист", "spa", "спа"],
+        "legal": ["юрист", "юриспруденция", "адвокат", "право", "legal", "law", "m&a", "налоги", "консалтинг", "нотариус", "арбитраж"],
+        "banking": ["банк", "banking", "инвестиции", "private banking", "финансы", "капитал", "wealth", "управление активами", "фонд", "крипто"]
+    }
+
+    @classmethod
+    def resolve_preset(cls, niche_input: str) -> str:
+        """Определяет подходящий пресет по текстовому описанию ниши."""
+        niche_lower = (niche_input or "").lower()
+        for preset_key, keywords in cls.NICHE_MAPPING.items():
+            if any(kw in niche_lower for kw in keywords):
+                return preset_key
+        return "coffee"  # Дефолтный универсальный пресет
+
+    @classmethod
+    def evaluate(
+        cls,
+        company_name: str,
+        niche: str,
+        post_goal: Optional[str] = None,
+        day_of_week: Optional[int] = None,
+        hour: Optional[int] = None,
+        recent_engagement_drop: bool = False
+    ) -> PuzzleDecision:
+        """
+        Анализирует контекст и выносит вердикт о целесообразности публикации пазла.
+        
+        Параметры:
+        - day_of_week: 0=Понедельник, 1=Вторник, ..., 4=Пятница, 5=Суббота, 6=Воскресенье.
+        - hour: Час публикации (0-23).
+        - recent_engagement_drop: Флаг падения охватов за последние дни.
+        """
+        from datetime import datetime
+        now = datetime.now()
+        dow = day_of_week if day_of_week is not None else now.weekday()
+        current_hour = hour if hour is not None else now.hour
+        goal = (post_goal or "").lower()
+
+        preset_key = cls.resolve_preset(niche)
+        preset = PUZZLE_PRESETS[preset_key]
+
+        score = 0.5  # Базовая релевантность
+        situation = "standard_interactive"
+        rationale_parts = []
+
+        # 1. Анализ целей кампании
+        if "engagement" in goal or "boost" in goal or "вовлеч" in goal or recent_engagement_drop:
+            score += 0.35
+            situation = "engagement_resuscitation"
+            rationale_parts.append("Необходим алгоритмический буст охватов и оживление комментариев (Dwell Time 60+ сек).")
+        elif "launch" in goal or "menu" in goal or "меню" in goal or "новинк" in goal or "коллекци" in goal:
+            score += 0.30
+            situation = "product_lineup_showcase"
+            rationale_parts.append("Презентация вариативности нового меню/линейки через игровой конструктор.")
+        elif "b2b" in goal or "expert" in goal or "эксперт" in goal or preset_key in ("legal", "banking"):
+            score += 0.25
+            situation = "b2b_authority_explainer"
+            rationale_parts.append("Демонстрация фундаментальности и многоуровневой структуры услуг (экспертный статус).")
+        elif "choice" in goal or "выбор" in goal or "рулетк" in goal:
+            score += 0.25
+            situation = "choice_paralysis_remover"
+            rationale_parts.append("Снятие барьера выбора у клиента через геймифицированную рулетку образов.")
+
+        # 2. Календарные и временные триггеры
+        if dow == 0 and 7 <= current_hour <= 11:
+            score += 0.20
+            situation = "monday_morning_mood"
+            rationale_parts.append("Утро понедельника: аудитории требуется легкий бодрящий интерактив ('Муд недели').")
+            time_window = "08:00 - 10:30 (Утренний пик)"
+        elif dow == 4 and 15 <= current_hour <= 20:
+            score += 0.15
+            situation = "friday_evening_chill"
+            rationale_parts.append("Вечер пятницы: расслабленный развлекательный контент перед выходными.")
+            time_window = "16:30 - 19:30 (Пятничный релакс)"
+        elif dow in (5, 6):
+            score += 0.10
+            situation = "weekend_lifestyle"
+            rationale_parts.append("Выходной день: пользователи дольше листают визуальный эстетичный контент.")
+            time_window = "11:00 - 15:00 (Дневной уикенд)"
+        else:
+            time_window = "12:00 - 14:00 (Обеденный прайм-тайм)"
+
+        # Нормализация скора
+        final_score = min(1.0, round(score, 2))
+        should_use = final_score >= 0.65
+
+        rationale = " ".join(rationale_parts) if rationale_parts else "Стандартная ротация визуальных форматов для поддержания вовлеченности."
+
+        return PuzzleDecision(
+            should_use_puzzle=should_use,
+            relevance_score=final_score,
+            recommended_preset=preset_key,
+            situation_type=situation,
+            rationale=rationale,
+            suggested_cta=preset.cta_hook,
+            optimal_time_window=time_window
+        )
+
+
 class InteractivePuzzleSlicer:
     """
     Высокоточный нарезчик изображений для интерактивных Telegram-каруселей.

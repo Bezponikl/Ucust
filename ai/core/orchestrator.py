@@ -779,6 +779,42 @@ class UnifiedOrchestrator:
                 "profile_id": profile_id or 1
             }
 
+        if task_type in {"onboard_brand", "brand_dna", "onboarding_agent"}:
+            from skills.onboarding_agent import OnboardingAgent
+            agent = OnboardingAgent(dev_mode=True)
+            
+            tenant_id = user_data.get("tenant_id") or user_data.get("user_id") or "tenant_default"
+            company_name = user_data.get("company_name") or user_data.get("name") or "UCust"
+            niche = user_data.get("niche") or user_data.get("activity") or "IT & Services"
+            telegram_ch = user_data.get("telegram_channel") or user_data.get("channel")
+            web_url = user_data.get("website_url") or user_data.get("url") or user_data.get("website")
+            doc_paths = user_data.get("document_paths") or user_data.get("documents") or user_data.get("files")
+            raw_notes = user_data.get("raw_notes") or user_data.get("notes")
+            
+            dna = await agent.ingest_and_profile_brand(
+                tenant_id=tenant_id,
+                company_name=company_name,
+                niche=niche,
+                telegram_channel=telegram_ch,
+                website_url=web_url,
+                document_paths=doc_paths if isinstance(doc_paths, list) else ([doc_paths] if doc_paths else None),
+                raw_notes=raw_notes
+            )
+            
+            self._log_trace(session_id, "OnboardingAgent", "BrandDNAProfiled", {
+                "tenant_id": tenant_id,
+                "company_name": company_name,
+                "usp_count": len(dna.key_usp),
+                "industry": dna.industry
+            })
+            
+            return {
+                "status": "success",
+                "task_type": task_type,
+                "tenant_id": tenant_id,
+                "brand_dna": dna.dict()
+            }
+
         if task_type in {"parse_documents", "ingest_client_files", "extract_documents"}:
             from collectors.document_collector import DocumentCollector
             doc_collector = DocumentCollector()
@@ -1114,6 +1150,21 @@ class UnifiedOrchestrator:
                 print(f"[CascadeResolver] 🎯 Приоритет 2 (Стек контент-плана): '{prompt}'")
             else:
                 print(f"[CascadeResolver] 🎯 Приоритет 3 (Автопилот Сайги): '{prompt}'")
+
+            # 1.1 Семантическая дедупликация и защита от повторов (Audit Agent)
+            from skills.audit_deduplication_agent import AuditDeduplicationAgent
+            recent_topics = user_data.get("recent_post_topics") or user_data.get("recent_topics") or []
+            audit_agent = AuditDeduplicationAgent(custom_threshold=0.82)
+            rubric_val = user_data.get("rubric", "general")
+            dedup_verdict = audit_agent.evaluate_uniqueness(
+                proposed_topic_or_text=prompt,
+                recent_channel_posts=recent_topics,
+                topic_category=rubric_val.lower() if isinstance(rubric_val, str) else "general"
+            )
+            original_prompt = prompt
+            if dedup_verdict.is_duplicate and dedup_verdict.suggested_shifted_angle:
+                print(f"[UnifiedOrchestrator] 🚫 [AuditAgent] Обнаружен дубль темы ({dedup_verdict.similarity_score} >= {audit_agent.threshold}). Сдвиг угла подачи: '{dedup_verdict.suggested_shifted_angle}'")
+                prompt = f"{prompt} — {dedup_verdict.suggested_shifted_angle}"
 
             aspect_ratio = user_data.get("aspect_ratio")
             if not aspect_ratio:
@@ -1491,6 +1542,13 @@ class UnifiedOrchestrator:
                 "format": format_type,
                 "tone": tone,
                 "critic_review": critic_res,
+                "deduplication_verdict": {
+                    "is_duplicate": dedup_verdict.is_duplicate,
+                    "similarity_score": dedup_verdict.similarity_score,
+                    "original_topic": original_prompt,
+                    "suggested_shifted_angle": dedup_verdict.suggested_shifted_angle,
+                    "reason": dedup_verdict.reason
+                },
                 "moondream_analysis": moondream_analysis,
                 "publish_result": publish_res,
                 "timings": {

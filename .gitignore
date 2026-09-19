@@ -19,3 +19,5 @@ scratch/
 ai/output/
 ai/ai/
 *.pdf
+*scratch*
+

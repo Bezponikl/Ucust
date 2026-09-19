@@ -1,0 +1,4730 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UCust AI Service Gateway",
+    "description": "Единая точка входа для бэкенда и фронтенда к команде автономных ИИ-агентов UCust.",
+    "version": "2.5.0"
+  },
+  "paths": {
+    "/api/v1/onboarding/async": {
+      "post": {
+        "tags": [
+          "Async Tasks Queue"
+        ],
+        "summary": "Асинхронный запуск онбординга бренда",
+        "description": "Асинхронный сбор данных (Telegram, Website, PDF) и извлечение Brand DNA.\nЗадача отправляется в очередь CPU-воркера 'ucust_ai_queue'.",
+        "operationId": "trigger_onboarding_task_api_v1_onboarding_async_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingAsyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncTaskAcceptedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/content/generate-async": {
+      "post": {
+        "tags": [
+          "Async Tasks Queue"
+        ],
+        "summary": "Асинхронный запуск генерации контента (Lazy Rendering)",
+        "description": "Асинхронная генерация контент-плана или черновика поста с нулевой стоимостью GPU.\nЗадача отправляется в очередь CPU-воркера 'ucust_ai_queue'.",
+        "operationId": "trigger_content_generation_task_api_v1_content_generate_async_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentGenerateAsyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncTaskAcceptedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Observability & Telemetry"
+        ],
+        "summary": "Get Prometheus Metrics",
+        "description": "Экспорт метрик Prometheus (RPS, Latency, Celery Queue Depth, VRAM Allocation).",
+        "operationId": "get_prometheus_metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/execute": {
+      "post": {
+        "tags": [
+          "Unified Orchestrator Gateway"
+        ],
+        "summary": "Execute Orchestrator Task",
+        "description": "ЕДИНЫЙ КОМАНДНЫЙ ШЛЮЗ ОРКЕСТРАТОРА ДЛЯ БЭКЕНДА (v2.5.0):\n- Принимает любую задачу ('generate_post', 'quick_vision', 'onboard_user', 'analyze_documents', 'quick_scan', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest').\n- Проводит централизованную валидацию безопасности (SSRF, Injections, Secret).\n- Выполняет оркестровку через UnifiedOrchestrator.\n- Автоматически синхронизирует результат с основным бэкендом (HTTP Push Webhook) при sync_backend=True.",
+        "operationId": "execute_orchestrator_task_api_v1_task_execute_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrchestratorTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrchestratorTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orchestrator/execute": {
+      "post": {
+        "tags": [
+          "Unified Orchestrator Gateway"
+        ],
+        "summary": "Execute Orchestrator Task",
+        "description": "ЕДИНЫЙ КОМАНДНЫЙ ШЛЮЗ ОРКЕСТРАТОРА ДЛЯ БЭКЕНДА (v2.5.0):\n- Принимает любую задачу ('generate_post', 'quick_vision', 'onboard_user', 'analyze_documents', 'quick_scan', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest').\n- Проводит централизованную валидацию безопасности (SSRF, Injections, Secret).\n- Выполняет оркестровку через UnifiedOrchestrator.\n- Автоматически синхронизирует результат с основным бэкендом (HTTP Push Webhook) при sync_backend=True.",
+        "operationId": "execute_orchestrator_task_api_v1_orchestrator_execute_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrchestratorTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrchestratorTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orchestration/generate": {
+      "post": {
+        "tags": [
+          "Direct Generation Bridge"
+        ],
+        "summary": "Direct Orchestration Generate",
+        "description": "⚡ ПРЯМОЙ ЭНДПОИНТ ГЕНЕРАЦИИ КОНТЕНТА ДЛЯ БЭКЕНДА (с поддержкой ProjectContext):\n- Принимает как минимальные параметры (prompt, attachments, promoCode),\n  так и полный объект проекта (city, toneOfVoice, targetAudience, businessHours, logoUrl, socialLinks).\n- Автоматически обогащает контекст для Saiga LLM, Moondream2 и ComfyUI.\n- Выполняет сквозную оркестровку и возвращает структурированный результат.",
+        "operationId": "direct_orchestration_generate_api_v1_orchestration_generate_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orchestration/generate": {
+      "post": {
+        "tags": [
+          "Direct Generation Bridge"
+        ],
+        "summary": "Direct Orchestration Generate",
+        "description": "⚡ ПРЯМОЙ ЭНДПОИНТ ГЕНЕРАЦИИ КОНТЕНТА ДЛЯ БЭКЕНДА (с поддержкой ProjectContext):\n- Принимает как минимальные параметры (prompt, attachments, promoCode),\n  так и полный объект проекта (city, toneOfVoice, targetAudience, businessHours, logoUrl, socialLinks).\n- Автоматически обогащает контекст для Saiga LLM, Moondream2 и ComfyUI.\n- Выполняет сквозную оркестровку и возвращает структурированный результат.",
+        "operationId": "direct_orchestration_generate_orchestration_generate_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health Check",
+        "description": "Проверка доступности ИИ-шлюза и агентов.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health Check",
+        "description": "Проверка доступности ИИ-шлюза и агентов.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health Check",
+        "description": "Проверка доступности ИИ-шлюза и агентов.",
+        "operationId": "health_check_api_v1_ai_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/tasks/async-generate": {
+      "post": {
+        "tags": [
+          "Async Generation Queue"
+        ],
+        "summary": "Submit Async Generation Task",
+        "description": "⚡ Асинхронный запуск генерации с гарантией FIFO-очереди и Push-коллбеком на Java-бэкенд.\nМгновенно отвечает кодом 202 Accepted, резервирует позицию в очереди и начинает обработку.",
+        "operationId": "submit_async_generation_task_api_v1_ai_tasks_async_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsyncGenerateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/tasks/{task_id}/status": {
+      "get": {
+        "tags": [
+          "Async Generation Queue"
+        ],
+        "summary": "Get Async Task Status",
+        "description": "Получение текущего статуса задачи (QUEUED, PROCESSING, COMPLETED, FAILED, PUSHED)\nи позиции в очереди.",
+        "operationId": "get_async_task_status_api_v1_ai_tasks__task_id__status_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/queue/stats": {
+      "get": {
+        "tags": [
+          "Async Generation Queue"
+        ],
+        "summary": "Get Generation Queue Stats",
+        "description": "Мониторинг состояния очереди и загруженности GPU.",
+        "operationId": "get_generation_queue_stats_api_v1_ai_queue_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/task": {
+      "post": {
+        "tags": [
+          "AI Tasks"
+        ],
+        "summary": "Execute Ai Task",
+        "description": "Универсальный эндпоинт выполнения задач агентами.\nБэкенд передает task_type и payload, Оркестратор распределяет нагрузку.",
+        "operationId": "execute_ai_task_api_v1_ai_task_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/trends": {
+      "get": {
+        "tags": [
+          "Trends & Analytics"
+        ],
+        "summary": "Get Weekly Trends",
+        "description": "Отдача закешированных недельных трендов из Redis за 3-5 миллисекунд.",
+        "operationId": "get_weekly_trends_api_v1_ai_trends_get",
+        "parameters": [
+          {
+            "name": "niche",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Ниша бизнеса",
+              "default": "IT и Автоматизация",
+              "title": "Niche"
+            },
+            "description": "Ниша бизнеса"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/analytics/graphs": {
+      "get": {
+        "tags": [
+          "Trends & Analytics"
+        ],
+        "summary": "Get Frontend Graphs",
+        "description": "Безопасные агрегированные данные для графиков и дашбордов фронтенда (без PII).",
+        "operationId": "get_frontend_graphs_api_v1_ai_analytics_graphs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gpu-status": {
+      "get": {
+        "tags": [
+          "System Diagnostics"
+        ],
+        "summary": "Get Gpu Vram Status",
+        "description": "📊 РЕАЛЬНОЕ СОСТОЯНИЕ ВИДЕОПАМЯТИ И ДИСПЕТЧЕРА VRAM:\n- Текущее распределение VRAM (Total, Used, Free в GB).\n- Количество активных GPU-воркеров и параллельных I/O-парсеров.\n- Самообученные (Auto-Calibrated) веса каждой задачи с учетом EMA и пиковых всплесков.",
+        "operationId": "get_gpu_vram_status_gpu_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/system/gpu-status": {
+      "get": {
+        "tags": [
+          "System Diagnostics"
+        ],
+        "summary": "Get Gpu Vram Status",
+        "description": "📊 РЕАЛЬНОЕ СОСТОЯНИЕ ВИДЕОПАМЯТИ И ДИСПЕТЧЕРА VRAM:\n- Текущее распределение VRAM (Total, Used, Free в GB).\n- Количество активных GPU-воркеров и параллельных I/O-парсеров.\n- Самообученные (Auto-Calibrated) веса каждой задачи с учетом EMA и пиковых всплесков.",
+        "operationId": "get_gpu_vram_status_api_v1_ai_system_gpu_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/generate-image": {
+      "post": {
+        "tags": [
+          "Visual & Media"
+        ],
+        "summary": "Generate Smm Image",
+        "description": "Генерация качественного SMM-изображения для постов, баннеров и сторис.",
+        "operationId": "generate_smm_image_api_v1_ai_generate_image_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/vision/analyze": {
+      "post": {
+        "tags": [
+          "Visual & Media"
+        ],
+        "summary": "Analyze Visual Media",
+        "description": "Анализ загруженного фото через ИИ-аналитика Moondream2.\nИзвлекает доминирующие цвета, ключевые объекты, композицию и готовит промпт.",
+        "operationId": "analyze_visual_media_api_v1_ai_vision_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VisionAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/website": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers",
+          "Web & Social Intelligence"
+        ],
+        "summary": "Analyze Website",
+        "description": "Глубокий парсинг и ИИ-анализ веб-сайта компании (B2B, e-commerce, лендинги).\nИзвлекает УТП, заголовки, описание услуг, контакты, соцсети и готовит контекст для LLM.",
+        "operationId": "analyze_website_api_v1_collectors_website_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/website/analyze": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers",
+          "Web & Social Intelligence"
+        ],
+        "summary": "Analyze Website",
+        "description": "Глубокий парсинг и ИИ-анализ веб-сайта компании (B2B, e-commerce, лендинги).\nИзвлекает УТП, заголовки, описание услуг, контакты, соцсети и готовит контекст для LLM.",
+        "operationId": "analyze_website_api_v1_ai_website_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsiteAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/competitor/analyze": {
+      "post": {
+        "tags": [
+          "Web & Social Intelligence"
+        ],
+        "summary": "Analyze Competitor",
+        "description": "Глубокая декомпозиция конкурента (Strengths, Weaknesses, Pricing, UVP)\nи генерация контр-стратегии отстройки для SMM.",
+        "operationId": "analyze_competitor_api_v1_ai_competitor_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompetitorAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/telegram": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Analyze Telegram Channel",
+        "description": "⚡ Парсинг и VLM-анализ Telegram-канала (@username или ссылка t.me/...):\n- Извлекает последние посты, метрики охвата, комментарии и возражения аудитории.\n- При include_media_vqa=True анализирует прикрепленные фото через связку Moondream2 + OCR (PaddleOCR).",
+        "operationId": "analyze_telegram_channel_api_v1_collectors_telegram_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/telegram/analyze": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Analyze Telegram Channel",
+        "description": "⚡ Парсинг и VLM-анализ Telegram-канала (@username или ссылка t.me/...):\n- Извлекает последние посты, метрики охвата, комментарии и возражения аудитории.\n- При include_media_vqa=True анализирует прикрепленные фото через связку Moondream2 + OCR (PaddleOCR).",
+        "operationId": "analyze_telegram_channel_api_v1_ai_telegram_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/vk": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Analyze Vk Group",
+        "description": "⚡ Парсинг сообщества ВКонтакте (VK):\n- Сбор постов, реакций (лайков/просмотров) и частых вопросов аудитории.",
+        "operationId": "analyze_vk_group_api_v1_collectors_vk_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VkAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/vk/analyze": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Analyze Vk Group",
+        "description": "⚡ Парсинг сообщества ВКонтакте (VK):\n- Сбор постов, реакций (лайков/просмотров) и частых вопросов аудитории.",
+        "operationId": "analyze_vk_group_api_v1_ai_vk_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VkAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/geo": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Analyze Geo Reviews",
+        "description": "⚡ Парсинг отзывов и рейтинга организации из 2GIS и Яндекс Карт:\n- Извлекает клиентский опыт, реальные отзывы, оценки и частые жалобы/похвалы.",
+        "operationId": "analyze_geo_reviews_api_v1_collectors_geo_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeoAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/geo/analyze": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Analyze Geo Reviews",
+        "description": "⚡ Парсинг отзывов и рейтинга организации из 2GIS и Яндекс Карт:\n- Извлекает клиентский опыт, реальные отзывы, оценки и частые жалобы/похвалы.",
+        "operationId": "analyze_geo_reviews_api_v1_ai_geo_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeoAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/parse": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Universal Collector Parse",
+        "description": "🌐 Универсальный шлюз сбора данных по любому источнику (Telegram, VK, Website, 2GIS, Yandex, Документы).\nАвтоматически определяет тип источника по ссылке или типу и возвращает нормализованную схему.",
+        "operationId": "universal_collector_parse_api_v1_ai_parse_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniversalCollectorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/collectors/parse": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Universal Collector Parse",
+        "description": "🌐 Универсальный шлюз сбора данных по любому источнику (Telegram, VK, Website, 2GIS, Yandex, Документы).\nАвтоматически определяет тип источника по ссылке или типу и возвращает нормализованную схему.",
+        "operationId": "universal_collector_parse_api_v1_ai_collectors_parse_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniversalCollectorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/parse": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers"
+        ],
+        "summary": "Universal Collector Parse",
+        "description": "🌐 Универсальный шлюз сбора данных по любому источнику (Telegram, VK, Website, 2GIS, Yandex, Документы).\nАвтоматически определяет тип источника по ссылке или типу и возвращает нормализованную схему.",
+        "operationId": "universal_collector_parse_api_v1_collectors_parse_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniversalCollectorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/strategy/generate": {
+      "post": {
+        "tags": [
+          "Content Strategy & Personas"
+        ],
+        "summary": "Generate Content Strategy",
+        "description": "Генерация воронки контента (TOFU / MOFU / BOFU), арсенала виральных хуков\nи глубокого портрета покупателя (Jobs-to-be-Done, Pains, Triggers).",
+        "operationId": "generate_content_strategy_api_v1_ai_strategy_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StrategyGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/critic/review": {
+      "post": {
+        "tags": [
+          "Content Quality & Pre-Mortem"
+        ],
+        "summary": "Review Content With Critic",
+        "description": "Инверсионный Pre-Mortem аудит текста (методология Чарли Мангера):\nвыявление клише, скучных хуков, отсутствия CTA и генерация правок для автора.",
+        "operationId": "review_content_with_critic_api_v1_ai_critic_review_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriticReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/achievements/post": {
+      "post": {
+        "tags": [
+          "Telegram Achievement Broadcaster"
+        ],
+        "summary": "Broadcast Achievement Endpoint",
+        "description": "Публикация крупного достижения / релиза в официальный Telegram-канал (@UcustAi).\nПоддерживает прикрепление медиафайлов, форматирование метрик и HTML-теги.",
+        "operationId": "broadcast_achievement_endpoint_api_v1_ai_achievements_post_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AchievementBroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/rag/query": {
+      "post": {
+        "tags": [
+          "Knowledge Base RAG"
+        ],
+        "summary": "Query Knowledge Base",
+        "description": "Поиск по базе знаний через Clean RAG с защитой от галлюцинаций.",
+        "operationId": "query_knowledge_base_api_v1_ai_rag_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RAGQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/rag/ingest": {
+      "post": {
+        "tags": [
+          "Knowledge Base RAG"
+        ],
+        "summary": "Ingest Knowledge Base",
+        "description": "Загрузка и индексация документов в локальный Clean RAG.",
+        "operationId": "ingest_knowledge_base_api_v1_ai_rag_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RAGIngestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vision/quick-analyze": {
+      "post": {
+        "tags": [
+          "Convenience Aliases"
+        ],
+        "summary": "Quick Vision Analyze",
+        "operationId": "quick_vision_analyze_api_v1_vision_quick_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuickVisionAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Quick Vision Analyze Api V1 Vision Quick Analyze Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/documents": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers",
+          "Convenience Aliases"
+        ],
+        "summary": "Analyze Documents Direct",
+        "operationId": "analyze_documents_direct_api_v1_collectors_documents_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analyze Documents Direct Api V1 Collectors Documents Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/documents/analyze": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers",
+          "Convenience Aliases"
+        ],
+        "summary": "Analyze Documents Direct",
+        "operationId": "analyze_documents_direct_api_v1_ai_documents_analyze_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analyze Documents Direct Api V1 Ai Documents Analyze Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/analyze-documents": {
+      "post": {
+        "tags": [
+          "Collectors & Web Scrapers",
+          "Convenience Aliases"
+        ],
+        "summary": "Analyze Documents Direct",
+        "operationId": "analyze_documents_direct_api_v1_collectors_analyze_documents_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analyze Documents Direct Api V1 Collectors Analyze Documents Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collectors/analyze-brand": {
+      "post": {
+        "tags": [
+          "Convenience Aliases"
+        ],
+        "summary": "Analyze Brand Multimodal",
+        "operationId": "analyze_brand_multimodal_api_v1_collectors_analyze_brand_post",
+        "parameters": [
+          {
+            "name": "X-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnifiedBrandAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Analyze Brand Multimodal Api V1 Collectors Analyze Brand Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/draft": {
+      "post": {
+        "tags": [
+          "Content Strategy & Lazy Rendering"
+        ],
+        "summary": "Create Content Draft",
+        "description": "Генерация черновика поста со статусом DRAFT_TEXT (0 GPU cost).\nСинтезирует текст через Сайгу и строит спецификации промптов без запуска ComfyUI.",
+        "operationId": "create_content_draft_api_v1_content_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentDraftApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/week-plan": {
+      "post": {
+        "tags": [
+          "Content Strategy & Lazy Rendering"
+        ],
+        "summary": "Generate Week Plan Drafts",
+        "description": "Пакетная генерация недельного плана (DRAFT_TEXT).\n0 GPU-затрат — мгновенный возврат расписания с текстами и ToV днями.",
+        "operationId": "generate_week_plan_drafts_api_v1_content_week_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeekPlanApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/render/{post_id}": {
+      "post": {
+        "tags": [
+          "Content Strategy & Lazy Rendering"
+        ],
+        "summary": "Trigger Post Render",
+        "description": "Триггер асинхронного GPU-рендера поста (переход DRAFT_TEXT -> AWAITING_RENDER -> RENDERING -> RENDERED).",
+        "operationId": "trigger_post_render_api_v1_content_render__post_id__post",
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Post Id"
+            }
+          },
+          {
+            "name": "trigger_source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "manual_approve",
+              "title": "Trigger Source"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/post/{post_id}": {
+      "get": {
+        "tags": [
+          "Content Strategy & Lazy Rendering"
+        ],
+        "summary": "Get Post Lifecycle Status",
+        "description": "Проверка статуса поста и получение ссылок на сгенерированные изображения.",
+        "operationId": "get_post_lifecycle_status_api_v1_content_post__post_id__get",
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AchievementBroadcastRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Заголовок достижения",
+            "example": "Релиз автономного SMM-пайплайна 2.0"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Описание достижения",
+            "example": "Команда ИИ-агентов UCust завершила интеграцию критика и LTX-2."
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics",
+            "description": "Ключевые показатели",
+            "example": [
+              "Скорость: 60 сек",
+              "Качество: 98%"
+            ]
+          },
+          "media_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Path",
+            "description": "Путь к фото или видео"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel",
+            "description": "Целевой Telegram-канал",
+            "default": "@UcustAi",
+            "example": "@UcustAi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description"
+        ],
+        "title": "AchievementBroadcastRequest"
+      },
+      "AsyncGenerateTaskRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "Тема или промпт поста"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "description": "Название компании",
+            "default": "UCust"
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Ниша",
+            "default": "Бизнес"
+          },
+          "tone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tone",
+            "description": "Тон общения",
+            "default": "Дерзкий, уверенный, вдохновляющий"
+          },
+          "aspect_ratio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aspect Ratio",
+            "description": "Формат соотношения сторон (1:1, 4:5, 9:16, 16:9)",
+            "default": "9:16"
+          },
+          "variation_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variation Index",
+            "description": "Индекс ракурса/вариации (0, 1, 2, 3...)",
+            "default": 0
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage",
+            "description": "Ступень воронки Ханта",
+            "default": "problem_aware"
+          },
+          "framework": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Framework",
+            "description": "PAS | AIDA | StoryBrand | BAB"
+          },
+          "trigger": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger",
+            "description": "Триггер Чалдини"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier",
+            "description": "Тариф медиа-оснащения",
+            "default": "BUSINESS"
+          },
+          "custom_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Prompt",
+            "description": "Пользовательский визуальный промпт"
+          },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments",
+            "description": "Вложения для анализа и генерации"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url",
+            "description": "URL для отправки результата (Push-коллбек)"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id",
+            "description": "Опциональный внешний task_id"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии"
+          },
+          "projectContext": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Полный контекст проекта"
+          },
+          "project_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Полный контекст проекта (алиас)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "AsyncGenerateTaskRequest"
+      },
+      "AsyncTaskAcceptedResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "accepted"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "queue_name": {
+            "type": "string",
+            "title": "Queue Name"
+          },
+          "estimated_wait_seconds": {
+            "type": "number",
+            "title": "Estimated Wait Seconds",
+            "default": 1.5
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "tenant_id",
+          "queue_name"
+        ],
+        "title": "AsyncTaskAcceptedResponse",
+        "description": "Схема синхронного ответа при постановке в очередь (202 Accepted)."
+      },
+      "BrandGuidelines": {
+        "properties": {
+          "addressingStyle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressingstyle",
+            "description": "Стиль обращения: YOU_SINGULAR (на 'ты'), YOU_PLURAL (на 'вы'), WE_FORM (от лица команды)",
+            "default": "YOU_PLURAL"
+          },
+          "forbiddenWords": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forbiddenwords",
+            "description": "Черный список стоп-слов, которые запрещено употреблять"
+          },
+          "mandatoryPhrases": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mandatoryphrases",
+            "description": "Обязательные фразы / слоганы бренда"
+          },
+          "emojiPolicy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emojipolicy",
+            "description": "Политика эмодзи: MINIMAL, VIBRANT, NONE, STRICT_SYSTEM",
+            "default": "MINIMAL"
+          },
+          "brandKeywords": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandkeywords",
+            "description": "Ключевые слова бренда для органического SEO"
+          }
+        },
+        "type": "object",
+        "title": "BrandGuidelines"
+      },
+      "CompetitorAnalyzeRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL сайта конкурента для декомпозиции",
+            "example": "https://competitor.com"
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Ниша вашей компании",
+            "default": "Бизнес",
+            "example": "Автосервис"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "CompetitorAnalyzeRequest"
+      },
+      "ContentDraftApiRequest": {
+        "properties": {
+          "brand_id": {
+            "type": "string",
+            "title": "Brand Id",
+            "description": "Уникальный ID бренда",
+            "example": "brand_102"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name",
+            "description": "Название компании",
+            "default": "UCust",
+            "example": "Specialty Coffee"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "description": "b2c_lifestyle | b2b_corporate | expert_services",
+            "default": "b2c_lifestyle",
+            "example": "b2c_lifestyle"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "description": "starter | pro | enterprise",
+            "default": "pro",
+            "example": "pro"
+          },
+          "brand_props": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Brand Props",
+            "example": [
+              "dark oak desk",
+              "matte brass"
+            ]
+          },
+          "tone_of_voice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tone Of Voice",
+            "description": "Tone of Voice",
+            "default": "Экспертный, лаконичный"
+          },
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type",
+            "description": "user_photo | document_ocr | rag_facts_only | hybrid",
+            "default": "hybrid"
+          },
+          "vlm_visual_anchors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vlm Visual Anchors",
+            "description": "Якоря с фото пользователя"
+          },
+          "ocr_raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Raw Text",
+            "description": "Сырой распознанный текст меню или документа"
+          },
+          "rag_context_snippets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rag Context Snippets",
+            "description": "Факты из базы знаний"
+          },
+          "calendar_event": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Event",
+            "description": "Праздник или инфоповод"
+          },
+          "user_raw_intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Raw Intent",
+            "description": "Намерение / тема от пользователя"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date",
+            "description": "Целевая дата ISO: YYYY-MM-DD"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format",
+            "description": "single_shot | carousel_light | carousel_heavy | cryptex_puzzle"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand_id"
+        ],
+        "title": "ContentDraftApiRequest"
+      },
+      "ContentGenerateAsyncRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Prompt",
+            "description": "Тема или промпт для генерации"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/SubscriptionTier",
+            "description": "Тарифный план (starter/pro/enterprise)",
+            "default": "pro"
+          },
+          "industry": {
+            "$ref": "#/components/schemas/IndustryArchetype",
+            "description": "Архетип индустрии",
+            "default": "b2b_corporate"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric",
+            "description": "Рубрика поста",
+            "default": "general"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url",
+            "description": "URL для Webhook Push по завершении"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "title": "ContentGenerateAsyncRequest",
+        "description": "Схема запроса на асинхронную генерацию контента."
+      },
+      "CriticReviewRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Текст поста или оффера для инверсионного аудита Чарли Мангера"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic",
+            "description": "Тема поста",
+            "default": ""
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Целевая ниша",
+            "default": ""
+          },
+          "strictness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strictness",
+            "description": "Строгость критика (0.5 - мягкая, 0.95 - жесткая)",
+            "default": 0.85
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "CriticReviewRequest"
+      },
+      "DocumentAnalysisRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "description": "Название компании",
+            "default": "UCust"
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Ниша компании",
+            "default": "Бизнес и услуги"
+          },
+          "documents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "Пути к файлам или имена документов (PDF, DOCX, PPTX)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "documents"
+        ],
+        "title": "DocumentAnalysisRequest"
+      },
+      "GeneratePostRequest": {
+        "properties": {
+          "projectId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projectid",
+            "description": "ID проекта"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id",
+            "description": "ID проекта"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt",
+            "description": "Промпт или тема публикации"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic",
+            "description": "Тема публикации (алиас)"
+          },
+          "companyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companyname",
+            "description": "Название компании"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "description": "Название компании (алиас)"
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Ниша бизнеса"
+          },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments",
+            "description": "Медиа-вложения (фото, референсы)"
+          },
+          "promoCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promocode",
+            "description": "Промокод / специальное предложение"
+          },
+          "promo_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promo Code",
+            "description": "Промокод (алиас)"
+          },
+          "projectContext": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Полный объект проекта"
+          },
+          "project_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Полный объект проекта (алиас)"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric",
+            "description": "Рубрика публикации: EXPERT, PRODUCT, PROMO, CASE, LIFE, MEME"
+          },
+          "primaryCta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primarycta",
+            "description": "Целевое действие: BUY, BOOK, COMMENT, CHAT, PROMO"
+          },
+          "targetActionLink": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetactionlink",
+            "description": "Ссылка для встраивания в целевую кнопку CTA"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Язык генерации поста (ru, en, pt, de...)",
+            "default": "ru"
+          },
+          "tone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tone",
+            "description": "Тон коммуникации"
+          },
+          "aspect_ratio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aspect Ratio",
+            "description": "Соотношение сторон (1:1, 9:16, 16:9)",
+            "default": "1:1"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url",
+            "description": "URL для Push-коллбека"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии"
+          },
+          "generate_image": {
+            "type": "boolean",
+            "title": "Generate Image",
+            "description": "Флаг генерации визуального контента",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "GeneratePostRequest"
+      },
+      "GeoAnalyzeRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Ссылка на организацию в 2GIS или Яндекс Картах",
+            "example": "https://2gis.ru/moscow/firm/..."
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "Провайдер: 'auto', '2gis', 'yandex'",
+            "default": "auto",
+            "example": "auto"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Количество отзывов",
+            "default": 10,
+            "example": 10
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "GeoAnalyzeRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImageGenerateRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "example": "Сезонный тыквенный латте с корицей и круассан"
+          },
+          "niche": {
+            "type": "string",
+            "title": "Niche",
+            "default": "Кофейня",
+            "example": "Кофейня"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "1:1",
+            "example": "1:1"
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "photorealistic",
+            "example": "photorealistic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "title": "ImageGenerateRequest"
+      },
+      "IndustryArchetype": {
+        "type": "string",
+        "enum": [
+          "b2c_lifestyle",
+          "b2b_corporate",
+          "expert_services"
+        ],
+        "title": "IndustryArchetype"
+      },
+      "LocationBranch": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "title": "Address",
+            "description": "Физический адрес филиала / точки"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "Город филиала"
+          },
+          "workingHours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workinghours",
+            "description": "Часы работы конкретного филиала"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone",
+            "description": "Контактный телефон"
+          }
+        },
+        "type": "object",
+        "required": [
+          "address"
+        ],
+        "title": "LocationBranch"
+      },
+      "OnboardingAsyncRequest": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Company Name",
+            "description": "Название компании/бренда"
+          },
+          "niche": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Niche",
+            "description": "Ниша или сфера деятельности"
+          },
+          "telegram_channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Channel",
+            "description": "Username или ссылка на Telegram канал"
+          },
+          "website_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website Url",
+            "description": "URL сайта компании"
+          },
+          "document_paths": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Paths",
+            "description": "Пути к загруженным документам"
+          },
+          "raw_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Notes",
+            "description": "Дополнительные заметки и вводные"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url",
+            "description": "URL для Webhook Push по завершении"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "niche"
+        ],
+        "title": "OnboardingAsyncRequest",
+        "description": "Схема запроса на асинхронный онбординг бренда."
+      },
+      "OrchestratorTaskRequest": {
+        "properties": {
+          "task_type": {
+            "type": "string",
+            "title": "Task Type",
+            "description": "Тип задачи: 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'parse_telegram', 'parse_vk', 'parse_geo', 'parse_website', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'",
+            "example": "generate_post"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "Идентификатор пользователя",
+            "default": "default_user",
+            "example": "usr_94812"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии диалога / трейса",
+            "example": "sess_abc123"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url",
+            "description": "Динамический URL вебхука для авто-пуша",
+            "example": "http://10.0.0.1:8080/api/v1/ai/callback"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload",
+            "description": "Полезная нагрузка (параметры, ссылки, фото, тексты)"
+          },
+          "sync_backend": {
+            "type": "boolean",
+            "title": "Sync Backend",
+            "description": "Флаг авто-пуша результата в бэкенд",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_type"
+        ],
+        "title": "OrchestratorTaskRequest"
+      },
+      "OrchestratorTaskResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "'success' или 'error'",
+            "example": "success"
+          },
+          "task_type": {
+            "type": "string",
+            "title": "Task Type"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "timings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Timings"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "task_type",
+          "user_id",
+          "session_id"
+        ],
+        "title": "OrchestratorTaskResponse"
+      },
+      "ProductItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Название товара или услуги"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price",
+            "description": "Цена (например '850 ₽' или 'от 5 000 ₽')"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Краткое описание товара"
+          },
+          "flavorNotes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flavornotes",
+            "description": "Вкусовые ноты / специфика состава"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Категория продукта"
+          },
+          "ctaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ctaurl",
+            "description": "Прямая ссылка на покупку/заказ"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ProductItem"
+      },
+      "ProjectContext": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "ID проекта"
+          },
+          "projectId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projectid",
+            "description": "ID проекта (алиас)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Название бренда/компании"
+          },
+          "companyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companyname",
+            "description": "Название бренда (алиас)"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry",
+            "description": "Индустрия / сфера деятельности"
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Ниша бизнеса (алиас)"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "Город присутствия",
+            "default": "Москва"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Описание бизнеса и ключевое позиционирование"
+          },
+          "targetAudience": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetaudience",
+            "description": "Описание целевой аудитории (возраст, боли, ценности)"
+          },
+          "toneOfVoice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toneofvoice",
+            "description": "Тон коммуникации (FRIENDLY, BOLD, EXPERT, FORMAL)",
+            "default": "FRIENDLY"
+          },
+          "brandGuidelines": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandGuidelines"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Редакционная политика и правила бренда"
+          },
+          "visualDna": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VisualDna"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Визуальный брендбук и параметры генерации графики"
+          },
+          "productsCatalog": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProductItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productscatalog",
+            "description": "Флагманские продукты / меню с ценами"
+          },
+          "keyBenefits": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keybenefits",
+            "description": "Ключевые преимущества бренда (УТП)"
+          },
+          "locations": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LocationBranch"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locations",
+            "description": "Адреса филиалов и точек продаж"
+          },
+          "deliveryInfo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveryinfo",
+            "description": "Условия доставки и самовывоза"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Основной язык контента (ru, en, pt, de...)",
+            "default": "ru"
+          },
+          "recentPostTopics": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recentposttopics",
+            "description": "Темы последних постов для защиты от повторений"
+          },
+          "socialLinks": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sociallinks",
+            "description": "Ссылки на соцсети (telegram, instagram, vk, website)"
+          },
+          "businessHours": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Businesshours",
+            "description": "График работы и выходные дни"
+          },
+          "ownerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ownerid",
+            "description": "ID владельца"
+          },
+          "logoUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logourl",
+            "description": "URL логотипа бренда"
+          },
+          "brandColors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandcolors",
+            "description": "Фирменные цвета (Hex)"
+          },
+          "usp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usp",
+            "description": "Уникальное торговое предложение"
+          }
+        },
+        "type": "object",
+        "title": "ProjectContext"
+      },
+      "QuickVisionAnalysisRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии для кэширования"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt",
+            "description": "Текстовый промпт/намерение пользователя",
+            "default": ""
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Ниша бизнеса",
+            "default": "Бизнес и услуги"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "description": "Название компании",
+            "default": "UCust"
+          },
+          "attachments": {
+            "items": {},
+            "type": "array",
+            "title": "Attachments",
+            "description": "1-3 фото (Base64 data-url, URL или пути к файлам)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attachments"
+        ],
+        "title": "QuickVisionAnalysisRequest"
+      },
+      "RAGIngestRequest": {
+        "properties": {
+          "documents": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "Список документов для базы знаний"
+          }
+        },
+        "type": "object",
+        "required": [
+          "documents"
+        ],
+        "title": "RAGIngestRequest"
+      },
+      "RAGQueryRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "example": "Сколько стоит тариф Pro?"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "RAGQueryRequest"
+      },
+      "StrategyGenerateRequest": {
+        "properties": {
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "default": "UCust",
+            "example": "UCust"
+          },
+          "niche": {
+            "type": "string",
+            "title": "Niche",
+            "example": "IT Автоматизация"
+          },
+          "target_audience": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Audience",
+            "default": "",
+            "example": "Предприниматели 25-45 лет"
+          },
+          "usp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usp",
+            "default": "",
+            "example": "Автономный маркетинг за 1 день"
+          }
+        },
+        "type": "object",
+        "required": [
+          "niche"
+        ],
+        "title": "StrategyGenerateRequest"
+      },
+      "SubscriptionTier": {
+        "type": "string",
+        "enum": [
+          "starter",
+          "pro",
+          "enterprise"
+        ],
+        "title": "SubscriptionTier"
+      },
+      "TaskRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "Идентификатор пользователя",
+            "default": "default_user",
+            "example": "usr_94812"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии диалога",
+            "example": "sess_abc123"
+          },
+          "task_type": {
+            "type": "string",
+            "title": "Task Type",
+            "description": "Тип задачи: generate_post | generate_image | prepare_holiday_greeting | get_trends | rag_query | parse_telegram | parse_vk | parse_geo | parse_website",
+            "example": "generate_post"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload",
+            "description": "Параметры задачи"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_type"
+        ],
+        "title": "TaskRequest"
+      },
+      "TaskResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "example": "success"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id",
+            "example": "task_38df92a"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "example": "sess_abc123"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "task_id",
+          "session_id"
+        ],
+        "title": "TaskResponse"
+      },
+      "TelegramAnalyzeRequest": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "title": "Channel",
+            "description": "Username Telegram-канала или ссылка t.me/...",
+            "example": "@UcustAi"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Количество постов для анализа (по умолчанию 10)",
+            "default": 10,
+            "example": 10
+          },
+          "include_media_vqa": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Media Vqa",
+            "description": "Флаг анализа прикрепленных фото через Moondream2 + OCR",
+            "default": true
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel"
+        ],
+        "title": "TelegramAnalyzeRequest"
+      },
+      "TrendResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "success"
+          },
+          "niche": {
+            "type": "string",
+            "title": "Niche"
+          },
+          "trends": {
+            "title": "Trends"
+          },
+          "cached": {
+            "type": "boolean",
+            "title": "Cached",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "niche",
+          "trends"
+        ],
+        "title": "TrendResponse"
+      },
+      "UnifiedBrandAnalysisRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "description": "Название компании",
+            "default": ""
+          },
+          "niche": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Niche",
+            "description": "Сфера деятельности",
+            "default": ""
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "Город",
+            "default": "Москва"
+          },
+          "urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Urls",
+            "description": "Ссылки: сайт, VK, Telegram, 2GIS/Яндекс",
+            "default": []
+          },
+          "documents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "Пути к документам (PDF, DOCX, PPTX)",
+            "default": []
+          },
+          "images": {
+            "items": {},
+            "type": "array",
+            "title": "Images",
+            "description": "Фото / логотипы (Base64 или пути)",
+            "default": []
+          },
+          "raw_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Notes",
+            "description": "Дополнительные заметки",
+            "default": ""
+          },
+          "fast_mode": {
+            "type": "boolean",
+            "title": "Fast Mode",
+            "description": "Быстрый режим предварительного сканирования",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "UnifiedBrandAnalysisRequest"
+      },
+      "UniversalCollectorRequest": {
+        "properties": {
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type",
+            "description": "Тип источника: 'auto', 'telegram', 'vk', 'website', 'geo', '2gis', 'yandex', 'documents'",
+            "default": "auto",
+            "example": "auto"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target",
+            "description": "Ссылка, username (@channel), ID группы или путь к файлу",
+            "example": "@UcustAi"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Лимит элементов для сбора",
+            "default": 10,
+            "example": 10
+          },
+          "include_media_vqa": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Media Vqa",
+            "description": "Флаг VLM-анализа медиа",
+            "default": true
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload",
+            "description": "Дополнительные параметры"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "title": "UniversalCollectorRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VisionAnalyzeRequest": {
+        "properties": {
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image",
+            "description": "Base64 DataUrl или путь к изображению"
+          },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments",
+            "description": "Список вложений"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic",
+            "default": "",
+            "example": "Летний фестиваль напитков"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "default": "UCust",
+            "example": "UCust"
+          }
+        },
+        "type": "object",
+        "title": "VisionAnalyzeRequest"
+      },
+      "VisualDna": {
+        "properties": {
+          "brandColors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandcolors",
+            "description": "Палитра бренда в Hex (#2D5A27, #D4AF37)"
+          },
+          "visualStyle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visualstyle",
+            "description": "Визуальный стиль: PHOTOREALISTIC, WARM_NATURAL, MINIMALIST, CINEMATIC, 3D_RENDER",
+            "default": "PHOTOREALISTIC"
+          },
+          "moodKeywords": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moodkeywords",
+            "description": "Атмосферные дескрипторы (уют, крафт, утренний свет)"
+          },
+          "logoUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logourl",
+            "description": "URL логотипа для брендинга"
+          },
+          "watermarkPosition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watermarkposition",
+            "description": "Позиция водяного знака / лого",
+            "default": "BOTTOM_RIGHT"
+          },
+          "aspectRatio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aspectratio",
+            "description": "Дефолтное соотношение сторон",
+            "default": "1:1"
+          }
+        },
+        "type": "object",
+        "title": "VisualDna"
+      },
+      "VkAnalyzeRequest": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "title": "Group Id",
+            "description": "ID или короткое имя сообщества VK / ссылка",
+            "example": "ucust_ai"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "description": "Количество постов (по умолчанию 10)",
+            "default": 10,
+            "example": 10
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "ID пользователя",
+            "default": "default_user"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "ID сессии"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "VkAnalyzeRequest"
+      },
+      "WebsiteAnalyzeRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL веб-сайта компании для парсинга и анализа",
+            "example": "https://ucust.ai"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "WebsiteAnalyzeRequest"
+      },
+      "WeekPlanApiRequest": {
+        "properties": {
+          "brand_id": {
+            "type": "string",
+            "title": "Brand Id",
+            "example": "brand_102"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name",
+            "default": "UCust",
+            "example": "Specialty Coffee"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "default": "b2c_lifestyle",
+            "example": "b2c_lifestyle"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "default": "pro",
+            "example": "pro"
+          },
+          "brand_props": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Brand Props"
+          },
+          "days_count": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Days Count",
+            "default": 7
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date",
+            "description": "Начальная дата (YYYY-MM-DD)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand_id"
+        ],
+        "title": "WeekPlanApiRequest"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

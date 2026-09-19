@@ -1,0 +1,96 @@
+# ==============================================================================
+# UCust AI CI/CD Automated Workflow (GitHub Actions)
+# ==============================================================================
+
+name: UCust AI Pipeline
+
+on:
+  push:
+    branches: [ "main", "feature-ai" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_CPU: ${{ github.repository }}/ucust-ai-cpu
+  IMAGE_NAME_GPU: ${{ github.repository }}/ucust-ai-gpu
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ucust
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: ucust_ai
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install Dependencies
+        run: |
+          pip install -r ai/requirements.txt
+          
+      - name: Run Verification Test Suites
+        env:
+          DATABASE_URL: postgresql+asyncpg://ucust:password@localhost:5432/ucust_ai
+          REDIS_URL: redis://localhost:6379/0
+          DEV_SIMULATION_MODE: "true"
+        run: |
+          python ai/scripts/test_observability.py
+          python ai/scripts/test_webhook_failure_resilience.py
+          python ai/scripts/test_comfy_bridge.py
+          python ai/scripts/test_async_api_and_webhooks.py
+
+  build-and-push:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build & Push CPU Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./ai
+          file: ./ai/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_CPU }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME_CPU }}:${{ github.sha }}
+
+      - name: Build & Push GPU Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./ai
+          file: ./ai/Dockerfile.gpu
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_GPU }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME_GPU }}:${{ github.sha }}

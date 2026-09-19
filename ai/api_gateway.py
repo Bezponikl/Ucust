@@ -41,10 +41,11 @@ from skills.content_strategy_engine import (
 class OrchestratorTaskRequest(BaseModel):
     task_type: str = Field(
         ...,
-        example="generate_post",
-        description="Тип задачи: 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'parse_telegram', 'parse_vk', 'parse_geo', 'parse_website', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'"
+        example="analyze_brand",
+        description="Тип задачи: 'analyze_brand', 'generate_post', 'quick_vision', 'analyze_documents', 'quick_scan', 'onboard_user', 'parse_telegram', 'parse_vk', 'parse_geo', 'parse_website', 'plan_content', 'feedback_loop', 'rag_query', 'rag_ingest'"
     )
     user_id: str = Field("default_user", example="usr_94812", description="Идентификатор пользователя")
+    project_id: Optional[str] = Field(None, example="temp_proj_123", description="Идентификатор проекта (tenant_id)")
     session_id: Optional[str] = Field(None, example="sess_abc123", description="ID сессии диалога / трейса")
     callback_url: Optional[str] = Field(None, example="http://10.0.0.1:8080/api/v1/ai/callback", description="Динамический URL вебхука для авто-пуша")
     payload: Dict[str, Any] = Field(default_factory=dict, description="Полезная нагрузка (параметры, ссылки, фото, тексты)")
@@ -410,6 +411,9 @@ async def execute_orchestrator_task(
     task_payload = dict(request.payload)
     task_payload["user_id"] = request.user_id
     task_payload["session_id"] = session_id
+    if request.project_id:
+        task_payload["project_id"] = request.project_id
+        task_payload["tenant_id"] = request.project_id
 
     # 3. Безопасность ввода
     for k, v in task_payload.items():
@@ -446,10 +450,11 @@ async def execute_orchestrator_task(
                         async with aiohttp.ClientSession() as s:
                             headers = {"X-Internal-Secret": expected_secret, "Content-Type": "application/json"}
                             body = {
-                                "user_id": request.user_id,
-                                "session_id": session_id,
+                                "task_id": session_id,
                                 "task_type": request.task_type,
-                                "status": result_data.get("status", "success"),
+                                "status": "COMPLETED" if result_data.get("status") != "error" else "FAILED",
+                                "project_id": request.project_id or task_payload.get("project_id"),
+                                "user_id": request.user_id,
                                 "result": result_data,
                                 "timestamp": time.time()
                             }

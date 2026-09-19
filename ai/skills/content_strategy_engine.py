@@ -331,6 +331,95 @@ class ContentStrategyEngine:
         else:
             self.llm_skill = None
 
+    def generate_strategy(
+        self,
+        company_name: str,
+        niche: str,
+        target_audience: str = "",
+        key_usp: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Генерирует структурированную стратегию позиционирования, портрет покупателя (Persona)
+        и арсенал триггеров/крючков (Viral Hooks & Funnel Matrix).
+        """
+        niche_lower = (niche or "").lower()
+        
+        # 1. Формирование портрета покупателя (Buyer Persona)
+        if "кофе" in niche_lower or "еда" in niche_lower or "ресторан" in niche_lower:
+            primary_pains = [
+                "Невкусный или пережженный кофе в других местах",
+                "Долгое ожидание в часы пик",
+                "Неуютная атмосфера и отсутствие розеток/мест для работы",
+                "Холодная или несвежая выпечка"
+            ]
+            buying_triggers = [
+                "Аромат свежей обжарки и безупречный баланс вкуса",
+                "Быстрая выдача за 90 секунд через предзаказ",
+                "Эстетичный скандинавский интерьер и приветливые бариста",
+                "Программа лояльности с кэшбэком"
+            ]
+        elif "красот" in niche_lower or "салон" in niche_lower or "барбер" in niche_lower:
+            primary_pains = [
+                "Непредсказуемый результат стрижки или ухода",
+                "Нестерильные инструменты и сомнительная косметика",
+                "Навязывание лишних дорогостоящих процедур"
+            ]
+            buying_triggers = [
+                "Портфолио реальных работ и дипломы мастеров",
+                "100% стерилизация в крафт-пакетах при клиенте",
+                "Премиальные сертифицированные эко-составы"
+            ]
+        elif "it" in niche_lower or "b2b" in niche_lower or "софт" in niche_lower:
+            primary_pains = [
+                "Срыв сроков и раздувание сметы подрядчиками",
+                "Сложность поддержки чужого легаси-кода",
+                "Отсутствие прозрачной аналитики и SLA"
+            ]
+            buying_triggers = [
+                "Фиксация KPI и штрафов за срыв сроков в договоре",
+                "Сквозная демонстрация архитектуры и CI/CD",
+                "Подтвержденный ROI и измеримые кейсы"
+            ]
+        else:
+            primary_pains = [
+                f"Некачественное оказание услуг в сфере {niche}",
+                "Непрозрачное ценообразование и скрытые комиссии",
+                "Сложность получения квалифицированной консультации"
+            ]
+            buying_triggers = [
+                f"Гарантия результата от бренда {company_name}",
+                "Открытые отзывы и репутация на рынке",
+                "Персональный менеджер и поддержка 24/7"
+            ]
+
+        buyer_persona = {
+            "target_audience": target_audience or f"Клиенты, ценящие качество и надежность в нише {niche}",
+            "primary_pains": primary_pains,
+            "buying_triggers": buying_triggers,
+            "decision_making_speed": "Средняя (1-3 дня)",
+            "preferred_channels": ["Telegram", "VK", "Геосервисы"]
+        }
+
+        funnel_matrix = {
+            "top_of_funnel": ["Отраслевые тренды", "Разрушение мифов", "Эстетичные UGC-кадры"],
+            "middle_of_funnel": ["Кейсы и до/после", "Разбор сложных задач", "Отзывы клиентов"],
+            "bottom_of_funnel": ["Спецпредложения", "Лимитированные комбо", "Прямой призыв к заказу"]
+        }
+
+        hooks_arsenal = [
+            f"Почему 80% клиентов выбирают {company_name} вместо типовых решений?",
+            f"3 фатальные ошибки при выборе услуг в сфере {niche}",
+            f"Как получить максимальный результат уже в первый день сотрудничества"
+        ]
+
+        return {
+            "company_name": company_name,
+            "niche": niche,
+            "buyer_persona": buyer_persona,
+            "funnel_matrix": funnel_matrix,
+            "hooks_arsenal": hooks_arsenal
+        }
+
     def _get_day_key(self, target_date: datetime) -> str:
         weekday = target_date.weekday()
         if weekday == 0:

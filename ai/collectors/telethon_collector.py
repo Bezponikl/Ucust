@@ -106,7 +106,12 @@ async def _fetch_channel_async(channel: str, limit: int) -> dict:
 
     messages_data = []
     try:
-        await client.connect()
+        try:
+            await asyncio.wait_for(client.connect(), timeout=3.0)
+        except Exception as conn_err:
+            print(f"[TelethonCollector] ⚠️ Не удалось подключиться к Telegram ({conn_err}). Fallback на mock.")
+            return _mock_payload(channel, limit)
+
         if not await client.is_user_authorized():
             print(f"[TelethonCollector] ℹ️ Сессия '{_SESSION}' не авторизована. Переключение в безопасный mock-режим для {channel}.")
             return _mock_payload(channel, limit)
@@ -161,8 +166,14 @@ async def _fetch_channel_async(channel: str, limit: int) -> dict:
                 "is_forwarded": message.fwd_from is not None,
             })
 
+    except Exception as fetch_err:
+        print(f"[TelethonCollector] ⚠️ Ошибка при парсинге сообщений: {fetch_err}. Fallback на mock.")
+        return _mock_payload(channel, limit)
     finally:
-        await client.disconnect()
+        try:
+            await client.disconnect()
+        except Exception:
+            pass
 
     return {
         "channel": channel,

@@ -411,24 +411,66 @@ class UnifiedOrchestrator:
         if task_type in {"rag_ingest", "ingest_rag", "index_knowledge"}:
             from rag.models import Document
             docs_data = user_data.get("documents") or []
+            data_dict = user_data.get("data") or user_data.get("profile") or user_data.get("project_profile_draft")
+            
+            tenant_id = user_data.get("project_id") or user_data.get("brand_id") or user_data.get("tenant_id") or "default_brand"
+            rag_docs = []
+
+            # 1. Если передан структурированный 5-экранный профиль онбординга
+            if isinstance(data_dict, dict):
+                about = data_dict.get("about", {})
+                market = data_dict.get("market", {})
+                swot = data_dict.get("swot", {})
+                services = data_dict.get("services", [])
+                goals = data_dict.get("goals", {})
+
+                comp_name = about.get("name") or tenant_id
+                
+                # Экран 1: О проекте
+                about_text = f"О проекте / компании: {comp_name}\nНиша: {about.get('niche', '')}\nПозиционирование: {about.get('positioning', '')}\nГород: {about.get('city', '')}\nОписание: {about.get('description', '')}"
+                rag_docs.append(Document(doc_id=f"rag_about_{tenant_id}", text=about_text, metadata={"category": "about", "tenant_id": tenant_id, "project_id": tenant_id}))
+
+                # Экран 2: Рынок и конкуренты
+                market_text = f"Рынок и конкуренты для {comp_name}:\nКонкуренты: {market.get('competitors', [])}\nГеография: {market.get('geography', '')}\nСегмент ЦА: {market.get('audience_segment', '')}\nТренды: {market.get('trends', [])}"
+                rag_docs.append(Document(doc_id=f"rag_market_{tenant_id}", text=market_text, metadata={"category": "market", "tenant_id": tenant_id, "project_id": tenant_id}))
+
+                # Экран 3: SWOT анализ
+                swot_text = f"SWOT анализ компании {comp_name}:\nСильные стороны: {swot.get('strengths', [])}\nСлабые стороны: {swot.get('weaknesses', [])}\nВозможности: {swot.get('opportunities', [])}\nУгрозы: {swot.get('threats', [])}"
+                rag_docs.append(Document(doc_id=f"rag_swot_{tenant_id}", text=swot_text, metadata={"category": "swot", "tenant_id": tenant_id, "project_id": tenant_id}))
+
+                # Экран 4: Услуги и цены
+                if services:
+                    serv_lines = []
+                    for s in services:
+                        if isinstance(s, dict):
+                            serv_lines.append(f"- {s.get('name')}: {s.get('description', '')} (Цена: {s.get('price', 'по запросу')})")
+                        else:
+                            serv_lines.append(f"- {s}")
+                    serv_text = f"Услуги и предложения компании {comp_name}:\n" + "\n".join(serv_lines)
+                    rag_docs.append(Document(doc_id=f"rag_services_{tenant_id}", text=serv_text, metadata={"category": "services", "tenant_id": tenant_id, "project_id": tenant_id}))
+
+                # Экран 5: Цели контента и Tone of Voice
+                goals_text = f"Цели контента и Tone of Voice для {comp_name}:\nЦели: {goals.get('content_goals', [])}\nTone of Voice: {goals.get('tone_of_voice', [])}"
+                rag_docs.append(Document(doc_id=f"rag_goals_{tenant_id}", text=goals_text, metadata={"category": "goals", "tenant_id": tenant_id, "project_id": tenant_id}))
+
+            # 2. Обработка произвольного списка документов
             if isinstance(docs_data, str):
                 docs_data = [{"text": docs_data}]
             elif isinstance(docs_data, dict):
                 docs_data = [docs_data]
             
-            tenant_id = user_data.get("brand_id") or user_data.get("tenant_id") or "default_brand"
-            rag_docs = []
             for idx, item in enumerate(docs_data):
                 if isinstance(item, str):
                     rag_docs.append(Document(
                         doc_id=f"doc_{tenant_id}_{idx+1}",
                         text=item,
-                        metadata={"tenant_id": tenant_id, "brand_id": tenant_id}
+                        metadata={"tenant_id": tenant_id, "brand_id": tenant_id, "project_id": tenant_id}
                     ))
                 elif isinstance(item, dict) and item.get("text"):
                     meta = item.get("metadata", {})
                     meta.setdefault("tenant_id", tenant_id)
                     meta.setdefault("brand_id", tenant_id)
+                    meta.setdefault("project_id", tenant_id)
                     rag_docs.append(Document(
                         doc_id=item.get("doc_id") or f"doc_{tenant_id}_{idx+1}",
                         text=item["text"],
@@ -446,6 +488,7 @@ class UnifiedOrchestrator:
             return {
                 "status": "success",
                 "task_type": task_type,
+                "project_id": tenant_id,
                 "tenant_id": tenant_id,
                 "documents_received": len(rag_docs),
                 "chunks_indexed": indexed_count
@@ -534,15 +577,45 @@ class UnifiedOrchestrator:
             from collectors.website_collector import WebsiteCollector
             import re
             
-            company_name = user_data.get("name") or user_data.get("company_name") or "UCust"
-            raw_social_input = user_data.get("raw_social_input") or user_data.get("link") or user_data.get("website") or ""
-            activity = user_data.get("activity") or user_data.get("niche") or "IT Automation"
+            project_id = user_data.get("project_id") or user_data.get("tenant_id") or user_data.get("brand_id") or "proj_default"
+            company_name = user_data.get("name") or user_data.get("company_name") or user_data.get("brand_name") or project_id
+            raw_social_input = (
+                user_data.get("source_url") or 
+                user_data.get("raw_social_input") or 
+                user_data.get("link") or 
+                user_data.get("website") or 
+                user_data.get("channel") or ""
+            )
+            activity = user_data.get("niche_hint") or user_data.get("activity") or user_data.get("niche") or "IT Automation"
             city = user_data.get("city") or "Москва"
             
-            print(f"[UnifiedOrchestrator] 🎙️ Агент-Интервьюер: Анализ входных данных для '{company_name}' ({activity})...")
+            print(f"[UnifiedOrchestrator] 🎙️ Агент-Интервьюер: Анализ входных данных для '{company_name}' ({activity}), source: '{raw_social_input}'...")
             
-            # Автоматический глубокий анализ сайта компании, если передан URL
+            collected_intel = []
             website_data = None
+            tg_data = None
+
+            # 1. Сбор данных из Telegram (если передан t.me/... или @channel)
+            if "@" in raw_social_input or "t.me/" in raw_social_input:
+                try:
+                    from collectors.telethon_collector import TelethonCollector
+                    tg_collector = TelethonCollector()
+                    tg_res = await tg_collector.collect_async(channel=raw_social_input, limit=10)
+                    payload = tg_res.payload if hasattr(tg_res, "payload") else tg_res
+                    if isinstance(payload, dict) and payload.get("messages"):
+                        tg_messages = [m.get("text", "") for m in payload.get("messages", []) if isinstance(m, dict) and m.get("text")]
+                        if tg_messages:
+                            tg_text = "\n".join(tg_messages[:10])
+                            collected_intel.append(f"Данные из Telegram ({raw_social_input}):\n{tg_text}")
+                            user_data["telegram_dossier"] = tg_text
+                            self._log_trace(session_id, "TelethonCollector", "TelegramAnalyzed", {
+                                "channel": raw_social_input,
+                                "posts_count": len(tg_messages)
+                            })
+                except Exception as tg_err:
+                    print(f"[UnifiedOrchestrator] ⚠️ Ошибка сбора Telegram: {tg_err}")
+
+            # 2. Автоматический глубокий анализ сайта компании, если передан URL (не Telegram / VK)
             found_urls = re.findall(r'https?://[^\s,;]+|(?:www\.)?[a-zA-Z0-9-]+\.(?:ru|com|io|org|net|pro|ai|me|cc|by|kz|tech|online|store|shop|app|dev)(?:/[^\s,;]*)?', raw_social_input)
             for u in found_urls:
                 if not any(excluded in u.lower() for excluded in ["t.me", "vk.com", "yandex.", "2gis."]):
@@ -557,6 +630,8 @@ class UnifiedOrchestrator:
                             })
                             # Обогащаем user_data
                             user_data["website_dossier"] = website_data.get("structured_dossier")
+                            if website_data.get("structured_dossier"):
+                                collected_intel.append(f"Данные с веб-сайта ({u}):\n{website_data['structured_dossier']}")
                             if website_data.get("description") and activity == "IT Automation":
                                 user_data["niche"] = website_data.get("description")[:80]
                             break
@@ -565,18 +640,20 @@ class UnifiedOrchestrator:
 
             self._log_trace(session_id, "Agent_Interviewer", "Extracted_Context", {
                 "company_name": company_name,
+                "project_id": project_id,
                 "raw_social_input": raw_social_input,
                 "activity": activity,
                 "city": city,
-                "has_website_data": bool(website_data)
+                "has_website_data": bool(website_data),
+                "intel_sources_count": len(collected_intel)
             })
             
-            # 1. Сайга и Аналитик формируют бренд-профиль с учетом веб-аналитики и Moondream
+            # 3. Сайга и Аналитик формируют бренд-профиль с учетом собранной аналитики
             saiga = SaigaLLMSkill()
-            clean_posts_input = [website_data["structured_dossier"]] if website_data and website_data.get("structured_dossier") else None
+            clean_posts_input = collected_intel if collected_intel else ([website_data["structured_dossier"]] if website_data and website_data.get("structured_dossier") else None)
             brand_profile = saiga.analyze_brand_profile(user_data, clean_posts=clean_posts_input)
 
-            # 2. Подключение Визуального Директора для анализа сетки ленты (Grid DNA & Brandbook)
+            # 4. Подключение Визуального Директора для анализа сетки ленты (Grid DNA & Brandbook)
             from skills.advanced_visual_director import AdvancedVisualDirector
             all_collected_images = []
             if website_data and website_data.get("cached_images"):
@@ -602,7 +679,7 @@ class UnifiedOrchestrator:
                 "recommended_slot": visual_grid_dna.get("next_post_recommendation", {}).get("target_slot")
             })
 
-            # 3. Генерация глубокой контент-стратегии и портрета покупателя (Persona & Strategy Engine)
+            # 5. Генерация глубокой контент-стратегии и портрета покупателя (Persona & Strategy Engine)
             from skills.content_strategy_engine import ContentStrategyEngine
             strat_engine = ContentStrategyEngine()
             strategy_data = strat_engine.generate_strategy(
@@ -630,7 +707,7 @@ class UnifiedOrchestrator:
             self._log_trace(session_id, "Agent_Saiga", "Synthesized_Profile", brand_profile)
             self._log_trace(session_id, "Agent_ContentStrategist", "StrategySynthesized", strategy_data)
             
-            # 4. Векторизация и индексация в RAG (6 семантических категорий фактов)
+            # 6. Векторизация и индексация в RAG (6 семантических категорий фактов)
             from rag.models import Document
             rag_docs = []
             pains_list = strategy_data.get("buyer_persona", {}).get("primary_pains", [])
@@ -642,21 +719,21 @@ class UnifiedOrchestrator:
             rag_docs.append(Document(
                 doc_id=f"brand_dna_{company_name}",
                 text=f"Компания: {company_name}\nНиша: {brand_profile.get('field', activity)}\nГород: {city}\nПозиционирование (УТП): {brand_profile.get('positioning', '')}\nTone of Voice: {brand_profile.get('tone', [])}\nЦелевая аудитория: {brand_profile.get('market', {}).get('segment', '')}",
-                metadata={"category": "brand_dna", "company_name": company_name, "user_id": user_data.get("user_id")}
+                metadata={"category": "brand_dna", "company_name": company_name, "tenant_id": project_id, "project_id": project_id, "user_id": user_data.get("user_id")}
             ))
 
             # Doc 2: Pain Points & Buying Triggers
             rag_docs.append(Document(
                 doc_id=f"pains_{company_name}",
                 text=f"Боли, страхи и возражения клиентов компании {company_name}:\n- " + "\n- ".join(pains_list) + "\nТриггеры покупки и доверия:\n- " + "\n- ".join(triggers_list),
-                metadata={"category": "pain_points", "company_name": company_name}
+                metadata={"category": "pain_points", "company_name": company_name, "tenant_id": project_id, "project_id": project_id}
             ))
 
             # Doc 3: Competitor Dossier & Advantages
             rag_docs.append(Document(
                 doc_id=f"competitors_{company_name}",
                 text=f"Конкурентный анализ и отстройка компании {company_name}:\nСильные стороны: {swot_data.get('strengths', [])}\nВозможности рынка: {swot_data.get('opportunities', [])}\nГлавное отличие: {brand_profile.get('positioning', '')}",
-                metadata={"category": "competitors", "company_name": company_name}
+                metadata={"category": "competitors", "company_name": company_name, "tenant_id": project_id, "project_id": project_id}
             ))
 
             # Doc 4: Visual Grid DNA & Palette
@@ -664,7 +741,7 @@ class UnifiedOrchestrator:
                 rag_docs.append(Document(
                     doc_id=f"visual_grid_{company_name}",
                     text=f"Визуальный брендбук и сетка ленты 3x3 для {company_name}:\nФирменная палитра (Hex): {visual_grid_dna.get('brand_hex_palette', [])}\nДоминирующий цвет: {visual_grid_dna.get('dominant_color')}\nРекомендация по кадру: {visual_grid_dna.get('next_post_recommendation', {}).get('advice')}",
-                    metadata={"category": "visual_grid_dna", "company_name": company_name}
+                    metadata={"category": "visual_grid_dna", "company_name": company_name, "tenant_id": project_id, "project_id": project_id}
                 ))
 
             # Doc 5: Services & Pricing Offers
@@ -672,7 +749,7 @@ class UnifiedOrchestrator:
                 rag_docs.append(Document(
                     doc_id=f"services_{company_name}",
                     text=f"Услуги и ключевые предложения компании {company_name}:\n- " + "\n- ".join([str(s) for s in services_list]),
-                    metadata={"category": "services", "company_name": company_name}
+                    metadata={"category": "services", "company_name": company_name, "tenant_id": project_id, "project_id": project_id}
                 ))
 
             # Doc 6: Website Knowledge Base
@@ -680,7 +757,7 @@ class UnifiedOrchestrator:
                 rag_docs.append(Document(
                     doc_id=f"website_{company_name}",
                     text=f"Фактическая информация с официального сайта {company_name}:\n{website_data['structured_dossier']}",
-                    metadata={"category": "website_knowledge", "company_name": company_name}
+                    metadata={"category": "website_knowledge", "company_name": company_name, "tenant_id": project_id, "project_id": project_id}
                 ))
 
             # 7. Календарь государственных, профессиональных и городских праздников для локации
@@ -698,7 +775,7 @@ class UnifiedOrchestrator:
                     rag_docs.append(Document(
                         doc_id=f"geo_and_holidays_{company_name}",
                         text=f"География, локальные события и праздники компании {company_name}:\nСтрана: {country}\nГород: {city}\nНиша: {brand_profile.get('field', activity)}\nБлижайшие инфоповоды и праздники:\n{holidays_str}",
-                        metadata={"category": "holidays_and_events", "company_name": company_name, "country": country, "city": city}
+                        metadata={"category": "holidays_and_events", "company_name": company_name, "country": country, "city": city, "tenant_id": project_id, "project_id": project_id}
                     ))
             except Exception as h_err:
                 print(f"[UnifiedOrchestrator] ⚠️ Ошибка сбора календаря праздников: {h_err}")
@@ -724,7 +801,7 @@ class UnifiedOrchestrator:
                             rag_docs.append(Document(
                                 doc_id=f"client_doc_{company_name}_{d_idx+1}",
                                 text=f"Документ клиента '{doc_item['file_name']}' ({doc_item['format'].upper()}) для {company_name}:\n{doc_item['raw_text']}",
-                                metadata={"category": "client_files", "company_name": company_name, "file_name": doc_item["file_name"]}
+                                metadata={"category": "client_files", "company_name": company_name, "file_name": doc_item["file_name"], "tenant_id": project_id, "project_id": project_id}
                             ))
                     print(f"[UnifiedOrchestrator] 📄 Извлечено {len(client_docs_data)} клиентских документов для '{company_name}'.")
                 except Exception as doc_err:
@@ -737,7 +814,50 @@ class UnifiedOrchestrator:
             except Exception as rag_err:
                 print(f"[UnifiedOrchestrator] ⚠️ Ошибка индексации RAG: {rag_err}")
 
-            # 5. Сохранение в реляционную БД (SQL)
+            # 9. Формирование стандартизированного 5-экранного проекта (5-Screen UI Onboarding Draft)
+            formatted_services = []
+            for s in brand_profile.get("services", []):
+                if isinstance(s, dict):
+                    formatted_services.append({
+                        "name": s.get("title") or s.get("name", "Услуга"),
+                        "description": s.get("items") or s.get("description", ""),
+                        "price": s.get("price", "по запросу")
+                    })
+                else:
+                    formatted_services.append({
+                        "name": str(s),
+                        "description": "",
+                        "price": "по запросу"
+                    })
+
+            project_profile_draft = {
+                "about": {
+                    "name": company_name,
+                    "niche": brand_profile.get("field", activity),
+                    "positioning": brand_profile.get("positioning", ""),
+                    "city": brand_profile.get("market", {}).get("geography", city),
+                    "description": user_data.get("description") or (website_data.get("description") if website_data else "") or brand_profile.get("positioning", "")
+                },
+                "market": {
+                    "competitors": brand_profile.get("market", {}).get("competitors", []),
+                    "geography": brand_profile.get("market", {}).get("geography", city),
+                    "audience_segment": brand_profile.get("market", {}).get("segment", ""),
+                    "trends": brand_profile.get("market", {}).get("trends", [])
+                },
+                "swot": {
+                    "strengths": brand_profile.get("swot", {}).get("strengths", []),
+                    "weaknesses": brand_profile.get("swot", {}).get("weaknesses", []),
+                    "opportunities": brand_profile.get("swot", {}).get("opportunities", []),
+                    "threats": brand_profile.get("swot", {}).get("threats", [])
+                },
+                "services": formatted_services,
+                "goals": {
+                    "content_goals": brand_profile.get("goals", []),
+                    "tone_of_voice": brand_profile.get("tone", [])
+                }
+            }
+
+            # 10. Сохранение в реляционную БД (SQL)
             profile_id = None
             if self.db:
                 try:
@@ -775,6 +895,10 @@ class UnifiedOrchestrator:
             
             return {
                 "status": "success",
+                "task_type": task_type,
+                "project_id": project_id,
+                "tenant_id": project_id,
+                "project_profile_draft": project_profile_draft,
                 "profile": brand_profile,
                 "profile_id": profile_id or 1
             }

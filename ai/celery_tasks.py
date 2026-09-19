@@ -215,58 +215,40 @@ def audit_post_task(
 @celery_app.task(name="celery_tasks.generate_post_draft_task", bind=True)
 def generate_post_draft_task(
     self,
-    tenant_id: str,
+    project_id: Optional[str] = None,
+    tenant_id: Optional[str] = None,
+    topic: str = "Экспертный обзор",
+    profile: Optional[Dict[str, Any]] = None,
+    recent_posts: Optional[List[str]] = None,
+    aspect_ratio: str = "1:1",
     tier: str = "pro",
     industry: str = "b2b_corporate",
-    topic: str = "Экспертный обзор",
     callback_url: Optional[str] = None,
     dev_simulation_mode: bool = True
 ) -> Dict[str, Any]:
     """
-    Генерация черновика поста с нулевой стоимостью GPU (Lazy Rendering)
-    и отправка Webhook уведомления.
+    Генерация черновика поста с нулевой стоимостью GPU (Lazy Rendering),
+    использованием RAG с изоляцией по project_id, дедупликацией и отправкой Webhook уведомления.
     """
-    logger.info(f"✍️ [Celery] Генерация черновика для {tenant_id}...")
-    from core.lazy_rendering_controller import LazyRenderingController, SubscriptionTier, IndustryArchetype
-    from skills.content_strategy_engine import ContentStrategyEngine, BrandProfile
-    from services.rag_manager import BrandKnowledgeManager
+    target_project_id = project_id or tenant_id or "default_project"
+    logger.info(f"✍️ [Celery] Генерация черновика для project_id='{target_project_id}', тема='{topic[:50]}'")
+    from skills.content_generation_engine import ContentGenerationEngine
     from services.webhook_manager import WebhookCallbackManager
     
     try:
-        # Пытаемся обогатить BrandProfile данными из Persistent RAG
-        saved_dna = _run_async(BrandKnowledgeManager.get_brand_dna(tenant_id))
-        brand_name = saved_dna.get("company_name", tenant_id) if saved_dna else tenant_id
-        tov = saved_dna.get("tone_of_voice", "Экспертный, лаконичный") if saved_dna else "Экспертный, лаконичный"
-        props = saved_dna.get("brand_props", ["minimalist oak desk", "brass details"]) if saved_dna else ["minimalist oak desk", "brass details"]
-
-        from skills.content_strategy_engine import RawDataIngestion, IngestionSourceType
-        from datetime import datetime
-
-        engine = ContentStrategyEngine(dev_mode=True)
-        brand = BrandProfile(
-            brand_id=tenant_id,
-            company_name=brand_name,
-            industry=IndustryArchetype(industry),
-            tier=SubscriptionTier(tier),
-            tone_of_voice=tov,
-            brand_props=props
-        )
-        
-        raw_input = RawDataIngestion(
-            source_type=IngestionSourceType.RAG_FACTS_ONLY,
-            user_raw_intent=topic,
-            rag_context_snippets=[topic]
-        )
-
-        draft = engine.generate_post_draft(
-            brand=brand,
-            raw_input=raw_input,
-            target_date=datetime.utcnow()
-        )
+        engine = ContentGenerationEngine(dev_mode=True)
+        draft = _run_async(engine.generate_post(
+            project_id=target_project_id,
+            topic=topic,
+            profile=profile,
+            recent_posts=recent_posts,
+            aspect_ratio=aspect_ratio
+        ))
         
         res = {
             "status": "success",
             "task_id": self.request.id,
+            "project_id": target_project_id,
             "post_draft": draft.dict()
         }
 
@@ -274,7 +256,7 @@ def generate_post_draft_task(
             WebhookCallbackManager.send_callback_sync(
                 callback_url=callback_url,
                 event_type="content_draft_ready",
-                tenant_id=tenant_id,
+                tenant_id=target_project_id,
                 task_id=self.request.id,
                 status="success",
                 data=res
@@ -282,12 +264,12 @@ def generate_post_draft_task(
 
         return res
     except Exception as exc:
-        logger.error(f"❌ [Celery] Ошибка генерации черновика для {tenant_id}: {exc}")
+        logger.error(f"❌ [Celery] Ошибка генерации черновика для {target_project_id}: {exc}")
         if callback_url:
             WebhookCallbackManager.send_callback_sync(
                 callback_url=callback_url,
                 event_type="content_draft_failed",
-                tenant_id=tenant_id,
+                tenant_id=target_project_id,
                 task_id=self.request.id,
                 status="failed",
                 error=str(exc)

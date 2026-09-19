@@ -339,6 +339,9 @@ queue_manager = AsyncGenerationQueueManager(orchestrator=orchestrator)
 content_strategy_engine = ContentStrategyEngine(dev_mode=True)
 lazy_controller = LazyRenderingController(dev_simulation_mode=True)
 
+from api.routers.async_tasks import router as async_tasks_router
+app.include_router(async_tasks_router)
+
 
 # ============================================================================
 # ЕДИНЫЙ КОМАНДНЫЙ ШЛЮЗ ОРКЕСТРАТОРА (v2.5.0 WIREGUARD HTTP REST)

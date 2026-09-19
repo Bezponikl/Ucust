@@ -1,0 +1,49 @@
+# ==============================================================================
+# UCust AI Production Compose Overlay (NVIDIA GPU Pass-Through)
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Production FastAPI Gateway with Production Workers
+  # ----------------------------------------------------------------------------
+  fastapi-gateway:
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DEV_SIMULATION_MODE=false
+    command: uvicorn api_gateway:app --host 0.0.0.0 --port 8000 --workers 4
+
+  # ----------------------------------------------------------------------------
+  # Production Celery CPU Worker (High Concurrency for I/O & Scraping)
+  # ----------------------------------------------------------------------------
+  celery-worker-cpu:
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DEV_SIMULATION_MODE=false
+    command: celery -A celery_tasks.celery_app worker --loglevel=info --concurrency=4 -Q ucust_ai_queue
+
+  # ----------------------------------------------------------------------------
+  # Production Celery GPU Worker (NVIDIA GPU Pass-Through for Tensor Renders)
+  # ----------------------------------------------------------------------------
+  celery-worker-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DEV_SIMULATION_MODE=false
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    command: celery -A celery_tasks.celery_app worker --loglevel=info --concurrency=1 -Q ucust_gpu_render
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

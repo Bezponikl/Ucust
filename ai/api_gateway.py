@@ -9,6 +9,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
+import time
 import json
 import uuid
 from typing import Any, Dict, List, Optional
@@ -304,12 +305,35 @@ async def lifespan(app: FastAPI):
     # Остановка воркера при выключении
     await queue_manager.stop_worker()
 
+from core.observability import init_sentry, ObservabilityManager
+from fastapi import Request, Response
+
+# Инициализация Sentry
+init_sentry()
+
 app = FastAPI(
     title="UCust AI Service Gateway",
     description="Единая точка входа для бэкенда и фронтенда к команде автономных ИИ-агентов UCust.",
     version="2.5.0",
     lifespan=lifespan
 )
+
+# Prometheus HTTP Middleware для замера RPS и Latency
+@app.middleware("http")
+async def prometheus_metrics_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    # Исключаем служебные запросы из детального трейсинга
+    if request.url.path not in ["/metrics", "/health", "/api/v1/ai/health"]:
+        ObservabilityManager.record_http_request(
+            method=request.method,
+            endpoint=request.url.path,
+            status_code=response.status_code,
+            duration_sec=process_time
+        )
+    return response
 
 # Разрешаем CORS для любых фронтендов (React, Next.js, Vue, Mobile)
 app.add_middleware(
@@ -341,6 +365,18 @@ lazy_controller = LazyRenderingController(dev_simulation_mode=True)
 
 from api.routers.async_tasks import router as async_tasks_router
 app.include_router(async_tasks_router)
+
+
+# -------------------------------------------------------------------
+# Prometheus Metrics Scrape Endpoint
+# -------------------------------------------------------------------
+@app.get("/metrics", tags=["Observability & Telemetry"])
+async def get_prometheus_metrics():
+    """
+    Экспорт метрик Prometheus (RPS, Latency, Celery Queue Depth, VRAM Allocation).
+    """
+    metrics_data, content_type = ObservabilityManager.export_metrics()
+    return Response(content=metrics_data, media_type=content_type)
 
 
 # ============================================================================

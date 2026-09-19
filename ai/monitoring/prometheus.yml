@@ -1,0 +1,16 @@
+# ==============================================================================
+# Prometheus Configuration for UCust AI
+# ==============================================================================
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'ucust-ai-gateway'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['fastapi-gateway:8000']
+        labels:
+          service: 'ucust-ai'
+          environment: 'production'

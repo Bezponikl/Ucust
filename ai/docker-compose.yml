@@ -1,55 +1,197 @@
+# ==============================================================================
+# UCust AI Microservice Compose Stack (Development & Staging)
+# Orchestrates FastAPI Gateway, Celery Workers, Redis, and pgvector.
+# ==============================================================================
+
+version: '3.8'
 
 services:
-  # 1. PostgreSQL Database Service
-  db:
-    image: postgres:15-alpine
-    container_name: ucust_postgres_db
-    restart: always
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL with pgvector (Persistent Multi-Tenant RAG Store)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ucust_postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ai_smm}
+      POSTGRES_DB: ${POSTGRES_DB:-ucust_ai}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ucust_secure_postgres_pass_2026}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_smm}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ucust_ai}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - ucust_internal_net
 
-  # 2. UCust.AI Core API & Agents Service (Single-Server Deployment)
-  api:
+  # ----------------------------------------------------------------------------
+  # 2. Redis Message Broker & Result Backend
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ucust_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ucust_internal_net
+
+  # ----------------------------------------------------------------------------
+  # 3. FastAPI Service Gateway (REST API, WebSockets & Prometheus Metrics)
+  # ----------------------------------------------------------------------------
+  fastapi-gateway:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ucust_ai_api
-    restart: always
+    container_name: ucust_fastapi_gateway
+    restart: unless-stopped
     depends_on:
-      db:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
-      - .env
+      - .env.example
     environment:
-      - UCUST_DB_HOST=${UCUST_DB_HOST:-db}
-      - UCUST_DB_PORT=${UCUST_DB_PORT:-5432}
-      - UCUST_DB_NAME=${POSTGRES_DB:-ai_smm}
-      - UCUST_DB_USER=${POSTGRES_USER:-postgres}
-      - UCUST_DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - COMFYUI_SERVER_ADDRESS=${COMFYUI_SERVER_ADDRESS:-127.0.0.1:8188}
-      - COMFYUI_OUTPUT_DIR=${COMFYUI_OUTPUT_DIR:-/app/output}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ucust_secure_postgres_pass_2026}@postgres:5432/${POSTGRES_DB:-ucust_ai}
+      - REDIS_URL=redis://redis:6379/0
+      - UCUST_DB_HOST=postgres
+      - UCUST_DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEV_SIMULATION_MODE=${DEV_SIMULATION_MODE:-true}
     ports:
       - "8000:8000"
-    # Enable NVIDIA GPU Passthrough for Saiga 3 & LTX-2.3
-    # Connect to ComfyUI running on host machine
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    # Mount local host directories directly into container to read generated .mp4 and .wav files
     volumes:
-      - ./output:/app/output
-      - ${HOST_COMFYUI_OUTPUT_DIR:-./output}:/app/output_comfyui
+      - output_media:/app/output/photos
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/ai/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ucust_internal_net
 
+  # ----------------------------------------------------------------------------
+  # 4. Celery CPU Worker (Queue: ucust_ai_queue)
+  # Ingests Web, Telegram, Docs, RAG Search, and Saiga LLM text generation
+  # ----------------------------------------------------------------------------
+  celery-worker-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ucust_celery_worker_cpu
+    restart: unless-stopped
+    command: celery -A celery_tasks.celery_app worker --loglevel=info --concurrency=2 -Q ucust_ai_queue
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.example
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ucust_secure_postgres_pass_2026}@postgres:5432/${POSTGRES_DB:-ucust_ai}
+      - REDIS_URL=redis://redis:6379/0
+      - UCUST_DB_HOST=postgres
+      - UCUST_DB_PORT=5432
+      - DEV_SIMULATION_MODE=${DEV_SIMULATION_MODE:-true}
+    volumes:
+      - output_media:/app/output/photos
+    networks:
+      - ucust_internal_net
+
+  # ----------------------------------------------------------------------------
+  # 5. Celery GPU Worker (Queue: ucust_gpu_render)
+  # Lazy Rendering & ComfyUI Prompt API execution
+  # ----------------------------------------------------------------------------
+  celery-worker-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ucust_celery_worker_gpu
+    restart: unless-stopped
+    command: celery -A celery_tasks.celery_app worker --loglevel=info --concurrency=1 -Q ucust_gpu_render
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.example
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ucust_secure_postgres_pass_2026}@postgres:5432/${POSTGRES_DB:-ucust_ai}
+      - REDIS_URL=redis://redis:6379/0
+      - UCUST_DB_HOST=postgres
+      - UCUST_DB_PORT=5432
+      - DEV_SIMULATION_MODE=${DEV_SIMULATION_MODE:-true}
+    volumes:
+      - output_media:/app/output/photos
+    networks:
+      - ucust_internal_net
+
+  # ----------------------------------------------------------------------------
+  # 6. Observability: Prometheus (Monitoring Profile)
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ucust_prometheus
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - ucust_internal_net
+
+  # ----------------------------------------------------------------------------
+  # 7. Observability: Grafana (Monitoring Profile)
+  # ----------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ucust_grafana
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - ucust_internal_net
+
+# ------------------------------------------------------------------------------
+# Volumes & Networks Definitions
+# ------------------------------------------------------------------------------
 volumes:
   postgres_data:
     driver: local
+  redis_data:
+    driver: local
+  output_media:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  ucust_internal_net:
+    driver: bridge

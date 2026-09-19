@@ -1,0 +1,49 @@
+# ==============================================================================
+# UCust AI Production GPU Dockerfile (NVIDIA CUDA Runtime)
+# Optimized for High-Throughput Tensor Workloads (A100 / H100 / RTX)
+# ==============================================================================
+
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04 AS runtime-gpu
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    PYTHONPATH=/app
+
+# Install Python 3.11 and system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-venv \
+    python3.11-dev \
+    python3-pip \
+    libpq-dev \
+    ffmpeg \
+    libgl1 \
+    libglib2.0-0 \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set default python3 to python3.11
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+WORKDIR /app
+
+# Copy requirements and install
+COPY requirements.txt /app/requirements.txt
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python3 -m pip install --no-cache-dir -r requirements.txt
+
+# Create application directories
+RUN mkdir -p /app/output/photos /app/storage /app/logs
+
+# Copy application source code
+COPY . /app
+
+EXPOSE 8000
+
+CMD ["celery", "-A", "celery_tasks.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "ucust_gpu_render"]

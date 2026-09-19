@@ -139,12 +139,13 @@ class LazyRenderingController:
         self.dev_simulation_mode = dev_simulation_mode
         self.posts_db: Dict[str, PostDraft] = {}
 
-    def register_draft(self, post: PostDraft) -> PostDraft:
+    def register_draft(self, post: PostDraft, dev_simulation_mode: Optional[bool] = None) -> PostDraft:
         """Сохраняет черновик в БД со статусом DRAFT_TEXT без вызова GPU."""
+        is_sim = dev_simulation_mode if dev_simulation_mode is not None else self.dev_simulation_mode
         post.status = PostLifecycleStatus.DRAFT_TEXT
         post.vram_cost_mb = VRAMCostCalculator.calculate_total_post_vram(
             post, 
-            dev_simulation_mode=self.dev_simulation_mode
+            dev_simulation_mode=is_sim
         )
         post.updated_at = datetime.now()
         self.posts_db[post.post_id] = post

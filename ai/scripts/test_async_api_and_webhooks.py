@@ -14,7 +14,14 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 AI_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, AI_DIR)
 
-from fastapi.testclient import TestClient
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
+import httpx
 from api_gateway import app
 from api.dependencies.auth import JWT_SECRET, JWT_ALGORITHM
 from services.webhook_manager import WebhookCallbackManager
@@ -35,51 +42,51 @@ def generate_test_token(tenant_id: str = "tenant_test_123") -> str:
 async def test_jwt_auth_and_async_endpoints():
     print("\n🔐 [1/3] Тестирование JWT Guard и FastAPI Async Router...")
     await init_db()
-    client = TestClient(app)
-
+    
     token = generate_test_token("tenant_acme_corp")
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 1. Попытка запроса без токена (должна вернуть 401/403)
-    resp_unauth = client.post(
-        "/api/v1/onboarding/async",
-        json={"company_name": "No Auth Co", "niche": "Testing"}
-    )
-    print(f"   Запрос без токена: HTTP {resp_unauth.status_code} (Ожидается 401/403)")
-    assert resp_unauth.status_code in [401, 403], f"Ожидался 401/403, получен {resp_unauth.status_code}"
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Попытка запроса без токена (должна вернуть 401/403)
+        resp_unauth = await client.post(
+            "/api/v1/onboarding/async",
+            json={"company_name": "No Auth Co", "niche": "Testing"}
+        )
+        print(f"   Запрос без токена: HTTP {resp_unauth.status_code} (Ожидается 401/403)")
+        assert resp_unauth.status_code in [401, 403], f"Ожидался 401/403, получен {resp_unauth.status_code}"
 
-    # 2. Асинхронный онбординг с валидным токеном
-    onboard_payload = {
-        "company_name": "Acme Robotics",
-        "niche": "Промышленная робототехника",
-        "raw_notes": "Интеграция роботов-манипуляторов на заводы и склады.",
-        "callback_url": "https://api.external-backend.com/webhooks/onboarding"
-    }
-    resp_onboard = client.post("/api/v1/onboarding/async", json=onboard_payload, headers=headers)
-    print(f"   Ответ /api/v1/onboarding/async: HTTP {resp_onboard.status_code}")
-    print(f"   Тело ответа: {resp_onboard.json()}")
-    assert resp_onboard.status_code == 202
-    data_onb = resp_onboard.json()
-    assert data_onb["status"] == "accepted"
-    assert data_onb["tenant_id"] == "tenant_acme_corp"
-    assert data_onb["queue_name"] == "ucust_ai_queue"
+        # 2. Асинхронный онбординг с валидным токеном
+        onboard_payload = {
+            "company_name": "Acme Robotics",
+            "niche": "Промышленная робототехника",
+            "raw_notes": "Интеграция роботов-манипуляторов на заводы и склады.",
+            "callback_url": "https://api.external-backend.com/webhooks/onboarding"
+        }
+        resp_onboard = await client.post("/api/v1/onboarding/async", json=onboard_payload, headers=headers)
+        print(f"   Ответ /api/v1/onboarding/async: HTTP {resp_onboard.status_code}")
+        print(f"   Тело ответа: {resp_onboard.json()}")
+        assert resp_onboard.status_code == 202
+        data_onb = resp_onboard.json()
+        assert data_onb["status"] == "accepted"
+        assert data_onb["tenant_id"] == "tenant_acme_corp"
+        assert data_onb["queue_name"] == "ucust_ai_queue"
 
-    # 3. Асинхронная генерация контента с валидным токеном
-    content_payload = {
-        "prompt": "Как роботизация снижает брак на производстве автокомпонентов",
-        "tier": "pro",
-        "industry": "b2b_corporate",
-        "rubric": "case_study",
-        "callback_url": "https://api.external-backend.com/webhooks/content"
-    }
-    resp_content = client.post("/api/v1/content/generate-async", json=content_payload, headers=headers)
-    print(f"   Ответ /api/v1/content/generate-async: HTTP {resp_content.status_code}")
-    print(f"   Тело ответа: {resp_content.json()}")
-    assert resp_content.status_code == 202
-    data_cnt = resp_content.json()
-    assert data_cnt["status"] == "accepted"
-    assert data_cnt["tenant_id"] == "tenant_acme_corp"
-    print("   ✅ FastAPI Async Router и JWT Guard отработали идеально!")
+        # 3. Асинхронная генерация контента с валидным токеном
+        content_payload = {
+            "prompt": "Как роботизация снижает брак на производстве автокомпонентов",
+            "tier": "pro",
+            "industry": "b2c_lifestyle",
+            "rubric": "case_study",
+            "callback_url": "https://api.external-backend.com/webhooks/content"
+        }
+        resp_content = await client.post("/api/v1/content/generate-async", json=content_payload, headers=headers)
+        print(f"   Ответ /api/v1/content/generate-async: HTTP {resp_content.status_code}")
+        print(f"   Тело ответа: {resp_content.json()}")
+        assert resp_content.status_code == 202
+        data_cnt = resp_content.json()
+        assert data_cnt["status"] == "accepted"
+        assert data_cnt["tenant_id"] == "tenant_acme_corp"
+        print("   ✅ FastAPI Async Router и JWT Guard отработали идеально!")
 
 
 async def test_webhook_signatures_and_backoff():

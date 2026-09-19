@@ -132,12 +132,26 @@ class LazyRenderingController:
         self, 
         scheduler_backend: Optional[Any] = None, 
         storage_uploader: Optional[Callable] = None,
+        comfy_bridge: Optional[Any] = None,
         dev_simulation_mode: bool = True
     ):
         self.scheduler = scheduler_backend
         self.uploader = storage_uploader or self._default_mock_uploader
         self.dev_simulation_mode = dev_simulation_mode
         self.posts_db: Dict[str, PostDraft] = {}
+        
+        if comfy_bridge is not None:
+            self.comfy_bridge = comfy_bridge
+        else:
+            try:
+                from bridge.comfy_bridge import ComfyUIBridge
+                self.comfy_bridge = ComfyUIBridge()
+            except ImportError:
+                try:
+                    from ai.bridge.comfy_bridge import ComfyUIBridge
+                    self.comfy_bridge = ComfyUIBridge()
+                except ImportError:
+                    self.comfy_bridge = None
 
     def register_draft(self, post: PostDraft, dev_simulation_mode: Optional[bool] = None) -> PostDraft:
         """Сохраняет черновик в БД со статусом DRAFT_TEXT без вызова GPU."""
@@ -170,7 +184,7 @@ class LazyRenderingController:
         logger.info(f"⏳ Пост {post_id} переведен в AWAITING_RENDER (Триггер: {trigger_source}).")
 
         # Запуск асинхронного воркера рендера
-        asyncio.create_task(self._process_render_job(post))
+        await self._process_render_job(post)
         return post
 
     async def _process_render_job(self, post: PostDraft):
@@ -185,12 +199,18 @@ class LazyRenderingController:
 
             rendered_urls = []
 
-            # 2. Исполнение каждой спецификации
+            # 2. Исполнение каждой спецификации через ComfyUIBridge
             for idx, spec in enumerate(post.image_specs):
                 logger.debug(f"   🖼️ Рендер кадра #{idx + 1} ({spec.width}x{spec.height}, {spec.aspect_ratio})...")
                 
-                # Имитация / реальный вызов ComfyUI Runner
-                raw_image_bytes = await self._execute_comfy_generation(spec)
+                if self.comfy_bridge:
+                    raw_image_bytes = await self.comfy_bridge.render_image(
+                        spec=spec,
+                        post_id=f"{post.post_id}_{idx}",
+                        dev_simulation_mode=self.dev_simulation_mode
+                    )
+                else:
+                    raw_image_bytes = await self._execute_comfy_generation(spec)
                 
                 # 3. Загрузка в S3/хранилище
                 s3_url = await self.uploader(raw_image_bytes, f"posts/{post.post_id}/img_{idx + 1}.jpg")
@@ -209,8 +229,8 @@ class LazyRenderingController:
             logger.error(f"❌ Ошибка рендера поста {post.post_id}: {e}", exc_info=True)
 
     async def _execute_comfy_generation(self, spec: ImageGenerationSpec) -> bytes:
-        """Связка с ComfyUI (или заглушка при тестировании логики)."""
-        await asyncio.sleep(0.05)  # Быстрая симуляция
+        """Резервный метод симуляции генерации."""
+        await asyncio.sleep(0.05)
         return b"mock_jpeg_binary_data"
 
     async def _default_mock_uploader(self, data: bytes, destination_key: str) -> str:

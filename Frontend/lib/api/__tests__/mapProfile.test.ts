@@ -84,4 +84,35 @@ describe("toProjectRequest", () => {
 
     expect(toProjectRequest(EMPTY_INPUT, profile).socialLinks?.telegram).toBeNull();
   });
+
+  it("кладёт ссылку на сайт в website, а не в instagram", () => {
+    const withSite = { ...EMPTY_INPUT, link: "https://par-coffee.ru" };
+    const socials = toProjectRequest(withSite, profile).socialLinks;
+    expect(socials?.website).toBe("https://par-coffee.ru");
+    expect(socials?.instagram).toBeNull();
+  });
+
+  it("распознаёт Instagram-ссылку и кладёт её в instagram", () => {
+    const withInsta = { ...EMPTY_INPUT, link: "https://instagram.com/parcoffee" };
+    const socials = toProjectRequest(withInsta, profile).socialLinks;
+    expect(socials?.instagram).toBe("https://instagram.com/parcoffee");
+    expect(socials?.website).toBeNull();
+  });
+
+  it("распознаёт t.me-ссылку без шага соцсетей и кладёт её в telegram", () => {
+    const withTgLink = { ...EMPTY_INPUT, link: "https://t.me/par_coffee" };
+    const socials = toProjectRequest(withTgLink, profile).socialLinks;
+    expect(socials?.telegram).toBe("https://t.me/par_coffee");
+    expect(socials?.website).toBeNull();
+  });
+
+  it("при подключённом канале предпочитает проверенный хэндл t.me-ссылке", () => {
+    const both: WizardInput = {
+      ...EMPTY_INPUT,
+      link: "https://t.me/par_coffee",
+      socials: ["telegram"],
+      channelHandles: { telegram: "@par_coffee_verified" },
+    };
+    expect(toProjectRequest(both, profile).socialLinks?.telegram).toBe("@par_coffee_verified");
+  });
 });

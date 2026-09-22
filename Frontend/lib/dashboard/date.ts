@@ -61,6 +61,34 @@ export const isoOffset = (days: number) => {
   return toIso({ year: t.getFullYear(), month: t.getMonth(), day: t.getDate() });
 };
 
+/* ── Навигация по месяцам контент-плана ── */
+
+export interface MonthSpan {
+  year: number;
+  month: number; // 0-based
+}
+
+/** Смещение на `delta` месяцев от заданного — переходит через границу года. */
+export const shiftMonth = (span: MonthSpan, delta: number): MonthSpan => {
+  const d = new Date(span.year, span.month + delta, 1);
+  return { year: d.getFullYear(), month: d.getMonth() };
+};
+
+/** Ключ месяца «YYYY-MM» — по нему контент фильтруется (dateKey.startsWith). */
+export const monthKey = (span: MonthSpan) => `${span.year}-${pad2(span.month + 1)}`;
+
+/** «Январь 2026» — заголовок календаря. */
+export const monthLabel = (span: MonthSpan) => `${MONTHS_NOM[span.month] ?? ""} ${span.year}`;
+
+/** «января» — подписи «на 15 января» (родительный падеж). */
+export const monthGen = (span: MonthSpan) => MONTHS_GEN[span.month] ?? "";
+
+/** «01» — число месяца для дат вида «15.01.2026». */
+export const monthDd = (span: MonthSpan) => pad2(span.month + 1);
+
+/** Ключи для сравнения месяцев по ISO-дате. */
+export const isoToKey = (iso: string) => iso.slice(0, 7);
+
 export const MONTHS_SHORT = [
   "янв", "фев", "мар", "апр", "мая", "июн",
   "июл", "авг", "сен", "окт", "ноя", "дек",

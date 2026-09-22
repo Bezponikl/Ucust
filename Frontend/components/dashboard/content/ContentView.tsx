@@ -9,18 +9,25 @@ import type { IconName } from "@/lib/icons/solar";
 import { CHANNELS, CHANNEL_ORDER, type ChannelId } from "@/lib/channels";
 import type { PostStatus } from "@/lib/dashboard/types";
 import {
-  DAYS_IN_MONTH,
-  MONTH_DD,
-  MONTH_GEN,
-  MONTH_LABEL,
-  MONTH_OFFSET,
   STATUS_LABEL,
   WEEKDAYS,
-  YEAR,
   postsByDay,
+  postsInMonth,
   type Post,
   type PostType,
 } from "@/lib/dashboard/content";
+import {
+  CUR_MONTH,
+  CUR_YEAR,
+  daysInMonth,
+  firstWeekdayMon,
+  monthDd,
+  monthGen,
+  monthLabel,
+  monthKey,
+  shiftMonth,
+  type MonthSpan,
+} from "@/lib/dashboard/date";
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import CreateProjectNotice from "@/components/dashboard/CreateProjectNotice";
@@ -29,6 +36,11 @@ import { toDashboardPost } from "@/lib/api/mapGeneration";
 import { menuSurfaceClass } from "@/lib/dashboard/surface";
 
 const DAYS_PER_WEEK = 7;
+
+/** День недели для дня месяца при заданном сдвиге первого дня (Пн-старт). */
+function weekdayOf(offset: number, day: number): string {
+  return WEEKDAYS[(offset + day - 1) % DAYS_PER_WEEK];
+}
 
 const STATUS_DOT: Record<PostStatus, string> = {
   published: "bg-success",
@@ -42,10 +54,6 @@ const TYPE: Record<PostType, { icon: IconName; label: string; chip: string; cove
   promo: { icon: "gift", label: "Акция", chip: "bg-brand-pink/10 text-brand-pink", cover: "bg-brand-pink/8 text-brand-pink", bar: "bg-brand-pink", tint: "text-brand-pink" },
   video: { icon: "clapperboard", label: "Видео", chip: "bg-brand-purple/10 text-brand-purple", cover: "bg-brand-purple/8 text-brand-purple", bar: "bg-brand-purple", tint: "text-brand-purple" },
 };
-
-/** Готовые дни для сетки: пустые ячейки выравнивают первый день по дню недели. */
-const ALL_DAYS = [...Array.from({ length: MONTH_OFFSET }, () => 0), ...Array.from({ length: DAYS_IN_MONTH }, (_, i) => i + 1)];
-const weekdayOf = (day: number) => WEEKDAYS[(MONTH_OFFSET + day - 1) % DAYS_PER_WEEK];
 
 function ChannelIcons({ post }: { post: Post }) {
   if (post.channels.length === 0) return null;
@@ -149,11 +157,11 @@ const STATUS_TABS: { id: "all" | PostStatus; label: string }[] = [
 const POST_TYPE_ORDER: PostType[] = ["post", "promo", "video"];
 
 /** Карточка поста в сетке контента (обложка + текст + мета + меню). */
-function GridCard({ post, onOpen, onDelete }: { post: Post; onOpen: (p: Post) => void; onDelete: (id: string) => void }) {
+function GridCard({ post, onOpen, onDelete, mm, yyyy }: { post: Post; onOpen: (p: Post) => void; onDelete: (id: string) => void; mm: string; yyyy: number }) {
   const { surfaceStyle } = useDashboard();
   const [menu, setMenu] = useState(false);
   const t = TYPE[post.type];
-  const date = `${String(post.day).padStart(2, "0")}.${MONTH_DD}.${YEAR}`;
+  const date = `${String(post.day).padStart(2, "0")}.${mm}.${yyyy}`;
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-lift">
@@ -457,14 +465,13 @@ function ContentFilters({
 }
 
 /** Пустой день — слот «Запланировать». */
-function EmptyDayCard({ day }: { day: number }) {
-  const date = `${String(day).padStart(2, "0")}.${MONTH_DD}`;
+function EmptyDayCard({ weekday, date, href }: { weekday: string; date: string; href: string }) {
   return (
     <Link
-      href={`/dashboard/create?day=${day}`}
+      href={href}
       className="group flex h-full min-h-[140px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-soft/40 p-4 text-center transition hover:border-brand hover:bg-brand/5"
     >
-      <span className="text-xs uppercase text-ink-muted">{weekdayOf(day)}, {date}</span>
+      <span className="text-xs uppercase text-ink-muted">{weekday}, {date}</span>
       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-brand transition group-hover:scale-105 group-hover:bg-brand/15">
         <Icon name="plus" size={18} aria-hidden="true" />
       </span>
@@ -474,12 +481,16 @@ function EmptyDayCard({ day }: { day: number }) {
 }
 
 /** Сетка контента: карточки по порядку дней + пустые дни со слотом добавления. */
-function FeedGrid({ byDay, onOpen, passes }: { byDay: Map<number, Post[]>; onOpen: (p: Post) => void; passes: (p: Post) => boolean }) {
+function FeedGrid({ byDay, onOpen, passes, allDays, mm, yyyy, dayHref }: {
+  byDay: Map<number, Post[]>; onOpen: (p: Post) => void; passes: (p: Post) => boolean;
+  allDays: number[]; mm: string; yyyy: number; dayHref: (day: number) => string;
+}) {
   const [hidden, setHidden] = useState<string[]>([]);
 
   type Cell = { key: string } & ({ kind: "post"; post: Post } | { kind: "empty"; day: number });
   const cells: Cell[] = [];
-  for (const day of ALL_DAYS) {
+  const offset = allDays.indexOf(1);
+  for (const day of allDays) {
     if (day === 0) continue; // пустые ячейки-выравнивание только в календаре
     const dayPosts = (byDay.get(day) ?? []).filter((p) => !hidden.includes(p.id));
     if (dayPosts.length === 0) {
@@ -493,11 +504,36 @@ function FeedGrid({ byDay, onOpen, passes }: { byDay: Map<number, Post[]>; onOpe
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {cells.map((c) =>
         c.kind === "post" ? (
-          <GridCard key={c.key} post={c.post} onOpen={onOpen} onDelete={(id) => setHidden((h) => [...h, id])} />
+          <GridCard key={c.key} post={c.post} onOpen={onOpen} onDelete={(id) => setHidden((h) => [...h, id])} mm={mm} yyyy={yyyy} />
         ) : (
-          <EmptyDayCard key={c.key} day={c.day} />
+          <EmptyDayCard key={c.key} weekday={weekdayOf(offset, c.day)} date={`${String(c.day).padStart(2, "0")}.${mm}`} href={dayHref(c.day)} />
         )
       )}
+    </div>
+  );
+}
+
+/** Переключатель месяца контент-плана: посты канала живут в своих месяцах. */
+function MonthSwitcher({ span, onChange }: { span: MonthSpan; onChange: (s: MonthSpan) => void }) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-soft">
+      <button
+        type="button"
+        onClick={() => onChange(shiftMonth(span, -1))}
+        aria-label="Предыдущий месяц"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-soft hover:text-ink"
+      >
+        <Icon name="chevron-left" size={18} aria-hidden="true" />
+      </button>
+      <span className="min-w-[136px] text-center text-sm font-semibold text-ink">{monthLabel(span)}</span>
+      <button
+        type="button"
+        onClick={() => onChange(shiftMonth(span, 1))}
+        aria-label="Следующий месяц"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-soft hover:text-ink"
+      >
+        <Icon name="chevron-right" size={18} aria-hidden="true" />
+      </button>
     </div>
   );
 }
@@ -506,6 +542,8 @@ export default function ContentView() {
   const { surfaceStyle, projectId, hasProject, data } = useDashboard();
   /** Посты проекта с бэка. Демо-плана нет: пустой список = пустой план. */
   const [serverPosts, setServerPosts] = useState<Post[]>([]);
+  /** Месяц контент-плана — посты канала могут жить в любом месяце. */
+  const [span, setSpan] = useState<MonthSpan>({ year: CUR_YEAR, month: CUR_MONTH });
   const [view, setView] = useState<ViewId>("grid");
   const [focusedDay, setFocusedDay] = useState<number | null>(null);
   const [flashDay, setFlashDay] = useState<number | null>(null);
@@ -515,7 +553,13 @@ export default function ContentView() {
   const [chans, setChans] = useState<ChannelId[]>(CHANNEL_ORDER);
   const [types, setTypes] = useState<PostType[]>(POST_TYPE_ORDER);
   const [status, setStatus] = useState<"all" | PostStatus>("all");
-  const byDay = postsByDay(serverPosts);
+
+  // Производные месяца: сетка дней и фильтр постов по выбранному месяцу.
+  const dim = daysInMonth(span.year, span.month);
+  const offset = firstWeekdayMon(span.year, span.month);
+  const allDays = [...Array.from({ length: offset }, () => 0), ...Array.from({ length: dim }, (_, i) => i + 1)];
+  const byDay = postsByDay(postsInMonth(serverPosts, span));
+  const dayHref = (day: number) => `/dashboard/create?day=${day}&month=${monthKey(span)}`;
 
   useEffect(() => {
     if (!projectId) return;
@@ -560,8 +604,9 @@ export default function ContentView() {
   useEffect(() => {
     const raw = new URLSearchParams(window.location.search).get("day");
     const d = raw ? Number(raw) : NaN;
+    const valid = d >= 1 && d <= daysInMonth(CUR_YEAR, CUR_MONTH);
     /* eslint-disable react-hooks/set-state-in-effect */
-    if (Number.isInteger(d) && d >= 1 && d <= DAYS_IN_MONTH) focusDay(d);
+    if (Number.isInteger(d) && valid) focusDay(d);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -635,10 +680,16 @@ export default function ContentView() {
         onStatus={setStatus}
       />
 
+      {/* Месяц контент-плана */}
+      <div className="flex items-center justify-between gap-3">
+        <MonthSwitcher span={span} onChange={setSpan} />
+        <span className="hidden text-xs text-ink-muted sm:inline">Посты автоматически попадают в даты публикации</span>
+      </div>
+
       {view === "list" && (
         /* Список: агенда по всем дням месяца */
         <ul className="flex flex-col gap-2">
-          {ALL_DAYS.map((day) => {
+          {allDays.map((day) => {
             if (day === 0) return null; // выравнивание месяца — только в календаре
             const posts = (byDay.get(day) ?? []).filter(passes);
             const dimmed = focusedDay !== null && focusedDay !== day;
@@ -651,7 +702,7 @@ export default function ContentView() {
                 } ${flashDay === day ? "uc-flash" : ""} ${dimmed ? "opacity-45" : ""}`}
               >
                 <div className="flex w-11 shrink-0 flex-col items-center pt-2">
-                  <span className="text-[0.6875rem] uppercase text-ink-muted">{weekdayOf(day)}</span>
+                  <span className="text-[0.6875rem] uppercase text-ink-muted">{weekdayOf(offset, day)}</span>
                   <span className="font-display text-xl font-bold text-ink">{day}</span>
                 </div>
                 <div className="min-w-0 flex-1 py-1">
@@ -661,7 +712,7 @@ export default function ContentView() {
                     </div>
                   ) : (
                     <Link
-                      href={`/dashboard/create?day=${day}`}
+                      href={dayHref(day)}
                       className="group flex items-center justify-between rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-ink-muted transition hover:border-brand hover:bg-brand/5 hover:text-brand"
                     >
                       Свободно
@@ -684,7 +735,7 @@ export default function ContentView() {
             <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand" /> Запланирован</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ink-muted" /> Черновик</span>
           </div>
-          <FeedGrid byDay={byDay} onOpen={openPost} passes={passes} />
+          <FeedGrid byDay={byDay} onOpen={openPost} passes={passes} allDays={allDays} mm={monthDd(span)} yyyy={span.year} dayHref={dayHref} />
         </div>
       )}
 
@@ -692,14 +743,14 @@ export default function ContentView() {
         /* Календарь: числа + цветные точки, тап → панель дня */
         <div className="rounded-[24px] border border-border bg-card p-4 shadow-soft sm:p-6">
           <div className="mb-4 flex items-center gap-2">
-            <span className="font-display text-lg font-bold text-ink">{MONTH_LABEL}</span>
+            <span className="font-display text-lg font-bold text-ink">{monthLabel(span)}</span>
           </div>
 
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {WEEKDAYS.map((w) => (
               <div key={w} className="pb-1 text-center text-xs font-medium text-ink-muted">{w}</div>
             ))}
-            {ALL_DAYS.map((day) => {
+            {allDays.map((day) => {
               if (day === 0) return <div key="cal-lead" aria-hidden="true" />;
               const posts = (byDay.get(day) ?? []).filter(passes);
               const has = posts.length > 0;
@@ -739,7 +790,7 @@ export default function ContentView() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={`Посты на ${selected} ${MONTH_GEN}`}
+            aria-label={`Посты на ${selected} ${monthGen(span)}`}
             className={`uc-modal-in relative flex h-full w-full flex-col overflow-hidden shadow-lift sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-3xl ${
               surfaceStyle === "glass"
                 ? "border border-white/10 bg-card/90 ring-1 ring-white/5 backdrop-blur-2xl"
@@ -748,8 +799,8 @@ export default function ContentView() {
           >
             <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
               <div>
-                <span className="text-xs uppercase text-ink-muted">{weekdayOf(selected)}</span>
-                <h2 className="text-base font-bold text-ink sm:text-lg">{selected} {MONTH_GEN}</h2>
+                <span className="text-xs uppercase text-ink-muted">{weekdayOf(offset, selected)}</span>
+                <h2 className="text-base font-bold text-ink sm:text-lg">{selected} {monthGen(span)}</h2>
               </div>
               <button type="button" onClick={() => setSelected(null)} aria-label="Закрыть" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-soft hover:text-ink">
                 <Icon name="close" size={20} aria-hidden="true" />
@@ -761,14 +812,14 @@ export default function ContentView() {
 
               {/* Стеклянная карточка добавления поста в этот день */}
               <Link
-                href={`/dashboard/create?day=${selected}`}
+                href={dayHref(selected)}
                 className="btn-glass group flex min-h-[132px] flex-col items-center justify-center gap-2.5 px-4 py-6 text-center"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand transition group-hover:scale-105 group-hover:bg-brand/15">
                   <Icon name="plus" size={24} aria-hidden="true" />
                 </span>
                 <span className="text-sm font-semibold text-ink">Добавить пост</span>
-                <span className="text-xs text-ink-muted">на {selected} {MONTH_GEN}</span>
+                <span className="text-xs text-ink-muted">на {selected} {monthGen(span)}</span>
               </Link>
             </div>
           </div>

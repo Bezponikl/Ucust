@@ -2,7 +2,7 @@ import type { ChannelId } from "@/lib/channels";
 import { CHANNEL_ORDER } from "@/lib/channels";
 import type { Post, PostType } from "@/lib/dashboard/content";
 import type { PostStatus } from "@/lib/dashboard/types";
-import type { PostResponse, TaskStatusResponse } from "./types";
+import type { ChannelPostDto, PostResponse, TaskStatusResponse } from "./types";
 
 /**
  * Оркестратор отдаёт посты и статусы задач, но контракт их полей не раскрывает.
@@ -144,6 +144,23 @@ function postDate(post: PostResponse): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/**
+ * Ключ дня в локальном календаре (YYYY-MM-DD). Берём локальную дату, а не
+ * UTC-срез ISO-строки: для поясов восточнее UTC момент в ночные часы иначе
+ * «уезжает» на предыдущий день и не совпадает с `day = date.getDate()`.
+ */
+export function localDateKey(date: Date | null): string | null {
+  if (!date) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+interface PostMetrics {
+  views?: number;
+  forwards?: number;
+  comments?: number;
+}
+
 /** Пост бэка в вид, который рисует календарь и лента контента. */
 export function toDashboardPost(post: PostResponse): Post {
   const raw = post as Record<string, unknown>;
@@ -157,6 +174,7 @@ export function toDashboardPost(post: PostResponse): Post {
   return {
     id: post.id,
     day: date ? date.getDate() : 1,
+    dateKey: localDateKey(date) ?? undefined,
     title,
     excerpt: text.slice(0, 240),
     image: pickString(raw, ["imageUrl", "image", "mediaUrl", "coverUrl"]) ?? undefined,
@@ -167,4 +185,48 @@ export function toDashboardPost(post: PostResponse): Post {
       ? date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
       : "—",
   };
+}
+
+function channelPostDate(channelPost: ChannelPostDto): Date | null {
+  if (!channelPost.date) return null;
+  const date = new Date(channelPost.date);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Пост из анализа Telegram-канала (ChannelPostDto) в пост контент-плана:
+ * сразу опубликованный, площадка — telegram. day/dateKey берутся из даты
+ * публикации в канале, поэтому пост виден в календаре на своём месяце.
+ */
+export function channelPostToDashboardPost(
+  channelPost: ChannelPostDto,
+  channel: ChannelId = "telegram",
+): Post {
+  const text = channelPost.text ?? "";
+  const title = text.split("\n").find((line) => line.trim())?.slice(0, 60) ?? "Пост канала";
+  const date = channelPostDate(channelPost);
+
+  const metrics: PostMetrics = {};
+  if (typeof channelPost.views === "number") metrics.views = channelPost.views;
+  if (typeof channelPost.forwards === "number") metrics.forwards = channelPost.forwards;
+  if (typeof channelPost.commentsCount === "number") metrics.comments = channelPost.commentsCount;
+
+  return {
+    id: channelPost.externalId,
+    day: date ? date.getDate() : 1,
+    dateKey: localDateKey(date) ?? undefined,
+    title,
+    excerpt: text.slice(0, 240),
+    channels: [channel],
+    status: "published",
+    type: "post",
+    time: date ? date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "—",
+    metrics: Object.keys(metrics).length ? metrics : undefined,
+  };
+}
+
+export function channelMetrics(views: number): string {
+  if (!views || views < 0) return "—";
+  if (views >= 1000) return `${(views / 1000).toLocaleString("ru-RU", { maximumFractionDigits: 1 })}K`;
+  return String(views);
 }

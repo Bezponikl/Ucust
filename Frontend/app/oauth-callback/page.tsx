@@ -19,67 +19,71 @@ import { useSession } from "@/lib/session/SessionProvider";
  * Отличает случаи параметр `yandexToken`.
  */
 export default function OAuthCallbackPage() {
-  const router = useRouter();
-  const { reload } = useSession();
-  const [failed, setFailed] = useState(false);
-  const handled = useRef(false);
+	const router = useRouter();
+	const { reload } = useSession();
+	const [failed, setFailed] = useState(false);
+	const handled = useRef(false);
 
-  useEffect(() => {
-    if (handled.current) return;
-    handled.current = true;
+	useEffect(() => {
+		if (handled.current) return;
+		handled.current = true;
 
-    const search = window.location.search;
-    const providerToken = new URLSearchParams(search).get("yandexToken");
-    const { token, error } = parseOAuthCallback(search);
-    window.history.replaceState(null, "", "/oauth-callback");
+		const search = window.location.search;
+		const providerToken = new URLSearchParams(search).get("yandexToken");
+		const { token, error } = parseOAuthCallback(search);
+		window.history.replaceState(null, "", "/oauth-callback");
 
-    const openDashboard = () =>
-      reload().then(
-        () => router.replace("/dashboard"),
-        () => setFailed(true),
-      );
+		const openDashboard = () =>
+			reload().then(
+				() => router.replace("/dashboard"),
+				() => setFailed(true),
+			);
 
-    if (providerToken) {
-      void loginWithYandexToken(providerToken).then(openDashboard, () =>
-        router.replace("/login?error=oauth_failed"),
-      );
-      return;
-    }
+		if (providerToken) {
+			void loginWithYandexToken(providerToken).then(openDashboard, () =>
+				router.replace("/login?error=oauth_failed"),
+			);
+			return;
+		}
 
-    if (error || !token) {
-      router.replace(`/login?error=${error ?? "oauth_failed"}`);
-      return;
-    }
+		if (error || !token) {
+			router.replace(`/login?error=${error ?? "oauth_failed"}`);
+			return;
+		}
 
-    setAccessToken(token);
-    void oauthBootstrap(token).finally(openDashboard);
-  }, [reload, router]);
+		setAccessToken(token);
+		void oauthBootstrap(token).finally(openDashboard);
+	}, [reload, router]);
 
-  return (
-    <AuthPageChrome>
-      <div className="flex flex-col items-center text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-blue text-brand">
-          <Icon name={failed ? "shield" : "check-bold"} size={24} aria-hidden="true" />
-        </div>
-        <h1 className="mt-5 text-2xl font-bold text-ink sm:text-[1.75rem]">
-          {failed ? "Что-то пошло не так" : "Входим…"}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-          {failed
-            ? "Не удалось загрузить профиль. Попробуйте войти ещё раз."
-            : "Проверяем данные из Яндекса и открываем кабинет."}
-        </p>
-      </div>
+	return (
+		<AuthPageChrome>
+			<div className="flex flex-col items-center text-center">
+				<div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-blue text-brand">
+					<Icon
+						name={failed ? "shield" : "check-bold"}
+						size={24}
+						aria-hidden="true"
+					/>
+				</div>
+				<h1 className="mt-5 text-2xl font-bold text-ink sm:text-[1.75rem]">
+					{failed ? "Что-то пошло не так" : "Входим…"}
+				</h1>
+				<p className="mt-2 text-sm leading-relaxed text-ink-muted">
+					{failed
+						? "Не удалось загрузить профиль. Попробуйте войти ещё раз."
+						: "Проверяем данные из провайдера авторизации и открываем кабинет."}
+				</p>
+			</div>
 
-      {failed && (
-        <button
-          type="button"
-          onClick={() => router.replace("/login")}
-          className="btn-glass-blue mt-6 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold"
-        >
-          Вернуться ко входу
-        </button>
-      )}
-    </AuthPageChrome>
-  );
+			{failed && (
+				<button
+					type="button"
+					onClick={() => router.replace("/login")}
+					className="btn-glass-blue mt-6 inline-flex w-full items-center justify-center px-6 py-3.5 text-sm font-semibold"
+				>
+					Вернуться ко входу
+				</button>
+			)}
+		</AuthPageChrome>
+	);
 }

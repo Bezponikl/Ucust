@@ -4,6 +4,9 @@ import type { ChannelId } from "@/lib/channels";
 import type {
   AsyncGenerateRequest,
   AsyncGenerateResponse,
+  ChannelAnalyzeRequest,
+  ChannelAnalysisResponse,
+  ChannelSettingsResponse,
   CriticReviewResponse,
   PostResponse,
   SocialVerifyResponse,
@@ -20,6 +23,25 @@ export function generateAsync(req: AsyncGenerateRequest): Promise<AsyncGenerateR
     method: "POST",
     auth: true,
     body: JSON.stringify(req),
+  });
+}
+
+/**
+ * Генерация с фотографиями: multipart — часть `request` = JSON-параметры,
+ * часть `files` = изображения. Бэк сохраняет их в MinIO и передаёт контуру
+ * как attachments (Moondream VQA учитывает кадр в тексте поста).
+ */
+export function generateAsyncWithMedia(
+  req: AsyncGenerateRequest,
+  files: File[],
+): Promise<AsyncGenerateResponse> {
+  const form = new FormData();
+  form.append("request", new Blob([JSON.stringify(req)], { type: "application/json" }));
+  files.forEach((f) => form.append("files", f));
+  return apiFetch<AsyncGenerateResponse>(endpoints.orchestration.generateAsync, {
+    method: "POST",
+    auth: true,
+    body: form,
   });
 }
 
@@ -138,5 +160,47 @@ export function verifySocial(
     method: "POST",
     auth: true,
     body: JSON.stringify({ channel, reference }),
+  });
+}
+
+/**
+ * Запускает анализ Telegram-канала: бэк дёргает контур (parse_telegram) и
+ * импортирует посты канала в контент-план. Ответ приходит синхронно и уже
+ * содержит posts/objections, когда контур отвечает быстро.
+ */
+export function analyzeChannel(req: ChannelAnalyzeRequest): Promise<ChannelAnalysisResponse> {
+  return apiFetch<ChannelAnalysisResponse>(endpoints.orchestration.channelAnalyze, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(req),
+  });
+}
+
+/** Состояние анализа канала по его id (для перезагрузки с готовыми постами). */
+export function getChannelAnalysis(id: string): Promise<ChannelAnalysisResponse> {
+  return apiFetch<ChannelAnalysisResponse>(endpoints.orchestration.channelAnalysisById(id), {
+    auth: true,
+  });
+}
+
+/**
+ * Настройки автоскана канала проекта (интервал в часах, момент последнего скана).
+ * Доступны только для проектов с привязанным Telegram-каналом — иначе бэк 400.
+ */
+export function getChannelSettings(projectId: string): Promise<ChannelSettingsResponse> {
+  return apiFetch<ChannelSettingsResponse>(endpoints.orchestration.channelSettings(projectId), {
+    auth: true,
+  });
+}
+
+/** Обновляет интервал автоскана канала проекта (часы). */
+export function updateChannelSettings(
+  projectId: string,
+  autoRescanIntervalHours: number,
+): Promise<ChannelSettingsResponse> {
+  return apiFetch<ChannelSettingsResponse>(endpoints.orchestration.channelSettings(projectId), {
+    method: "PUT",
+    auth: true,
+    body: JSON.stringify({ autoRescanIntervalHours }),
   });
 }

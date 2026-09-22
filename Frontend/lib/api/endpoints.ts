@@ -92,6 +92,10 @@ export const endpoints = {
     analysisById: (id: string) => `/orchestration/analysis/${encodeURIComponent(id)}`,
     /** Верификация ссылки/канала соцсети на этапе подключения */
     socialsVerify: "/orchestration/socials/verify",
+    /** Анализ Telegram-канала (ChannelAnalysisController) */
+    channelAnalyze: "/orchestration/channel/analyze",
+    channelAnalysisById: (id: string) => `/orchestration/channel/analysis/${encodeURIComponent(id)}`,
+    channelSettings: (projectId: string) => withQuery("/orchestration/channel/settings", { projectId }),
   },
 
   /**

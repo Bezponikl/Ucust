@@ -8,7 +8,7 @@ import EmojiPicker from "@/components/ui/EmojiPicker";
 import { toast } from "@/lib/toast";
 import type { ChannelId } from "@/lib/channels";
 import { STATUS_LABEL, type Post, type PostType } from "@/lib/dashboard/content";
-import { combineDateTime, dayToIso, fmtDayMonth } from "@/lib/dashboard/date";
+import { combineDateTime, dayToIso, fmtDayMonth, todayIso } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { toMessage } from "@/lib/api/errors";
@@ -185,6 +185,10 @@ export default function PostEditView({ post, serverId }: { post: Post; serverId?
    */
   const schedule = async () => {
     if (actioning) return;
+    if (date < todayIso()) {
+      toast("Нельзя запланировать публикацию на прошедшую дату");
+      return;
+    }
     if (!serverId) {
       toast("Публикация запланирована");
       router.push("/dashboard/content");

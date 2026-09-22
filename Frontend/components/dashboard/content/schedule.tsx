@@ -19,13 +19,16 @@ const YEAR_MAX = CUR_YEAR + 5;
 /**
  * Календарь месяца с переключением месяца и года.
  * Дата приходит и уходит в ISO `YYYY-MM-DD` — один формат на создание и редактирование.
+ * disablePast гасит дни раньше сегодняшнего — планировать можно только в будущее.
  */
 export function MonthCalendar({
   value,
   onSelect,
+  disablePast = true,
 }: {
   value: string;
   onSelect: (iso: string) => void;
+  disablePast?: boolean;
 }) {
   const selected = parseIso(value);
   const [view, setView] = useState({ year: selected.year, month: selected.month });
@@ -135,18 +138,22 @@ export function MonthCalendar({
             const iso = toIso({ year: view.year, month: view.month, day: d });
             const isSel = iso === value;
             const isToday = iso === today;
+            const isPast = disablePast && iso < today;
             return (
               <button
                 key={d}
                 type="button"
-                onClick={() => onSelect(iso)}
+                onClick={() => !isPast && onSelect(iso)}
                 aria-pressed={isSel}
+                aria-disabled={isPast}
                 aria-label={`${d} ${MONTHS_NOM[view.month]} ${view.year}`}
                 style={{ gridColumnStart: d === 1 ? offset + 1 : undefined }}
                 className={`relative flex h-9 items-center justify-center rounded-lg text-sm font-medium transition duration-150 ${
                   isSel
                     ? "bg-brand text-white"
-                    : `text-ink hover:bg-brand/8 hover:text-brand ${isToday ? "ring-1 ring-inset ring-brand/50" : ""}`
+                    : isPast
+                      ? "text-ink-muted/40 line-through decoration-ink-muted/30 hover:bg-transparent hover:text-ink-muted/40"
+                      : `text-ink hover:bg-brand/8 hover:text-brand ${isToday ? "ring-1 ring-inset ring-brand/50" : ""}`
                 }`}
               >
                 {d}

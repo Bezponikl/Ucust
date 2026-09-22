@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { businessToProjectPatch, industryToLabel, labelToIndustry, labelToTone, projectToBusiness, toneToLabel } from "@/lib/api/mapBusiness";
+import { businessToProjectPatch, connectedChannelsFromProject, industryToLabel, labelToIndustry, labelToTone, projectToBusiness, toneToLabel } from "@/lib/api/mapBusiness";
 import { quotaView, subscriptionView, tariffView, formatDate } from "@/lib/api/mapBilling";
 import { isTaskFailed, isTaskFinished, taskPostId, taskText, toDashboardPost } from "@/lib/api/mapGeneration";
 import { EMPTY_BUSINESS } from "@/lib/dashboard/businesses";
@@ -41,6 +41,13 @@ describe("проект ↔ настройки бизнеса", () => {
       daysOff: [6],
     });
     expect(business.socials).toEqual([{ id: "telegram", connected: false }]);
+  });
+
+  it("собирает подключённые площадки из ссылок проекта", () => {
+    expect(connectedChannelsFromProject(project)).toEqual(["instagram"]);
+    expect(connectedChannelsFromProject({ ...project, socialLinks: { telegram: "@coffee", instagram: "" } })).toEqual(["telegram"]);
+    expect(connectedChannelsFromProject({ ...project, socialLinks: { website: "https://coffee.ru" } })).toEqual([]);
+    expect(connectedChannelsFromProject(null)).toEqual([]);
   });
 
   it("отмечает Telegram подключённым, если в проекте есть ссылка на канал", () => {

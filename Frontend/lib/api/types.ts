@@ -251,3 +251,57 @@ export interface SocialVerifyResponse {
   provider: string | null;
   error: string | null;
 }
+
+/* ─────────────────────────────────────────────────────────── *
+ * Анализ Telegram-канала (generative-orchestration-service,
+ * ChannelAnalysisController). Форма — как в DTO бэка.
+ * ─────────────────────────────────────────────────────────── */
+
+/** Запуск анализа канала (POST /orchestration/channel/analyze). */
+export interface ChannelAnalyzeRequest {
+  projectId: string;
+  /** @handle или t.me/... — бэк нормализует к @handle. */
+  channel: string;
+  /** Сколько постов канала проанализировать (1..50, по умолчанию 10). */
+  limit?: number;
+  includeMediaVqa?: boolean;
+}
+
+/** Пост Telegram-канала из результата анализа. */
+export interface ChannelPostDto {
+  externalId: string;
+  text: string;
+  /** ISO-8601 (Instant) — время публикации в канале. */
+  date?: string | null;
+  views: number;
+  forwards: number;
+  commentsCount: number;
+  mediaType?: string | null;
+}
+
+/** Значения enum AnalysisStatus бэка. */
+export type ChannelAnalysisStatus = "PENDING" | "COMPLETED" | "FAILED";
+
+/** Ответ анализа канала (start и GET /orchestration/channel/analysis/{id}). */
+export interface ChannelAnalysisResponse {
+  id: string;
+  sessionId: string;
+  projectId: string;
+  channel: string;
+  status: ChannelAnalysisStatus;
+  posts: ChannelPostDto[] | null;
+  /** Возражения аудитории (top_objections_from_comments контура). */
+  objections: string[] | null;
+  /** Обобщённые метаданные канала: subscribers, avgViewsPerPost... */
+  channelInfo: Record<string, unknown> | null;
+  /** Сырой ответ контура — для отладки и метрик сверх известных полей. */
+  result: Record<string, unknown> | null;
+  error: string | null;
+}
+
+/** Настройки автоскана Telegram-канала проекта. */
+export interface ChannelSettingsResponse {
+  projectId: string;
+  autoRescanIntervalHours: number;
+  lastRescanAt: string | null;
+}

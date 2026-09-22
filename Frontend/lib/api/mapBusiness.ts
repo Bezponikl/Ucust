@@ -1,5 +1,6 @@
 import type { BusinessProfile } from "@/lib/dashboard/businesses";
 import { EMPTY_BUSINESS, TONE_LABELS } from "@/lib/dashboard/businesses";
+import type { ChannelId } from "@/lib/channels";
 import type {
   BusinessHours,
   DayOfWeek,
@@ -71,6 +72,20 @@ function toShortTime(value: string | null | undefined, fallback: string): string
   if (!value) return fallback;
   const [h = "", m = ""] = value.split(":");
   return h && m ? `${h}:${m}` : fallback;
+}
+
+/**
+ * Площадки публикации, реально привязанные к проекту: бэк хранит ссылки в
+ * socialLinks, поэтому «подключён» тот канал, у которого ссылка заполнена.
+ */
+export function connectedChannelsFromProject(
+  project: Pick<ProjectResponse, "socialLinks"> | null | undefined,
+): ChannelId[] {
+  const links = project?.socialLinks;
+  const result: ChannelId[] = [];
+  if (links?.telegram?.trim()) result.push("telegram");
+  if (links?.instagram?.trim()) result.push("instagram");
+  return result;
 }
 
 /** Позиционирование из brandProfile-JSON: терпим к любой форме строки. */

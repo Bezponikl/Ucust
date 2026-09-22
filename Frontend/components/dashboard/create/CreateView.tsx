@@ -9,17 +9,20 @@ import EmojiPicker from "@/components/ui/EmojiPicker";
 import AnchoredPopover from "@/components/ui/AnchoredPopover";
 import { toast } from "@/lib/toast";
 import type { IconName } from "@/lib/icons/solar";
-import { CHANNELS, CHANNEL_ORDER, type ChannelId } from "@/lib/channels";
+import { CHANNELS, type ChannelId } from "@/lib/channels";
 import PromptComposer from "@/components/dashboard/PromptComposer";
 import { useAttachments } from "@/lib/dashboard/attachments";
 import { DateField } from "@/components/dashboard/content/EditorControls";
 import TimeInput from "@/components/ui/TimeInput";
-import { fmtDayMonth, isoOffset, combineDateTime } from "@/lib/dashboard/date";
+import { fmtDayMonth, isoOffset, combineDateTime, daysInMonth, toIso, todayIso } from "@/lib/dashboard/date";
 import { TEXT_AI_ACTIONS, applyTextAi } from "@/lib/dashboard/textAi";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { toMessage } from "@/lib/api/errors";
-import { confirmPost, generateAsync, getPost, publishPost, pollTask, schedulePost, updatePost } from "@/lib/api/orchestration";
+import { confirmPost, generateAsync, generateAsyncWithMedia, getPost, publishPost, pollTask, schedulePost, updatePost } from "@/lib/api/orchestration";
+import type { AsyncGenerateRequest } from "@/lib/api/types";
 import { isTaskFailed, isTaskFinished, taskPostId, taskText } from "@/lib/api/mapGeneration";
+import { getProject } from "@/lib/api/projects";
+import { connectedChannelsFromProject } from "@/lib/api/mapBusiness";
 
 type Format = "post" | "video";
 type ImgSource = "none" | "upload" | "ai";
@@ -57,8 +60,8 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 function generateBody(topic: string, format: Format, refCount = 0): string {
   const subject = topic.trim() || "У нас новинка";
   const opener = format === "video" ? "🎬 Смотрите наше новое видео!" : "☕ Друзья, у нас новость!";
-  // Мок: с прикреплёнными фото ИИ «описывает кадр». В проде фото уходят в запрос
-  // вместе с текстом — меняется только тело этой функции.
+  // Запасной черновик, когда сервис генерации недоступен: фото уходят в запрос
+  // только боевой веткой runGeneration (multipart), здесь их имитируем одной фразой.
   const fromPhoto = refCount
     ? `\n\nНа снимке — то, что мы приготовили сегодня: тёплый свет, аромат свежей обжарки и наши любимые детали.`
     : "";
@@ -186,10 +189,12 @@ export default function CreateView() {
   const [format, setFormat] = useState<Format>("post");
   const [imgSource, setImgSource] = useState<ImgSource>("ai");
   const [vidSource, setVidSource] = useState<VidSource>("ai");
-  const [channels, setChannels] = useState<ChannelId[]>(["vk", "telegram"]);
+  const [channels, setChannels] = useState<ChannelId[]>([]);
   const [voice, setVoice] = useState(VOICES[0]);
   const [length, setLength] = useState(LENGTHS[0]);
   const [publishMode, setPublishMode] = useState<null | "publish" | "schedule">(null);
+  /** Площадки, реально привязанные к проекту; без них публикация недоступна. */
+  const [connectedChannels, setConnectedChannels] = useState<ChannelId[]>([]);
 
   const [media, setMedia] = useState<Media>({ kind: "none" });
   const photos = useAttachments(); // фото к запросу (контекст для ИИ)
@@ -216,6 +221,49 @@ export default function CreateView() {
       if (p) { setTopic(p); setSettingsShown(true); sessionStorage.removeItem("uc_ai_prompt"); }
     } catch {}
   }, []);
+
+  // Какие площадки подключены к проекту — от них зависит, можно ли публиковать.
+  // Выбранные площадки живут внутри подключённых: при первом известном списке
+  // помечаем все подключённые, позже — сохраняем ручной выбор.
+  useEffect(() => {
+    if (!projectId) return;
+    let ignore = false;
+    getProject(projectId)
+      .then((p) => {
+        if (ignore) return;
+        const connected = connectedChannelsFromProject(p);
+        setConnectedChannels(connected);
+        setChannels((prev) => {
+          const valid = prev.filter((c) => connected.includes(c));
+          return valid.length ? valid : connected;
+        });
+      })
+      .catch(() => {
+        if (ignore) return;
+        setConnectedChannels([]);
+        setChannels([]);
+      });
+    return () => { ignore = true; };
+  }, [projectId]);
+
+  /** Дата по умолчанию для планирования: из ссылки контент-плана day=N&month=YYYY-MM. */
+  const [scheduleInitial] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const day = Number(q.get("day"));
+      const month = q.get("month");
+      if (Number.isInteger(day) && day >= 1 && month && /^\d{4}-\d{2}$/.test(month)) {
+        const [y, m] = month.split("-").map(Number);
+        if (m >= 1 && m <= 12 && day <= daysInMonth(y, m - 1)) {
+          return toIso({ year: y, month: m - 1, day });
+        }
+      }
+    } catch {
+      // Битый query не должен мешать открытию страницы создания.
+    }
+    return null;
+  });
 
   const onTopic = (v: string) => { setTopic(v); if (v.trim().length >= REVEAL_AT) setSettingsShown(true); };
   const trackUrl = (u: string) => { objectUrls.current.push(u); return u; };
@@ -296,12 +344,20 @@ export default function CreateView() {
         // mode — enum бэка (MANUAL|AUTO). Генерация идёт по теме пользователя,
         // поэтому MANUAL; AUTO требует industry/description/toneOfVoice в запросе.
         // Бэк требует в MANUAL непустой prompt — с фото без текста шлём дефолтную.
-        const { taskId } = await generateAsync({
+        const files = photos.items
+          .map((a) => a.file)
+          .filter((f): f is File => Boolean(f));
+        const params: AsyncGenerateRequest = {
           projectId,
           mode: "MANUAL",
           count: 1,
           prompt: topic.trim() || "Создай пост на основе приложенных изображений",
-        });
+        };
+        // С фото уходит multipart: контур прогоняет кадры через Moondream VQA
+        // и передаёт визуальный контекст генератору текста.
+        const { taskId } = files.length
+          ? await generateAsyncWithMedia(params, files)
+          : await generateAsync(params);
 
         const task = await pollTask(taskId, {
           isDone: isTaskFinished,
@@ -562,10 +618,17 @@ export default function CreateView() {
             </div>
 
             {/* Действия */}
-            <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center">
-              <button type="button" onClick={publish} className="btn-glass-blue inline-flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold"><Icon name="send" size={16} aria-hidden="true" /> Опубликовать</button>
-              <button type="button" onClick={schedule} className="btn-glass inline-flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold"><Icon name="calendar-plus" size={16} aria-hidden="true" /> Запланировать</button>
-              <button type="button" onClick={draft} className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium text-ink-muted transition hover:text-ink">Черновик</button>
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <button type="button" onClick={publish} disabled={connectedChannels.length === 0}
+                  className="btn-glass-blue inline-flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"><Icon name="send" size={16} aria-hidden="true" /> Опубликовать</button>
+                <button type="button" onClick={schedule} disabled={connectedChannels.length === 0}
+                  className="btn-glass inline-flex flex-1 items-center justify-center gap-2 px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"><Icon name="calendar-plus" size={16} aria-hidden="true" /> Запланировать</button>
+                <button type="button" onClick={draft} className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium text-ink-muted transition hover:text-ink">Черновик</button>
+              </div>
+              {connectedChannels.length === 0 && (
+                <p className="inline-flex items-start gap-1.5 text-xs text-ink-muted"><Icon name="link" size={13} className="mt-px shrink-0 text-brand" aria-hidden="true" /> Нет подключённых соцсетей — публикация недоступна. Подключите площадку в настройках бизнеса или сохраните пост в черновик.</p>
+              )}
             </div>
           </div>
         ) : (
@@ -609,7 +672,8 @@ export default function CreateView() {
       </div>
       </div>
 
-      <PublishFlow mode={publishMode} channels={channels} onChange={setChannels}
+      <PublishFlow mode={publishMode} channels={channels} onChange={setChannels} connected={connectedChannels}
+        initialDate={scheduleInitial ?? undefined}
         onSubmit={submitPublication}
         onClose={() => setPublishMode(null)}
         onDone={() => { setPublishMode(null); router.push("/dashboard/content"); }}
@@ -619,20 +683,9 @@ export default function CreateView() {
 }
 
 /* ── Флоу публикации / планирования: карточки каналов → экран успеха ── */
-const CONNECTED = new Set<ChannelId>(["vk", "telegram", "max", "ok", "zen"]);
 
 function ChannelCard({ id, on, onToggle }: { id: ChannelId; on: boolean; onToggle: () => void }) {
   const ch = CHANNELS[id];
-  const connected = CONNECTED.has(id);
-  if (!connected) {
-    return (
-      <div className="flex flex-col gap-1.5 rounded-2xl border border-dashed border-border bg-transparent p-3.5">
-        <span className="flex items-center gap-2 text-sm font-medium text-ink-muted">{channelIcon(id, 18)} {ch.label}</span>
-        <span className="text-xs text-ink-muted/70">Не подключён</span>
-        <button type="button" onClick={() => toast("Подключение канала скоро появится")} className="text-left text-xs font-semibold text-brand transition hover:opacity-70">Подключить</button>
-      </div>
-    );
-  }
   return (
     <button type="button" onClick={onToggle} aria-pressed={on}
       className={`relative flex items-center gap-2.5 rounded-2xl border p-3.5 text-left transition ${on ? "border-brand bg-brand/8" : "border-border hover:border-brand/40"}`}>
@@ -643,16 +696,20 @@ function ChannelCard({ id, on, onToggle }: { id: ChannelId; on: boolean; onToggl
   );
 }
 
-function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onSubmit }: {
+function PublishFlow({ mode, channels, onChange, connected, onClose, onDone, onNewPost, onSubmit, initialDate }: {
   mode: null | "publish" | "schedule"; channels: ChannelId[]; onChange: (v: ChannelId[]) => void;
+  /** Площадки, реально подключённые к проекту — только их можно выбрать. */
+  connected: ChannelId[];
   onClose: () => void; onDone: () => void; onNewPost: () => void;
   /** Отправка на бэк. false — не получилось, экран «готово» показывать нельзя. */
   onSubmit: (kind: "publish" | "schedule", scheduledAt?: string) => Promise<boolean>;
+  /** Дата по умолчанию (из ссылки контент-плана), иначе завтра. */
+  initialDate?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<"form" | "done">("form");
   const [busy, setBusy] = useState(false);
-  const [date, setDate] = useState(isoOffset(1));
+  const [date, setDate] = useState(initialDate && initialDate >= todayIso() ? initialDate : isoOffset(1));
   const [time, setTime] = useState("12:00");
   useEffect(() => setMounted(true), []);
   useEffect(() => { if (mode) setStep("form"); }, [mode]);
@@ -667,7 +724,7 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onS
 
   const isSchedule = mode === "schedule";
   const toggle = (id: ChannelId) => onChange(channels.includes(id) ? channels.filter((x) => x !== id) : [...channels, id]);
-  const chosen = channels.filter((c) => CONNECTED.has(c));
+  const chosen = channels.filter((c) => connected.includes(c));
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -682,9 +739,13 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onS
 
             <div className="flex-1 overflow-y-auto p-5">
               <span className="mb-2.5 block text-sm font-medium text-ink-muted">Выберите площадки</span>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {CHANNEL_ORDER.map((id) => <ChannelCard key={id} id={id} on={channels.includes(id)} onToggle={() => toggle(id)} />)}
-              </div>
+              {connected.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-border bg-transparent p-4 text-sm text-ink-muted">Нет подключённых соцсетей. Добавьте площадку в настройках бизнеса и вернитесь сюда.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {connected.map((id) => <ChannelCard key={id} id={id} on={channels.includes(id)} onToggle={() => toggle(id)} />)}
+                </div>
+              )}
 
               {isSchedule && (
                 <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-5">
@@ -718,6 +779,10 @@ function PublishFlow({ mode, channels, onChange, onClose, onDone, onNewPost, onS
               <button
                 type="button"
                 onClick={async () => {
+                  if (isSchedule && date < todayIso()) {
+                    toast("Нельзя запланировать публикацию на прошедшую дату");
+                    return;
+                  }
                   setBusy(true);
                   const ok = await onSubmit(isSchedule ? "schedule" : "publish",
                     isSchedule ? combineDateTime(date, time) : undefined);

@@ -7,12 +7,15 @@ export interface Attachment {
   id: string;
   url: string;
   name: string;
+  /** Исходный файл — уходит в multipart-запрос генерации. */
+  file: File;
 }
 
 export const MAX_ATTACHMENTS = 4;
 
 /**
- * Вложения к текстовому запросу: хранит object URL'ы и освобождает их при размонтировании.
+ * Вложения к текстовому запросу: хранит object URL'ы (показ) и сам файл
+ * (загрузка на бэк) и освобождает URL'ы при размонтировании.
  * Возвращает готовые обработчики для PromptComposer.
  */
 export function useAttachments(max = MAX_ATTACHMENTS) {
@@ -32,7 +35,7 @@ export function useAttachments(max = MAX_ATTACHMENTS) {
         const next = files.slice(0, room).map((f, i) => {
           const url = URL.createObjectURL(f);
           urls.current.push(url);
-          return { id: `${f.name}-${prev.length + i}-${f.size}`, url, name: f.name };
+          return { id: `${f.name}-${prev.length + i}-${f.size}`, url, name: f.name, file: f };
         });
         return [...prev, ...next];
       });

@@ -1,5 +1,5 @@
 import type { BrandProfile, WizardInput } from "@/lib/onboarding/types";
-import type { Industry, ProjectRequest, ToneOfVoice } from "./types";
+import type { Industry, ProjectRequest, SocialLinks, ToneOfVoice } from "./types";
 
 // Бэк принимает отрасль и тон как enum из фиксированного списка, а онбординг
 // оперирует свободным текстом. Сопоставляем по ключевым словам ниши.
@@ -25,12 +25,30 @@ function pick<T>(hints: Array<[T, RegExp]>, text: string, fallback: T): T {
 }
 
 /**
+ * Ссылка с шага «О бизнесе» может быть сайтом или конкретной соцсетью.
+ * Распознанную соцсеть кладём в своё поле, обычный URL — в website
+ * (раньше любой https-листинг уезжал в instagram, и сайт там и терялся).
+ */
+function linkFields(link: string): Pick<SocialLinks, "instagram" | "telegram" | "website"> {
+  if (!link) return {};
+  if (/instagram\.com|instagr\.am|inst\.me|ig\.me/i.test(link)) return { instagram: link };
+  if (/t\.me\/|telegram(?:\.me|\.org)/i.test(link)) return { telegram: link };
+  return { website: link };
+}
+
+/**
  * Онбординг собирает заметно больше, чем принимает ProjectRequest, поэтому
  * профиль целиком уезжает в brandProfile — иначе SWOT, услуги и цели пропали бы.
  */
 export function toProjectRequest(input: WizardInput, profile: BrandProfile): ProjectRequest {
   const nicheText = [profile.field, profile.positioning, input.activity].join(" ");
   const toneText = profile.tone.join(" ");
+  const fromLink = linkFields(input.link.trim());
+  const handleOrLink =
+    (input.socials.includes("telegram") ? (input.channelHandles?.telegram ?? "").trim() : "") ||
+    fromLink.telegram ||
+    "";
+  const telegram = handleOrLink || null;
 
   return {
     name: (input.name || profile.name).slice(0, 100),
@@ -43,10 +61,10 @@ export function toProjectRequest(input: WizardInput, profile: BrandProfile): Pro
     targetAudience: profile.market.segment.slice(0, 500),
     toneOfVoice: pick(TONE_HINTS, toneText, "FRIENDLY"),
     socialLinks: {
-      instagram: input.link.startsWith("https://") ? input.link : null,
+      instagram: fromLink.instagram ?? null,
       // Подключается только после verifySocial(...).verified — шлём проверенный @хэндл/ссылку.
-      telegram: input.socials.includes("telegram") ? (input.channelHandles?.telegram ?? "").trim() : null,
-      website: null,
+      telegram,
+      website: fromLink.website ?? null,
     },
     businessHours: null,
     brandProfile: JSON.stringify(profile),

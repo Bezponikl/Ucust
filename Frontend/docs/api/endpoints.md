@@ -103,6 +103,10 @@
 | POST | `/orchestration/analysis` | `analyzeBusiness()` | `lib/api/analysis.ts` |
 | GET | `/orchestration/analysis/{id}` | `analysisById()` | `lib/api/analysis.ts` (fallback-опрос) |
 | POST | `/orchestration/socials/verify` | `verifySocial(channel, reference)` | `lib/api/orchestration.ts` |
+| POST | `/orchestration/channel/analyze` | `analyzeChannel(req)` | `lib/api/orchestration.ts` (раздел «Анализ канала») |
+| GET | `/orchestration/channel/analysis/{id}` | `getChannelAnalysis(id)` | `lib/api/orchestration.ts` |
+| GET | `/orchestration/channel/settings?projectId=` | `getChannelSettings(projectId)` | `lib/api/orchestration.ts` (интервал авто-скана, 400 если нет привязки) |
+| PUT | `/orchestration/channel/settings?projectId=` | `updateChannelSettings(projectId, hours)` | `lib/api/orchestration.ts` (интервал 1..168 ч) |
 
 Генерация асинхронная: `generateAsync` отвечает `202` и отдаёт только `taskId`,
 дальше состояние забирается опросом. `pollTask` требует явный признак готовности —
@@ -148,6 +152,9 @@
 | `POST /orchestration/analysis` | `components/onboarding/OnboardingProvider.tsx` — шаг «Расскажите о бизнесе» |
 | `GET /orchestration/analysis/{id}` | `lib/api/analysis.ts` — fallback-опрос (страховка от PENDING) |
 | `POST /orchestration/socials/verify` | `components/onboarding/steps/StepChannels.tsx` — ввод @хэндла/ссылки → «Подключено» только при verified |
+| `POST /orchestration/channel/analyze` | `components/dashboard/channel/ChannelAnalysisView.tsx` — кнопка «Анализировать» (канал берётся из привязанного socialLinks.telegram, ввод заблокирован) |
+| `GET /orchestration/channel/analysis/{id}` | `ChannelAnalysisView` — перечитывание результата по id |
+| `GET|PUT /orchestration/channel/settings` | `ChannelAnalysisView` — select «Авто-пересканирование» (1/3/6/12/24/48 ч) + время последнего скана |
 
 Общее правило деградации: если сервис не отвечает, экран не ломается — контент-план
 и тарифы показывают демо-данные витрины, генерация собирает черновик локально и

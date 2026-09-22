@@ -16,6 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/inbox", label: "Входящие", icon: "message", tourId: "nav-inbox" },
   { href: "/dashboard/promos", label: "Акции", icon: "gift", tourId: "nav-promos" },
   { href: "/dashboard/analytics", label: "Аналитика", icon: "bar-chart", tourId: "nav-analytics" },
+  { href: "/dashboard/channel", label: "Канал", icon: "chart-line", tourId: "nav-channel" },
 ];
 
 // Пути, которые «принадлежат» секции (для подсветки родителя)
@@ -33,6 +34,7 @@ const PROJECT_PREFIXES = [
   "/dashboard/analytics",
   "/dashboard/reviews",
   "/dashboard/business",
+  "/dashboard/channel",
 ];
 
 /** До создания проекта такие пути закрыты: показывать там нечего. */

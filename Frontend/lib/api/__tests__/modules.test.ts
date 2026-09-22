@@ -5,7 +5,17 @@ import { whoAmI } from "@/lib/api/status";
 import { deleteProject, getProject } from "@/lib/api/projects";
 import { listTariffs } from "@/lib/api/tariffs";
 import { getMyQuota, purchaseTariff } from "@/lib/api/quota";
-import { aiReviewPost, generateAsync, pollTask, publishPost, updatePost } from "@/lib/api/orchestration";
+import {
+  aiReviewPost,
+  generateAsync,
+  pollTask,
+  publishPost,
+  updatePost,
+  getChannelSettings,
+  updateChannelSettings,
+  analyzeChannel,
+  verifySocial,
+} from "@/lib/api/orchestration";
 import { authorizeUrl } from "@/lib/api/oauth";
 
 interface Call {
@@ -147,6 +157,41 @@ describe("модули API бьют в адреса контракта", () => {
     expect(calls[0].method).toBe("POST");
     expect(review.critic).toBe("munger");
     expect(review.data?.corrections).toEqual(["Усилить CTA"]);
+  });
+
+  it("проверка канала — POST на socials/verify с каналом и ссылкой", async () => {
+    stubFetch({ channel: "telegram", reference: "@par", verified: true, provider: "t.me" });
+    const res = await verifySocial("telegram", "@par");
+
+    expect(calls[0].url).toBe("/api/v0/orchestration/socials/verify");
+    expect(calls[0].method).toBe("POST");
+    expect(calls[0].auth).toBe("Bearer token");
+    expect(calls[0].body).toBe(JSON.stringify({ channel: "telegram", reference: "@par" }));
+    expect(res.verified).toBe(true);
+  });
+
+  it("анализ канала — POST с projectId/каналом/лимитом", async () => {
+    stubFetch({ id: "a1", status: "COMPLETED" });
+    await analyzeChannel({ projectId: "p1", channel: "@foo", limit: 10 });
+
+    expect(calls[0].url).toBe("/api/v0/orchestration/channel/analyze");
+    expect(calls[0].method).toBe("POST");
+    expect(calls[0].body).toBe(JSON.stringify({ projectId: "p1", channel: "@foo", limit: 10 }));
+  });
+
+  it("настройки канала — GET с projectId в query, PUT с интервалом", async () => {
+    stubFetch({ projectId: "p1", autoRescanIntervalHours: 6, lastRescanAt: null });
+    const s = await getChannelSettings("p1");
+
+    expect(calls[0].url).toBe("/api/v0/orchestration/channel/settings?projectId=p1");
+    expect(calls[0].method).toBe("GET");
+    expect(calls[0].auth).toBe("Bearer token");
+    expect(s.autoRescanIntervalHours).toBe(6);
+
+    await updateChannelSettings("p1", 12);
+    expect(calls[1].url).toBe("/api/v0/orchestration/channel/settings?projectId=p1");
+    expect(calls[1].method).toBe("PUT");
+    expect(calls[1].body).toBe(JSON.stringify({ autoRescanIntervalHours: 12 }));
   });
 
   it("опрос задачи прекращается, как только она готова", async () => {

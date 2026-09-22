@@ -17,6 +17,7 @@ import { businessToProjectPatch, projectToBusiness } from "@/lib/api/mapBusiness
 import { deleteProject, getProject, updateProject, uploadLogo } from "@/lib/api/projects";
 import type { ProjectResponse } from "@/lib/api/types";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
+import ChannelConnectModal from "@/components/dashboard/business/ChannelConnectModal";
 
 const WEEK = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -100,6 +101,41 @@ export default function BusinessSettings() {
   };
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** Модалка привязки Telegram-канала (единственной реализованной соцсети). */
+  const [connectTelegram, setConnectTelegram] = useState(false);
+
+  /** Привязать/изменить канал: патчим только соцсети, правки формы не трогаем. */
+  const saveChannel = async (reference: string) => {
+    if (!projectId) throw new Error("Проект ещё не создан");
+    const updated = await updateProject(projectId, {
+      socialLinks: { ...(project?.socialLinks ?? {}), telegram: reference.trim() },
+    });
+    setProject(updated);
+    setB((prev) => ({
+      ...prev,
+      telegram: updated.socialLinks?.telegram ?? "",
+      socials: prev.socials.map((s) =>
+        s.id === "telegram" ? { ...s, connected: Boolean(updated.socialLinks?.telegram) } : s,
+      ),
+    }));
+    await reloadWorkspace();
+  };
+
+  /** Отвязать канал: пустая строка, т.к. MapStruct при null игнорирует поле. */
+  const disconnectChannel = async () => {
+    if (!projectId) throw new Error("Проект ещё не создан");
+    const updated = await updateProject(projectId, {
+      socialLinks: { ...(project?.socialLinks ?? {}), telegram: "" },
+    });
+    setProject(updated);
+    setB((prev) => ({
+      ...prev,
+      telegram: "",
+      socials: prev.socials.map((s) => (s.id === "telegram" ? { ...s, connected: false } : s)),
+    }));
+    await reloadWorkspace();
+  };
+
   const doDelete = async () => {
     setConfirmDelete(false);
     if (!projectId) {
@@ -203,34 +239,43 @@ export default function BusinessSettings() {
         </div>
       </SettingsCard>
 
-      {/* Соцсети */}
+      {/* Соцсети: Telegram — единственная реализованная соцсеть; клик по карточке открывает окно привязки */}
       <SettingsCard title="Соцсети бизнеса" desc="Подключённые каналы для публикаций">
-        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2.5">
           {b.socials.map((s) => {
             const ch = CHANNELS[s.id];
             return (
-              <li key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface-soft/60 px-3.5 py-3 backdrop-blur-sm">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card">
-                  {ch.icon && ch.iconType !== "wordmark"
-                    ? <Image src={ch.icon} alt="" width={22} height={22} className="h-[1.375rem] w-[1.375rem] object-contain" aria-hidden="true" />
-                    : <span className="h-[1.375rem] w-[1.375rem] rounded" style={{ backgroundColor: ch.colorVar }} aria-hidden="true" />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{ch.label}</p>
-                  <p className="flex items-center gap-1.5 text-xs text-ink-muted">
-                    {s.connected
-                      ? <><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" /> Подключено</>
-                      : "Не подключено"}
-                  </p>
-                </div>
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!projectId) {
+                      toast("Сначала создайте проект — канал пока некуда привязать");
+                      return;
+                    }
+                    setConnectTelegram(true);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface-soft/60 px-3.5 py-3 text-left backdrop-blur-sm transition hover:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
+                    {ch.icon && ch.iconType !== "wordmark"
+                      ? <Image src={ch.icon} alt="" width={22} height={22} className="h-[1.375rem] w-[1.375rem] object-contain" aria-hidden="true" />
+                      : <span className="h-[1.375rem] w-[1.375rem] rounded" style={{ backgroundColor: ch.colorVar }} aria-hidden="true" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink">{ch.label}</p>
+                    <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+                      {s.connected
+                        ? <><span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" /> Подключено{b.telegram ? ` · ${b.telegram}` : ""}</>
+                        : "Нажмите, чтобы подключить"}
+                    </p>
+                  </div>
+                  <Icon name="chevron-right" size={18} className="shrink-0 text-ink-muted" aria-hidden="true" />
+                </button>
               </li>
             );
           })}
         </ul>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Instagram" hint="ссылка или @хэндл" value={b.instagram} onChange={(v) => set("instagram", v)} placeholder="https://instagram.com/ваш_аккаунт" />
-          <Field label="Telegram" hint="ссылка или @хэндл канала" value={b.telegram} onChange={(v) => set("telegram", v)} placeholder="https://t.me/ваш_канал" />
-        </div>
       </SettingsCard>
 
       {/* Действия */}
@@ -269,6 +314,17 @@ export default function BusinessSettings() {
           </div>
         </div>
       </ModalShell>
+
+      {/* Привязка Telegram-канала к проекту */}
+      <ChannelConnectModal
+        open={connectTelegram}
+        onClose={() => setConnectTelegram(false)}
+        channel={CHANNELS.telegram}
+        connected={Boolean(b.telegram?.trim())}
+        handle={b.telegram}
+        onSave={saveChannel}
+        onDisconnect={disconnectChannel}
+      />
     </div>
   );
 }

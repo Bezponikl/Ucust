@@ -582,6 +582,53 @@
                 "response": "SocialVerifyResponse { channel, reference, verified, provider, error }"
               }
             ]
+          },
+          "ChannelAnalysisController": {
+            "tag": "Анализ Telegram-канала",
+            "basePath": "/orchestration",
+            "gatewayPattern": "/api/v0/orchestration/**",
+            "endpoints": [
+              {
+                "method": "POST",
+                "path": "/api/v0/orchestration/channel/analyze",
+                "summary": "Проанализировать Telegram-канал: сканирование через контур (parse_telegram), посты импортируются в контент-план как PUBLISHED (идемпотентно по externalId), метрики — в post_statistics",
+                "auth": "Bearer",
+                "requestBody": {
+                  "projectId": { "type": "UUID", "required": true },
+                  "channel": { "type": "string (@handle или ссылка t.me/...)", "required": true },
+                  "limit": { "type": "number (1..50, default 10)", "required": false },
+                  "includeMediaVqa": { "type": "boolean (default true)", "required": false }
+                },
+                "response": "ChannelAnalysisResponse { id, sessionId, projectId, channel, status, posts, objections, channelInfo, result, error }"
+              },
+              {
+                "method": "GET",
+                "path": "/api/v0/orchestration/channel/analysis/{id}",
+                "summary": "Состояние и результат анализа канала",
+                "auth": "Bearer",
+                "pathParams": { "id": "UUID" },
+                "response": "ChannelAnalysisResponse"
+              },
+              {
+                "method": "GET",
+                "path": "/api/v0/orchestration/channel/settings",
+                "summary": "Настройки автоскана канала проекта (интервал часов + время последнего скана). Доступно только при привязанном к проекту Telegram-канале, иначе 400 CHANNEL_NOT_BOUND",
+                "auth": "Bearer",
+                "queryParams": { "projectId": "UUID" },
+                "response": "ChannelSettingsResponse { projectId, autoRescanIntervalHours, lastRescanAt }"
+              },
+              {
+                "method": "PUT",
+                "path": "/api/v0/orchestration/channel/settings",
+                "summary": "Обновить интервал автоскана канала проекта (1..168 часов)",
+                "auth": "Bearer",
+                "queryParams": { "projectId": "UUID" },
+                "requestBody": {
+                  "autoRescanIntervalHours": { "type": "number (1..168)", "required": true }
+                },
+                "response": "ChannelSettingsResponse"
+              }
+            ]
           }
         }
       }

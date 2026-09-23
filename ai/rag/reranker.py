@@ -11,6 +11,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+import os
 from typing import List, Tuple
 from rag.models import RetrievalResult
 
@@ -24,15 +25,17 @@ class CrossEncoderReranker:
         self.model_name = model_name
         self.model = None
         
-        try:
-            from sentence_transformers import CrossEncoder
-            import torch
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            # Пробуем загрузить локально без сетевой блокировки
-            self.model = CrossEncoder(self.model_name, device=device, local_files_only=True)
-            print(f"[CrossEncoderReranker] 🟢 Кросс-энкодер '{self.model_name}' успешно загружен на {device.upper()}.")
-        except Exception:
-            # Fallback на быстрый детерминированный Reranker
+        # Загрузка только если есть явный флаг или доступна модель
+        if os.getenv("ENABLE_NEURAL_MODELS", "0") == "1":
+            try:
+                from sentence_transformers import CrossEncoder
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                self.model = CrossEncoder(self.model_name, device=device, local_files_only=True)
+                print(f"[CrossEncoderReranker] 🟢 Кросс-энкодер '{self.model_name}' успешно загружен на {device.upper()}.")
+            except Exception:
+                self.model = None
+        else:
             self.model = None
 
     def rerank(self, query: str, candidates: List[RetrievalResult], top_n: int = 3) -> List[RetrievalResult]:
@@ -57,16 +60,27 @@ class CrossEncoderReranker:
                 print(f"[CrossEncoderReranker] ⚠️ Ошибка инференса модели: {e}. Применяется fallback-ранжирование.")
 
         # Fallback Reranking: взвешенное комбинирование dense + sparse + term overlap
-        q_words = set(query.lower().split())
+        import re
+        try:
+            from skills.audit_deduplication_agent import AuditDeduplicationAgent
+            stem_fn = AuditDeduplicationAgent._stem_russian_word
+        except Exception:
+            stem_fn = lambda x: x
+
+        stop_words = {"какие", "что", "как", "в", "на", "и", "с", "по", "для"}
+        q_words = {stem_fn(w) for w in re.findall(r'\w+', query.lower()) if w not in stop_words and len(w) > 1}
+
         for res in candidates:
-            chunk_words = set(res.chunk.text.lower().split())
+            chunk_words = {stem_fn(w) for w in re.findall(r'\w+', res.chunk.text.lower()) if w not in stop_words and len(w) > 1}
             overlap_ratio = len(q_words.intersection(chunk_words)) / len(q_words) if q_words else 0.0
             
-            # Калиброванный скор релевантности
+            # Калиброванный скор релевантности (с минимальной базой при наличии совпадений)
+            base_score = 0.50 if (res.dense_score > 0 or res.sparse_score > 0 or overlap_ratio > 0) else 0.0
             final_score = (
-                0.45 * res.dense_score +
-                0.35 * res.sparse_score +
-                0.20 * overlap_ratio
+                base_score +
+                0.25 * (res.dense_score or 0.0) +
+                0.15 * (res.sparse_score or 0.0) +
+                0.35 * overlap_ratio
             )
             res.rerank_score = min(1.0, max(0.0, final_score))
             

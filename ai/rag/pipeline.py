@@ -45,19 +45,27 @@ class CleanRAGPipeline:
             
         return len(all_chunks)
 
+    def invalidate_cache(self, tenant_id: Optional[str] = None):
+        """Инвалидация кэша поисковых результатов для тенанта."""
+        self.retriever.invalidate_cache(tenant_id)
+
+    def delete_tenant(self, tenant_id: str):
+        """Удаление документов тенанта и сброс его кэша."""
+        self.retriever.delete_tenant(tenant_id)
+
     async def ingest_documents_async(self, documents: List[Document]) -> int:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.ingest_documents, documents)
 
-    def query(self, query_text: str, top_k_retrieval: int = 6, top_n_rerank: int = 3, tenant_id: Optional[str] = None) -> RAGContext:
+    def query(self, query_text: str, top_k_retrieval: int = 10, top_n_rerank: int = 5, tenant_id: Optional[str] = None) -> RAGContext:
         cleaned_query = TextSanitizer.sanitize(query_text)
         if not cleaned_query:
             return self.guard.format_and_guard(query_text, [])
 
-        # 1. Гибридный поиск с Multi-Tenant фильтром
+        # 1. Гибридный поиск с Multi-Tenant фильтром (Bounded: top_k_retrieval=10)
         retrieved_candidates = self.retriever.hybrid_search(cleaned_query, top_k=top_k_retrieval, tenant_id=tenant_id)
         
-        # 2. Кросс-энкодер переранжирование
+        # 2. Кросс-энкодер переранжирование (top_n_rerank=5)
         reranked_results = self.reranker.rerank(cleaned_query, retrieved_candidates, top_n=top_n_rerank)
         
         # 3. Guardrail защиты от галлюцинаций
@@ -65,6 +73,7 @@ class CleanRAGPipeline:
         
         return rag_context
 
-    async def query_async(self, query_text: str, top_k_retrieval: int = 6, top_n_rerank: int = 3, tenant_id: Optional[str] = None) -> RAGContext:
+    async def query_async(self, query_text: str, top_k_retrieval: int = 10, top_n_rerank: int = 5, tenant_id: Optional[str] = None) -> RAGContext:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.query, query_text, top_k_retrieval, top_n_rerank, tenant_id)
+

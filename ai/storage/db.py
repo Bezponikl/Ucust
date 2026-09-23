@@ -11,36 +11,30 @@ import sys
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, Optional
 
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-
 try:
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
     from sqlalchemy.ext.asyncio import (
         AsyncEngine,
         AsyncSession,
         async_sessionmaker,
         create_async_engine,
     )
+    class Base(DeclarativeBase):
+        """Base class for all SQLAlchemy v2.0 declarative models."""
+        pass
 except ImportError:
+    create_engine = None
+    select = None
+    DeclarativeBase = object
+    Session = Any
+    sessionmaker = Any
     create_async_engine = None
     AsyncEngine = Any
     AsyncSession = Any
     async_sessionmaker = Any
-
-# Reconfigure stdout encoding for Windows CP1251 compatibility
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
+    class Base:
         pass
-
-logger = logging.getLogger("ucust_db")
-
-
-class Base(DeclarativeBase):
-    """Base class for all SQLAlchemy v2.0 declarative models."""
-
-    pass
 
 
 # Database URL from environment variable

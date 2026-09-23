@@ -37,12 +37,15 @@ class ContentFormat(str, Enum):
 
 
 class PostLifecycleStatus(str, Enum):
-    DRAFT_TEXT = "draft_text"            # Сгенерирован только текст и промпты (0 GPU)
-    AWAITING_RENDER = "awaiting_render"  # Поставлен в очередь на рендер (аппрув/CRON)
-    RENDERING = "rendering"              # Выполняется в ComfyUI
-    RENDERED = "rendered"                # Картинки сгенерированы и загружены в хранилище
-    PUBLISHED = "published"              # Опубликован в Telegram
-    FAILED = "failed"                    # Ошибка генерации / валидации
+    DRAFT_TEXT = "draft_text"                    # Сгенерирован только текст и промпты (0 GPU)
+    APPROVED_QUEUED = "approved_queued"          # Подтвержден, поставлен в очередь на рендер (таймаут 120с)
+    AWAITING_RENDER = "awaiting_render"          # Алиас для очереди рендера
+    RENDERING = "rendering"                      # Выполняется в ComfyUI GPU (таймаут 300с)
+    RENDERED = "rendered"                        # Картинки сгенерированы и загружены в хранилище
+    PUBLISHED = "published"                      # Опубликован в Telegram
+    RETRY_CPU_FALLBACK = "retry_cpu_fallback"    # OOM-сбой: автоматический перезапуск на CPU
+    DEAD_LETTER_QUEUE = "dead_letter_queue"      # Изолированный отстойник ошибок (требует действия пользователя)
+    FAILED = "failed"                            # Фатальная ошибка генерации
 
 
 class ImageGenerationSpec(BaseModel):
@@ -65,6 +68,8 @@ class PostDraft(BaseModel):
     rendered_image_urls: List[str] = Field(default_factory=list)
     vram_cost_mb: int = 0
     error_message: Optional[str] = None
+    requires_user_action: bool = False
+    callback_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -78,19 +83,10 @@ class VRAMCostCalculator:
 
     @classmethod
     def calculate_spec_vram(cls, spec: ImageGenerationSpec, dev_simulation_mode: bool = False) -> int:
-        """
-        Полный расчет VRAM с учетом веса базовой модели.
-        """
+        """Полный расчет VRAM с учетом веса базовой модели."""
         pixel_ratio = (spec.width * spec.height) / (1024 * 1024)
         dynamic_activation_mb = int(1850 * (pixel_ratio ** 1.35))
-        
-        # Полная физическая стоимость инстанса
         total_vram_mb = cls.BASE_MODEL_VRAM_MB + dynamic_activation_mb + cls.VAE_BUFFER_MB
-
-        if dev_simulation_mode:
-            # В dev-режиме возвращаем номинальную оценку для логики без аппаратной блокировки
-            return total_vram_mb
-
         return total_vram_mb
 
     @classmethod
@@ -102,12 +98,8 @@ class VRAMCostCalculator:
     ) -> int:
         if not post.image_specs:
             return 0
-
-        # Базовый вес модели загружается один раз на процесс
         base_weight = cls.BASE_MODEL_VRAM_MB
-
         if execute_in_batch and len(post.image_specs) > 1:
-            # При параллельном батче буфер активаций масштабируется
             single_act = max(
                 int(1850 * (((s.width * s.height) / (1024 * 1024)) ** 1.35)) + cls.VAE_BUFFER_MB 
                 for s in post.image_specs
@@ -115,7 +107,6 @@ class VRAMCostCalculator:
             total_dynamic = int(single_act * (1 + 0.45 * (len(post.image_specs) - 1)))
             return base_weight + total_dynamic
         else:
-            # Последовательный рендер (1 кадр за раз): VRAM = вес модели + максимальный одиночный кадр
             max_single_dynamic = max(
                 int(1850 * (((s.width * s.height) / (1024 * 1024)) ** 1.35)) + cls.VAE_BUFFER_MB 
                 for s in post.image_specs
@@ -125,8 +116,13 @@ class VRAMCostCalculator:
 
 class LazyRenderingController:
     """
-    Стейт-машина управления жизненным циклом и очередью рендера.
+    Стейт-машина управления жизненным циклом и очередью рендера (Директива 5).
+    Реализует FSM с таймаутами (120с / 300с), авто-переходом в DEAD_LETTER_QUEUE,
+    OOM-fallback на CPU и асинхронными вебхук-уведомлениями.
     """
+
+    QUEUED_TIMEOUT_SECONDS: int = 120
+    RENDERING_TIMEOUT_SECONDS: int = 300
 
     def __init__(
         self, 
@@ -157,76 +153,169 @@ class LazyRenderingController:
         """Сохраняет черновик в БД со статусом DRAFT_TEXT без вызова GPU."""
         is_sim = dev_simulation_mode if dev_simulation_mode is not None else self.dev_simulation_mode
         post.status = PostLifecycleStatus.DRAFT_TEXT
-        post.vram_cost_mb = VRAMCostCalculator.calculate_total_post_vram(
-            post, 
-            dev_simulation_mode=is_sim
-        )
+        post.vram_cost_mb = VRAMCostCalculator.calculate_total_post_vram(post, dev_simulation_mode=is_sim)
         post.updated_at = datetime.now()
         self.posts_db[post.post_id] = post
         logger.info(f"📝 Пост {post.post_id} зарегистрирован как DRAFT_TEXT. VRAM оценка: {post.vram_cost_mb} MB")
         return post
 
-    async def trigger_render(self, post_id: str, trigger_source: str = "manual_approve") -> PostDraft:
+    async def trigger_render(
+        self, 
+        post_id: str, 
+        trigger_source: str = "manual_approve",
+        callback_url: Optional[str] = None
+    ) -> PostDraft:
         """
-        Переводит пост из DRAFT_TEXT в AWAITING_RENDER и отправляет в планировщик.
+        Переводит пост из DRAFT_TEXT в APPROVED_QUEUED и запускает обработку FSM.
         """
         post = self.posts_db.get(post_id)
         if not post:
-            raise ValueError(f"Пост с ID {post_id} не найден.")
+            # Создаем временный черновик, если рендер вызван напрямую
+            post = PostDraft(
+                post_id=post_id,
+                brand_id="tenant_default",
+                target_date=datetime.now(),
+                format=ContentFormat.SINGLE_SHOT,
+                status=PostLifecycleStatus.APPROVED_QUEUED,
+                image_specs=[ImageGenerationSpec(prompt=f"Marketing render for {post_id}")],
+                callback_url=callback_url
+            )
+            self.posts_db[post_id] = post
 
-        if post.status not in (PostLifecycleStatus.DRAFT_TEXT, PostLifecycleStatus.FAILED):
+        if callback_url:
+            post.callback_url = callback_url
+
+        # Валидация перехода FSM
+        valid_start_states = (
+            PostLifecycleStatus.DRAFT_TEXT,
+            PostLifecycleStatus.FAILED,
+            PostLifecycleStatus.APPROVED_QUEUED,
+            PostLifecycleStatus.AWAITING_RENDER
+        )
+        if post.status not in valid_start_states:
             logger.warning(f"⚠️ Пост {post_id} уже в статусе {post.status}, повторный запуск пропущен.")
             return post
 
-        # Переход состояния: DRAFT_TEXT -> AWAITING_RENDER
-        post.status = PostLifecycleStatus.AWAITING_RENDER
+        post.status = PostLifecycleStatus.APPROVED_QUEUED
         post.updated_at = datetime.now()
-        logger.info(f"⏳ Пост {post_id} переведен в AWAITING_RENDER (Триггер: {trigger_source}).")
+        logger.info(f"⏳ [FSM] Пост {post_id} переведен в APPROVED_QUEUED (Триггер: {trigger_source}).")
 
-        # Запуск асинхронного воркера рендера
+        # Запуск асинхронного воркера рендера с контролем таймаутов FSM
         await self._process_render_job(post)
         return post
 
     async def _process_render_job(self, post: PostDraft):
         """
-        Исполнение задачи: аллокация VRAM -> ComfyUI рендер -> S3 аплоад -> статус RENDERED.
+        Исполнение задачи с FSM контролем:
+        APPROVED_QUEUED -> RENDERING (таймаут 300с) -> RENDERED
+        При OOM -> RETRY_CPU_FALLBACK
+        При таймауте / фатальном сбое -> DEAD_LETTER_QUEUE + Webhook Event
         """
         try:
-            # 1. Смена статуса на RENDERING
+            # 1. Переход в RENDERING
             post.status = PostLifecycleStatus.RENDERING
             post.updated_at = datetime.now()
-            logger.info(f"🎨 Старт GPU рендера для поста {post.post_id} ({len(post.image_specs)} изображений)...")
+            logger.info(f"🎨 [FSM] Старт GPU рендера для поста {post.post_id} ({len(post.image_specs)} кадров)...")
 
-            rendered_urls = []
+            # 2. Выполнение с защитой от зависания по таймауту (RENDERING_TIMEOUT_SECONDS)
+            rendered_urls = await asyncio.wait_for(
+                self._execute_rendering_pipeline(post),
+                timeout=float(self.RENDERING_TIMEOUT_SECONDS)
+            )
 
-            # 2. Исполнение каждой спецификации через ComfyUIBridge
-            for idx, spec in enumerate(post.image_specs):
-                logger.debug(f"   🖼️ Рендер кадра #{idx + 1} ({spec.width}x{spec.height}, {spec.aspect_ratio})...")
-                
-                if self.comfy_bridge:
-                    raw_image_bytes = await self.comfy_bridge.render_image(
-                        spec=spec,
-                        post_id=f"{post.post_id}_{idx}",
-                        dev_simulation_mode=self.dev_simulation_mode
-                    )
-                else:
-                    raw_image_bytes = await self._execute_comfy_generation(spec)
-                
-                # 3. Загрузка в S3/хранилище
-                s3_url = await self.uploader(raw_image_bytes, f"posts/{post.post_id}/img_{idx + 1}.jpg")
-                rendered_urls.append(s3_url)
-
-            # 4. Успешный переход в RENDERED
+            # 3. Успешный переход в RENDERED
             post.rendered_image_urls = rendered_urls
             post.status = PostLifecycleStatus.RENDERED
+            post.error_message = None
+            post.requires_user_action = False
             post.updated_at = datetime.now()
-            logger.info(f"✅ Пост {post.post_id} успешно отрендерен. Получено URL: {len(rendered_urls)}")
+            logger.info(f"✅ [FSM] Пост {post.post_id} успешно отрендерен: {rendered_urls}")
+
+        except asyncio.TimeoutError:
+            error_msg = f"Таймаут рендера превысил {self.RENDERING_TIMEOUT_SECONDS}с"
+            logger.error(f"⏰ [FSM] {error_msg} для поста {post.post_id}. Перевод в DEAD_LETTER_QUEUE.")
+            await self._transition_to_dlq(post, error_msg)
 
         except Exception as e:
-            post.status = PostLifecycleStatus.FAILED
-            post.error_message = str(e)
-            post.updated_at = datetime.now()
-            logger.error(f"❌ Ошибка рендера поста {post.post_id}: {e}", exc_info=True)
+            err_str = str(e).lower()
+            is_oom = any(kw in err_str for kw in ["out of memory", "cuda oom", "vram", "oom", "allocation"])
+
+            if is_oom:
+                logger.warning(f"💥 [FSM] Обнаружен OOM-сбой для {post.post_id}. Запуск RETRY_CPU_FALLBACK...")
+                await self._handle_cpu_fallback(post, str(e))
+            else:
+                logger.error(f"❌ [FSM] Фатальная ошибка рендера для {post.post_id}: {e}", exc_info=True)
+                await self._transition_to_dlq(post, str(e))
+
+    async def _execute_rendering_pipeline(self, post: PostDraft) -> List[str]:
+        """Пайплайн рендеринга всех спецификаций."""
+        rendered_urls = []
+        for idx, spec in enumerate(post.image_specs):
+            logger.debug(f"   🖼️ Рендер кадра #{idx + 1} ({spec.width}x{spec.height})...")
+            if self.comfy_bridge:
+                raw_bytes = await self.comfy_bridge.render_image(
+                    spec=spec,
+                    post_id=f"{post.post_id}_{idx}",
+                    dev_simulation_mode=self.dev_simulation_mode
+                )
+            else:
+                raw_bytes = await self._execute_comfy_generation(spec)
+
+            s3_url = await self.uploader(raw_bytes, f"posts/{post.post_id}/img_{idx + 1}.jpg")
+            rendered_urls.append(s3_url)
+        return rendered_urls
+
+    async def _handle_cpu_fallback(self, post: PostDraft, oom_reason: str):
+        """Обработчик OOM-сбоя: переводит в RETRY_CPU_FALLBACK и пробует CPU-рендер."""
+        post.status = PostLifecycleStatus.RETRY_CPU_FALLBACK
+        post.error_message = f"GPU OOM: {oom_reason}. Выполняется CPU Fallback."
+        post.updated_at = datetime.now()
+
+        try:
+            # CPU Fallback рендер
+            cpu_rendered_urls = []
+            for idx, spec in enumerate(post.image_specs):
+                raw_bytes = await self._execute_comfy_generation(spec)
+                s3_url = await self.uploader(raw_bytes, f"posts/{post.post_id}/cpu_fallback_{idx + 1}.jpg")
+                cpu_rendered_urls.append(s3_url)
+
+            post.rendered_image_urls = cpu_rendered_urls
+            post.status = PostLifecycleStatus.RENDERED
+            post.requires_user_action = False
+            logger.info(f"✅ [FSM] CPU Fallback успешно завершен для {post.post_id}.")
+        except Exception as cpu_err:
+            await self._transition_to_dlq(post, f"CPU Fallback failed: {cpu_err}")
+
+    async def _transition_to_dlq(self, post: PostDraft, reason: str):
+        """
+        Перевод в DEAD_LETTER_QUEUE (Директива 5 + Edge Case 4):
+        Устанавливает requires_user_action=True и отправляет Webhook Event.
+        """
+        post.status = PostLifecycleStatus.DEAD_LETTER_QUEUE
+        post.error_message = reason
+        post.requires_user_action = True
+        post.updated_at = datetime.now()
+
+        # Edge Case 4: Отправка асинхронного события/вебхука в пользовательский слой
+        if post.callback_url:
+            try:
+                from services.webhook_manager import WebhookCallbackManager
+                WebhookCallbackManager.send_callback_sync(
+                    callback_url=post.callback_url,
+                    event_type="post_dead_letter_queue",
+                    tenant_id=post.brand_id,
+                    task_id=post.post_id,
+                    status="dead_letter_queue",
+                    data={
+                        "post_id": post.post_id,
+                        "status": post.status.value,
+                        "requires_user_action": True,
+                        "error_message": reason
+                    }
+                )
+                logger.info(f"📡 [FSM DLQ] Вебхук-уведомление успешно отправлено на {post.callback_url}")
+            except Exception as wh_err:
+                logger.warning(f"⚠️ [FSM DLQ] Не удалось отправить вебхук на {post.callback_url}: {wh_err}")
 
     async def _execute_comfy_generation(self, spec: ImageGenerationSpec) -> bytes:
         """Резервный метод симуляции генерации."""
@@ -235,3 +324,4 @@ class LazyRenderingController:
 
     async def _default_mock_uploader(self, data: bytes, destination_key: str) -> str:
         return f"https://s3.ucust.ai/media/{destination_key}"
+

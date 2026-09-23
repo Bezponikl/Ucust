@@ -11,6 +11,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+import os
 import math
 import re
 from typing import List, Dict, Any, Optional, Tuple
@@ -28,12 +29,15 @@ class LocalDenseStore:
         self.embeddings: List[List[float]] = []
         self.model = None
         
-        try:
-            from sentence_transformers import SentenceTransformer
-            import torch
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2", device=device, local_files_only=True)
-        except Exception:
+        if os.getenv("ENABLE_NEURAL_MODELS", "0") == "1":
+            try:
+                from sentence_transformers import SentenceTransformer
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                self.model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2", device=device, local_files_only=True)
+            except Exception:
+                self.model = None
+        else:
             self.model = None
 
     def _encode_text(self, text: str) -> List[float]:
@@ -63,6 +67,23 @@ class LocalDenseStore:
             self.chunks.append(chunk)
             emb = self._encode_text(chunk.text)
             self.embeddings.append(emb)
+
+    def delete_by_tenant(self, tenant_id: str) -> int:
+        """Удаление всех чанков тенанта из векторного хранилища."""
+        tid = tenant_id.strip().lower()
+        new_chunks = []
+        new_embeddings = []
+        deleted = 0
+        for chunk, emb in zip(self.chunks, self.embeddings):
+            c_tenant = (chunk.metadata.get("tenant_id") or chunk.metadata.get("company_name", "")).strip().lower().replace(" ", "_")
+            if c_tenant == tid:
+                deleted += 1
+            else:
+                new_chunks.append(chunk)
+                new_embeddings.append(emb)
+        self.chunks = new_chunks
+        self.embeddings = new_embeddings
+        return deleted
 
     def search(self, query: str, top_k: int = 10, tenant_id: Optional[str] = None) -> List[Tuple[Chunk, float]]:
         if not self.chunks:
@@ -115,6 +136,29 @@ class BM25SparseRetriever:
         self.corpus_size = len(self.chunks)
         self.avg_doc_length = sum(self.doc_lengths) / self.corpus_size if self.corpus_size > 0 else 0.0
 
+    def delete_by_tenant(self, tenant_id: str) -> int:
+        """Удаление всех чанков тенанта из разреженного индекса BM25."""
+        tid = tenant_id.strip().lower()
+        new_chunks = []
+        deleted = 0
+        for chunk in self.chunks:
+            c_tenant = (chunk.metadata.get("tenant_id") or chunk.metadata.get("company_name", "")).strip().lower().replace(" ", "_")
+            if c_tenant == tid:
+                deleted += 1
+            else:
+                new_chunks.append(chunk)
+        
+        # Пересчет индекса BM25
+        self.chunks = []
+        self.doc_lengths = []
+        self.avg_doc_length = 0.0
+        self.doc_freqs = Counter()
+        self.corpus_size = 0
+        self.doc_term_counts = []
+        if new_chunks:
+            self.add_chunks(new_chunks)
+        return deleted
+
     def search(self, query: str, top_k: int = 10, tenant_id: Optional[str] = None) -> List[Tuple[Chunk, float]]:
         if not self.chunks:
             return []
@@ -155,7 +199,7 @@ class BM25SparseRetriever:
 
 class HybridRetriever:
     """
-    Гибридный поисковый движок с поддержкой Multi-Tenant изоляции:
+    Гибридный поисковый движок с поддержкой Multi-Tenant изоляции и инвалидации кэша:
     Объединяет Dense (Векторный) и Sparse (BM25) результаты через Reciprocal Rank Fusion (RRF).
     """
     def __init__(self, rrf_k: int = 60, dense_weight: float = 0.6, sparse_weight: float = 0.4):
@@ -164,12 +208,44 @@ class HybridRetriever:
         self.rrf_k = rrf_k
         self.dense_weight = dense_weight
         self.sparse_weight = sparse_weight
+        self._query_cache: Dict[str, List[RetrievalResult]] = {}
 
     def index_chunks(self, chunks: List[Chunk]):
         self.dense_store.add_chunks(chunks)
         self.sparse_retriever.add_chunks(chunks)
+        # Инвалидация кэша для затронутых tenant_id (Edge Case 3)
+        affected_tenants = {
+            (c.metadata.get("tenant_id") or c.metadata.get("company_name", "")).strip().lower().replace(" ", "_")
+            for c in chunks if c.metadata
+        }
+        for tid in affected_tenants:
+            if tid:
+                self.invalidate_cache(tid)
+            else:
+                self._query_cache.clear()
 
-    def hybrid_search(self, query: str, top_k: int = 5, tenant_id: Optional[str] = None) -> List[RetrievalResult]:
+    def invalidate_cache(self, tenant_id: Optional[str] = None):
+        """Инвалидация кэша поисковых запросов по tenant_id или глобально."""
+        if not tenant_id:
+            self._query_cache.clear()
+            return
+
+        tid = tenant_id.strip().lower()
+        keys_to_delete = [k for k in self._query_cache if k.startswith(f"{tid}:")]
+        for k in keys_to_delete:
+            del self._query_cache[k]
+
+    def delete_tenant(self, tenant_id: str):
+        """Удаление данных тенанта и сброс его кэша."""
+        self.dense_store.delete_by_tenant(tenant_id)
+        self.sparse_retriever.delete_by_tenant(tenant_id)
+        self.invalidate_cache(tenant_id)
+
+    def hybrid_search(self, query: str, top_k: int = 10, tenant_id: Optional[str] = None) -> List[RetrievalResult]:
+        cache_key = f"{tenant_id.strip().lower() if tenant_id else 'global'}:{query.strip().lower()}:{top_k}"
+        if cache_key in self._query_cache:
+            return self._query_cache[cache_key]
+
         dense_results = self.dense_store.search(query, top_k=top_k * 2, tenant_id=tenant_id)
         sparse_results = self.sparse_retriever.search(query, top_k=top_k * 2, tenant_id=tenant_id)
         
@@ -202,4 +278,6 @@ class HybridRetriever:
             )
             
         combined.sort(key=lambda x: x.hybrid_score, reverse=True)
-        return combined[:top_k]
+        final_results = combined[:top_k]
+        self._query_cache[cache_key] = final_results
+        return final_results

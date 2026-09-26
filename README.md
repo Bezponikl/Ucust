@@ -17,7 +17,7 @@
     ┌─────────────────────────────┬───────┴─────────────────────┬───────────────────────────┐
     ▼                             ▼                             ▼                           ▼
 [ Market Intelligence ]     [ Saiga LLM & VQA ]        [ Visual & Studio ]        [ Smart Publishers ]
-• WebsiteCollector          • SaigaLLMSkill (8B)       • ComfyUI / LTX-2.3        • Telegram Rich Publisher
+• WebsiteCollector          • SaigaLLMSkill (12B)       • ComfyUI / LTX-2.3        • Telegram Rich Publisher
 • TrendCollector            • Moondream VQA            • Dynamic 2x2 Collage       • VK / OK / MAX Publishers
 • EventHolidayCollector     • Charlie Munger Critic    • Vector DB / Chroma        • Edit Buttons without delete
 • CompetitorParser          • SecurityGuard            • S3 / MinIO Media          • 100% Width Matching Album
